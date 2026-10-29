@@ -48,7 +48,9 @@ for (const product of catalog.data.items) {
 assert.equal(webCatalog.status,200);
 assert.equal(webCatalog.data?.items?.length,catalog.data.items.length);
 assert.equal(home.status,200);
-assert.match(home.text,/Objects for|better living/i);
+assert.match(home.text,/Kategori Produk/i);
+assert.match(home.text,/Brand Partner/i);
+assert.match(home.text,/Produk Pilihan/i);
 assert.equal(unauthorized.status,401,'Admin status must reject anonymous users');
 assert.equal(adminProductsAnon.status,401,'Admin product inventory must reject anonymous users');
 assert.equal(webAdminProductsAnon.status,401,'Admin web proxy must reject anonymous users');
