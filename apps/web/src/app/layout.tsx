@@ -24,15 +24,16 @@ export default function RootLayout({children}:{children:React.ReactNode}){
           <h3>Ikuti Kami</h3>
           <div className="vm-footer-social"><span aria-label="Facebook">f</span><span aria-label="YouTube">▶</span><span aria-label="Instagram">◎</span></div>
         </div>
-        <div className="vm-footer-links"><h3>Ikuti Kami</h3>
-          <Link href="/#news">Tentang</Link><Link href="/#brand">Partnership</Link><Link href="/#promo">Promo</Link>
-          <Link href="/akun">Konfirmasi Pembayaran</Link><Link href="/akun">Lacak Orderan</Link><Link href="/catalog">Cara belanja</Link>
+        <div className="vm-footer-links"><h3>Jelajahi</h3>
+          <Link href="/#news">Inspirasi & News</Link><Link href="/brand-partner">Brand Partner</Link>
+          <Link href="/catalog">Katalog baru</Link><Link href="/member-2">Member</Link>
+          <Link href="/login">Akun pelanggan</Link>
         </div>
-        <div className="vm-footer-links"><h3>Ikuti Kami</h3>
-          <Link href="/catalog">Layanan Pembelian</Link><p>Senin - Sabtu</p><p>10.00 - 17.00 WIB</p>
-          <p>WhatsApp</p><p>Kontak ditinjau sebelum produksi</p>
+        <div className="vm-footer-links"><h3>Informasi</h3>
+          <Link href="/asset-review">Arsip visual</Link><Link href="/keranjang-2">Keranjang DEMO</Link>
+          <p>Checkout belum tersedia</p><p>Customer support sedang disiapkan</p>
         </div>
-        <div className="vm-footer-support"><div className="vm-footer-support-title"><h3>Member Support</h3><strong>24/7</strong></div>
+        <div className="vm-footer-support"><div className="vm-footer-support-title"><h3>Pusat Bantuan</h3><strong>Staging</strong></div>
           <div className="vm-support-box"><span className="vm-support-symbol" aria-hidden="true">☏</span>
             <div><strong>WhatsApp</strong><small>Belum aktif pada staging</small></div>
           </div>

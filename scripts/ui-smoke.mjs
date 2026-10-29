@@ -131,6 +131,7 @@ try{
   await page.getByRole('dialog',{name:'Keranjang belanja'}).waitFor();
   assert.equal(await page.locator('.cart-row').count(),1);
   await page.getByRole('button',{name:'Tutup',exact:true}).click();
+  assert.equal(await page.getByRole('dialog',{name:'Keranjang belanja'}).count(),0,'closing cart drawer must dismiss modal');
   await page.goto(BASE+'/keranjang-2',{waitUntil:'networkidle',timeout:45000});
   assert.equal(await page.locator('.vm-cart-item').count(),1,'DEMO cart should persist across routes');
   assert.ok(await page.getByRole('button',{name:'Checkout belum tersedia'}).isDisabled());
@@ -164,6 +165,8 @@ try{
   assert.ok(await page.locator('.vm-reference-mobile-nav').isVisible(),'mobile navigation visible');
   const mobilePill=await page.locator('.vm-reference-mobile-nav').evaluate(el=>parseFloat(getComputedStyle(el).borderTopLeftRadius));
   assert.ok(mobilePill>=30,'mobile nav should be a floating pill');
+  const labelFont=await page.locator('.vm-modern-mobile-nav a span').first().evaluate(el=>parseFloat(getComputedStyle(el).fontSize));
+  assert.ok(labelFont<=11,'mobile navigation label must not overlap: '+labelFont+'px');
   const tapTarget=await page.locator('.vm-reference-mobile-nav a').first().boundingBox();
   assert.ok(tapTarget&&tapTarget.height>=44,'mobile nav touch target must be at least 44px');
   await page.goto(BASE+'/product-category/pod',{waitUntil:'networkidle',timeout:45000});
