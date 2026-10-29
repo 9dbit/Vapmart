@@ -10,6 +10,7 @@ import './reference.css';
 import './checkpoint10.css';
 import './modern.css';
 import './modern-fixes.css';
+import './checkpoint13.css';
 export const metadata:Metadata={
  title:{default:'VapMart | Marketplace',template:'%s | VapMart'},
  description:'Rebuild staging Vapmart. Referensi visual WordPress, katalog baru sedang disiapkan. Checkout belum tersedia.',
