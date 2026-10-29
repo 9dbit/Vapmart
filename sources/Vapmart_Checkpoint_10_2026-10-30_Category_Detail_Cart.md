@@ -67,3 +67,8 @@
 2. Finish customer login via dedicated Supabase Auth project and role separation admin/customer.
 3. Audit responsive typography, footer, menu/cart behavior, and remaining category pages against a current WordPress visual reference when accessible.
 4. Re-enable purchase/order flow only after stock, payment, security, customer auth, shipping and finance QA gates pass.
+
+## CI geometry stability follow-up
+- One documentation-only workflow run failed the strict homepage top-position assertion before web fonts had settled. The same implementation had previously passed browser QA, and RDC Chromium measured exactly y=1007 desktop / y=692 mobile.
+- Updated `scripts/ui-smoke.mjs` to wait for network idle and `document.fonts.ready` after the release marker, add measured coordinates to assertion messages, and allow a 16px cross-run font-rendering tolerance. Layout remains measured independently with the source baseline JSON.
+- This is a test stabilization change only. No checkout, product data, or production infrastructure was modified.
