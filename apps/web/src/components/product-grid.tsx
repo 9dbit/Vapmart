@@ -13,9 +13,9 @@ function ProductCard({product,index}:{product:Product;index:number}){
   </Link><div className="product-description"><div className="product-copy"><p className="eyebrow">{product.category}</p><Link href={`/product/${product.slug}`}><h3>{product.name}</h3></Link><strong>{formatIDR(product.price_idr)}</strong></div><button type="button" disabled={soldOut} onClick={()=>add(product)} className="add-circle" aria-label={`Tambahkan ${product.name} ke keranjang`}>+</button></div></article>;
 }
 
-export function ProductGrid({products,initialCategory='all'}:{products:Product[];initialCategory?:string}){
+export function ProductGrid({products,initialCategory='all',initialTerm=''}:{products:Product[];initialCategory?:string;initialTerm?:string}){
   const [category,setCategory]=useState(initialCategory);
-  const [term,setTerm]=useState('');
+  const [term,setTerm]=useState(initialTerm);
   const [sort,setSort]=useState('newest');
   const filtered=useMemo(()=>{
     let result=products.filter(p=>p.is_active&&(!category||category==='all'||p.category===category)&&(!term||`${p.name} ${p.description}`.toLowerCase().includes(term.toLowerCase().trim())));

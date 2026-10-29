@@ -8,40 +8,45 @@ export function SiteHeader(){
   return <>
     <div className="legacy-topbar">
       <div className="main-container legacy-topbar-inner">
-        <span>Vapmart Store · Preview Katalog Non-Nikotin</span>
+        <span>VAPMART · NEW COLLECTION</span>
         <div className="legacy-topbar-actions">
-          <button type="button" onClick={()=>setOpen(true)} aria-label="Buka keranjang dari header">
-            {formatIDR(subtotal)} <span>{count} Cart</span>
-          </button>
+          <span className="vm-preview-notice">PREVIEW NON-NIKOTIN</span>
+          <button type="button" onClick={()=>setOpen(true)} aria-label="Buka keranjang dari header">{formatIDR(subtotal)} <span>{count} Cart</span></button>
           <Link href="/akun">Login</Link>
         </div>
       </div>
     </div>
     <header className="legacy-header">
-      <div className="main-container legacy-header-inner">
-        <Link href="/" className="legacy-logo" aria-label="Vapmart beranda">
-          <span className="legacy-logo-icon" aria-hidden="true">V</span>
-          <span>Vap<span>Mart</span></span>
+      <div className="main-container vm-header-main">
+        <Link href="/" className="legacy-logo" aria-label="Beranda Vapmart">
+          <img src="/legacy/vapmart-logo-white.webp" alt="Vapmart" width="176" height="39"/>
         </Link>
-        <nav className="legacy-main-nav" aria-label="Menu utama">
-          <Link href="/">Home</Link>
-          <Link href="/#categories">Kategori Produk</Link>
-          <Link href="/#shop">Produk Pilihan</Link>
-          <Link href="/#promo">Promo</Link>
-          <Link href="/#brand">Brand Partner</Link>
-        </nav>
+        <form action="/" method="GET" className="vm-header-search-form" role="search">
+          <label htmlFor="vm-header-search" className="sr-only">Cari produk Vapmart</label>
+          <input id="vm-header-search" type="search" name="q" maxLength={80} placeholder="Cari produk Vapmart..." autoComplete="off"/>
+          <button type="submit" aria-label="Cari produk">⌕</button>
+        </form>
         <div className="legacy-header-actions">
-          <Link href="/#shop" className="legacy-header-search" aria-label="Cari produk">⌕</Link>
-          <Link href="/akun" className="legacy-header-account" aria-label="Akun">♙</Link>
+          <Link href="/akun" className="legacy-header-account" aria-label="Akun pelanggan"><span aria-hidden="true">♙</span></Link>
           <button type="button" className="cart-icon legacy-cart-trigger" onClick={()=>setOpen(true)} aria-label={`Buka keranjang, ${count} barang`}>
             <span aria-hidden="true">▤</span><span className="cart-count">{count}</span>
           </button>
         </div>
       </div>
+      <div className="vm-navigation-wrap">
+        <nav className="main-container legacy-main-nav" aria-label="Menu utama">
+          <Link href="/">Home</Link>
+          <Link href="/#categories">Kategori Produk</Link>
+          <Link href="/#promo">Promo</Link>
+          <Link href="/#brand">Brand Partner</Link>
+          <Link href="/#shop">Produk Pilihan</Link>
+          <Link href="/#news">News</Link>
+        </nav>
+      </div>
     </header>
     <nav className="legacy-mobile-nav" aria-label="Navigasi seluler">
       <Link href="/"><span aria-hidden="true">⌂</span>Home</Link>
-      <Link href="/#member"><span aria-hidden="true">♧</span>Member</Link>
+      <Link href="/#categories"><span aria-hidden="true">⊞</span>Kategori</Link>
       <Link href="/#promo"><span aria-hidden="true">◇</span>Promo</Link>
       <button type="button" onClick={()=>setOpen(true)}><span aria-hidden="true">▤</span>Keranjang</button>
       <Link href="/akun"><span aria-hidden="true">♙</span>Akun</Link>

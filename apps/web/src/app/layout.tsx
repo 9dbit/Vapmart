@@ -3,6 +3,7 @@ import {CartProvider} from '@/lib/cart';
 import {SiteHeader} from '@/components/site-header';
 import './globals.css';
 import './legacy.css';
+import './brand.css';
 
 export const metadata:Metadata={
  title:{default:'VapMart | Marketplace',template:'%s | VapMart'},
@@ -14,7 +15,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
     <footer className="legacy-footer">
       <div className="main-container legacy-footer-cols">
         <div className="legacy-footer-about">
-          <div className="legacy-logo legacy-footer-logo"><span className="legacy-logo-icon">V</span><span>Vap<span>Mart</span></span></div>
+          <div className="legacy-footer-logo"><img src="/legacy/vapmart-logo-white.webp" alt="Vapmart" width="172" height="38"/></div>
           <p>Marketplace Vapmart sedang diperbarui dengan katalog produk non-nikotin. Preview staging ini belum menerima transaksi.</p>
         </div>
         <div className="legacy-footer-group"><h3>Ikuti Kami</h3><LinkList/></div>

@@ -12,11 +12,25 @@ const categoryTiles=[
   {slug:'electronics',name:'Electronics',glyph:'⚡'},
 ];
 
-export default async function Home({searchParams}:{searchParams:Promise<{category?:string}>}){
-  const {category}=await searchParams;
+export default async function Home({searchParams}:{searchParams:Promise<{category?:string;q?:string}>}){
+  const {category,q}=await searchParams;
+  const initialSearch=typeof q==='string'?q.slice(0,80):'';
   const selectedCategory=typeof category==='string'&&['home','lifestyle','decor','accessories','electronics','other'].includes(category)?category:'all';
   const products=await getProducts();
-  return <main className="legacy-home" id="home"><section className="legacy-banner-reference" aria-label="Banner Vapmart non-nikotin"><div className="legacy-banner-placeholder"><span>VAPMART · KOLEKSI BARU</span><strong>Produk pilihan untuk kebutuhan sehari-hari.</strong><Link href="/#shop">Lihat Katalog →</Link></div></section>
+  return <main className="legacy-home" id="home"><section className="legacy-banner-reference vm-banner-outer" aria-label="Banner Vapmart non-nikotin">
+    <div className="vm-banner-frame">
+      <div className="vm-banner-glow vm-banner-glow-one" aria-hidden="true"/>
+      <div className="vm-banner-glow vm-banner-glow-two" aria-hidden="true"/>
+      <div className="vm-banner-copy">
+        <span className="vm-banner-label">VAPMART · ORIGINAL BRAND / NEW COLLECTION</span>
+        <h2>Koleksi baru.<br/><strong>Gaya tetap Vapmart.</strong></h2>
+        <p>Temukan pilihan home, lifestyle, decor, dan accessories dalam satu tempat.</p>
+        <Link href="/#shop" className="vm-banner-cta">JELAJAHI PRODUK <span aria-hidden="true">↗</span></Link>
+      </div>
+      <div className="vm-banner-art" aria-hidden="true"><div className="vm-banner-rings"/><div className="vm-banner-disc"/><div className="vm-banner-stamp">VAPMART</div></div>
+    </div>
+    <div className="vm-banner-dots" aria-hidden="true"><i/><i/><i/></div>
+  </section>
     <section className="main-container legacy-categories" id="categories">
       <div className="legacy-section-title"><h1>Kategori Produk</h1><span>Jelajahi kategori</span></div>
       <div className="legacy-category-tiles">
@@ -54,7 +68,7 @@ export default async function Home({searchParams}:{searchParams:Promise<{categor
       </div>
     </section>
     <div className="main-container legacy-product-wrapper">
-      <ProductGrid key={selectedCategory} products={products} initialCategory={selectedCategory}/>
+      <ProductGrid key={selectedCategory} products={products} initialCategory={selectedCategory} initialTerm={initialSearch}/>
     </div>
     <section className="main-container legacy-news" id="news">
       <div className="legacy-section-title"><h2>News</h2><span>Informasi dari Vapmart</span></div>
