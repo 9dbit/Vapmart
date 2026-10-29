@@ -1,69 +1,88 @@
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
-const URL='https://vapmart-web-staging.up.railway.app';
+const BASE='https://vapmart-web-staging.up.railway.app';
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const browser=await chromium.launch({headless:true});
 const page=await browser.newPage({viewport:{width:1440,height:900}});
 try{
-  await page.goto(URL,{waitUntil:'networkidle',timeout:45000});
-  await page.locator('.product-card').first().waitFor({timeout:30000});
-  await page.locator('.vm-carousel-slide').first().waitFor({timeout:15000});
-  assert.equal(await page.locator('.vm-carousel-slide').count(),3,'three archived hero slides should exist');
-  assert.equal(await page.locator('.vm-brand-logo').count(),12,'twelve brand logos should render');
-  const bannerLoaded=await page.locator('.vm-carousel-slide img').first().evaluate(img=>img.complete&&img.naturalWidth>0);
-  assert.ok(bannerLoaded,'original WordPress hero image must load');
-  assert.match(await page.locator('.vm-carousel-slide img').first().evaluate(img=>img.currentSrc),/desktop-01\.png/);
-
-  for(const id of ['categories','promo','brand','shop','news'])assert.equal(await page.locator('#'+id).count(),1,'missing legacy section '+id);
-  assert.ok(await page.getByRole('heading',{name:'Kategori Produk'}).isVisible());
-  assert.equal(await page.locator('.legacy-category-tile').count(),5,'expected five category tiles');
-  assert.ok(await page.locator('.product-card').count()>=4,'staging demo catalog must contain 4 products');
-  const contrastChecks=await page.evaluate(()=>{
-    const rgb=text=>(text.match(/\d+(?:\.\d+)?/g)||[]).slice(0,3).map(Number);
-    const luminance=text=>{
-      const weights=[0.2126,0.7152,0.0722];
-      return rgb(text).reduce((sum,channel,index)=>{
-        const c=channel/255;
-        return sum+weights[index]*(c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4));
-      },0);
-    };
+  let ready=false;
+  for(let attempt=0;attempt<45;attempt++){
+    try{
+      const response=await page.goto(BASE+'/',{waitUntil:'domcontentloaded',timeout:20000});
+      if(response?.status()===200&&await page.locator('[data-vapmart-ui="cp09"]').count()===1){ready=true;break;}
+    }catch(e){console.log('wait for staging revision',attempt,String(e).slice(0,100));}
+    await sleep(6000);
+  }
+  assert.ok(ready,'Checkpoint09 UI did not appear on staging within deployment retry window');
+  await page.locator('.vm-reference-card').first().waitFor({timeout:15000});
+  assert.equal(await page.locator('.vm-carousel-slide').count(),3,'Original carousel should contain three slides');
+  assert.equal(await page.locator('.vm-brand-logo').count(),12,'Original brand slider should contain 12 logos');
+  assert.equal(await page.locator('.vm-feature-category').count(),5,'Original category rail should have five tiles');
+  assert.equal(await page.locator('.vm-reference-card').count(),12,'Original reference has twelve product cards');
+  assert.equal(await page.locator('.vm-reference-news-card').count(),10,'Original reference has ten article cards');
+  for(const id of ['categories','promo','brand','shop','news'])assert.equal(await page.locator('#'+id).count(),1,'missing section '+id);
+  const visual=await page.evaluate(()=>{
+    const px=selector=>document.querySelector(selector).getBoundingClientRect();
+    const rgb=value=>(value.match(/\d+(?:\.\d+)?/g)||[]).slice(0,3).map(Number);
+    const luminance=value=>rgb(value).reduce((sum,c,i)=>{
+      const x=c/255;return sum+[0.2126,0.7152,0.0722][i]*(x<=0.04045?x/12.92:Math.pow((x+0.055)/1.055,2.4));
+    },0);
     const contrast=(fg,bg)=>{
-      const a=luminance(fg),b=luminance(bg);
-      return (Math.max(a,b)+0.05)/(Math.min(a,b)+0.05);
+      const x=luminance(fg),y=luminance(bg);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);
     };
-    const headerBg=getComputedStyle(document.querySelector('.legacy-header')).backgroundColor;
+    const header=getComputedStyle(document.querySelector('.vm-reference-header'));
     const pairs=[
-      ['Product title','.legacy-product-wrapper .product-copy h3','.legacy-product-wrapper .product-description'],
-      ['News title','.legacy-news-card h3','.legacy-news-card'],
-      ['Member tile','.legacy-promo-member strong','.legacy-promo-member'],
-      ['Points tile','.legacy-promo-points strong','.legacy-promo-points']
+      ['Product reference','.vm-reference-card h3','.vm-reference-card'],
+      ['News article','.vm-reference-news-card>div','.vm-reference-news-card']
     ];
-    return {headerBg,headerLuminance:luminance(headerBg),pairs:pairs.map(([name,fg,bg])=>({
-      name,ratio:contrast(getComputedStyle(document.querySelector(fg)).color,getComputedStyle(document.querySelector(bg)).backgroundColor)
-    }))};
+    return {
+      headerHeight:Math.round(px('.vm-reference-header').height),
+      bannerWidth:Math.round(px('.vm-original-banner').width),
+      productColumns:getComputedStyle(document.querySelector('.vm-reference-grid')).gridTemplateColumns.trim().split(/\s+/).length,
+      newsColumns:getComputedStyle(document.querySelector('.vm-reference-news-grid')).gridTemplateColumns.trim().split(/\s+/).length,
+      headerBg:header.backgroundColor,
+      logoLoaded:document.querySelector('.legacy-logo img').naturalWidth>0,
+      bannerSrc:document.querySelector('.vm-carousel-slide img').currentSrc,
+      pairs:pairs.map(([name,fg,bg])=>({
+        name,ratio:contrast(getComputedStyle(document.querySelector(fg)).color,getComputedStyle(document.querySelector(bg)).backgroundColor)
+      }))
+    };
   });
-  assert.ok(contrastChecks.headerLuminance<0.1,'Vapmart logo needs dark header: '+JSON.stringify(contrastChecks));
-  for(const pair of contrastChecks.pairs)assert.ok(pair.ratio>=4.5,'Unreadable '+pair.name+' contrast: '+pair.ratio);
-  const add=page.getByRole('button',{name:/Tambahkan DEMO/}).first();
-  await add.click();
+  assert.equal(visual.headerHeight,72,'original desktop header is 72px');
+  assert.ok(Math.abs(visual.bannerWidth-1296)<=4,'desktop banner should use 90% at 1440px');
+  assert.equal(visual.productColumns,6,'original featured grid should have six columns desktop');
+  assert.equal(visual.newsColumns,5,'original news grid should have five columns desktop');
+  assert.equal(visual.headerBg,'rgb(18, 18, 18)');
+  assert.ok(visual.logoLoaded,'Vapmart original logo should load');
+  assert.match(visual.bannerSrc,/desktop-01\.png/);
+  for(const x of visual.pairs)assert.ok(x.ratio>=4.5,'Unreadable '+x.name+' contrast '+x.ratio);
+  assert.equal(await page.locator('.vm-reference-card button').count(),0,'archival products must not have purchase buttons');
+  await page.goto(BASE+'/catalog',{waitUntil:'networkidle',timeout:45000});
+  await page.locator('.product-card').first().waitFor({timeout:30000});
+  assert.ok(await page.locator('.product-card').count()>=4,'four DEMO items should remain in a separate catalog');
+  await page.getByRole('button',{name:/Tambahkan DEMO/}).first().click();
   await page.getByRole('dialog',{name:'Keranjang belanja'}).waitFor();
-  assert.equal(await page.locator('.cart-row').count(),1,'cart should receive item');
+  assert.equal(await page.locator('.cart-row').count(),1);
   await page.getByRole('button',{name:'Tutup',exact:true}).click();
   await page.locator('#shop-search').fill('Ceramic');
-  assert.equal(await page.locator('.product-card').count(),1,'search filter should reduce visible products');
+  assert.equal(await page.locator('.product-card').count(),1);
   await page.locator('.product-card a').first().click();
   await page.waitForURL(/\/product\/demo-ceramic-accent-vase/,{timeout:15000});
   assert.match(await page.locator('h1').innerText(),/Ceramic Accent Vase/);
-  assert.ok(await page.getByRole('button',{name:/Tambahkan ke keranjang/}).isEnabled());
-  await page.goto(URL+'/?category=decor#shop',{waitUntil:'networkidle',timeout:45000});
-  await page.locator('.product-card').first().waitFor();
-  assert.equal(await page.locator('.product-card').count(),1,'legacy category navigation must filter inventory');
+  await page.goto(BASE+'/catalog?category=decor#shop',{waitUntil:'networkidle',timeout:45000});
+  assert.equal(await page.locator('.product-card').count(),1,'decor filter should be respected');
   await page.setViewportSize({width:390,height:844});
-  await page.goto(URL,{waitUntil:'networkidle',timeout:45000});
-  await page.locator('.product-card').first().waitFor();
-  const mobileSource=await page.locator('.vm-carousel-slide img').first().evaluate(img=>img.currentSrc);
-  assert.match(mobileSource,/mobile-01\.png/,'mobile should load the WordPress mobile banner');
-  assert.ok(await page.locator('.legacy-mobile-nav').isVisible(),'legacy 5-item mobile navigation should be visible');
-  const overflow=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,view:window.innerWidth}));
-  assert.ok(overflow.scroll<=overflow.view+2,'unexpected horizontal page overflow '+JSON.stringify(overflow));
-  console.log('VAPMART_UI_SMOKE_SUCCESS',{desktopCatalog:true,cart:true,search:true,detail:true,legacySections:true,categoryNavigation:true,originalHero:true,originalBrandLogos:true,mobile:true,overflow});
+  await page.goto(BASE+'/',{waitUntil:'networkidle',timeout:45000});
+  const mobile=await page.evaluate(()=>({
+    headerHeight:Math.round(document.querySelector('.vm-reference-header').getBoundingClientRect().height),
+    bannerSrc:document.querySelector('.vm-carousel-slide img').currentSrc,
+    columns:getComputedStyle(document.querySelector('.vm-reference-grid')).gridTemplateColumns.trim().split(/\s+/).length,
+    scroll:document.documentElement.scrollWidth,view:window.innerWidth
+  }));
+  assert.equal(mobile.headerHeight,64);
+  assert.equal(mobile.columns,2);
+  assert.match(mobile.bannerSrc,/mobile-01\.png/);
+  assert.ok(mobile.scroll<=mobile.view+2,'horizontal overflow '+JSON.stringify(mobile));
+  assert.ok(await page.locator('.vm-reference-mobile-nav').isVisible(),'mobile navigation visible');
+  console.log('VAPMART_UI_SMOKE_SUCCESS',JSON.stringify({visual,mobile,archiveProducts:12,news:10,cart:'tested-on-catalog',checkout:'disabled'}));
 }finally{await browser.close();}

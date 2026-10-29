@@ -6,49 +6,30 @@ import {formatIDR} from '@/lib/types';
 export function SiteHeader(){
   const {items,count,subtotal,setOpen,open,setQuantity,remove}=useCart();
   return <>
-    <div className="legacy-topbar">
-      <div className="main-container legacy-topbar-inner">
-        <span>VAPMART · NEW COLLECTION</span>
-        <div className="legacy-topbar-actions">
-          <span className="vm-preview-notice">PREVIEW NON-NIKOTIN</span>
-          <button type="button" onClick={()=>setOpen(true)} aria-label="Buka keranjang dari header">{formatIDR(subtotal)} <span>{count} Cart</span></button>
-          <Link href="/akun">Login</Link>
-        </div>
-      </div>
-    </div>
-    <header className="legacy-header">
+    <header className="legacy-header vm-reference-header">
       <div className="main-container vm-header-main">
-        <Link href="/" className="legacy-logo" aria-label="Beranda Vapmart">
-          <img src="/legacy/vapmart-logo-white.webp" alt="Vapmart" width="176" height="39"/>
-        </Link>
-        <form action="/" method="GET" className="vm-header-search-form" role="search">
-          <label htmlFor="vm-header-search" className="sr-only">Cari produk Vapmart</label>
-          <input id="vm-header-search" type="search" name="q" maxLength={80} placeholder="Cari produk Vapmart..." autoComplete="off"/>
-          <button type="submit" aria-label="Cari produk">⌕</button>
-        </form>
-        <div className="legacy-header-actions">
-          <Link href="/akun" className="legacy-header-account" aria-label="Akun pelanggan"><span aria-hidden="true">♙</span></Link>
-          <button type="button" className="cart-icon legacy-cart-trigger" onClick={()=>setOpen(true)} aria-label={`Buka keranjang, ${count} barang`}>
-            <span aria-hidden="true">▤</span><span className="cart-count">{count}</span>
+        <Link href="/" className="legacy-logo" aria-label="Beranda Vapmart"><img src="/legacy/vapmart-logo-white.webp" alt="Vapmart" width="120" height="26"/></Link>
+        <div className="vm-reference-actions">
+          <details className="vm-search-disclosure">
+            <summary aria-label="Cari produk" title="Cari produk">⌕</summary>
+            <form action="/catalog" role="search">
+              <label className="sr-only" htmlFor="vm-popover-search">Cari produk</label>
+              <input id="vm-popover-search" name="q" placeholder="Cari produk..." maxLength={80}/>
+              <button type="submit">Cari</button>
+            </form>
+          </details>
+          <button type="button" className="vm-reference-cart" onClick={()=>setOpen(true)} aria-label={'Buka keranjang, '+count+' barang'}>
+            <span aria-hidden="true">♧</span><span className="cart-count">{count}</span>
           </button>
+          <Link href="/akun" className="vm-reference-login">Login</Link>
         </div>
-      </div>
-      <div className="vm-navigation-wrap">
-        <nav className="main-container legacy-main-nav" aria-label="Menu utama">
-          <Link href="/">Home</Link>
-          <Link href="/#categories">Kategori Produk</Link>
-          <Link href="/#promo">Promo</Link>
-          <Link href="/#brand">Brand Partner</Link>
-          <Link href="/#shop">Produk Pilihan</Link>
-          <Link href="/#news">News</Link>
-        </nav>
       </div>
     </header>
-    <nav className="legacy-mobile-nav" aria-label="Navigasi seluler">
+    <nav className="legacy-mobile-nav vm-reference-mobile-nav" aria-label="Navigasi seluler">
       <Link href="/"><span aria-hidden="true">⌂</span>Home</Link>
-      <Link href="/#categories"><span aria-hidden="true">⊞</span>Kategori</Link>
-      <Link href="/#promo"><span aria-hidden="true">◇</span>Promo</Link>
-      <button type="button" onClick={()=>setOpen(true)}><span aria-hidden="true">▤</span>Keranjang</button>
+      <Link href="/#member"><span aria-hidden="true">♧</span>Member</Link>
+      <Link href="/#promo"><span aria-hidden="true">▤</span>Promo</Link>
+      <button type="button" onClick={()=>setOpen(true)}><span aria-hidden="true">🛒</span>Keranjang</button>
       <Link href="/akun"><span aria-hidden="true">♙</span>Akun</Link>
     </nav>
     {open&&<div className="drawer-shell" role="presentation"><button className="drawer-shade" onClick={()=>setOpen(false)} aria-label="Tutup keranjang"/><aside className="cart-drawer" role="dialog" aria-modal="true" aria-label="Keranjang belanja"><div className="drawer-head"><div><div className="eyebrow">YOUR BAG</div><h2>Keranjang <span className="muted">{count}</span></h2></div><button className="close-btn" onClick={()=>setOpen(false)} aria-label="Tutup">×</button></div>

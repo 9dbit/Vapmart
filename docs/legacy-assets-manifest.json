@@ -190,5 +190,89 @@
     "source": "wp-content/uploads/2025/07/BUDGET-APPROVED-14-300x300.png",
     "bytes": 51257,
     "sha256": "ead5107f81ce76d077fc902e1a67f74fec98c6e3029066952083d26cccb53ab8"
+  },
+  {
+    "path": "apps/web/public/legacy/products/archived-10.webp",
+    "source": "wp-content/uploads/2025/07/XLIM_Go_Bundling_Oxpassion_black-300x300.webp",
+    "bytes": 10504,
+    "sha256": "782bd3dfa0740c12f2b10ddafb40b5ec77ead9ec9193738c992d67dac511c877"
+  },
+  {
+    "path": "apps/web/public/legacy/products/archived-11.png",
+    "source": "wp-content/uploads/2025/07/Asset-11-1-300x300.png",
+    "bytes": 52055,
+    "sha256": "3ab6cc081d01864597a605339c7f66237a9a508592538a874c984520fff78c0a"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-01.png",
+    "source": "wp-content/uploads/2024/12/vape-mart-2-300x169.png",
+    "bytes": 44195,
+    "sha256": "7141d2d7179a6cb324b4543fafb3224d62015e103a1f0bfb4dc410f69b88103f"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-02.png",
+    "source": "wp-content/uploads/2025/04/vape-mart-54-300x169.png",
+    "bytes": 69182,
+    "sha256": "af4b210679bdadd98b7d9396cc0048ef9cfa20a711646f88ebd21e9541e6401c"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-03.png",
+    "source": "wp-content/uploads/2024/12/vape-mart-6-300x169.png",
+    "bytes": 50324,
+    "sha256": "2d3f1cdb63e9146a3d534f859ccbc81db9580ebfefc16a892f769132bee6fbb6"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-04.png",
+    "source": "wp-content/uploads/2025/04/vape-mart-61-300x169.png",
+    "bytes": 38832,
+    "sha256": "a0faa5e53f12efa322b1784827bc1308bf004f8f7f491e8b3a4b516f5d403e82"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-05.png",
+    "source": "wp-content/uploads/2024/12/vape-mart-12-300x169.png",
+    "bytes": 68870,
+    "sha256": "f4cea4712e06f3fca9d509c00293c4724fe90bbc86a964c1e5063c37760e573d"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-06.png",
+    "source": "wp-content/uploads/2025/01/vape-mart-15-300x169.png",
+    "bytes": 106861,
+    "sha256": "188bc61ee0a1078812869374a5d0a49e3adc6fa5a35224d21ecb4e2a4699e961"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-07.png",
+    "source": "wp-content/uploads/2025/01/vape-mart-17-300x169.png",
+    "bytes": 82195,
+    "sha256": "b402cc7d9c7e882b977e3790ae053054d91238059c53b5422c53a0c8ec86e853"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-08.png",
+    "source": "wp-content/uploads/2025/02/vape-mart-35-300x169.png",
+    "bytes": 65095,
+    "sha256": "13ab39510de821e721611a5735bc60dafae2467f374d04007a5e6f91874dc196"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-09.png",
+    "source": "wp-content/uploads/2025/03/vape-mart-39-300x169.png",
+    "bytes": 31506,
+    "sha256": "f2cb6d48373963e1cd23730192a8880e4797e1381f77134ff2f9e49789a84f03"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-10.png",
+    "source": "wp-content/uploads/2025/03/vape-mart-50-300x169.png",
+    "bytes": 90992,
+    "sha256": "1871479a9b7996145b9f6ce1965f8c503782154af886cd1b8cd55d58cd9b556e"
+  },
+  {
+    "path": "apps/web/public/legacy/products/archived-00.png",
+    "source": "wp-content/uploads/2025/04/mission-300x300.png",
+    "bytes": 26626,
+    "sha256": "67e048f20e6604c7d1e9f3e1c0269db3ccf7c1be628942c641b6781074eb632e"
+  },
+  {
+    "path": "apps/web/public/legacy/products/archived-09.jpg",
+    "source": "wp-content/uploads/2025/05/MP-Photo-Product-Uranus-Cartridge-Main-300x300.jpg",
+    "bytes": 38319,
+    "sha256": "611a93b4a4865f68ce46a37e3949f047b160d2f663840a0d1a421c7af2f86411"
   }
 ]

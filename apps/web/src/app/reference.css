@@ -1,0 +1,166 @@
+/* CHECKPOINT 09: WordPress screenshot parity, reconstructed from the local
+   public_html.zip and a loopback-only render of 2026-03-16 archived HTML.
+   No WordPress/PHP execution or live order/payment endpoints. */
+html body{background:#121212;color:#F8FAFC}
+html body .vm-reference-header{height:72px;background:#121212;border-bottom:1px solid #2D2D2D;position:relative;z-index:13}
+html body .vm-reference-header .vm-header-main{height:72px;min-height:72px;padding:0 4%;max-width:none;justify-content:space-between;gap:12px}
+html body .vm-reference-header .legacy-logo{display:block;width:120px;flex:0 0 auto;margin:0}
+html body .vm-reference-header .legacy-logo img{display:block;width:120px;height:auto;max-width:100%}
+html body .vm-reference-actions{display:flex;align-items:center;gap:16px}
+html body .vm-reference-cart{display:flex;align-items:center;justify-content:center;gap:2px;border:0;color:#F8FAFC;background:transparent;height:34px;padding:2px;min-width:40px;font-size:21px}
+html body .vm-reference-cart .cart-count{background:#E34E73;color:#fff;width:13px;min-width:13px;height:13px;line-height:13px;font-size:9px}
+html body .vm-reference-login{display:grid;place-items:center;min-width:100px;height:31px;border-radius:999px;font-size:12px;font-weight:500;background:#6B46C1;color:#fff}
+html body .vm-reference-login:hover{background:#8B5CF6}
+html body .vm-search-disclosure{position:relative}
+html body .vm-search-disclosure summary{cursor:pointer;list-style:none;font-size:22px;color:#d7c7e7;width:28px;display:grid;place-items:center}
+html body .vm-search-disclosure summary::-webkit-details-marker{display:none}
+html body .vm-search-disclosure form{position:absolute;right:-120px;top:36px;width:305px;background:#1A1A1A;border:1px solid #594675;border-radius:8px;box-shadow:0 8px 30px #0009;padding:10px;display:flex;gap:5px;z-index:25}
+html body .vm-search-disclosure form input{border:1px solid #4b4555;border-radius:5px;background:#201927;color:#fff;width:100%;min-width:0;padding:8px 10px;font-size:12px}
+html body .vm-search-disclosure form button{border:0;border-radius:5px;background:#6B46C1;color:#fff;font-weight:700;padding:8px 13px;font-size:12px}
+html body .vm-reference-home{padding-top:14px}
+html body .vm-reference-home .vm-original-banner{width:90%;padding:0;margin:0 auto 32px;max-width:none}
+html body .vm-reference-home .vm-carousel-shell{border-radius:10px}
+html body .vm-reference-home .vm-legacy-benefits{display:none}
+html body .vm-reference-home .vm-feature-section,
+html body .vm-reference-home .vm-ref-brands,
+html body .vm-reference-home .vm-reference-products,
+html body .vm-reference-home .vm-active-products,
+html body .vm-reference-home .vm-ref-news{max-width:none;padding-left:5%;padding-right:5%}
+html body .vm-feature-panel{display:grid;grid-template-columns:50% 50%;background:#1A1A1A;border:1px solid #292929;border-radius:12px;min-height:230px;padding:17px 15px;gap:8px;overflow:hidden}
+html body .vm-feature-panel h2{font-size:17px;letter-spacing:-.02em;line-height:1.3;margin:0 0 12px;color:#F8FAFC;font-weight:600}
+html body .vm-feature-categories{min-width:0}
+html body .vm-feature-category-list{display:flex;align-items:flex-start;gap:14px}
+html body .vm-feature-category{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;max-width:86px;color:#e6e6e6;font-size:12px;font-weight:400;white-space:nowrap}
+html body .vm-feature-category-circle{width:79px;height:79px;border-radius:50%;background:#343434;display:grid;place-items:center;overflow:hidden}
+html body .vm-feature-category-circle img{width:100%;height:100%;object-fit:contain;display:block}
+html body .vm-feature-promo{min-width:0;display:flex;flex-direction:column;align-items:stretch;padding-right:8px}
+html body .vm-feature-banner{background:linear-gradient(90deg,#8B5CF6,#A855F7);border-radius:4px;height:52px;display:flex;gap:8px;align-items:center;padding:0 12px;color:white;font-size:19px;font-weight:600}
+html body .vm-feature-banner:hover{filter:brightness(1.08)}
+html body .vm-feature-points{font-size:11px;color:#c6c3cb;padding:8px 2px}
+html body .vm-member-row{display:none}
+html body .vm-ref-brands{margin-top:17px;margin-bottom:28px}
+html body .vm-ref-brands h2,html body .vm-reference-products h2{margin:0 0 10px;font-size:17px;letter-spacing:-.02em;font-weight:600;color:#F8FAFC}
+html body .vm-ref-brands .vm-brand-logos{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;overflow-y:hidden;padding:0;scrollbar-width:none}
+html body .vm-ref-brands .vm-brand-logos::-webkit-scrollbar{display:none}
+html body .vm-ref-brands .vm-brand-logo{flex:0 0 122px;min-width:0;min-height:82px;height:82px;border:0;border-radius:7px;background:#303030;display:grid;place-items:center}
+html body .vm-ref-brands .vm-brand-logo img{width:110px;height:72px;max-width:95%;max-height:75px;object-fit:contain}
+html body .vm-reference-products{margin-bottom:25px}
+html body .vm-ref-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+html body .vm-reference-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+html body .vm-reference-card{min-width:0;display:flex;flex-direction:column;border:1px solid #2b2b2b;border-radius:7px;background:#111;color:#e9e9e9;overflow:hidden}
+html body .vm-reference-card>img{display:block;width:100%;height:auto;aspect-ratio:1;object-fit:cover;background:#F6F6F6}
+html body .vm-reference-card .vm-reference-copy{padding:8px 7px 10px;display:flex;flex-direction:column;min-height:74px;gap:6px}
+html body .vm-reference-card h3{font-size:11px;font-weight:400;line-height:1.4;letter-spacing:0;color:#dedede;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:0}
+html body .vm-reference-price{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:11px;line-height:1.45;color:#ddd;margin-top:auto}
+html body .vm-reference-price del{color:#777}
+html body .vm-reference-disclaimer{color:#a299b3;font-size:11px;line-height:1.5;margin:12px 0 3px}
+html body .vm-reference-disclaimer a{color:#ceacef;text-decoration:underline}
+html body .vm-ref-news{margin:29px auto 20px}
+html body .vm-ref-news-heading{display:flex;align-items:center;justify-content:center;gap:8px;max-width:70%;margin:0 auto 16px}
+html body .vm-ref-news-heading span{height:2px;background:#e5e5e5;flex:1}
+html body .vm-ref-news-heading h2{font-size:16px;margin:0;color:#f8fafc;font-weight:600}
+html body .vm-reference-news-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+html body .vm-reference-news-card{overflow:hidden;min-width:0;background:#121212;border:1px solid #2B2B2B;border-radius:7px;color:#ddd}
+html body .vm-reference-news-card img{display:block;width:100%;height:auto;aspect-ratio:300/169;object-fit:cover;background:#F6F6F6}
+html body .vm-reference-news-card>div{font-size:11px;line-height:1.4;padding:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:40px}
+html body .vm-archive-end-note{font-size:10px;color:#9e90b5;margin:13px auto 24px;text-align:center}
+html body .vm-reference-footer{background:#121212;border-top:1px solid #2D2D2D;padding-top:28px;padding-bottom:0}
+html body .vm-reference-footer .vm-reference-footer-grid{display:grid;grid-template-columns:1.5fr 1fr 1.15fr 1.55fr;gap:36px;align-items:start;max-width:none;padding-left:5%;padding-right:5%}
+html body .vm-reference-footer h3{margin:0 0 13px;color:#e7e7e7;font-size:12px;font-weight:600}
+html body .vm-footer-intro>img{width:112px;height:auto;display:block;margin:2px 0 10px}
+html body .vm-footer-intro p{font-size:11px;line-height:1.45;color:#d1d1d1;margin:0 0 14px}
+html body .vm-footer-links{display:flex;flex-direction:column;gap:6px}
+html body .vm-footer-links a,html body .vm-footer-links p{font-size:11px;line-height:1.6;color:#c5c5c5;margin:0}
+html body .vm-footer-links a:hover{color:#b994ff}
+html body .vm-footer-social{display:flex;gap:9px}
+html body .vm-footer-social span{border-radius:50%;width:28px;height:28px;background:#6B46C1;display:grid;place-items:center;color:#fff;font-weight:700;font-size:15px}
+html body .vm-footer-support-title{display:flex;justify-content:space-between;align-items:center;gap:10px}
+html body .vm-footer-support-title strong{color:#8B5CF6;font-size:12px}
+html body .vm-support-box{min-height:74px;display:flex;gap:10px;align-items:center;padding:12px;border:1px solid #6B46C1;border-radius:6px;color:#fff}
+html body .vm-support-symbol{font-size:27px;background:#fff;color:#141414;border-radius:50%;height:35px;width:35px;display:grid;place-items:center}
+html body .vm-support-box>div{display:flex;flex-direction:column;gap:4px}
+html body .vm-support-box strong{font-size:12px;font-weight:500}
+html body .vm-support-box small{font-size:11px;color:#a9a6ae}
+html body .vm-footer-powered{display:flex;align-items:center;justify-content:center;gap:8px;border-top:1px solid #2B2B2B;margin:34px auto 0;padding-top:12px;padding-bottom:13px;font-size:12px;color:#dcdcdc;max-width:none}
+html body .vm-footer-powered img{width:84px;height:auto}
+html body .vm-catalog-page{padding-top:45px;padding-bottom:45px;min-height:70vh}
+html body .vm-catalog-intro{max-width:700px;margin-bottom:25px}
+html body .vm-catalog-intro h1{font-size:30px;margin:18px 0 9px}
+html body .vm-catalog-intro p{font-size:13px;color:#b4abbc;line-height:1.7}
+html body .vm-catalog-page .shop-section{padding:0 0 45px}
+html body .vm-catalog-page .product-card{background:#f6f6f6;color:#121212}
+html body .vm-catalog-page .product-copy h3,html body .vm-catalog-page .product-copy strong{color:#121212}
+html body .vm-catalog-page .product-description{background:#f6f6f6}
+@media(min-width:768px) and (max-width:1100px){
+  html body .vm-feature-category-list{gap:7px}
+  html body .vm-feature-category-circle{width:60px;height:60px}
+  html body .vm-feature-category{font-size:11px}
+  html body .vm-ref-brands .vm-brand-logo{flex-basis:102px}
+  html body .vm-reference-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  html body .vm-reference-news-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(max-width:767px){
+  html body{padding-bottom:56px}
+  html body .vm-reference-header{height:64px}
+  html body .vm-reference-header .vm-header-main{height:64px;min-height:64px;padding:0 8px}
+  html body .vm-reference-header .legacy-logo{width:85px}
+  html body .vm-reference-header .legacy-logo img{width:85px}
+  html body .vm-reference-actions{gap:4px}
+  html body .vm-reference-actions .vm-reference-cart{display:none}
+  html body .vm-reference-actions .vm-reference-login{display:none}
+  html body .vm-reference-actions .vm-search-disclosure summary{width:25px;font-size:19px}
+  html body .vm-search-disclosure form{right:0;top:30px;width:min(280px,92vw)}
+  html body .vm-reference-home{padding-top:0}
+  html body .vm-reference-home .vm-original-banner{width:100%;margin:0;max-width:none;padding:0}
+  html body .vm-reference-home .vm-carousel-shell{border-radius:0;aspect-ratio:1024/448}
+  html body .vm-reference-home .vm-legacy-benefits{display:block;padding:0;margin:0 0 14px;width:100%;max-width:none}
+  html body .vm-reference-home .vm-legacy-benefits img{width:100%;height:auto}
+  html body .vm-reference-home .vm-feature-section,
+  html body .vm-reference-home .vm-ref-brands,
+  html body .vm-reference-home .vm-reference-products,
+  html body .vm-reference-home .vm-active-products,
+  html body .vm-reference-home .vm-ref-news{padding-left:12px;padding-right:12px}
+  html body .vm-feature-panel{display:flex;flex-direction:column;gap:10px;min-height:0;padding:0;border:0;background:transparent;border-radius:0;overflow:visible}
+  html body .vm-feature-categories{background:#1A1A1A;border:1px solid #303030;border-radius:11px;height:99px;padding:7px}
+  html body .vm-feature-categories h2{display:none}
+  html body .vm-feature-category-list{gap:3px;justify-content:space-between;align-items:center;height:100%}
+  html body .vm-feature-category{gap:2px;flex:1 1 20%;max-width:none;font-size:10px}
+  html body .vm-feature-category-circle{width:53px;height:53px}
+  html body .vm-feature-promo{background:#1A1A1A;border:1px solid #303030;border-radius:11px;height:117px;padding:9px;justify-content:flex-start}
+  html body .vm-feature-promo h2{display:none}
+  html body .vm-member-row{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#f4f4f4;margin-bottom:7px;font-weight:600}
+  html body .vm-member-row>span:last-child{font-size:18px}
+  html body .vm-feature-banner{height:34px;font-size:14px;padding:0 9px;min-height:34px}
+  html body .vm-feature-points{padding:5px 0 0;font-size:10px}
+  html body .vm-ref-brands{margin-top:18px;margin-bottom:23px}
+  html body .vm-ref-brands h2,html body .vm-reference-products h2{font-size:15px;margin-bottom:11px}
+  html body .vm-ref-brands .vm-brand-logos{gap:5px}
+  html body .vm-ref-brands .vm-brand-logo{flex:0 0 91px;min-height:82px;height:82px;border-radius:7px}
+  html body .vm-ref-brands .vm-brand-logo img{height:78px;width:82px;max-height:78px;max-width:90%}
+  html body .vm-reference-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  html body .vm-reference-card>img{width:100%;aspect-ratio:1;object-fit:cover}
+  html body .vm-reference-card .vm-reference-copy{min-height:80px;padding:8px 6px 10px;gap:6px}
+  html body .vm-reference-card h3{font-size:11px;line-height:1.42}
+  html body .vm-reference-price{font-size:10px;gap:3px}
+  html body .vm-reference-disclaimer{font-size:10px;line-height:1.45}
+  html body .vm-ref-news{margin-top:28px;margin-bottom:18px}
+  html body .vm-ref-news-heading{max-width:85%;margin-bottom:14px}
+  html body .vm-ref-news-heading h2{font-size:13px}
+  html body .vm-reference-news-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  html body .vm-reference-news-card>div{font-size:10px;line-height:1.45;min-height:47px}
+  html body .vm-reference-footer{padding-top:24px;padding-bottom:0}
+  html body .vm-reference-footer .vm-reference-footer-grid{display:flex;flex-direction:column;gap:18px;padding:0 12px}
+  html body .vm-reference-footer h3{font-size:12px;margin-bottom:7px}
+  html body .vm-footer-intro p{font-size:11px}
+  html body .vm-footer-links{gap:7px}
+  html body .vm-footer-support{width:100%}
+  html body .vm-footer-powered{padding:12px 0 15px;margin:26px 12px 0}
+  html body .legacy-mobile-nav.vm-reference-mobile-nav{display:grid;position:fixed;bottom:0;left:0;right:0;z-index:24;
+    grid-template-columns:repeat(5,minmax(0,1fr));height:56px;padding:3px 0 env(safe-area-inset-bottom);
+    background:#151515;border-top:1px solid #303030;color:#fff;box-shadow:0 -3px 12px #0004}
+  html body .legacy-mobile-nav.vm-reference-mobile-nav a,
+  html body .legacy-mobile-nav.vm-reference-mobile-nav button{background:transparent;color:#f5f5f5;
+    display:flex;align-items:center;justify-content:center;gap:2px;flex-direction:column;border:0;font-size:10px}
+  html body .legacy-mobile-nav.vm-reference-mobile-nav span{font-size:20px;line-height:1}
+  html body .vm-catalog-page{padding-top:20px;padding-bottom:45px}
+}

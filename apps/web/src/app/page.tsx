@@ -1,77 +1,73 @@
 import Link from 'next/link';
-import {ProductGrid} from '@/components/product-grid';
 import {getProducts} from '@/lib/api';
 import {HeroCarousel} from '@/components/hero-carousel';
-
+import {ProductGrid} from '@/components/product-grid';
+import {archivedProducts,archivedNews} from '@/lib/archived-reference';
 export const dynamic='force-dynamic';
-
-const categoryTiles=[
-  {slug:'brand',name:'Brand',image:'/legacy/categories/brand.png',href:'/#brand'},
-  {slug:'pod',name:'Pod',image:'/legacy/categories/pod.png',href:'/#shop'},
-  {slug:'mod',name:'Mod',image:'/legacy/categories/mod.png',href:'/#shop'},
-  {slug:'cartridge',name:'Cartridge',image:'/legacy/categories/cartridge.png',href:'/#shop'},
-  {slug:'liquid',name:'Liquid',image:'/legacy/categories/liquid.png',href:'/#shop'}
+const categories=[
+ {name:'Brand',image:'/legacy/categories/brand.png',href:'/#brand'},
+ {name:'Pod',image:'/legacy/categories/pod.png',href:'/#shop'},
+ {name:'Mod',image:'/legacy/categories/mod.png',href:'/#shop'},
+ {name:'Cartridge',image:'/legacy/categories/cartridge.png',href:'/#shop'},
+ {name:'Liquid',image:'/legacy/categories/liquid.png',href:'/#shop'}
 ];
-
-const brandLogos=[
-  'OXVA','FOOM','IQOS','INTO','JOIWAY','SP2S',
-  'LANAVAPE','E-SUPER','ROLV','LIQUID CULT','TAZE','SEVEN LIQUID'
-];
-
-export default async function Home({searchParams}:{searchParams:Promise<{category?:string;q?:string}>}){
-  const {category,q}=await searchParams;
-  const initialSearch=typeof q==='string'?q.slice(0,80):'';
-  const selectedCategory=typeof category==='string'&&['home','lifestyle','decor','accessories','electronics','other'].includes(category)?category:'all';
+const brands=['OXVA','FOOM','IQOS','INTO','JOIWAY','SP2S','LANAVAPE','E-SUPER','ROLV','LIQUID CULT','TAZE','SEVEN LIQUID'];
+export default async function Home(){
   const products=await getProducts();
-  return <main className="legacy-home" id="home"><HeroCarousel />
-    <div className="main-container vm-legacy-benefits"><img src="/legacy/banners/benefits-cta.png" alt="Benefit belanja Vapmart pada website existing" width={4300} height={241}/></div>
-    <section className="main-container legacy-categories" id="categories">
-      <div className="legacy-section-title"><h1>Kategori Produk</h1><span>Jelajahi kategori</span></div>
-      <div className="legacy-category-tiles">
-        {categoryTiles.map(tile=><Link key={tile.slug} className="legacy-category-tile" href={tile.href}>
-          <span className="legacy-category-icon vm-category-photo"><img src={tile.image} alt="" width={1080} height={1080} loading="lazy" /></span>
-          <strong>{tile.name}</strong>
-        </Link>)}
-      </div>
-    </section>
-    <section className="main-container legacy-promo" id="promo">
-      <div className="legacy-section-title"><h2>Promo</h2><span>Benefit belanja Vapmart</span></div>
-      <div className="legacy-promo-tiles">
-        <Link className="legacy-promo-main" href="/#shop">
-          <span className="legacy-promo-label">PILIHAN VAPMART</span>
-          <strong>Temukan Produk Pilihan</strong>
-          <span>Lihat katalog terbaru <span aria-hidden="true">→</span></span>
-        </Link>
-        <a className="legacy-promo-member" href="#member">
-          <span className="legacy-promo-label">MEMBER</span>
-          <strong>Member</strong>
-          <span>Informasi benefit anggota <span aria-hidden="true">→</span></span>
-        </a>
-        <div className="legacy-promo-points" id="member">
-          <span className="legacy-promo-label">VAPMART POINTS</span>
-          <strong>0 <span>Points</span></strong>
-          <span className="legacy-points-note">Program rewards belum aktif di staging</span>
+  const verifiedProducts=products.filter(p=>!p.slug.startsWith('demo-'));
+  return <main className="legacy-home vm-reference-home" id="home" data-vapmart-ui="cp09">
+    <HeroCarousel />
+    <div className="main-container vm-legacy-benefits"><img src="/legacy/banners/benefits-cta.png" width="4300" height="241" alt="Layanan COD, poin, dan customer care dari website Vapmart lama"/></div>
+    <section className="main-container vm-feature-section">
+      <div className="vm-feature-panel">
+        <div className="vm-feature-categories" id="categories">
+          <h2>Kategori Produk</h2>
+          <div className="vm-feature-category-list">
+            {categories.map(item=><Link href={item.href} key={item.name} className="vm-feature-category" aria-label={'Lihat referensi '+item.name}>
+              <span className="vm-feature-category-circle"><img src={item.image} width="1080" height="1080" alt="" loading="eager"/></span>
+              <span>{item.name}</span>
+            </Link>)}
+          </div>
+        </div>
+        <div className="vm-feature-promo" id="promo">
+          <h2>Promo</h2>
+          <Link href="/catalog" className="vm-feature-banner"><span aria-hidden="true">🎟</span> Promo <span className="sr-only">Katalog staging</span></Link>
+          <div className="vm-member-row" id="member"><span>Member</span><span aria-hidden="true">›</span></div>
+          <div className="vm-feature-points">0 Points</div>
         </div>
       </div>
     </section>
-    <section className="main-container legacy-partners" id="brand">
-      <div className="legacy-section-title"><h2>Brand Partner</h2><Link href="/#shop">Lihat Semua <span aria-hidden="true">→</span></Link></div>
-      <div className="vm-brand-logos" aria-label="Logo brand partner dari website Vapmart existing">
-        {brandLogos.map((name,index)=><div className="vm-brand-logo" key={name} title={name}>
-          <img src={'/legacy/brands/brand-'+String(index+1).padStart(2,'0')+'.png'} alt={'Logo '+name} width={100} height={100} loading="lazy" />
-        </div>)}
+    <section className="main-container vm-ref-brands" id="brand">
+      <h2>Brand Partner</h2>
+      <div className="vm-brand-logos" aria-label="Logo brand partner dari website original">
+        {brands.map((brand,index)=><div className="vm-brand-logo" key={brand} title={brand}><img src={'/legacy/brands/brand-'+String(index+1).padStart(2,'0')+'.png'} width="100" height="100" alt={'Logo '+brand} loading="eager"/></div>)}
       </div>
     </section>
-    <div className="main-container legacy-product-wrapper">
-      <ProductGrid key={selectedCategory} products={products} initialCategory={selectedCategory} initialTerm={initialSearch}/>
-    </div>
-    <section className="main-container legacy-news" id="news">
-      <div className="legacy-section-title"><h2>News</h2><span>Informasi dari Vapmart</span></div>
-      <div className="legacy-news-grid">
-        <article className="legacy-news-card"><span className="legacy-news-thumbnail">VM</span><div><small>UPDATE</small><h3>Informasi terbaru Vapmart</h3><p>Konten baru akan tersedia setelah proses pembaruan marketplace selesai.</p></div></article>
-        <article className="legacy-news-card"><span className="legacy-news-thumbnail">VM</span><div><small>PANDUAN</small><h3>Panduan belanja</h3><p>Informasi pemesanan akan dipublikasikan setelah checkout siap digunakan.</p></div></article>
-        <article className="legacy-news-card"><span className="legacy-news-thumbnail">VM</span><div><small>MEMBER</small><h3>Program anggota</h3><p>Informasi poin dan benefit akan diumumkan setelah layanan anggota aktif.</p></div></article>
+    {verifiedProducts.length>0?
+      <div className="main-container vm-active-products">
+        <ProductGrid products={verifiedProducts}/>
+      </div>
+    :<section className="main-container vm-reference-products" id="shop" aria-label="Preview visual katalog WordPress">
+      <div className="vm-ref-section-head"><h2>Produk Pilihan</h2></div>
+      <div className="vm-reference-grid">
+        {archivedProducts.map((item,index)=><article key={item.image} className="vm-reference-card" data-archive-image={index+1}>
+          <img src={item.image} alt={item.name} width="300" height="300" loading="eager"/>
+          <div className="vm-reference-copy"><h3 title={item.name}>{item.name}</h3>
+            <div className="vm-reference-price">{item.originalPrice&&<del>{item.originalPrice}</del>}<span>{item.price}</span></div>
+          </div>
+        </article>)}
+      </div>
+      <p className="vm-reference-disclaimer">Referensi visual dari arsip WordPress 2026. Harga historis, bukan penawaran aktif. Transaksi dinonaktifkan. <Link href="/catalog">Buka katalog pengujian →</Link></p>
+    </section>}
+    <section className="main-container vm-ref-news" id="news">
+      <div className="vm-ref-news-heading"><span/> <h2>News</h2> <span/></div>
+      <div className="vm-reference-news-grid">
+        {archivedNews.map((article,index)=><article className="vm-reference-news-card" key={article.image}>
+          <img src={article.image} alt="" width="300" height="169" loading="eager"/>
+          <div>{article.title}</div>
+        </article>)}
       </div>
     </section>
+    <p className="main-container vm-archive-end-note">Halaman ini merupakan referensi visual konten WordPress untuk QA staging. Katalog aktif pengganti masih disiapkan.</p>
   </main>;
 }
