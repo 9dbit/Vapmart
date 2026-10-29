@@ -1,15 +1,21 @@
 import Link from 'next/link';
 import {ProductGrid} from '@/components/product-grid';
 import {getProducts} from '@/lib/api';
+import {HeroCarousel} from '@/components/hero-carousel';
 
 export const dynamic='force-dynamic';
 
 const categoryTiles=[
-  {slug:'home',name:'Home',glyph:'⌂'},
-  {slug:'lifestyle',name:'Lifestyle',glyph:'✧'},
-  {slug:'decor',name:'Decor',glyph:'◇'},
-  {slug:'accessories',name:'Accessories',glyph:'⊞'},
-  {slug:'electronics',name:'Electronics',glyph:'⚡'},
+  {slug:'brand',name:'Brand',image:'/legacy/categories/brand.png',href:'/#brand'},
+  {slug:'pod',name:'Pod',image:'/legacy/categories/pod.png',href:'/#shop'},
+  {slug:'mod',name:'Mod',image:'/legacy/categories/mod.png',href:'/#shop'},
+  {slug:'cartridge',name:'Cartridge',image:'/legacy/categories/cartridge.png',href:'/#shop'},
+  {slug:'liquid',name:'Liquid',image:'/legacy/categories/liquid.png',href:'/#shop'}
+];
+
+const brandLogos=[
+  'OXVA','FOOM','IQOS','INTO','JOIWAY','SP2S',
+  'LANAVAPE','E-SUPER','ROLV','LIQUID CULT','TAZE','SEVEN LIQUID'
 ];
 
 export default async function Home({searchParams}:{searchParams:Promise<{category?:string;q?:string}>}){
@@ -17,25 +23,13 @@ export default async function Home({searchParams}:{searchParams:Promise<{categor
   const initialSearch=typeof q==='string'?q.slice(0,80):'';
   const selectedCategory=typeof category==='string'&&['home','lifestyle','decor','accessories','electronics','other'].includes(category)?category:'all';
   const products=await getProducts();
-  return <main className="legacy-home" id="home"><section className="legacy-banner-reference vm-banner-outer" aria-label="Banner Vapmart non-nikotin">
-    <div className="vm-banner-frame">
-      <div className="vm-banner-glow vm-banner-glow-one" aria-hidden="true"/>
-      <div className="vm-banner-glow vm-banner-glow-two" aria-hidden="true"/>
-      <div className="vm-banner-copy">
-        <span className="vm-banner-label">VAPMART · ORIGINAL BRAND / NEW COLLECTION</span>
-        <h2>Koleksi baru.<br/><strong>Gaya tetap Vapmart.</strong></h2>
-        <p>Temukan pilihan home, lifestyle, decor, dan accessories dalam satu tempat.</p>
-        <Link href="/#shop" className="vm-banner-cta">JELAJAHI PRODUK <span aria-hidden="true">↗</span></Link>
-      </div>
-      <div className="vm-banner-art" aria-hidden="true"><div className="vm-banner-rings"/><div className="vm-banner-disc"/><div className="vm-banner-stamp">VAPMART</div></div>
-    </div>
-    <div className="vm-banner-dots" aria-hidden="true"><i/><i/><i/></div>
-  </section>
+  return <main className="legacy-home" id="home"><HeroCarousel />
+    <div className="main-container vm-legacy-benefits"><img src="/legacy/banners/benefits-cta.png" alt="Benefit belanja Vapmart pada website existing" width={4300} height={241}/></div>
     <section className="main-container legacy-categories" id="categories">
       <div className="legacy-section-title"><h1>Kategori Produk</h1><span>Jelajahi kategori</span></div>
       <div className="legacy-category-tiles">
-        {categoryTiles.map(tile=><Link key={tile.slug} className="legacy-category-tile" href={`/?category=${tile.slug}#shop`}>
-          <span className="legacy-category-icon" aria-hidden="true">{tile.glyph}</span>
+        {categoryTiles.map(tile=><Link key={tile.slug} className="legacy-category-tile" href={tile.href}>
+          <span className="legacy-category-icon vm-category-photo"><img src={tile.image} alt="" width={1080} height={1080} loading="lazy" /></span>
           <strong>{tile.name}</strong>
         </Link>)}
       </div>
@@ -62,9 +56,10 @@ export default async function Home({searchParams}:{searchParams:Promise<{categor
     </section>
     <section className="main-container legacy-partners" id="brand">
       <div className="legacy-section-title"><h2>Brand Partner</h2><Link href="/#shop">Lihat Semua <span aria-hidden="true">→</span></Link></div>
-      <div className="legacy-partner-panel">
-        <div className="legacy-partner-slot" aria-hidden="true"><span>V</span></div>
-        <p>Brand partner baru akan ditampilkan setelah materi dan hak penggunaan logo diverifikasi.</p>
+      <div className="vm-brand-logos" aria-label="Logo brand partner dari website Vapmart existing">
+        {brandLogos.map((name,index)=><div className="vm-brand-logo" key={name} title={name}>
+          <img src={'/legacy/brands/brand-'+String(index+1).padStart(2,'0')+'.png'} alt={'Logo '+name} width={100} height={100} loading="lazy" />
+        </div>)}
       </div>
     </section>
     <div className="main-container legacy-product-wrapper">

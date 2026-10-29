@@ -1,0 +1,59 @@
+/* Vapmart visual parity layer sourced from WordPress Elementor Kit 5148,
+   home 28475 and header 34787. Preserve staged commerce safety boundaries. */
+.vm-original-banner {margin-bottom:12px}
+.vm-carousel-shell {position:relative;overflow:hidden;aspect-ratio:1024/320;width:100%;background:#160b23;border-radius:0}
+.vm-carousel-track{display:flex;width:100%;height:100%;transition:transform .5s ease;will-change:transform}
+.vm-carousel-slide{flex:none;width:100%;height:100%;min-width:0;display:block}
+.vm-carousel-slide picture,.vm-carousel-slide img{display:block;width:100%;height:100%}
+.vm-carousel-slide img{object-fit:cover;object-position:center}
+.vm-carousel-arrow{position:absolute;z-index:3;top:50%;transform:translateY(-50%);
+  border:0;background:#07040b87;color:white;width:36px;height:54px;padding:0;
+  display:flex;align-items:center;justify-content:center;font-size:42px;font-family:Arial,sans-serif;line-height:1}
+.vm-carousel-previous{left:8px}.vm-carousel-next{right:8px}
+.vm-carousel-arrow:hover{background:#181020d9}
+.vm-carousel-resume{position:absolute;z-index:3;right:8px;bottom:8px;padding:7px 10px;border-radius:4px;
+  border:1px solid #ffffff8f;color:#fff;background:#120822d5;font-size:11px}
+.vm-legacy-benefits{display:none}
+.vm-legacy-benefits img{display:block;width:100%;height:auto}
+.legacy-categories{margin-bottom:37px}
+.legacy-category-tiles{gap:12px}
+.legacy-category-tile{border:1px solid #2D2D2D;background:#1A1A1A;min-height:156px;padding:12px 8px;gap:5px}
+.legacy-category-tile .vm-category-photo{height:103px;width:103px;max-width:100%;border-radius:0;background:transparent}
+.legacy-category-tile .vm-category-photo img{display:block;width:100%;height:100%;object-fit:contain}
+.legacy-category-tile strong{font-size:13px;font-weight:600;color:#fff}
+.vm-brand-logos{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;padding:0;margin-top:10px}
+.vm-brand-logo{display:grid;place-items:center;border:1px solid #2D2D2D;
+  background:#1A1A1A;border-radius:8px;min-height:119px;overflow:hidden}
+.vm-brand-logo img{display:block;width:105px;height:105px;max-width:88%;max-height:100px;object-fit:contain;filter:none}
+.vm-brand-logo:hover{border-color:#8B5CF6;background:#231a2f}
+.vm-asset-review{max-width:1200px;margin:35px auto 65px;padding:0 24px}
+.vm-asset-review h1{font-size:28px;margin-bottom:9px}.vm-asset-review p{color:#bbb5c3;line-height:1.6}
+.vm-asset-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:22px 0 42px}
+.vm-asset-figure{margin:0;border-radius:10px;border:1px solid #39303f;background:#1a1a1a;overflow:hidden}
+.vm-asset-figure img{width:100%;height:210px;object-fit:contain;background:#201b29}
+.vm-asset-figure figcaption{font-size:11px;color:#bbb5c3;padding:10px}
+.vm-asset-wide{grid-template-columns:repeat(2,minmax(0,1fr))}
+.vm-asset-wide .vm-asset-figure img{height:auto;aspect-ratio:1024/320;object-fit:contain}
+@media(max-width:767px){
+  .vm-carousel-shell{aspect-ratio:1024/448}
+  .vm-carousel-arrow{width:25px;height:43px;font-size:31px}
+  .vm-legacy-benefits{display:block;margin-bottom:19px}
+  .vm-original-banner{margin-bottom:0}
+  .legacy-category-tiles{gap:7px}
+  .legacy-category-tile{min-height:90px;padding:6px 2px}
+  .legacy-category-tile .vm-category-photo{height:60px;width:60px}
+  .legacy-category-tile strong{font-size:10px;letter-spacing:-.02em}
+  .vm-brand-logos{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  .vm-brand-logo{min-height:82px}
+  .vm-brand-logo img{max-height:72px;max-width:90%;height:72px;width:72px}
+  .vm-asset-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .vm-asset-figure img{height:155px}
+  .vm-asset-wide{grid-template-columns:1fr}
+}
+@media(max-width:390px){
+  .legacy-category-tile .vm-category-photo{height:48px;width:48px}
+  .legacy-category-tile strong{font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){
+  .vm-carousel-track{transition:none}
+}

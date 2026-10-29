@@ -4,6 +4,7 @@ import {SiteHeader} from '@/components/site-header';
 import './globals.css';
 import './legacy.css';
 import './brand.css';
+import './parity.css';
 
 export const metadata:Metadata={
  title:{default:'VapMart | Marketplace',template:'%s | VapMart'},

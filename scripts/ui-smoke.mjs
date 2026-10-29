@@ -6,6 +6,13 @@ const page=await browser.newPage({viewport:{width:1440,height:900}});
 try{
   await page.goto(URL,{waitUntil:'networkidle',timeout:45000});
   await page.locator('.product-card').first().waitFor({timeout:30000});
+  await page.locator('.vm-carousel-slide').first().waitFor({timeout:15000});
+  assert.equal(await page.locator('.vm-carousel-slide').count(),3,'three archived hero slides should exist');
+  assert.equal(await page.locator('.vm-brand-logo').count(),12,'twelve brand logos should render');
+  const bannerLoaded=await page.locator('.vm-carousel-slide img').first().evaluate(img=>img.complete&&img.naturalWidth>0);
+  assert.ok(bannerLoaded,'original WordPress hero image must load');
+  assert.match(await page.locator('.vm-carousel-slide img').first().evaluate(img=>img.currentSrc),/desktop-01\.png/);
+
   for(const id of ['categories','promo','brand','shop','news'])assert.equal(await page.locator('#'+id).count(),1,'missing legacy section '+id);
   assert.ok(await page.getByRole('heading',{name:'Kategori Produk'}).isVisible());
   assert.equal(await page.locator('.legacy-category-tile').count(),5,'expected five category tiles');
@@ -27,8 +34,10 @@ try{
   await page.setViewportSize({width:390,height:844});
   await page.goto(URL,{waitUntil:'networkidle',timeout:45000});
   await page.locator('.product-card').first().waitFor();
+  const mobileSource=await page.locator('.vm-carousel-slide img').first().evaluate(img=>img.currentSrc);
+  assert.match(mobileSource,/mobile-01\.png/,'mobile should load the WordPress mobile banner');
   assert.ok(await page.locator('.legacy-mobile-nav').isVisible(),'legacy 5-item mobile navigation should be visible');
   const overflow=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,view:window.innerWidth}));
   assert.ok(overflow.scroll<=overflow.view+2,'unexpected horizontal page overflow '+JSON.stringify(overflow));
-  console.log('VAPMART_UI_SMOKE_SUCCESS',{desktopCatalog:true,cart:true,search:true,detail:true,legacySections:true,categoryNavigation:true,mobile:true,overflow});
+  console.log('VAPMART_UI_SMOKE_SUCCESS',{desktopCatalog:true,cart:true,search:true,detail:true,legacySections:true,categoryNavigation:true,originalHero:true,originalBrandLogos:true,mobile:true,overflow});
 }finally{await browser.close();}
