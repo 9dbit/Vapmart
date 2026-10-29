@@ -1,12 +1,66 @@
+import Link from 'next/link';
 import {ProductGrid} from '@/components/product-grid';
 import {getProducts} from '@/lib/api';
-import Link from 'next/link';
 
 export const dynamic='force-dynamic';
+
+const categoryTiles=[
+  {slug:'home',name:'Home',glyph:'⌂'},
+  {slug:'lifestyle',name:'Lifestyle',glyph:'✧'},
+  {slug:'decor',name:'Decor',glyph:'◇'},
+  {slug:'accessories',name:'Accessories',glyph:'⊞'},
+  {slug:'electronics',name:'Electronics',glyph:'⚡'},
+];
+
 export default async function Home(){
   const products=await getProducts();
-  return <main><section className="hero"><div className="hero-content"><p className="eyebrow hero-eyebrow"><span className="live-orb"/> NEW CHAPTER / VAPMART</p><h1>Objects for<br/><span className="serif-italic">better living.</span></h1><p className="hero-description">Pilihan produk untuk ruang, rutinitas, dan setiap momen kecil yang berarti.</p><Link href="/#shop" className="button button-light">Explore collection <span>↗</span></Link><div className="hero-micro"><span>EST. INDONESIA</span><span>CURATED WITH INTENTION</span></div></div><div className="hero-visual" aria-hidden="true"><div className="chrome-orbit orbit-outer"/><div className="chrome-orbit orbit-inner"/><div className="hero-sphere"><div className="sphere-reflection"/></div><div className="floating-word">LESS, BUT BETTER.</div><div className="visual-label">01 / NEW PERSPECTIVE</div></div></section>
-    <div className="value-strip"><span>DISCOVER SOMETHING DIFFERENT</span><span>✳</span><span>DESIGNED FOR EVERYDAY</span><span>✳</span><span>YOUR SPACE, YOUR STYLE</span></div>
-    <div className="main-container"><section className="intro-section" id="about"><div><p className="eyebrow">THE VAPMART EDIT</p><h2>Less noise.<br/><em>More intention.</em></h2></div><p>Ruang untuk menemukan barang yang berguna, relevan, dan punya desain menarik. Koleksi ini akan bertumbuh bersama kebutuhanmu, tanpa produk nikotin.</p></section><ProductGrid products={products}/>
-    <section className="category-feature" id="categories"><div className="category-feature-text"><p className="eyebrow">EXPLORE THE EDIT</p><h2>Good things,<br/><em>on your terms.</em></h2><p>Home essentials, lifestyle, decor, accessories, dan lebih banyak lagi.</p><Link href="/#shop" className="outline-link">Discover all products <span>↗</span></Link></div><div className="category-feature-art"><div className="feature-ring"/><div className="feature-disk"/><span>OBJECTS / 2026</span></div></section></div></main>;
+  return <main className="legacy-home" id="home">
+    <section className="main-container legacy-categories" id="categories">
+      <div className="legacy-section-title"><h1>Kategori Produk</h1><span>Jelajahi kategori</span></div>
+      <div className="legacy-category-tiles">
+        {categoryTiles.map(tile=><Link key={tile.slug} className="legacy-category-tile" href={`/?category=${tile.slug}#shop`}>
+          <span className="legacy-category-icon" aria-hidden="true">{tile.glyph}</span>
+          <strong>{tile.name}</strong>
+        </Link>)}
+      </div>
+    </section>
+    <section className="main-container legacy-promo" id="promo">
+      <div className="legacy-section-title"><h2>Promo</h2><span>Benefit belanja Vapmart</span></div>
+      <div className="legacy-promo-tiles">
+        <Link className="legacy-promo-main" href="/#shop">
+          <span className="legacy-promo-label">PILIHAN VAPMART</span>
+          <strong>Temukan Produk Pilihan</strong>
+          <span>Lihat katalog terbaru <span aria-hidden="true">→</span></span>
+        </Link>
+        <a className="legacy-promo-member" href="#member">
+          <span className="legacy-promo-label">MEMBER</span>
+          <strong>Member</strong>
+          <span>Informasi benefit anggota <span aria-hidden="true">→</span></span>
+        </a>
+        <div className="legacy-promo-points" id="member">
+          <span className="legacy-promo-label">VAPMART POINTS</span>
+          <strong>0 <span>Points</span></strong>
+          <span className="legacy-points-note">Program rewards belum aktif di staging</span>
+        </div>
+      </div>
+    </section>
+    <section className="main-container legacy-partners" id="brand">
+      <div className="legacy-section-title"><h2>Brand Partner</h2><Link href="/#shop">Lihat Semua <span aria-hidden="true">→</span></Link></div>
+      <div className="legacy-partner-panel">
+        <div className="legacy-partner-slot" aria-hidden="true"><span>V</span></div>
+        <p>Brand partner baru akan ditampilkan setelah materi dan hak penggunaan logo diverifikasi.</p>
+      </div>
+    </section>
+    <div className="main-container legacy-product-wrapper">
+      <ProductGrid products={products}/>
+    </div>
+    <section className="main-container legacy-news" id="news">
+      <div className="legacy-section-title"><h2>News</h2><span>Informasi dari Vapmart</span></div>
+      <div className="legacy-news-grid">
+        <article className="legacy-news-card"><span className="legacy-news-thumbnail">VM</span><div><small>UPDATE</small><h3>Informasi terbaru Vapmart</h3><p>Konten baru akan tersedia setelah proses pembaruan marketplace selesai.</p></div></article>
+        <article className="legacy-news-card"><span className="legacy-news-thumbnail">VM</span><div><small>PANDUAN</small><h3>Panduan belanja</h3><p>Informasi pemesanan akan dipublikasikan setelah checkout siap digunakan.</p></div></article>
+        <article className="legacy-news-card"><span className="legacy-news-thumbnail">VM</span><div><small>MEMBER</small><h3>Program anggota</h3><p>Informasi poin dan benefit akan diumumkan setelah layanan anggota aktif.</p></div></article>
+      </div>
+    </section>
+  </main>;
 }
