@@ -15,7 +15,7 @@ jobs:
       - name: Audit API production dependencies
         run: |
           cd apps/api
-          npm install --ignore-scripts --no-audit --no-fund
+          npm ci --ignore-scripts --no-audit --no-fund
           npm audit --omit=dev --json > ../../audit-api.json || true
           cd ../..
           node scripts/report-audit.mjs audit-api.json
@@ -23,7 +23,7 @@ jobs:
         if: always()
         run: |
           cd apps/web
-          npm install --ignore-scripts --no-audit --no-fund
+          npm ci --ignore-scripts --no-audit --no-fund
           npm audit --omit=dev --json > ../../audit-web.json || true
           cd ../..
           node scripts/report-audit.mjs audit-web.json
