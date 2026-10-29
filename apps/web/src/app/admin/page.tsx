@@ -19,9 +19,9 @@ export default function AdminPage(){
   async function signin(e:React.FormEvent){e.preventDefault();const supabase=getClient();if(!supabase)return;setLoading(true);setMessage('');try{
     const {data,error}=await supabase.auth.signInWithPassword({email,password});
     if(error||!data.session){setMessage('Gagal login: '+(error?.message||'Sesi tidak ditemukan'));return;}
-    const response=await fetch('/api/admin/products',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+data.session.access_token},body:JSON.stringify({})});
+    const response=await fetch('/api/admin/status',{method:'GET',headers:{authorization:'Bearer '+data.session.access_token}});
     if(response.status===403){await supabase.auth.signOut();setMessage('Akun ini tidak memiliki peran admin.');return;}
-    if(response.status!==400&&response.status!==422){await supabase.auth.signOut();setMessage('Admin API belum siap. Cek database dan konfigurasi.');return;}
+    if(response.status!==200){await supabase.auth.signOut();setMessage('Admin API belum siap. Cek database dan konfigurasi.');return;}
     setToken(data.session.access_token);setMessage('Login admin terverifikasi.');
   }catch{setMessage('Koneksi ke server gagal.');}finally{setLoading(false);}}
   async function save(e:React.FormEvent){e.preventDefault();const supabase=getClient();if(!supabase)return;setLoading(true);setMessage('');try{

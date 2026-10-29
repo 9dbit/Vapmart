@@ -93,7 +93,7 @@ export class ProductsService {
     // A new installation has no invented products or unsafe placeholder orders.
     if (!this.db.configured) return [];
     const result = await this.db.query<Product>(
-      'SELECT id, slug, name, description, category, price_idr, stock_qty, image_url, is_active FROM product.products WHERE is_active = true ORDER BY created_at DESC LIMIT 48'
+      'SELECT id, slug, name, description, category, price_idr::integer AS price_idr, stock_qty, image_url, is_active FROM product.products WHERE is_active = true ORDER BY created_at DESC LIMIT 48'
     );
     return result.rows;
   }
@@ -101,7 +101,7 @@ export class ProductsService {
   async bySlug(slug: string): Promise<Product> {
     if (!this.db.configured) throw new NotFoundException('Product not found');
     const result = await this.db.query<Product>(
-      'SELECT id, slug, name, description, category, price_idr, stock_qty, image_url, is_active FROM product.products WHERE slug = $1 AND is_active = true',
+      'SELECT id, slug, name, description, category, price_idr::integer AS price_idr, stock_qty, image_url, is_active FROM product.products WHERE slug = $1 AND is_active = true',
       [slug]
     );
     if (!result.rows[0]) throw new NotFoundException('Product not found');
@@ -112,7 +112,7 @@ export class ProductsService {
     const product = cleanProduct(body);
     const columns = Object.keys(product);
     const result = await this.db.query<Product>(
-      `INSERT INTO product.products (${columns.join(', ')}) VALUES (${columns.map((_, index) => '$' + (index + 1)).join(', ')}) RETURNING *`,
+      `INSERT INTO product.products (${columns.join(', ')}) VALUES (${columns.map((_, index) => '$' + (index + 1)).join(', ')}) RETURNING id, slug, name, description, category, price_idr::integer AS price_idr, stock_qty, image_url, is_active`,
       columns.map(key => (product as Record<string, unknown>)[key])
     );
     return result.rows[0];
@@ -124,7 +124,7 @@ export class ProductsService {
     const columns = Object.keys(product);
     if (!columns.length) throw new BadRequestException('No changes supplied');
     const result = await this.db.query<Product>(
-      `UPDATE product.products SET ${columns.map((key, index) => key + ' = $' + (index + 1)).join(', ')}, updated_at = now() WHERE id = $${columns.length + 1} RETURNING *`,
+      `UPDATE product.products SET ${columns.map((key, index) => key + ' = $' + (index + 1)).join(', ')}, updated_at = now() WHERE id = $${columns.length + 1} RETURNING id, slug, name, description, category, price_idr::integer AS price_idr, stock_qty, image_url, is_active`,
       [...columns.map(key => (product as Record<string, unknown>)[key]), id]
     );
     if (!result.rows[0]) throw new NotFoundException('Product not found');

@@ -7,10 +7,11 @@
   },
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && cp sql/001_initial.sql dist/001_initial.sql",
     "start": "node dist/main.js",
     "test": "tsx --test test/*.test.ts",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "migrate": "node dist/migrate.js"
   },
   "dependencies": {
     "@nestjs/common": "10.4.15",

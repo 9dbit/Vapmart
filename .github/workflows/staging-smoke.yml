@@ -1,0 +1,16 @@
+name: Staging smoke
+on:
+  push:
+    branches: [feat/ecommerce-foundation-20261029]
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify staging HTTP, catalog, auth boundary, checkout shutdown
+        run: node scripts/smoke-staging.mjs

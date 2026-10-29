@@ -38,3 +38,11 @@ Existing project `Vapmart`: `7c01e4d8-6152-4f04-9750-6e7031aa0830`, environment 
 ## Checkpoints
 
 See `sources/`. All claims about deployment must be backed by Railway SUCCESS and smoke tests.
+
+## Repeatable staging migrations
+
+The API build bundles \`sql/001_initial.sql\` into \`dist/001_initial.sql\`. Railway API predeploy runs \`npm run migrate\`, which holds a PostgreSQL advisory lock, verifies the SHA-256 checksum and records a one-time application in \`vapmart_meta.migrations\`. It refuses migration drift. A fresh staging database may enable \`SEED_DEMO_CATALOG=true\` to add 4 clearly labeled non-commercial demo products if the catalog is empty; production must not enable this switch. Product prices are numeric JSON values and backend checkout always returns 503.
+
+In the staging environment, readiness endpoint is \`GET /ready\`, which requires installed database tables; \`GET /health\` is process liveness. CI runs \`scripts/smoke-staging.mjs\` and protects the admin/checkout boundaries.
+
+**Do not reuse Supabase projects from unrelated applications.** Provision a dedicated Vapmart Auth project after selecting the intended organization and reviewing its cost. Then set Supabase public URL/key on web and API. No initial admin is granted automatically.

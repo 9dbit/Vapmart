@@ -10,6 +10,17 @@ export class HealthController {
   getHealth() {
     return { status: 'ok', service: 'vapmart-api', database: this.db.configured ? 'configured' : 'unconfigured', checkout: 'disabled' };
   }
+  @Get('ready')
+  async getReady() {
+    if (!this.db.configured) throw new ServiceUnavailableException({ code: 'DATABASE_URL_MISSING' });
+    try {
+      const result = await this.db.query<{ ready: boolean }>("SELECT (to_regclass('product.products') IS NOT NULL AND to_regclass('public.staff_roles') IS NOT NULL) AS ready");
+      if (!result.rows[0]?.ready) throw new Error('Required schema missing');
+      return { status: 'ready', service: 'vapmart-api', database: 'ready', checkout: 'disabled' };
+    } catch {
+      throw new ServiceUnavailableException({ code: 'DATABASE_MIGRATION_REQUIRED' });
+    }
+  }
 }
 
 @Controller('v1/products')
