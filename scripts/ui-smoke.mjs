@@ -72,7 +72,17 @@ try{
   assert.equal(await page.locator('.vm-detail-hero-image img').count(),1);
   assert.ok(await page.locator('.vm-detail-hero-image img').evaluate(img=>img.complete&&img.naturalWidth>0));
   assert.ok(await page.locator('.vm-detail-disabled-actions button').first().isDisabled());
-  await page.goto(BASE+'/product/into-mission-replacement-pods',{waitUntil:'networkidle',timeout:45000});
+  // GitHub Actions can start before Railway finishes deploying the corresponding source.
+  // Wait for the exact original INTO badge introduced in this release.
+  let partnerReleaseReady=false;
+  for(let attempt=0;attempt<48;attempt++){
+    await page.goto(BASE+'/product/into-mission-replacement-pods',{waitUntil:'domcontentloaded',timeout:30000});
+    if(await page.locator('.vm-detail-partner-icon img').count()===1){partnerReleaseReady=true;break;}
+    console.log('Waiting for storefront release logo',attempt);
+    await sleep(5000);
+  }
+  assert.ok(partnerReleaseReady,'Railway staging has not activated Checkpoint 10 logo revision');
+  await page.waitForLoadState('networkidle',{timeout:45000});
   assert.equal(await page.locator('.vm-detail-thumb').count(),2,'Original cartridge gallery should have two images');
   const detailMetrics=await page.locator('.vm-detail-hero-image').boundingBox();
   assert.ok(detailMetrics && Math.abs(detailMetrics.y-133)<=8,'Original desktop detail image should start at y=133');
