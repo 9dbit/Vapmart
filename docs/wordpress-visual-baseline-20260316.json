@@ -1,0 +1,105 @@
+{
+  "project": "Vapmart",
+  "checkpoint": "09",
+  "source": "WordPress 2026-03-16 archived HTML rendered locally against public_html.zip static CSS and assets",
+  "viewportMetrics": {
+    "1440x900": {
+      "source": {
+        "header": [
+          0,
+          0,
+          1440,
+          72
+        ],
+        "banner": [
+          72,
+          86,
+          1296,
+          405
+        ],
+        "featurePanel": [
+          72,
+          523,
+          1296,
+          230
+        ],
+        "firstProduct": [
+          72,
+          1007,
+          208,
+          301
+        ],
+        "footer": [
+          0,
+          2127,
+          1440,
+          335
+        ]
+      },
+      "stagingVerified": {
+        "headerHeight": 72,
+        "banner": [
+          72,
+          86,
+          1296,
+          405
+        ],
+        "firstProductY": 1007,
+        "productCount": 12,
+        "newsCount": 10
+      }
+    },
+    "390x844": {
+      "source": {
+        "header": [
+          0,
+          0,
+          390,
+          64
+        ],
+        "banner": [
+          0,
+          64,
+          390,
+          171
+        ],
+        "featurePanel": [
+          12,
+          271,
+          367,
+          235
+        ],
+        "firstProduct": [
+          12,
+          692,
+          179,
+          263
+        ],
+        "footer": [
+          0,
+          3201,
+          390,
+          737
+        ]
+      },
+      "stagingVerified": {
+        "headerHeight": 64,
+        "banner": [
+          0,
+          64,
+          390,
+          171
+        ],
+        "firstProductY": 692,
+        "productCount": 12,
+        "newsCount": 10
+      }
+    }
+  },
+  "caveats": [
+    "Primary element positions match; all pixel values, element heights and lower page content are not certified 1:1.",
+    "Source is archived snapshot and not confirmed latest live WordPress.",
+    "Archived product images and historical prices are reference-only, with no buying controls.",
+    "WooCommerce SQL export unavailable in public_html.zip; active products have not been migrated."
+  ]
+}
