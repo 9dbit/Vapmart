@@ -48,7 +48,7 @@ for (const product of catalog.data.items) {
 assert.equal(webCatalog.status,200);
 assert.equal(webCatalog.data?.items?.length,catalog.data.items.length);
 assert.equal(home.status,200);
-assert.match(home.text,/Kategori Produk/i);
+assert.match(home.text,/Jelajahi Kategori|Kategori Produk/i);
 assert.match(home.text,/Brand Partner/i);
 assert.match(home.text,/Produk Pilihan/i);
 assert.equal(unauthorized.status,401,'Admin status must reject anonymous users');

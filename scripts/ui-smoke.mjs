@@ -181,5 +181,15 @@ try{
   await page.goto(BASE+'/keranjang-2',{waitUntil:'networkidle',timeout:45000});
   const cartOverflow=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,view:window.innerWidth}));
   assert.ok(cartOverflow.scroll<=cartOverflow.view+2,'mobile cart horizontal overflow '+JSON.stringify(cartOverflow));
+  const reduced=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});
+  try{
+    await reduced.goto(BASE+'/',{waitUntil:'networkidle',timeout:45000});
+    const motion=await reduced.evaluate(()=>({
+      prefer:matchMedia('(prefers-reduced-motion: reduce)').matches,
+      display:getComputedStyle(document.querySelector('.vm-parallax-atmosphere')).display
+    }));
+    assert.equal(motion.prefer,true);
+    assert.equal(motion.display,'none','reduced-motion setting must disable parallax');
+  }finally{await reduced.close();}
   console.log('VAPMART_UI_SMOKE_SUCCESS',JSON.stringify({visual,mobile,archiveProducts:12,news:10,cart:'tested-on-catalog',checkout:'disabled'}));
 }finally{await browser.close();}
