@@ -57,3 +57,30 @@
 @media(prefers-reduced-motion:reduce){
   .vm-carousel-track{transition:none}
 }
+
+/* Contrast correction: legacy/brand CSS order inside the Next.js CSS bundle is not
+   guaranteed. Use higher-specificity selectors to pin the original dark shell and
+   readable light WooCommerce-style content cards. */
+html:root {color-scheme:dark;--paper:#121212;--ink:#F8FAFC;--muted:#B3B0BE;--accent:#8B5CF6}
+html body{background:#121212;color:#F8FAFC}
+html body .legacy-header{background:#121212;color:#F8FAFC;border-bottom:1px solid #2D2D2D}
+html body .legacy-header .vm-header-main{background:#121212}
+html body .legacy-promo-member{background:linear-gradient(125deg,#2A1B3D,#392057);color:#F8FAFC;border-color:#5a4570}
+html body .legacy-promo-points{background:#1A1A1A;color:#F8FAFC;border-color:#3A3044}
+html body .legacy-promo-member strong,html body .legacy-promo-points strong{color:#F8FAFC}
+html body .legacy-promo-member span,html body .legacy-promo-points span{color:#eee5fb}
+html body .legacy-promo-points .legacy-points-note{color:#c8bfd2}
+html body .legacy-product-wrapper .product-card{background:#F6F6F6;color:#121212;border-color:#D9D5E1}
+html body .legacy-product-wrapper .product-description{background:#F6F6F6;color:#121212}
+html body .legacy-product-wrapper .product-copy h3,
+html body .legacy-product-wrapper .product-copy strong{color:#121212}
+html body .legacy-product-wrapper .product-copy .eyebrow{color:#6841AD}
+html body .legacy-product-wrapper .product-placeholder{color:#635476}
+html body .legacy-product-wrapper .product-art{background:#F2EFF6}
+html body .legacy-news-card{background:#F7F7F7;color:#121212;border-color:#D9D5E1}
+html body .legacy-news-card h3{color:#121212}
+html body .legacy-news-card p{color:#45414B}
+html body .legacy-news-card small{color:#5F328E}
+html body .legacy-news-thumbnail{background:#EAE7EF;color:#AAA5AE}
+html body .legacy-footer{background:#070614;color:#F8FAFC}
+@media(max-width:850px){html body{padding-bottom:0}html body .legacy-footer{padding-bottom:90px}}

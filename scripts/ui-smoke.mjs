@@ -17,6 +17,32 @@ try{
   assert.ok(await page.getByRole('heading',{name:'Kategori Produk'}).isVisible());
   assert.equal(await page.locator('.legacy-category-tile').count(),5,'expected five category tiles');
   assert.ok(await page.locator('.product-card').count()>=4,'staging demo catalog must contain 4 products');
+  const contrastChecks=await page.evaluate(()=>{
+    const rgb=text=>(text.match(/\d+(?:\.\d+)?/g)||[]).slice(0,3).map(Number);
+    const luminance=text=>{
+      const weights=[0.2126,0.7152,0.0722];
+      return rgb(text).reduce((sum,channel,index)=>{
+        const c=channel/255;
+        return sum+weights[index]*(c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4));
+      },0);
+    };
+    const contrast=(fg,bg)=>{
+      const a=luminance(fg),b=luminance(bg);
+      return (Math.max(a,b)+0.05)/(Math.min(a,b)+0.05);
+    };
+    const headerBg=getComputedStyle(document.querySelector('.legacy-header')).backgroundColor;
+    const pairs=[
+      ['Product title','.legacy-product-wrapper .product-copy h3','.legacy-product-wrapper .product-description'],
+      ['News title','.legacy-news-card h3','.legacy-news-card'],
+      ['Member tile','.legacy-promo-member strong','.legacy-promo-member'],
+      ['Points tile','.legacy-promo-points strong','.legacy-promo-points']
+    ];
+    return {headerBg,headerLuminance:luminance(headerBg),pairs:pairs.map(([name,fg,bg])=>({
+      name,ratio:contrast(getComputedStyle(document.querySelector(fg)).color,getComputedStyle(document.querySelector(bg)).backgroundColor)
+    }))};
+  });
+  assert.ok(contrastChecks.headerLuminance<0.1,'Vapmart logo needs dark header: '+JSON.stringify(contrastChecks));
+  for(const pair of contrastChecks.pairs)assert.ok(pair.ratio>=4.5,'Unreadable '+pair.name+' contrast: '+pair.ratio);
   const add=page.getByRole('button',{name:/Tambahkan DEMO/}).first();
   await add.click();
   await page.getByRole('dialog',{name:'Keranjang belanja'}).waitFor();
