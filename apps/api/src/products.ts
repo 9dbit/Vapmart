@@ -108,6 +108,13 @@ export class ProductsService {
     return result.rows[0];
   }
 
+  async listAdmin(): Promise<Product[]> {
+    const result = await this.db.query<Product>(
+      'SELECT id, slug, name, description, category, price_idr::integer AS price_idr, stock_qty, image_url, is_active FROM product.products ORDER BY updated_at DESC LIMIT 150'
+    );
+    return result.rows;
+  }
+
   async create(body: unknown): Promise<Product> {
     const product = cleanProduct(body);
     const columns = Object.keys(product);

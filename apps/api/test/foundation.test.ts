@@ -36,3 +36,13 @@ test('does not allow unrecognized fields in product patch', () => {
 test('requires all product fields for new products', () => {
   assert.throws(() => cleanProduct({ slug: 'a' }), /Missing required/);
 });
+
+test('product patches accept valid publication state',()=>{
+  assert.deepEqual(cleanProduct({is_active:true},true),{is_active:true});
+});
+test('product patches reject unsafe inactive toggles',()=>{
+  assert.throws(()=>cleanProduct({is_active:'true'},true),/Invalid is_active/);
+});
+test('product patches do not accept nicotine edits',()=>{
+  assert.throws(()=>cleanProduct({description:'contains nicotine'},true),/cannot contain nicotine/);
+});

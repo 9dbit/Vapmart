@@ -38,6 +38,8 @@ export class AdminController {
   constructor(private readonly products: ProductsService) {}
   @Get('status')
   status() { return { admin: true }; }
+  @Get('products')
+  async listProducts() { return { items: await this.products.listAdmin() }; }
   @Post('products')
   async create(@Body() body: unknown) { return this.products.create(body); }
   @Patch('products/:id')
