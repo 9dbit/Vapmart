@@ -1,0 +1,29 @@
+name: Dependency security audit
+on:
+  push:
+    branches: [feat/ecommerce-foundation-20261029]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Audit API production dependencies
+        run: |
+          cd apps/api
+          npm install --ignore-scripts --no-audit --no-fund
+          npm audit --omit=dev --json > ../../audit-api.json || true
+          cd ../..
+          node scripts/report-audit.mjs audit-api.json
+      - name: Audit web production dependencies
+        if: always()
+        run: |
+          cd apps/web
+          npm install --ignore-scripts --no-audit --no-fund
+          npm audit --omit=dev --json > ../../audit-web.json || true
+          cd ../..
+          node scripts/report-audit.mjs audit-web.json
