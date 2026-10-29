@@ -2,6 +2,7 @@ import {chromium} from 'playwright';
 const browser=await chromium.launch({headless:true});
 for (const [label,url] of [
   ['WORDPRESS','https://vapmart.co.id/'],
+  ['WORDPRESS_WWW','https://www.vapmart.co.id/'],
   ['NEXTJS','https://vapmart-web-staging.up.railway.app/']
 ]){
   const page=await browser.newPage({viewport:{width:1280,height:900},deviceScaleFactor:1});
