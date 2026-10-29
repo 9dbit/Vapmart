@@ -2,20 +2,22 @@ import Link from 'next/link';
 import {getProducts} from '@/lib/api';
 import {HeroCarousel} from '@/components/hero-carousel';
 import {ProductGrid} from '@/components/product-grid';
-import {archivedProducts,archivedNews} from '@/lib/archived-reference';
+import {archivedNews} from '@/lib/archived-reference';
+import {featuredArchiveItems} from '@/lib/archive-catalog';
+import {ArchiveCard} from '@/components/archive-card';
 export const dynamic='force-dynamic';
 const categories=[
- {name:'Brand',image:'/legacy/categories/brand.png',href:'/#brand'},
- {name:'Pod',image:'/legacy/categories/pod.png',href:'/#shop'},
- {name:'Mod',image:'/legacy/categories/mod.png',href:'/#shop'},
- {name:'Cartridge',image:'/legacy/categories/cartridge.png',href:'/#shop'},
- {name:'Liquid',image:'/legacy/categories/liquid.png',href:'/#shop'}
+ {name:'Brand',image:'/legacy/categories/brand.png',href:'/brand-partner'},
+ {name:'Pod',image:'/legacy/categories/pod.png',href:'/product-category/pod'},
+ {name:'Mod',image:'/legacy/categories/mod.png',href:'/product-category/mod'},
+ {name:'Cartridge',image:'/legacy/categories/cartridge.png',href:'/product-category/cartridge'},
+ {name:'Liquid',image:'/legacy/categories/liquid.png',href:'/product-category/e-juice'}
 ];
 const brands=['OXVA','FOOM','IQOS','INTO','JOIWAY','SP2S','LANAVAPE','E-SUPER','ROLV','LIQUID CULT','TAZE','SEVEN LIQUID'];
 export default async function Home(){
   const products=await getProducts();
   const verifiedProducts=products.filter(p=>!p.slug.startsWith('demo-'));
-  return <main className="legacy-home vm-reference-home" id="home" data-vapmart-ui="cp09b">
+  return <main className="legacy-home vm-reference-home" id="home" data-vapmart-ui="cp10">
     <HeroCarousel />
     <div className="main-container vm-legacy-benefits"><img src="/legacy/banners/benefits-cta.png" width="4300" height="241" alt="Layanan COD, poin, dan customer care dari website Vapmart lama"/></div>
     <section className="main-container vm-feature-section">
@@ -32,7 +34,7 @@ export default async function Home(){
         <div className="vm-feature-promo" id="promo">
           <h2>Promo</h2>
           <Link href="/catalog" className="vm-feature-banner"><span aria-hidden="true">🎟</span> Promo <span className="sr-only">Katalog staging</span></Link>
-          <div className="vm-member-row" id="member"><span>Member</span><span aria-hidden="true">›</span></div>
+          <Link href="/member-2" className="vm-member-row" id="member"><span>Member</span><span aria-hidden="true">›</span></Link>
           <div className="vm-feature-points">0 Points</div>
         </div>
       </div>
@@ -50,12 +52,7 @@ export default async function Home(){
     :<section className="main-container vm-reference-products" id="shop" aria-label="Preview visual katalog WordPress">
       <div className="vm-ref-section-head"><h2>Produk Pilihan</h2></div>
       <div className="vm-reference-grid">
-        {archivedProducts.map((item,index)=><article key={item.image} className="vm-reference-card" data-archive-image={index+1}>
-          <img src={item.image} alt={item.name} width="300" height="300" loading="eager"/>
-          <div className="vm-reference-copy"><h3 title={item.name}>{item.name}</h3>
-            <div className="vm-reference-price">{item.originalPrice&&<del>{item.originalPrice}</del>}<span>{item.price}</span></div>
-          </div>
-        </article>)}
+        {featuredArchiveItems.map(item=><ArchiveCard item={item} key={item.slug}/>)}
       </div>
       <p className="vm-reference-disclaimer">Referensi visual dari arsip WordPress 2026. Harga historis, bukan penawaran aktif. Transaksi dinonaktifkan. <Link href="/catalog">Buka katalog pengujian →</Link></p>
     </section>}

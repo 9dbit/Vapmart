@@ -274,5 +274,59 @@
     "source": "wp-content/uploads/2025/05/MP-Photo-Product-Uranus-Cartridge-Main-300x300.jpg",
     "bytes": 38319,
     "sha256": "611a93b4a4865f68ce46a37e3949f047b160d2f663840a0d1a421c7af2f86411"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/pod-06.jpeg",
+    "source": "wp-content/uploads/2025/04/WhatsApp-Image-2025-05-27-at-19.05.41-300x300.jpeg",
+    "bytes": 18975,
+    "sha256": "7a57553c929c3f47a19cd3526e9592e56dde12a39639361dcef7bd730a063623"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/pod-07.jpeg",
+    "source": "wp-content/uploads/2025/04/WhatsApp-Image-2025-05-27-at-15.51.09-300x300.jpeg",
+    "bytes": 21979,
+    "sha256": "5284311df2b0f291d558f74fb07595adf30181368c6cacbecd09eb0070e7bb9a"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/pod-08.jpg",
+    "source": "wp-content/uploads/2025/07/MP-S2Pro-Device-Only-240x300.jpg",
+    "bytes": 37802,
+    "sha256": "0a32fd225d4a1eab473c37cb5392ac83d5b9f106cef68b42abee49ea9f74b1b4"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/pod-09.png",
+    "source": "wp-content/uploads/2025/05/BUDGET-APPROVED-300x300.png",
+    "bytes": 39011,
+    "sha256": "35e3a7b641a3af34cb9946cfd8c279b894ffa55c6d8c3230c59e6a536a4205af"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/pod-10.png",
+    "source": "wp-content/uploads/2025/05/BUDGET-APPROVED-1-300x300.png",
+    "bytes": 46980,
+    "sha256": "a53d03e07ad4ab78ed43f1b1eabfb3bc927b9a502b4c056b6706d9659f20f31c"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/pod-11.png",
+    "source": "wp-content/uploads/2025/05/BUDGET-APPROVED-3-300x300.png",
+    "bytes": 49861,
+    "sha256": "090943f550429dda8a73646c985a82845faae1e987c2d994174482992f70de44"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/pod-12.png",
+    "source": "wp-content/uploads/2025/05/BUDGET-APPROVED-2-300x300.png",
+    "bytes": 42822,
+    "sha256": "c115244e4408dcf8053c50eb048257bdfa805bf32fa95d4d0b33eef11e87340a"
+  },
+  {
+    "path": "apps/web/public/legacy/products/mission-main.png",
+    "source": "wp-content/uploads/2025/04/mission-600x600.png",
+    "bytes": 76864,
+    "sha256": "5160a48b9965fe35ef2dfc2d2d5565ae54f1bf7786a7f276513526f4a105a731"
+  },
+  {
+    "path": "apps/web/public/legacy/products/mission-gallery-02.png",
+    "source": "wp-content/uploads/2025/04/7-1-600x600.png",
+    "bytes": 103960,
+    "sha256": "4307f3153356387795930ca087c85996364e4595536285e48667c8ab2b57b6dd"
   }
 ]
