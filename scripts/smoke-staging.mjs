@@ -23,12 +23,15 @@ async function awaitReady() {
   throw new Error('Staging did not become ready within retry window');
 }
 await awaitReady();
-const [apiHealth,catalog,webCatalog,home,unauthorized,checkout]=await Promise.all([
+const [apiHealth,catalog,webCatalog,home,unauthorized,adminProductsAnon,webAdminProductsAnon,adminPage,checkout]=await Promise.all([
   request(API+'/health'),
   request(API+'/v1/products'),
   request(WEB+'/api/products'),
   request(WEB+'/'),
   request(API+'/v1/admin/status'),
+  request(API+'/v1/admin/products'),
+  request(WEB+'/api/admin/products'),
+  request(WEB+'/admin'),
   request(API+'/v1/orders',{method:'POST',headers:{'content-type':'application/json'},body:'{}'})
 ]);
 assert.equal(apiHealth.status,200);
@@ -46,6 +49,10 @@ assert.equal(webCatalog.status,200);
 assert.equal(webCatalog.data?.items?.length,catalog.data.items.length);
 assert.equal(home.status,200);
 assert.match(home.text,/Objects for|better living/i);
-assert.equal(unauthorized.status,401,'Admin endpoint must reject anonymous users');
+assert.equal(unauthorized.status,401,'Admin status must reject anonymous users');
+assert.equal(adminProductsAnon.status,401,'Admin product inventory must reject anonymous users');
+assert.equal(webAdminProductsAnon.status,401,'Admin web proxy must reject anonymous users');
+assert.equal(adminPage.status,200,'Admin entry screen should render');
+assert.match(adminPage.text,/Authentication not configured|Administrator sign in|Memeriksa sesi/);
 assert.equal(checkout.status,503,'Checkout must remain disabled');
-console.log('VAPMART_STAGING_SMOKE_SUCCESS',{items:catalog.data.items.length,web:WEB,api:API,checkout:'disabled'});
+console.log('VAPMART_STAGING_SMOKE_SUCCESS',{items:catalog.data.items.length,web:WEB,api:API,checkout:'disabled',admin_anon:'denied'});
