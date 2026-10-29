@@ -15,10 +15,10 @@ function getClient():SupabaseClient|null {
   return client;
 }
 type Draft={
-  name:string;slug:string;description:string;category:string;
+  name:string;slug:string;sku:string;description:string;category:string;
   price_idr:string;stock_qty:string;image_url:string;is_active:boolean;
 };
-const empty:Draft={name:'',slug:'',description:'',category:'lifestyle',price_idr:'',stock_qty:'0',image_url:'',is_active:false};
+const empty:Draft={name:'',slug:'',sku:'',description:'',category:'lifestyle',price_idr:'',stock_qty:'0',image_url:'',is_active:false};
 
 export default function AdminPage(){
   const [email,setEmail]=useState('');
@@ -87,7 +87,7 @@ export default function AdminPage(){
   function beginEdit(product:Product){
     setEditingId(product.id);
     setDraft({
-      name:product.name,slug:product.slug,description:product.description,
+      name:product.name,slug:product.slug,sku:product.sku||'',description:product.description,
       category:product.category,price_idr:String(product.price_idr),stock_qty:String(product.stock_qty),
       image_url:product.image_url||'',is_active:product.is_active
     });
@@ -106,7 +106,7 @@ export default function AdminPage(){
     }
     try{
       const payload={
-        name:draft.name,slug:draft.slug,description:draft.description,category:draft.category,
+        name:draft.name,slug:draft.slug,sku:draft.sku||null,description:draft.description,category:draft.category,
         price_idr:price,stock_qty:stock,image_url:draft.image_url||null,
         is_active:editingId?draft.is_active:false
       };
@@ -161,7 +161,7 @@ export default function AdminPage(){
            :products.map(product=><article className="studio-product" key={product.id}>
              <div className="studio-product-body">
                <div className="studio-swatch">{product.image_url?<img src={product.image_url} alt=""/>:<span>✳</span>}</div>
-               <div className="studio-product-meta"><strong>{product.name}</strong><span>{formatIDR(product.price_idr)} · Stok {product.stock_qty}</span>
+               <div className="studio-product-meta"><strong>{product.name}</strong><span>{product.sku?`SKU ${product.sku} · `:''}{formatIDR(product.price_idr)} · Stok {product.stock_qty}</span>
                  <small className={product.is_active?'studio-active':'studio-draft'}>{product.is_active?'Published':'Draft'}</small>
                </div>
              </div>
@@ -178,6 +178,7 @@ export default function AdminPage(){
          <label>Nama produk<input value={draft.name} required minLength={2} maxLength={140}
            onChange={e=>setDraft(s=>({...s,name:e.target.value,slug:editingId?s.slug:e.target.value.toLowerCase().normalize('NFKD').replace(/[^a-z0-9 ]/g,'').trim().replace(/ +/g,'-')}))}/></label>
          <label>Slug<input value={draft.slug} required onChange={e=>field('slug',e.target.value)}/></label>
+         <label>SKU (opsional, unik, huruf kapital / angka / - . _)<input value={draft.sku} maxLength={64} onChange={e=>field('sku',e.target.value.toUpperCase())} placeholder="HOME-001"/></label>
          <label>Deskripsi<textarea rows={3} maxLength={3000} value={draft.description} onChange={e=>field('description',e.target.value)}/></label>
          <label>Kategori<select value={draft.category} onChange={e=>field('category',e.target.value)}>
            {['home','lifestyle','decor','accessories','electronics','other'].map(c=><option value={c} key={c}>{c}</option>)}

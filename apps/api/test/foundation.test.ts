@@ -9,6 +9,15 @@ test('accepts a non-nicotine product in an explicit category', () => {
   assert.equal(cleanProduct(good).price_idr, 150000);
   assert.ok(categories.includes('lifestyle'));
 });
+test('accepts SKU and allows null for previously seeded demonstration rows', () => {
+  assert.equal(cleanProduct({...good,sku:'HOME-001'}).sku,'HOME-001');
+  assert.equal(cleanProduct({...good,sku:null}).sku,null);
+});
+test('rejects lowercase SKU and restricted SKU/slug identifiers', () => {
+  assert.throws(()=>cleanProduct({...good,sku:'home-001'}),/Invalid SKU/);
+  assert.throws(()=>cleanProduct({...good,slug:'vape-device'}),/cannot contain nicotine/);
+  assert.throws(()=>cleanProduct({...good,sku:'VAPE-001'}),/cannot contain nicotine/);
+});
 test('does not trust browser-submitted pricing fields', () => {
   assert.throws(() => cleanProduct({ ...good, browser_price: 1 }), /Unknown product field/);
 });

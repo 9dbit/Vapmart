@@ -1,6 +1,7 @@
 export interface Product {
   id: string;
   slug: string;
+  sku?: string | null;
   name: string;
   description: string;
   category: 'home' | 'lifestyle' | 'decor' | 'accessories' | 'electronics' | 'other';
