@@ -15,7 +15,7 @@ const brands=['OXVA','FOOM','IQOS','INTO','JOIWAY','SP2S','LANAVAPE','E-SUPER','
 export default async function Home(){
   const products=await getProducts();
   const verifiedProducts=products.filter(p=>!p.slug.startsWith('demo-'));
-  return <main className="legacy-home vm-reference-home" id="home" data-vapmart-ui="cp09">
+  return <main className="legacy-home vm-reference-home" id="home" data-vapmart-ui="cp09b">
     <HeroCarousel />
     <div className="main-container vm-legacy-benefits"><img src="/legacy/banners/benefits-cta.png" width="4300" height="241" alt="Layanan COD, poin, dan customer care dari website Vapmart lama"/></div>
     <section className="main-container vm-feature-section">

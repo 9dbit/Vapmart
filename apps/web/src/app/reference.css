@@ -164,3 +164,13 @@ html body .vm-catalog-page .product-description{background:#f6f6f6}
   html body .legacy-mobile-nav.vm-reference-mobile-nav span{font-size:20px;line-height:1}
   html body .vm-catalog-page{padding-top:20px;padding-bottom:45px}
 }
+
+/* Grid alignment verified against the 2026-03-16 local WordPress render. */
+@media(min-width:768px){
+  html body .vm-reference-home .vm-reference-products{padding-top:55px}
+  html body .vm-reference-home .vm-active-products{padding-top:55px}
+}
+@media(max-width:767px){
+  html body .vm-reference-home .vm-reference-products{padding-top:5px}
+  html body .vm-reference-home .vm-active-products{padding-top:5px}
+}

@@ -9,7 +9,7 @@ try{
   for(let attempt=0;attempt<45;attempt++){
     try{
       const response=await page.goto(BASE+'/',{waitUntil:'domcontentloaded',timeout:20000});
-      if(response?.status()===200&&await page.locator('[data-vapmart-ui="cp09"]').count()===1){ready=true;break;}
+      if(response?.status()===200&&await page.locator('[data-vapmart-ui="cp09b"]').count()===1){ready=true;break;}
     }catch(e){console.log('wait for staging revision',attempt,String(e).slice(0,100));}
     await sleep(6000);
   }
@@ -37,6 +37,7 @@ try{
     ];
     return {
       headerHeight:Math.round(px('.vm-reference-header').height),
+      firstCardTop:Math.round(px('.vm-reference-card').top),
       bannerWidth:Math.round(px('.vm-original-banner').width),
       productColumns:getComputedStyle(document.querySelector('.vm-reference-grid')).gridTemplateColumns.trim().split(/\s+/).length,
       newsColumns:getComputedStyle(document.querySelector('.vm-reference-news-grid')).gridTemplateColumns.trim().split(/\s+/).length,
@@ -51,6 +52,7 @@ try{
   assert.equal(visual.headerHeight,72,'original desktop header is 72px');
   assert.ok(Math.abs(visual.bannerWidth-1296)<=4,'desktop banner should use 90% at 1440px');
   assert.equal(visual.productColumns,6,'original featured grid should have six columns desktop');
+  assert.ok(Math.abs(visual.firstCardTop-1007)<=7,'desktop featured card y should match WordPress reference');
   assert.equal(visual.newsColumns,5,'original news grid should have five columns desktop');
   assert.equal(visual.headerBg,'rgb(18, 18, 18)');
   assert.ok(visual.logoLoaded,'Vapmart original logo should load');
@@ -75,11 +77,13 @@ try{
   await page.goto(BASE+'/',{waitUntil:'networkidle',timeout:45000});
   const mobile=await page.evaluate(()=>({
     headerHeight:Math.round(document.querySelector('.vm-reference-header').getBoundingClientRect().height),
+    firstCardTop:Math.round(document.querySelector('.vm-reference-card').getBoundingClientRect().top+window.scrollY),
     bannerSrc:document.querySelector('.vm-carousel-slide img').currentSrc,
     columns:getComputedStyle(document.querySelector('.vm-reference-grid')).gridTemplateColumns.trim().split(/\s+/).length,
     scroll:document.documentElement.scrollWidth,view:window.innerWidth
   }));
   assert.equal(mobile.headerHeight,64);
+  assert.ok(Math.abs(mobile.firstCardTop-692)<=7,'mobile first card y should match WordPress reference');
   assert.equal(mobile.columns,2);
   assert.match(mobile.bannerSrc,/mobile-01\.png/);
   assert.ok(mobile.scroll<=mobile.view+2,'horizontal overflow '+JSON.stringify(mobile));
