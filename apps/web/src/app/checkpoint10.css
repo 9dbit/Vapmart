@@ -204,3 +204,6 @@ html body .vm-cart-summary>p{font-size:11px;line-height:1.7;color:#bfb4cb;margin
  html body .vm-cart-item-info h2{font-size:12px}
  html body .vm-cart-summary{padding:19px}
 }
+
+/* Original verified INTO logo from the product-detail WordPress snapshot. */
+html body .vm-detail-partner-icon img{display:block;height:100%;width:100%;object-fit:contain;border-radius:50%}

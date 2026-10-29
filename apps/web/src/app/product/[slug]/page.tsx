@@ -44,7 +44,7 @@ function ArchivedProductView({item}:{item:ArchiveItem}){
       <p>Produk ini merupakan dokumentasi katalog Vapmart existing. Foto, nama, kategori, dan harga berasal dari arsip WordPress.</p>
       <details><summary>Baca Selengkapnya</summary><p>Informasi stok, variasi aktif, harga terbaru, dan kelayakan jual belum diverifikasi. Halaman arsip ini tidak menerima pemesanan ataupun pembayaran.</p></details>
     </div>
-    <div className="vm-detail-partner"><div className="vm-detail-partner-icon">{item.brand.slice(0,1)}</div>
+    <div className="vm-detail-partner"><div className="vm-detail-partner-icon">{item.brand==="Into"?<img src="/legacy/brands/brand-into-detail.png" alt="Into" width={100} height={100}/>:item.brand.slice(0,1)}</div>
       <div className="vm-detail-partner-content"><strong>{item.brand}</strong>
         <Link href="/brand-partner">Lihat Brand Partner</Link></div></div>
    </section>

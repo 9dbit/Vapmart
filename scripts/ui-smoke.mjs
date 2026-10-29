@@ -79,6 +79,8 @@ try{
   assert.ok(await page.getByRole('button',{name:'Tampilkan foto 2'}).isEnabled());
   await page.getByRole('button',{name:'Tampilkan foto 2'}).click();
   assert.match(await page.locator('.vm-detail-hero-image img').getAttribute('src'),/mission-gallery-02\.png/);
+  assert.ok(await page.locator('.vm-detail-hero-image img').evaluate(img=>img.complete&&img.naturalWidth===600),'Correct archived secondary product photo should load');
+  assert.ok(await page.locator('.vm-detail-partner-icon img').evaluate(img=>img.complete&&img.naturalWidth===100),'Original Into brand image should load');
   assert.ok(await page.getByRole('button',{name:'Beli Sekarang'}).isDisabled());
   await page.goto(BASE+'/brand-partner',{waitUntil:'networkidle',timeout:45000});
   assert.equal(await page.locator('.vm-partner-logos img').count(),12);

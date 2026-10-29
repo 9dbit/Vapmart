@@ -325,8 +325,15 @@
   },
   {
     "path": "apps/web/public/legacy/products/mission-gallery-02.png",
-    "source": "wp-content/uploads/2025/04/7-1-600x600.png",
-    "bytes": 103960,
-    "sha256": "4307f3153356387795930ca087c85996364e4595536285e48667c8ab2b57b6dd"
+    "source": "wp-content/uploads/2025/06/7-1.png",
+    "bytes": 180061,
+    "sha256": "a684861f716fd0894fbdd1ddeac5fa378d274dfc45b3243ed47ac295070e256e",
+    "transformation": "Downsampled 5000x5000 source to 600x600 PNG; original kept only in private WordPress backup"
+  },
+  {
+    "path": "apps/web/public/legacy/brands/brand-into-detail.png",
+    "source": "wp-content/uploads/2025/04/Brand-Partner-6-100x100.png",
+    "bytes": 3004,
+    "sha256": "ee5023716b8f904affef65d8252af54d742e60b28f568b3b1eb0fcf7b606a52f"
   }
 ]
