@@ -1,0 +1,3 @@
+/* Durable fallback for browsers that lack CSS Typed Arithmetic multiplication */
+html body .vm-glow-right{transform:translate3d(0,var(--vm-parallax-y),0)}
+@media(max-width:767px){html body:has(.vm-modern-header.vm-subpage){padding-bottom:99px}}

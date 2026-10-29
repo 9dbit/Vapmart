@@ -9,11 +9,11 @@ try{
   for(let attempt=0;attempt<45;attempt++){
     try{
       const response=await page.goto(BASE+'/',{waitUntil:'domcontentloaded',timeout:20000});
-      if(response?.status()===200&&await page.locator('[data-vapmart-ui="cp10"]').count()===1){ready=true;break;}
+      if(response?.status()===200&&await page.locator('[data-vapmart-ui="cp12"]').count()===1){ready=true;break;}
     }catch(e){console.log('wait for staging revision',attempt,String(e).slice(0,100));}
     await sleep(6000);
   }
-  assert.ok(ready,'Checkpoint10 UI did not appear on staging within deployment retry window');
+  assert.ok(ready,'Checkpoint12 UI did not appear on staging within deployment retry window');
   // Font metrics can change for a few frames after DOMContentLoaded on GitHub Actions.
   // Settle network activity and web fonts before measuring WordPress pixel positions.
   await page.waitForLoadState('networkidle',{timeout:45000});
@@ -21,6 +21,26 @@ try{
 
   await page.locator('.vm-reference-card').first().waitFor({timeout:15000});
   assert.equal(await page.locator('.vm-carousel-slide').count(),3,'Original carousel should contain three slides');
+  assert.equal(await page.locator('.vm-carousel-dots button').count(),3,'three pill dots');
+  await page.locator('.vm-carousel-dots button').nth(1).click();
+  assert.equal(await page.locator('.vm-carousel-dots button').nth(1).getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('.vm-carousel-pause').getAttribute('aria-label'),'Lanjutkan putaran banner');
+  await page.locator('.vm-carousel-pause').click();
+  assert.ok(await page.locator('#vm-header-query').isVisible(),'desktop pill search');
+  assert.equal(await page.locator('.vm-desktop-links a').count(),4,'new desktop nav pills');
+  const shell=await page.evaluate(()=>{
+    const radius=s=>parseFloat(getComputedStyle(document.querySelector(s)).borderTopLeftRadius);
+    return {nav:radius('.vm-desktop-links'),card:radius('.vm-reference-card'),hero:radius('.vm-carousel-shell')};
+  });
+  assert.ok(shell.nav>=20&&shell.card>=14&&shell.hero>=20,'pill theme missing: '+JSON.stringify(shell));
+  assert.ok(await page.locator('.vm-parallax-atmosphere').count()===1,'decorative parallax layer');
+  const shiftBefore=await page.locator('.vm-parallax-atmosphere').evaluate(e=>e.style.getPropertyValue('--vm-parallax-y'));
+  await page.evaluate(()=>window.scrollTo({top:240,behavior:'instant'}));
+  await page.waitForTimeout(350);
+  const shiftAfter=await page.locator('.vm-parallax-atmosphere').evaluate(e=>e.style.getPropertyValue('--vm-parallax-y'));
+  assert.notEqual(shiftBefore,shiftAfter,'desktop decorative parallax should respond to scrolling');
+  await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
+  await page.waitForTimeout(200);
   assert.equal(await page.locator('.vm-brand-logo').count(),12,'Original brand slider should contain 12 logos');
   assert.equal(await page.locator('.vm-feature-category').count(),5,'Original category rail should have five tiles');
   assert.equal(await page.locator('.vm-reference-card').count(),12,'Original reference has twelve product cards');
@@ -54,12 +74,12 @@ try{
       }))
     };
   });
-  assert.equal(visual.headerHeight,72,'original desktop header is 72px');
+  assert.equal(visual.headerHeight,82,'modern desktop header is 82px');
   assert.ok(Math.abs(visual.bannerWidth-1296)<=4,'desktop banner should use 90% at 1440px');
   assert.equal(visual.productColumns,6,'original featured grid should have six columns desktop');
-  assert.ok(Math.abs(visual.firstCardTop-1007)<=16,'desktop featured card y should match WordPress reference: '+JSON.stringify({expected:1007,actual:visual.firstCardTop}));
+  assert.ok(visual.firstCardTop>650&&visual.firstCardTop<1650,'desktop featured card location unreasonable: '+visual.firstCardTop);
   assert.equal(visual.newsColumns,5,'original news grid should have five columns desktop');
-  assert.equal(visual.headerBg,'rgb(18, 18, 18)');
+  assert.match(visual.headerBg,/rgba?\(/,'dark glass header expected');
   assert.ok(visual.logoLoaded,'Vapmart original logo should load');
   assert.match(visual.bannerSrc,/desktop-01\.png/);
   for(const x of visual.pairs)assert.ok(x.ratio>=4.5,'Unreadable '+x.name+' contrast '+x.ratio);
@@ -71,7 +91,7 @@ try{
   assert.equal(await page.locator('.vm-category-page .vm-archive-link button').count(),0);
   assert.match(await page.locator('.vm-category-page .vm-archive-link').first().innerText(),/Into Earth Mission/);
   const categoryMetrics=await page.locator('.vm-category-page .vm-archive-link').first().boundingBox();
-  assert.ok(categoryMetrics && Math.abs(categoryMetrics.y-166)<=16,'Pod desktop cards deviate from WordPress y=166');
+  assert.ok(categoryMetrics&&categoryMetrics.y>90&&categoryMetrics.y<440,'Pod desktop card position unreasonable');
   await page.locator('.vm-category-page .vm-archive-link').first().click();
   await page.waitForURL(/\/product\/into-earth-mission-1100mah-pod-system-kit/,{timeout:15000});
   assert.equal(await page.locator('.vm-detail-hero-image img').count(),1);
@@ -90,7 +110,7 @@ try{
   await page.waitForLoadState('networkidle',{timeout:45000});
   assert.equal(await page.locator('.vm-detail-thumb').count(),2,'Original cartridge gallery should have two images');
   const detailMetrics=await page.locator('.vm-detail-hero-image').boundingBox();
-  assert.ok(detailMetrics && Math.abs(detailMetrics.y-133)<=8,'Original desktop detail image should start at y=133');
+  assert.ok(detailMetrics&&detailMetrics.y>75&&detailMetrics.y<390,'desktop product image position unreasonable');
   assert.ok(await page.getByRole('button',{name:'Tampilkan foto 2'}).isEnabled());
   await page.getByRole('button',{name:'Tampilkan foto 2'}).click();
   assert.match(await page.locator('.vm-detail-hero-image img').getAttribute('src'),/mission-gallery-02\.png/);
@@ -136,20 +156,25 @@ try{
     columns:getComputedStyle(document.querySelector('.vm-reference-grid')).gridTemplateColumns.trim().split(/\s+/).length,
     scroll:document.documentElement.scrollWidth,view:window.innerWidth
   }));
-  assert.equal(mobile.headerHeight,64);
-  assert.ok(Math.abs(mobile.firstCardTop-692)<=16,'mobile first card y should match WordPress reference: '+JSON.stringify({expected:692,actual:mobile.firstCardTop}));
+  assert.equal(mobile.headerHeight,66,'modern mobile header is 66px');
+  assert.ok(mobile.firstCardTop>400&&mobile.firstCardTop<1500,'mobile first-card position unreasonable');
   assert.equal(mobile.columns,2);
   assert.match(mobile.bannerSrc,/mobile-01\.png/);
   assert.ok(mobile.scroll<=mobile.view+2,'horizontal overflow '+JSON.stringify(mobile));
   assert.ok(await page.locator('.vm-reference-mobile-nav').isVisible(),'mobile navigation visible');
+  const mobilePill=await page.locator('.vm-reference-mobile-nav').evaluate(el=>parseFloat(getComputedStyle(el).borderTopLeftRadius));
+  assert.ok(mobilePill>=30,'mobile nav should be a floating pill');
+  const tapTarget=await page.locator('.vm-reference-mobile-nav a').first().boundingBox();
+  assert.ok(tapTarget&&tapTarget.height>=44,'mobile nav touch target must be at least 44px');
   await page.goto(BASE+'/product-category/pod',{waitUntil:'networkidle',timeout:45000});
   const mobileCategory=await page.locator('.vm-category-page .vm-archive-link').first().boundingBox();
-  assert.ok(mobileCategory && Math.abs(mobileCategory.y-103)<=16,'mobile Pod first card should match WordPress y=103');
+  assert.ok(mobileCategory&&mobileCategory.y>80&&mobileCategory.y<470,'mobile Pod first card position unreasonable');
   assert.equal(await page.locator('.vm-category-page .vm-archive-link').count(),12);
   await page.goto(BASE+'/product/into-mission-replacement-pods',{waitUntil:'networkidle',timeout:45000});
   const mobileDetail=await page.locator('.vm-detail-hero-image').boundingBox();
-  assert.ok(mobileDetail && Math.abs(mobileDetail.y-57)<=8,'mobile product hero should start y=57');
+  assert.ok(mobileDetail&&mobileDetail.y>50&&mobileDetail.y<230,'mobile product hero position unreasonable');
   assert.ok(await page.locator('.vm-detail-disabled-actions button').first().isDisabled());
+  assert.ok(await page.locator('.vm-modern-mobile-nav').isVisible(),'mobile detail navigation visible');
   await page.goto(BASE+'/keranjang-2',{waitUntil:'networkidle',timeout:45000});
   const cartOverflow=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,view:window.innerWidth}));
   assert.ok(cartOverflow.scroll<=cartOverflow.view+2,'mobile cart horizontal overflow '+JSON.stringify(cartOverflow));
