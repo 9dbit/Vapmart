@@ -1,0 +1,34 @@
+name: Generate pinned npm lockfiles
+on:
+  push:
+    branches: [feat/ecommerce-foundation-20261029]
+    paths:
+      - .github/workflows/generate-lockfiles.yml
+permissions:
+  contents: write
+jobs:
+  pin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Produce npm dependency lockfiles
+        run: |
+          (cd apps/api && npm install --package-lock-only --ignore-scripts --no-audit --no-fund)
+          (cd apps/web && npm install --package-lock-only --ignore-scripts --no-audit --no-fund)
+      - name: Commit deterministic dependency graphs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/api/package-lock.json apps/web/package-lock.json
+          if git diff --cached --quiet; then
+            echo "Lockfiles unchanged"
+          else
+            git commit -m "chore(deps): lock Vapmart npm dependencies"
+            git push origin HEAD:feat/ecommerce-foundation-20261029
+          fi
