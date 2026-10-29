@@ -44,3 +44,9 @@ Implementation commit: d20e15f0d1690bf22cfdab49d39f34e4d9cf5292
 - Capture final desktop/mobile staging screenshot and compare with original rendered page if available.
 - Review all remaining banner assets and migrate only non-nicotine-safe artwork.
 - Continue UI refinements and save next MD checkpoint to `sources/`.
+
+## Final staging verification
+- Railway web deployment `99916854-b42a-4b71-ab41-2d0bf70b6cea` transitioned to SUCCESS for implementation commit `d20e15f0...`.
+- RDC HTTP smoke against https://vapmart-web-staging.up.railway.app: homepage 200, original logo asset 200 (image/webp, 12,604 bytes), web health endpoint 200, product API proxy 200.
+- Homepage HTML contains the original logo file path, updated non-nicotine hero headline, and categories.
+- Production WordPress unchanged. Pixel-perfect design signoff still requires comparison with the original site at matched viewport sizes; its current public DNS had failed in earlier checks.
