@@ -12,7 +12,9 @@ const categoryTiles=[
   {slug:'electronics',name:'Electronics',glyph:'⚡'},
 ];
 
-export default async function Home(){
+export default async function Home({searchParams}:{searchParams:Promise<{category?:string}>}){
+  const {category}=await searchParams;
+  const selectedCategory=typeof category==='string'&&['home','lifestyle','decor','accessories','electronics','other'].includes(category)?category:'all';
   const products=await getProducts();
   return <main className="legacy-home" id="home">
     <section className="main-container legacy-categories" id="categories">
@@ -52,7 +54,7 @@ export default async function Home(){
       </div>
     </section>
     <div className="main-container legacy-product-wrapper">
-      <ProductGrid products={products}/>
+      <ProductGrid key={selectedCategory} products={products} initialCategory={selectedCategory}/>
     </div>
     <section className="main-container legacy-news" id="news">
       <div className="legacy-section-title"><h2>News</h2><span>Informasi dari Vapmart</span></div>

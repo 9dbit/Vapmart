@@ -6,6 +6,9 @@ const page=await browser.newPage({viewport:{width:1440,height:900}});
 try{
   await page.goto(URL,{waitUntil:'networkidle',timeout:45000});
   await page.locator('.product-card').first().waitFor({timeout:30000});
+  for(const id of ['categories','promo','brand','shop','news'])assert.equal(await page.locator('#'+id).count(),1,'missing legacy section '+id);
+  assert.ok(await page.getByRole('heading',{name:'Kategori Produk'}).isVisible());
+  assert.equal(await page.locator('.legacy-category-tile').count(),5,'expected five category tiles');
   assert.ok(await page.locator('.product-card').count()>=4,'staging demo catalog must contain 4 products');
   const add=page.getByRole('button',{name:/Tambahkan DEMO/}).first();
   await add.click();
@@ -18,10 +21,14 @@ try{
   await page.waitForURL(/\/product\/demo-ceramic-accent-vase/,{timeout:15000});
   assert.match(await page.locator('h1').innerText(),/Ceramic Accent Vase/);
   assert.ok(await page.getByRole('button',{name:/Tambahkan ke keranjang/}).isEnabled());
+  await page.goto(URL+'/?category=decor#shop',{waitUntil:'networkidle',timeout:45000});
+  await page.locator('.product-card').first().waitFor();
+  assert.equal(await page.locator('.product-card').count(),1,'legacy category navigation must filter inventory');
   await page.setViewportSize({width:390,height:844});
   await page.goto(URL,{waitUntil:'networkidle',timeout:45000});
   await page.locator('.product-card').first().waitFor();
+  assert.ok(await page.locator('.legacy-mobile-nav').isVisible(),'legacy 5-item mobile navigation should be visible');
   const overflow=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,view:window.innerWidth}));
   assert.ok(overflow.scroll<=overflow.view+2,'unexpected horizontal page overflow '+JSON.stringify(overflow));
-  console.log('VAPMART_UI_SMOKE_SUCCESS',{desktopCatalog:true,cart:true,search:true,detail:true,mobile:true,overflow});
+  console.log('VAPMART_UI_SMOKE_SUCCESS',{desktopCatalog:true,cart:true,search:true,detail:true,legacySections:true,categoryNavigation:true,mobile:true,overflow});
 }finally{await browser.close();}

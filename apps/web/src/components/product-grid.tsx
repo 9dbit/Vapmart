@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import {useEffect,useMemo,useState} from 'react';
+import {useMemo,useState} from 'react';
 import {useCart} from '@/lib/cart';
 import {categories,formatIDR,type Product} from '@/lib/types';
 
@@ -13,11 +13,10 @@ function ProductCard({product,index}:{product:Product;index:number}){
   </Link><div className="product-description"><div className="product-copy"><p className="eyebrow">{product.category}</p><Link href={`/product/${product.slug}`}><h3>{product.name}</h3></Link><strong>{formatIDR(product.price_idr)}</strong></div><button type="button" disabled={soldOut} onClick={()=>add(product)} className="add-circle" aria-label={`Tambahkan ${product.name} ke keranjang`}>+</button></div></article>;
 }
 
-export function ProductGrid({products}:{products:Product[]}){
-  const [category,setCategory]=useState('all');
+export function ProductGrid({products,initialCategory='all'}:{products:Product[];initialCategory?:string}){
+  const [category,setCategory]=useState(initialCategory);
   const [term,setTerm]=useState('');
   const [sort,setSort]=useState('newest');
-  useEffect(()=>{const selected=new URLSearchParams(window.location.search).get('category');if(selected&&categories.some(c=>c.value===selected))setCategory(selected);},[]);
   const filtered=useMemo(()=>{
     let result=products.filter(p=>p.is_active&&(!category||category==='all'||p.category===category)&&(!term||`${p.name} ${p.description}`.toLowerCase().includes(term.toLowerCase().trim())));
     if(sort==='priceLow')result=[...result].sort((a,b)=>a.price_idr-b.price_idr);
