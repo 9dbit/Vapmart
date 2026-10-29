@@ -16,7 +16,7 @@ export default async function Home({searchParams}:{searchParams:Promise<{categor
   const {category}=await searchParams;
   const selectedCategory=typeof category==='string'&&['home','lifestyle','decor','accessories','electronics','other'].includes(category)?category:'all';
   const products=await getProducts();
-  return <main className="legacy-home" id="home">
+  return <main className="legacy-home" id="home"><section className="legacy-banner-reference" aria-label="Banner Vapmart non-nikotin"><div className="legacy-banner-placeholder"><span>VAPMART · KOLEKSI BARU</span><strong>Produk pilihan untuk kebutuhan sehari-hari.</strong><Link href="/#shop">Lihat Katalog →</Link></div></section>
     <section className="main-container legacy-categories" id="categories">
       <div className="legacy-section-title"><h1>Kategori Produk</h1><span>Jelajahi kategori</span></div>
       <div className="legacy-category-tiles">
