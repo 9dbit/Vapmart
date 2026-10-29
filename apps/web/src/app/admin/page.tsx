@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect,useState,type FormEvent} from 'react';
+import '../studio.css';
 import Link from 'next/link';
 import {createClient,type SupabaseClient} from '@supabase/supabase-js';
 import {formatIDR,type Product} from '@/lib/types';
