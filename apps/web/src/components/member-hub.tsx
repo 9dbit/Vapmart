@@ -62,15 +62,54 @@ export function MemberHub(){
  const status=auth.user?(overview?overview.status:'UNAVAILABLE'):'GUEST';
  const balance=auth.user?(overview?overview.balanceCoin:null):null;
  const cardName=auth.user?.user_metadata?.display_name||overview?.name||auth.user?.email?.split('@')[0]||'VAPMART GUEST';
- return <main className="vm21-member-page">
-   <div className="vm21-member-header">
+ const activeBenefits=overview?.benefits.length??0;
+ const openSection=(next:Tab)=>{
+   setTab(next);
+   const target=document.getElementById('vm22-member-detail');
+   if(target)target.scrollIntoView({
+     block:'start',
+     behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'
+   });
+ };
+ return <main className="vm21-member-page vm22-member-page">
+   <div className="vm21-member-header vm22-member-heading">
      <span className="vm21-eyebrow">VAPMART CLUB / DIGITAL MEMBERSHIP</span>
-     <h1>More benefits. More Vapmart.</h1>
-     <p>Kelola Member Card, saldo Coin, paket top-up, dan benefit promo dalam satu tempat.</p>
+     <h1>Vapmart Member Card</h1>
+     <p>Saldo Coin, status, dan benefit langsung dari akun Vapmart.</p>
    </div>
    <div className="vm21-member-columns">
      <div className="vm21-member-primary">
-       <MemberCard name={String(cardName)} balance={balance} status={status} cardLast4={overview?.cardLast4}/>
+       <MemberCard name={String(cardName)} balance={balance} status={status}
+         cardLast4={overview?.cardLast4} onOpenWallet={()=>openSection('history')}/>
+       <section className="vm22-member-shortcuts" aria-label="Fitur Member">
+         <button type="button" className="vm22-member-shortcut is-lilac"
+           onClick={()=>openSection('benefits')} aria-label="Buka benefit member">
+           <span className="vm22-shortcut-icon" aria-hidden="true">
+             <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="m3 7 4.2 3L12 3l4.8 7L21 7l-2 11H5L3 7Z" fill="currentColor"/><path d="M6 21h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+           </span>
+           <span className="vm22-shortcut-copy"><strong>Benefit Member</strong>
+             <small>{status==='ACTIVE'?'Akses benefit yang berlaku untuk akun aktif.':'Keuntungan eksklusif setelah aktivasi member.'}</small></span>
+           <span className="vm22-shortcut-chevron" aria-hidden="true">›</span>
+         </button>
+         <button type="button" className="vm22-member-shortcut is-grey"
+           onClick={()=>openSection('history')} aria-label="Buka saldo dan riwayat Coin">
+           <span className="vm22-shortcut-icon" aria-hidden="true">
+             <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="6.5" rx="7.5" ry="3.8" fill="currentColor"/><path d="M4.5 6.5v4c0 2.2 3.3 4 7.5 4 4.1 0 7.5-1.8 7.5-4v-4M4.5 11v4c0 2.2 3.3 4 7.5 4 4.1 0 7.5-1.8 7.5-4v-4" stroke="currentColor" strokeWidth="1.4"/></svg>
+           </span>
+           <span className="vm22-shortcut-copy"><strong>Saldo Coin Saya</strong>
+             <small>{balance===null?'Saldo akan tampil setelah akun terhubung.':balance.toLocaleString('id-ID')+' Coin tercatat di akun.'}</small></span>
+           <span className="vm22-shortcut-chevron" aria-hidden="true">›</span>
+         </button>
+         <button type="button" className="vm22-member-shortcut is-lilac"
+           onClick={()=>openSection('benefits')} aria-label="Lihat promo Member">
+           <span className="vm22-shortcut-icon" aria-hidden="true">
+             <svg width="27" height="27" viewBox="0 0 24 24" fill="none"><path d="M3 4h9.5l8 8-8.5 8.5L3 12V4Z" fill="currentColor"/><circle cx="8" cy="9" r="1.65" fill="#F1E8FF"/></svg>
+           </span>
+           <span className="vm22-shortcut-copy"><strong>Promo Member</strong>
+             <small>{activeBenefits>0?'Ada '+activeBenefits+' benefit event aktif.':'Belum ada promo member aktif.'}</small></span>
+           <span className="vm22-shortcut-chevron" aria-hidden="true">›</span>
+         </button>
+       </section>
        {loading&&<p className="vm21-info" role="status">Memuat saldo dari server…</p>}
        {error&&<p className="vm21-info" role="status">{error} Tidak ada saldo perkiraan yang ditampilkan.</p>}
        {!auth.user&&<div className="vm21-guest-actions"><Link href="/login?mode=signup" className="vm21-primary">Daftar Gratis <span aria-hidden="true">↗</span></Link><Link href="/login" className="vm21-secondary">Masuk Akun</Link></div>}
@@ -81,7 +120,7 @@ export function MemberHub(){
        </section>}
        {auth.user&&overview?.status==='ACTIVE'&&<p className="vm21-member-active-note">Membership aktif. Benefit mengikuti event yang berlaku.</p>}
      </div>
-     <div className="vm21-member-secondary">
+     <div className="vm21-member-secondary" id="vm22-member-detail">
        <div className="vm21-member-tabs" role="tablist" aria-label="Dashboard Member">
          {(['overview','topup','benefits','history'] as const).map(key=><button type="button" role="tab" key={key}
            aria-selected={tab===key} className={tab===key?'active':''} onClick={()=>setTab(key)}>
