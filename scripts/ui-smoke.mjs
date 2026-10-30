@@ -276,7 +276,7 @@ try{
   await page.locator('#vm-popover-search').fill('Ceramic');
   await page.locator('.vm-search-disclosure form button').click();
   await page.waitForURL(/\/catalog\?q=Ceramic/,{timeout:15000});
-  assert.equal(await page.locator('#shop-search').inputValue(),'Ceramic','home search term should populate catalog');
+  assert.equal(await page.locator('#shop-search').first().inputValue(),'Ceramic','home search term should populate catalog');
   assert.ok((await page.locator('.product-card').count())>=1 && (await page.locator('.product-card').count())<4,'home search should narrow catalog');
   await page.goto(BASE+'/',{waitUntil:'networkidle',timeout:45000});
   const mobilePill=await page.locator('.vm-reference-mobile-nav').evaluate(el=>parseFloat(getComputedStyle(el).borderTopLeftRadius));
