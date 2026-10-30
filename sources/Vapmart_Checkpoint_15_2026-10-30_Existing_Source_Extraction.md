@@ -24,7 +24,7 @@ These facts are historical checkpoint observations, not a new live export.
 
 1. Verified GitHub PR #1 still OPEN and DRAFT, on the expected feature branch. Production `main` untouched.
 2. Developed an independent, read-only `extract_legacy_source.py` toolkit supporting archive aggregate audit, curated CSS/media extraction, checksum manifests and non-secret DB availability preflight.
-3. Validated synthetic ZIP tests (2/2 pass) verifying selected CSS/images are captured while secret config, logs, user/order records, font binaries and dangerous ZIP paths are excluded. The downloadable toolkit contains this script, tests, README, SQL and checkpoint notes.
+3. Validated extractor tests (3/3 pass, including end-to-end command-line smoke) verifying selected CSS/images are captured while secret config, logs, user/order records, font binaries and dangerous ZIP paths are excluded. The downloadable toolkit contains this script, tests, README, SQL and checkpoint notes.
 4. Added `scripts/legacy-mysql-inventory.sql` to this branch. It contains only SELECT statements against `information_schema` and returns WordPress table/column metadata for a controlled Hostinger phpMyAdmin inventory.
 5. Checked a second connected device, TRADEVICEPC. Neither default candidate path contained the old `public_html.zip`.
 
