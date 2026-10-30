@@ -92,6 +92,12 @@ try{
   assert.equal(visual.newsColumns,5,'original news grid should have five columns desktop');
   assert.match(visual.headerBg,/rgba?\(/,'light glass header expected');
   assert.ok(visual.logoLoaded,'Vapmart original logo should load');
+  const headerInner=await page.locator('.vm-header-main').evaluate(el=>({
+    background:getComputedStyle(el).backgroundColor,
+    logoFilter:getComputedStyle(el.querySelector('.legacy-logo img')).filter
+  }));
+  assert.match(headerInner.background,/rgba\(0, 0, 0, 0\)/,'legacy header inner must be transparent on white header');
+  assert.match(headerInner.logoFilter,/brightness\(0\)/,'original white logo should be darkened only by CSS');
   assert.match(visual.bannerSrc,/desktop-01\.png/);
   for(const x of visual.pairs)assert.ok(x.ratio>=4.5,'Unreadable '+x.name+' contrast '+x.ratio);
   assert.equal(await page.locator('.vm-reference-card button').count(),0,'archival products must not have purchase buttons');
