@@ -1,0 +1,556 @@
+/* Vapmart Checkpoint 16: Trendora-inspired airy editorial storefront.
+ * Original Vapmart logo, banner images and category thumbnails stay intact.
+ * This is a final-stage visual layer over the legacy audit CSS; no commerce gate changes.
+ */
+:root {
+  --vm16-page:#f4f3ef;
+  --vm16-white:#ffffff;
+  --vm16-tint:#fff4e7;
+  --vm16-soft:#f9f7f3;
+  --vm16-accent:#ffc27b;
+  --vm16-accent-strong:#f79b53;
+  --vm16-cocoa:#2a2828;
+  --vm16-muted:#727378;
+  --vm16-hair:#e9e6df;
+  --vm16-shadow:0 12px 36px rgba(68,46,23,.055);
+  --vm16-radius:25px;
+  --vm12-bg:var(--vm16-page);
+  --vm12-surface:var(--vm16-white);
+  --vm12-strong:var(--vm16-cocoa);
+  --vm12-text:#49494a;
+  --vm12-sub:var(--vm16-muted);
+}
+html{color-scheme:light}
+html body {
+  background:var(--vm16-page);
+  color:var(--vm16-cocoa);
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+html body button,html body input,html body select,html body textarea {
+  font-family:inherit;
+}
+html body a,html body button{transition-timing-function:cubic-bezier(.22,.8,.24,1)}
+html body a:focus-visible,html body button:focus-visible,
+html body input:focus-visible,html body select:focus-visible,
+html body summary:focus-visible{outline:2px solid #b45d26;outline-offset:3px}
+html body .main-container{max-width:1500px}
+html body .vm-modern-header{
+  height:79px;background:rgba(255,255,255,.93);border-bottom:1px solid rgba(35,29,26,.06);
+  box-shadow:0 5px 22px rgba(36,32,26,.028);backdrop-filter:blur(23px);
+  -webkit-backdrop-filter:blur(23px);
+}
+html body .vm-modern-header .vm-header-main{height:79px;min-height:79px}
+html body .vm-modern-header .legacy-logo img{filter:brightness(0);opacity:.93}
+html body .vm-desktop-links {
+  border:1px solid var(--vm16-hair);
+  background:#f7f6f2;
+  box-shadow:none;
+}
+html body .vm-desktop-links a{color:#626367;font-weight:600}
+html body .vm-desktop-links a:hover{background:#fff;color:#1e1e1f}
+html body .vm-desktop-links a.is-active{
+  background:var(--vm16-accent);color:#241b13;box-shadow:0 4px 10px rgba(188,118,43,.12);
+}
+html body .vm-header-pill-search{
+  border:1px solid var(--vm16-hair);background:#f6f6f3;color:#57585b;
+}
+html body .vm-header-pill-search:focus-within{border-color:#eda866;box-shadow:0 0 0 3px #ffc27b35}
+html body .vm-header-pill-search input{color:var(--vm16-cocoa)}
+html body .vm-header-pill-search input::placeholder{color:#919194}
+html body .vm-header-pill-search button{
+  background:var(--vm16-accent);color:#33241b;font-weight:700;
+}
+html body .vm-header-pill-search button:hover{background:#ffb360}
+html body .vm-modern-header .vm-reference-cart{
+  border:1px solid var(--vm16-hair);background:#f6f5f1;color:#29292c;box-shadow:none;
+}
+html body .vm-modern-header .vm-reference-cart:hover{background:#fff0d8;border-color:#efbd86}
+html body .vm-modern-header .vm-reference-cart .cart-count{
+  background:var(--vm16-accent-strong);color:#231913;border-color:white;
+}
+html body .vm-modern-header .vm-reference-login{
+  color:#2d221b;background:var(--vm16-accent);border:1px solid #f3b36e;
+  box-shadow:0 6px 16px #e7a86120;
+}
+html body .vm-modern-header .vm-reference-login:hover{filter:none;background:#ffb969}
+html body .vm-modern-header.vm-subpage .vm-subpage-back {
+  background:white;border:1px solid var(--vm16-hair);color:#353537;
+}
+/* Mobile-first merchandising sequence: welcome/search > banner > category icons > products. */
+html body .vm-trendora-home{
+  padding-top:0;background:var(--vm16-page);color:var(--vm16-cocoa);overflow-x:clip;
+}
+html body .vm-home-intro{padding-top:32px;padding-bottom:12px}
+html body .vm-home-intro-row{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:18px;
+}
+html body .vm-trendora-eyebrow{
+  display:block;font-size:10px;font-weight:750;line-height:1.4;
+  letter-spacing:.16em;color:#a06b3f;text-transform:uppercase;
+}
+html body .vm-trendora-spark{display:inline-block;font-size:15px;margin-right:4px;color:#df8b48}
+html body .vm-home-intro h1{
+  font-size:clamp(28px,3.1vw,47px);letter-spacing:-.058em;line-height:1.1;
+  font-weight:720;margin:11px 0 8px;color:#252525;
+}
+html body .vm-home-subtitle{font-size:13px;color:#838180;line-height:1.6;margin:0}
+html body .vm-home-discover {
+  white-space:nowrap;border:1px solid #dedbd3;background:white;border-radius:999px;
+  display:inline-flex;align-items:center;gap:24px;padding:12px 18px;
+  font-size:12px;font-weight:650;color:#292a2c;box-shadow:0 5px 14px #2c241109;
+}
+html body .vm-home-discover:hover{background:var(--vm16-tint);border-color:#ecbe8d}
+html body .vm-home-discover span{font-size:17px}
+html body .vm-home-quicksearch{
+  margin-top:22px;display:flex;align-items:center;gap:12px;
+  border:1px solid #e7e7e5;border-radius:999px;background:#fff;padding:5px 6px 5px 16px;
+  min-height:53px;max-width:660px;box-shadow:0 8px 24px #443a2610;
+}
+html body .vm-home-quicksearch svg{height:21px;width:21px;flex:none;color:#7b7b7c}
+html body .vm-home-quicksearch input{
+  border:0;outline:0;min-width:0;flex:1;line-height:1.3;
+  font-size:13px;color:#302f2d;background:transparent;
+}
+html body .vm-home-quicksearch input::placeholder{color:#a5a4a2}
+html body .vm-home-quicksearch button{
+  background:#2c2c2e;color:white;border:0;border-radius:999px;
+  min-height:41px;padding:0 18px;display:flex;gap:10px;align-items:center;
+  justify-content:center;font-size:12px;font-weight:650;
+}
+html body .vm-home-quicksearch button:hover{background:#4e4237}
+html body .vm-trendora-hero.vm-hero-stage{
+  padding:15px 0 2px;
+  background:radial-gradient(ellipse at 8% 0%,#ffd3a226,transparent 38%);
+}
+html body .vm-hero-stage .vm-carousel-shell {
+  background:#f9d3ab;border:5px solid #fff;border-radius:32px;
+  box-shadow:0 17px 44px rgba(65,40,23,.14);
+}
+html body .vm-hero-stage .vm-original-banner{width:90%;max-width:1460px}
+html body .vm-parallax-glow{opacity:.3;filter:blur(26px)}
+html body .vm-glow-left{background:radial-gradient(circle,#ffc18753 0,#ffdab015 45%,transparent 74%)}
+html body .vm-glow-right{background:radial-gradient(circle,#f8b86b43 0,#fee9c516 52%,transparent 75%)}
+html body .vm-hero-stage .vm-carousel-arrow{
+  background:#ffffffdf;border:1px solid #ffffffad;color:#37322f;
+  box-shadow:0 7px 20px #4433212d;
+}
+html body .vm-hero-stage .vm-carousel-arrow:hover{background:#ffcf99}
+html body .vm-carousel-dots{
+  background:#ffffffdb;border:1px solid #f2e7d9;
+  backdrop-filter:blur(15px);box-shadow:0 4px 14px #2218091e;
+}
+html body .vm-carousel-dots button span{background:#bcb4ad}
+html body .vm-carousel-dots button.is-active span{background:#e68d4b}
+html body .vm-carousel-pause{
+  color:#343332;background:#ffffffe0;border:1px solid #ffffffd0;
+}
+html body .vm-carousel-pause:hover{background:#ffd5a9}
+/* Category thumbnails use original Vapmart image assets; never substitute emoji or fashion icons. */
+html body .vm-trendora-categories{margin-top:30px;margin-bottom:35px}
+html body .vm-trendora-section-heading{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px;
+}
+html body .vm-trendora-section-heading h2{
+  margin:5px 0 0;font-weight:730;letter-spacing:-.045em;
+  font-size:clamp(22px,2.1vw,29px);color:#252527;line-height:1.22;
+}
+html body .vm-trendora-see-all {
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  color:#5b5855;font-size:12px;font-weight:650;white-space:nowrap;
+  padding:10px 14px;background:white;border:1px solid #e8e5e0;border-radius:999px;
+}
+html body .vm-trendora-see-all:hover{background:#ffe7c9;border-color:#eab581;color:#302720}
+html body .vm-trendora-see-all span{font-size:15px}
+html body .vm-trendora-category-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+html body .vm-trendora-category {
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-width:0;padding:18px 8px 16px;gap:10px;
+  border:1px solid #edeae5;background:white;color:#313134;
+  border-radius:25px;box-shadow:var(--vm16-shadow);
+  transition:transform .22s,border-color .22s,background .22s;
+}
+html body .vm-trendora-category:hover{
+  background:#fffaf3;border-color:#f1c89a;transform:translateY(-4px);
+}
+html body .vm-trendora-category-image{
+  display:grid;place-items:center;width:min(110px,80%);aspect-ratio:1;border-radius:23px;
+  background:#f7f5f1;overflow:hidden;
+}
+html body .vm-trendora-category-image img{
+  display:block;width:100%;height:100%;object-fit:contain;
+}
+html body .vm-trendora-category-title {
+  display:block;font-size:13px;font-weight:650;line-height:1.3;
+  white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;
+}
+html body .vm-reference-home .vm-reference-products,
+html body .vm-reference-home .vm-active-products,
+html body .vm-reference-home .vm-ref-brands,
+html body .vm-reference-home .vm-ref-news {padding-left:5%;padding-right:5%}
+html body .vm-trendora-home .vm-trendora-featured{padding-top:0;margin-top:2px;margin-bottom:30px}
+html body .vm-trendora-home .vm-ref-section-head{margin-bottom:19px}
+html body .vm-trendora-home .vm-ref-section-head h2,
+html body .vm-trendora-home .vm-ref-brands h2{margin:5px 0 0;font-size:clamp(22px,2.1vw,29px);color:#252527}
+html body .vm-reference-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+html body .vm-reference-card{
+  background:#fff;color:#2a2928;border:1px solid #eeece7;border-radius:24px;
+  box-shadow:var(--vm16-shadow);
+  transition:transform .24s,border-color .24s,box-shadow .24s;
+}
+html body .vm-reference-card:hover{
+  transform:translateY(-5px);border-color:#edbe8b;
+  box-shadow:0 17px 38px #7b604a21;
+}
+html body .vm-archive-image {
+  background:#f6f5f1;border-radius:22px 22px 14px 14px;
+}
+html body .vm-archive-image:after{
+  content:"↗";position:absolute;right:11px;top:11px;
+  width:31px;height:31px;background:#fffffff0;color:#343232;
+  border-radius:50%;font-size:17px;display:grid;place-items:center;
+  box-shadow:0 4px 12px #36230f20;
+}
+html body .vm-archive-chip{
+  background:#ffffffed;color:#b26b37;border:1px solid #e9cfb5;
+  font-size:9px;font-weight:750;backdrop-filter:blur(8px);
+}
+html body .vm-reference-card .vm-reference-copy{padding:14px 15px 17px;min-height:112px;gap:9px}
+html body .vm-reference-card h3{
+  color:#333235;font-size:13px;font-weight:640;line-height:1.52;
+  -webkit-line-clamp:2;
+}
+html body .vm-reference-price{color:#ca7040;font-size:12px;font-weight:740;gap:7px}
+html body .vm-reference-price del{color:#a4a2a0;font-size:11px;font-weight:450}
+html body .vm-reference-disclaimer{
+  color:#84817e;font-size:11px;line-height:1.8;margin-top:14px;
+}
+html body .vm-reference-disclaimer a{color:#a85c2f}
+html body .vm-trendora-member{
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  background:#ffcc8b;color:#342315;border-radius:32px;padding:30px 40px;
+  overflow:hidden;position:relative;margin-top:33px;margin-bottom:35px;
+  box-shadow:0 12px 28px #e9a75a19;
+}
+html body .vm-trendora-member-copy{position:relative;z-index:2}
+html body .vm-trendora-member .vm-trendora-eyebrow{color:#775039}
+html body .vm-trendora-member h2{
+  margin:10px 0;font-size:clamp(24px,3vw,40px);font-weight:720;
+  letter-spacing:-.055em;line-height:1.12;color:#292726;
+}
+html body .vm-trendora-member p{margin:0 0 19px;font-size:13px;line-height:1.55;color:#674936}
+html body .vm-trendora-member-link{
+  display:inline-flex;align-items:center;gap:20px;padding:12px 18px;background:#272629;
+  color:white;font-weight:650;font-size:12px;border-radius:999px;
+}
+html body .vm-trendora-member-link:hover{background:#554032}
+html body .vm-trendora-member-mark{
+  font-family:Georgia,serif;font-size:clamp(92px,15vw,210px);font-weight:900;line-height:.7;
+  color:#ffefd4;letter-spacing:-.1em;user-select:none;transform:rotate(-11deg);margin-right:8%;
+}
+html body .vm-trendora-member-mark span{font-family:inherit;font-size:42px;color:#f0a34a}
+html body .vm-trendora-brands{margin-top:38px;margin-bottom:38px}
+html body .vm-trendora-brands .vm-brand-logos{gap:12px;padding:3px 1px 12px;scroll-snap-type:x mandatory}
+html body .vm-trendora-brands .vm-brand-logo {
+  background:white;border:1px solid #eae7df;border-radius:22px;
+  height:103px;min-height:103px;flex-basis:143px;
+  box-shadow:var(--vm16-shadow);scroll-snap-align:start;
+}
+html body .vm-trendora-brands .vm-brand-logo:hover{
+  background:#fff8ef;border-color:#ecbf91;transform:translateY(-3px);
+}
+html body .vm-trendora-brands .vm-brand-logo img{max-height:78px;max-width:90%}
+html body .vm-trendora-news{margin-top:30px;margin-bottom:35px}
+html body .vm-trendora-news .vm-reference-news-grid{
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;
+}
+html body .vm-reference-news-card{
+  border-radius:22px;border:1px solid #eeebe6;background:white;
+  box-shadow:var(--vm16-shadow);color:#292929;overflow:hidden;
+}
+html body .vm-reference-news-card:hover{border-color:#e9b780;transform:translateY(-3px)}
+html body .vm-reference-news-card img{border-radius:20px 20px 12px 12px;object-fit:cover}
+html body .vm-reference-news-card>div{color:#343333;font-size:12px;line-height:1.55;font-weight:590}
+html body .vm-archive-end-note{color:#999690;font-size:11px;margin:22px auto 32px}
+/* Detail, category, account and cart follow the same light rounded surfaces. */
+html body .vm-category-page,html body .vm-detail-page,html body .vm-brand-page,
+html body .vm-account-page,html body .vm-member-page,html body .vm-cart-page{
+  background:var(--vm16-page);color:var(--vm16-cocoa);
+}
+html body .vm-category-page .vm-lined-heading,html body .vm-detail-recommendations .vm-lined-heading{
+  color:#2a292b;font-size:clamp(20px,2vw,28px);
+}
+html body .vm-category-page .vm-reference-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+html body .vm-category-empty{background:white;border:1px solid var(--vm16-hair);color:#343334}
+html body .vm-detail-page{padding-top:33px}
+html body .vm-detail-main{grid-template-columns:minmax(0,45%) minmax(0,1fr);gap:27px}
+html body .vm-detail-hero-image{
+  background:#fff2de;border:5px solid white;border-radius:31px;
+  box-shadow:0 12px 34px #7053351b;
+}
+html body .vm-detail-thumb{border:2px solid white;background:white;border-radius:18px}
+html body .vm-detail-thumb.is-active{border-color:#eda566}
+html body .vm-detail-content{
+  color:#2e2e30;background:#fff;border:1px solid #eee9e1;
+  border-radius:29px;padding:30px 32px;box-shadow:var(--vm16-shadow);
+}
+html body .vm-detail-content h1{color:#262528;font-size:clamp(23px,2.4vw,34px);font-weight:730}
+html body .vm-detail-price strong{color:#c66c3f}
+html body .vm-detail-price del{color:#a6a4a2}
+html body .vm-detail-archive-label{
+  background:#fff2df;color:#a86236;border:1px solid #efd5b6;border-radius:999px;
+  padding:7px 11px;letter-spacing:.05em;
+}
+html body .vm-detail-variations h2,html body .vm-detail-description h2{color:#343232}
+html body .vm-detail-description p,html body .vm-detail-description details p{color:#85817e}
+html body .vm-detail-description summary{color:#aa6237}
+html body .vm-detail-variations .vm-variation-values span{
+  color:#413d3a;background:#f6f5f1;border:1px solid #e9e6e0;
+  border-radius:999px;min-width:55px;text-align:center;
+}
+html body .vm-detail-disabled-actions button {
+  color:#a47350;background:#f9ede0;border-color:#ecd0b1;opacity:.75;
+}
+html body .vm-detail-disabled-actions button+button{
+  color:#6d563e;background:#fbd4a5;border-color:#f5c58e;opacity:.75;
+}
+html body .vm-detail-partner{
+  background:#fcfaf6;border:1px solid var(--vm16-hair);border-radius:23px;padding:15px;
+}
+html body .vm-detail-partner-content strong{color:#333}
+html body .vm-detail-partner-content a{
+  width:auto;padding:11px 18px;background:#ffcb8a;color:#362719;border-radius:999px;
+}
+html body .vm-detail-bottom-note,html body .vm-category-bottom{color:#8a8481}
+html body .vm-detail-bottom-note a{color:#b1673e}
+html body .vm-demo-detail .product-action{
+  color:#2e251d;background:#ffc27b;border-color:#f3ac64;
+}
+html body .vm-demo-stock{color:#6a7365}
+html body .vm-category-page .vm-category-bottom{color:#86817b}
+html body .vm-brand-page .vm-partner-logos .vm-brand-logo{
+  background:white;border:1px solid var(--vm16-hair);color:#333;
+}
+html body .vm-brand-page .vm-partner-logos .vm-brand-logo span{color:#6f6b68}
+html body .vm-brand-page .vm-secondary-link{color:#ad6339}
+html body .vm-account-card,html body .vm-cart-summary{
+  color:#29282a;background:white;border:1px solid #ece8e1;
+  box-shadow:var(--vm16-shadow);
+}
+html body .vm-account-logo img{filter:brightness(0)}
+html body .vm-account-tabs{background:#f7f5f1;border:1px solid #eeeae2}
+html body .vm-account-tabs span{color:#777575}
+html body .vm-account-tabs span.is-active{background:#ffcc8c;color:#2e231a;box-shadow:none}
+html body .vm-account-card h1,html body .vm-cart-title h1{color:#242324}
+html body .vm-account-card>p{color:#81807e}
+html body .vm-account-form-preview label{color:#4e4c4b}
+html body .vm-account-form-preview input{background:#f6f5f1;border-color:#e6e1da;color:#444}
+html body .vm-account-form-preview button{background:#ffc27b;color:#3b2c21}
+html body .vm-account-links a{color:#a55d32}
+html body .vm-member-tiles section{color:#2c2b2b;background:white;border:1px solid #eae6de}
+html body .vm-member-actions a{color:#3c2b1f;background:#ffca89;border-color:#f4bd7f}
+html body .vm-cart-title{border-color:#e6e2db}
+html body .vm-cart-title span{color:#777}
+html body .vm-cart-empty{background:#fff;border-color:#eae6de;color:#2b2928}
+html body .vm-cart-empty-icon{color:#e89b56}
+html body .vm-cart-empty p{color:#797879}
+html body .vm-cart-primary{background:#ffc27b;color:#35291f}
+html body .vm-cart-item{border-color:#e9e5df}
+html body .vm-cart-item-info h2{color:#313030}
+html body .vm-cart-item-info p{color:#8e8780}
+html body .vm-cart-qty{border-color:#e8e4dc;background:#f8f7f2}
+html body .vm-cart-qty button{background:#f0eae2;color:#39302a}
+html body .vm-cart-remove,html body .vm-cart-continue{color:#b1693b}
+html body .vm-cart-summary-row{color:#6e6967}
+html body .vm-cart-summary-total{border-color:#e9e2d8}
+html body .vm-cart-checkout{background:#ffc27b;color:#463122}
+html body .vm-cart-summary>p{color:#87827d}
+html body .vm-catalog-page .vm-catalog-intro h1{color:#292828}
+html body .vm-catalog-intro p{color:#8b8783}
+html body .legacy-product-wrapper .shop-toolbar {
+  background:white;border:1px solid #eae6df;border-radius:23px;
+}
+html body .legacy-product-wrapper .category{background:#f6f5f1;color:#77706a;border:1px solid #eeece7}
+html body .legacy-product-wrapper .category.active{
+  color:#31251c;background:#ffc27b;border-color:#f0b579;
+}
+html body .legacy-product-wrapper .shop-controls input,
+html body .legacy-product-wrapper .shop-controls select{
+  background:#faf9f6;color:#3c3b3a;border:1px solid #e8e4de;
+}
+html body .legacy-product-wrapper .shop-controls input::placeholder{color:#96918c}
+html body .legacy-product-wrapper .product-card{background:white;border:1px solid #ece8e1;box-shadow:var(--vm16-shadow)}
+html body .legacy-product-wrapper .product-description{background:white}
+html body .legacy-product-wrapper .product-copy h3,
+html body .legacy-product-wrapper .product-copy strong{color:#2f2e2e}
+html body .legacy-product-wrapper .product-copy .eyebrow{color:#a77753}
+html body .legacy-product-wrapper .add-circle{background:#ffc27b;border-color:#f2ae6f;color:#37291c}
+html body .legacy-product-wrapper .add-circle:hover:not(:disabled){background:#f6ad60}
+html body .legacy-product-wrapper .vm-search-combobox .search{background:#faf9f6;color:#333}
+html body .vm-search-clear{background:#f4e9df;color:#5b4634}
+html body .vm-search-clear:hover{background:#f2d2ad}
+html body .vm-search-suggestions{background:white;border-color:#e9e1d8;box-shadow:0 17px 36px #59443125}
+html body .vm-search-suggestions button{color:#2d2c2c}
+html body .vm-search-suggestions button small{color:#77716b}
+html body .vm-search-suggestions button:hover,html body .vm-search-suggestions [aria-selected=true] button{background:#fff0df}
+html body .vm-results-row .results-meta{color:#817a72}
+html body .vm-reset-filters{background:#ffce97;border-color:#efbf8b;color:#392c22}
+html body .vm-reset-filters:hover{background:#ffb86d}
+html body .legacy-product-wrapper .empty-collection{background:#fff;border-color:#ece8e1}
+html body .legacy-product-wrapper .empty-collection h3{color:#2d2b2a}
+html body .legacy-product-wrapper .empty-collection p{color:#85807b}
+html body .legacy-product-wrapper .empty-illustration{color:#e9a765}
+html body .vm-empty-home{color:#a4633f}
+/* Keep the test-cart drawer in front of the sticky nav with light Trendora styling. */
+html body .cart-drawer{background:white;color:#302e2c;border-left:1px solid #e9e3db}
+html body .cart-drawer .drawer-head{border-color:#e9e5df}
+html body .cart-drawer .drawer-head h2,html body .cart-drawer .cart-row-info strong{color:#302e2c}
+html body .cart-drawer .cart-row-info>span{color:#746e68}
+html body .cart-drawer .quantity{border-color:#ebe5db;background:#f9f7f3}
+html body .cart-drawer .quantity button{color:#302820}
+html body .cart-drawer .drawer-foot{border-color:#e9e5df}
+html body .cart-drawer .vm-view-cart-link{background:#fff0dd;color:#503522}
+html body .cart-drawer .button.checkout-disabled{background:#ffcb8e;color:#493320}
+html body .cart-drawer .fine-print{color:#88817a}
+html body .cart-drawer .close-btn{background:#f3f0ec;color:#34302b}
+html body .cart-drawer .close-btn:hover{background:#ffdbaf}
+html body .cart-empty{color:#353334}
+html body .cart-empty p{color:#87827d}
+html body .cart-drawer .drawer-shade{background:#241b14a8}
+/* Footer uses same warm light canvas and a dark rendering of original white logo. */
+html body .vm-reference-footer {
+  color:#333131;background:#f0eee9;border-top:1px solid #e8e4de;
+  padding-top:49px;
+}
+html body .vm-reference-footer h3{color:#363334;font-size:13px}
+html body .vm-reference-footer .vm-footer-intro p,
+html body .vm-reference-footer .vm-footer-links p,
+html body .vm-reference-footer .vm-footer-links a{color:#78716c}
+html body .vm-reference-footer .vm-footer-links a:hover{color:#ac6337}
+html body .vm-reference-footer .vm-footer-intro>img,
+html body .vm-reference-footer .vm-footer-powered img{filter:brightness(0);opacity:.9}
+html body .vm-reference-footer .vm-footer-social span{color:#403127;background:#ffce96}
+html body .vm-reference-footer .vm-support-box{background:white;border:1px solid #e5ddd3;color:#342d29}
+html body .vm-reference-footer .vm-footer-support-title strong{background:#ffce95;color:#473122}
+html body .vm-reference-footer .vm-support-box strong{color:#302d2b}
+html body .vm-reference-footer .vm-support-box small{color:#8b817a}
+html body .vm-reference-footer .vm-footer-powered{color:#837b72}
+/* Tablet: preserve full search and neat product/card spacing. */
+@media(max-width:1100px) and (min-width:768px) {
+  html body .vm-trendora-category-grid{gap:10px}
+  html body .vm-trendora-category{padding:13px 6px}
+  html body .vm-reference-grid,html body .vm-category-page .vm-reference-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  html body .vm-trendora-news .vm-reference-news-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:767px) {
+  html body{padding-bottom:100px}
+  html body .vm-modern-header{height:66px;background:#ffffffed}
+  html body .vm-modern-header .vm-header-main{height:66px;min-height:66px;padding:0 16px}
+  html body .vm-modern-header .vm-search-disclosure summary{
+    color:#34302e;background:#f8f7f3;border:1px solid #ebe6dc;
+  }
+  html body .vm-modern-header .vm-search-disclosure form{
+    color:#333;background:white;border:1px solid #e9ded3;box-shadow:0 14px 35px #53463827;
+  }
+  html body .vm-modern-header .vm-search-disclosure form input{background:#f9f8f4;color:#333}
+  html body .vm-modern-header .vm-search-disclosure form button{background:#ffc17b;color:#403126}
+  html body .vm-modern-header.vm-subpage .vm-subpage-back{
+    background:#f9f7f1;color:#38312c;border-color:#eee4d9;
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav{
+    left:12px;right:12px;bottom:max(11px,env(safe-area-inset-bottom));
+    height:69px;background:#ffffffed;border:1px solid #f0ece6;
+    color:#55504b;box-shadow:0 13px 30px #5e4f3627,inset 0 1px #fff;
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a,
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav button{
+    color:#797773;height:55px;font-weight:600;background:transparent;
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a.is-active{
+    background:#ffcf99;color:#3d2b20;box-shadow:0 4px 12px #a27c5325;
+  }
+  html body .vm-mobile-cart-count{background:#ef9b57;color:#291e13}
+  html body .vm-home-intro{padding:18px 16px 6px}
+  html body .vm-home-intro-row{display:block}
+  html body .vm-home-intro h1{font-size:27px;margin:7px 0 5px;letter-spacing:-.053em}
+  html body .vm-home-subtitle{font-size:11px;line-height:1.5}
+  html body .vm-home-discover{display:none}
+  html body .vm-trendora-eyebrow{font-size:9px;letter-spacing:.115em}
+  html body .vm-home-quicksearch{margin-top:13px;height:48px;min-height:48px;padding:4px 4px 4px 13px;gap:8px}
+  html body .vm-home-quicksearch svg{width:18px;height:18px}
+  html body .vm-home-quicksearch input{font-size:11px}
+  html body .vm-home-quicksearch button{min-height:38px;padding:0 13px;font-size:11px}
+  html body .vm-trendora-hero.vm-hero-stage{padding:12px 0 0}
+  html body .vm-hero-stage .vm-original-banner{width:calc(100% - 28px);margin:0 14px}
+  html body .vm-hero-stage .vm-carousel-shell{
+    border:3px solid white;border-radius:25px;aspect-ratio:1024/448;
+    box-shadow:0 9px 23px #64513c20;
+  }
+  html body .vm-hero-stage .vm-carousel-arrow{width:30px;height:30px}
+  html body .vm-carousel-dots{bottom:7px}
+  html body .vm-trendora-categories{padding:0 14px;margin:19px auto 23px}
+  html body .vm-trendora-section-heading{margin-bottom:12px;gap:7px}
+  html body .vm-trendora-section-heading h2{font-size:20px;margin-top:2px}
+  html body .vm-trendora-see-all{font-size:10px;padding:8px 10px;gap:5px}
+  html body .vm-trendora-category-grid{gap:6px}
+  html body .vm-trendora-category{padding:9px 2px 10px;gap:6px;min-height:91px;border-radius:16px}
+  html body .vm-trendora-category-image{width:min(54px,84%);border-radius:13px;background:#faf8f4}
+  html body .vm-trendora-category-title{font-size:10px;font-weight:650}
+  html body .vm-reference-home .vm-reference-products,
+  html body .vm-reference-home .vm-active-products,
+  html body .vm-reference-home .vm-ref-brands,
+  html body .vm-reference-home .vm-ref-news{padding-left:14px;padding-right:14px}
+  html body .vm-trendora-home .vm-ref-section-head h2,
+  html body .vm-trendora-home .vm-ref-brands h2{font-size:20px}
+  html body .vm-reference-grid,html body .vm-category-page .vm-reference-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;
+  }
+  html body .vm-reference-card{border-radius:19px}
+  html body .vm-archive-image{border-radius:17px 17px 10px 10px}
+  html body .vm-archive-image:after{width:25px;height:25px;right:7px;top:7px;font-size:14px}
+  html body .vm-archive-chip{font-size:8px;top:7px;left:7px;padding:4px 7px}
+  html body .vm-reference-card .vm-reference-copy{padding:11px 11px 13px;min-height:98px;gap:7px}
+  html body .vm-reference-card h3{color:#34312f;font-size:11px;line-height:1.4}
+  html body .vm-reference-price{font-size:11px}
+  html body .vm-reference-disclaimer{font-size:10px;line-height:1.6}
+  html body .vm-trendora-member{
+    padding:25px 22px;margin:25px 14px;border-radius:25px;min-height:185px;
+  }
+  html body .vm-trendora-member h2{font-size:24px;max-width:225px}
+  html body .vm-trendora-member p{font-size:11px;max-width:230px}
+  html body .vm-trendora-member-mark{position:absolute;right:-17px;bottom:8px;font-size:96px;opacity:.45}
+  html body .vm-trendora-member-mark span{font-size:20px}
+  html body .vm-trendora-brands{margin-top:27px;margin-bottom:31px}
+  html body .vm-trendora-brands .vm-brand-logo{flex-basis:102px;height:88px;min-height:88px;border-radius:17px}
+  html body .vm-trendora-news .vm-reference-news-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  html body .vm-reference-news-card{border-radius:18px}
+  html body .vm-reference-news-card>div{color:#373330;font-size:11px}
+  html body .vm-archive-end-note{font-size:10px}
+  html body .vm-detail-page{padding:14px 0 30px}
+  html body .vm-detail-main{display:flex;flex-direction:column;gap:12px}
+  html body .vm-detail-gallery{width:100%}
+  html body .vm-detail-hero-image{background:#fff0da;border-radius:25px;margin:0 14px;width:calc(100% - 28px)}
+  html body .vm-detail-content{
+    width:calc(100% - 28px);margin:0 14px;padding:21px 17px;border-radius:25px;
+  }
+  html body .vm-detail-content h1{font-size:21px;border:0;padding-bottom:0;line-height:1.35}
+  html body .vm-detail-price{font-size:20px}
+  html body .vm-detail-recommendations .vm-reference-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  html body .vm-category-page{padding:22px 14px}
+  html body .vm-category-page .vm-lined-heading{font-size:19px;padding:0 0 12px}
+  html body .vm-reference-footer{padding-top:35px}
+  html body .vm-reference-footer .vm-reference-footer-grid{padding-left:16px;padding-right:16px}
+  html body .vm-catalog-page{padding:22px 14px}
+  html body .vm-cart-page{padding:22px 14px}
+  html body .cart-drawer{border-radius:25px 25px 0 0}
+}
+@media(max-width:360px){
+  html body .vm-trendora-category{min-height:84px}
+  html body .vm-trendora-category-title{font-size:9px}
+  html body .vm-home-intro h1{font-size:25px}
+}
+@media(prefers-reduced-motion:reduce){
+  html body .vm-trendora-category,
+  html body .vm-reference-card,
+  html body .vm-reference-news-card,
+  html body .vm-trendora-see-all{transition:none!important;transform:none!important}
+}
