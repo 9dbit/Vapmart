@@ -4,6 +4,7 @@ import {useEffect,useRef,type CSSProperties} from 'react';
 import {usePathname} from 'next/navigation';
 import {useCart} from '@/lib/cart';
 import {CartDrawer} from '@/components/cart-drawer';
+import {ThemeSwitcher} from '@/components/theme-switcher';
 import {useCustomerAuth} from '@/lib/customer-auth';
 
 type IconName='search'|'cart'|'user'|'home'|'categories'|'star'|'tag'|'back';
@@ -103,6 +104,7 @@ export function SiteHeader(){
               <button type="submit">Cari</button>
             </form>
           </details>
+          <ThemeSwitcher/>
           <button type="button" className="vm-reference-cart" onClick={()=>setOpen(true)} aria-label={'Buka keranjang, '+count+' barang'} aria-haspopup="dialog" aria-expanded={open}>
             <Icon name="cart"/><span className="cart-count">{count}</span>
           </button>
