@@ -5,6 +5,7 @@ import {usePathname} from 'next/navigation';
 import {useCart} from '@/lib/cart';
 import {CartDrawer} from '@/components/cart-drawer';
 import {ThemeSwitcher} from '@/components/theme-switcher';
+import {BrandLogo} from '@/components/brand-logo';
 import {useCustomerAuth} from '@/lib/customer-auth';
 
 type IconName='search'|'cart'|'user'|'home'|'categories'|'star'|'tag'|'back';
@@ -85,7 +86,7 @@ export function SiteHeader(){
   return <>
     <header className={isSubpage?'legacy-header vm-reference-header vm-subpage vm-modern-header':'legacy-header vm-reference-header vm-modern-header'}>
       <div className="main-container vm-header-main">
-        <Link href="/" className="legacy-logo" aria-label="Beranda Vapmart"><img src="/branding/vapmart-logo.png" alt="Vapmart" width="180" height="36"/></Link>
+        <Link href="/" className="legacy-logo" aria-label="Beranda Vapmart"><BrandLogo variant="header"/></Link>
         <nav className="vm-desktop-links" aria-label="Menu utama">
           {menu.map(item=><Link href={item.href} key={item.href} className={item.active?'is-active':''} aria-current={item.active?'page':undefined}>{item.label}</Link>)}
         </nav>
