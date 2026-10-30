@@ -18,6 +18,10 @@ import './trendora.css';
 import './cp21.css';
 import './cp22.css';
 import './cp23.css';
+import './cp23-details.css';
+import './cp23-member.css';
+import './cp23-commerce.css';
+import './cp23-shell.css';
 // Runs before React hydration, preventing a bright flash on dark-theme return visits.
 const initialThemeScript="(function(){var root=document.documentElement;var pref='light';try{var stored=localStorage.getItem('vapmart.color-mode.v1');if(stored==='dark'||stored==='light'||stored==='system')pref=stored}catch(e){}var system=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=pref==='system'?(system?'dark':'light'):pref;root.setAttribute('data-vapmart-color-mode',resolved);root.style.colorScheme=resolved})();";
 export const metadata:Metadata={
