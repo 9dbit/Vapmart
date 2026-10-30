@@ -31,7 +31,8 @@ try{
  await page.waitForFunction(()=>document.documentElement.dataset.vapmartColorMode==='dark');
  assert.equal(await page.evaluate(()=>localStorage.getItem('vapmart.color-mode.v1')),'dark','choice persists');
  assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(14, 14, 18)');
- assert.equal(await page.locator('.vm22-member-shortcut.is-lilac').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(48, 34, 63)','benefit cards must be solid dark');
+ await page.waitForFunction(()=>{const el=document.querySelector('.vm22-member-shortcut.is-lilac');return el&&getComputedStyle(el).backgroundColor==='rgb(48, 34, 63)';},null,{timeout:6000});
+ assert.equal(await page.locator('.vm22-member-shortcut.is-lilac').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(48, 34, 63)','benefit cards must be solid dark after transition');
  const card=await page.locator('.vm22-member-card').evaluate(el=>{
    const r=el.getBoundingClientRect();
    return {ratio:r.width/r.height,purple:getComputedStyle(el.querySelector('.vm22-card-purple-panel')).backgroundColor,
