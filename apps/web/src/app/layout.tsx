@@ -18,7 +18,7 @@ export const metadata:Metadata={
  robots:{index:false,follow:false},
 };
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="id"><body><CartProvider><SiteHeader/>{children}
+  return <html lang="id"><body data-vapmart-theme="trendora-cp16"><CartProvider><SiteHeader/>{children}
     <footer className="legacy-footer vm-reference-footer">
       <div className="main-container vm-reference-footer-grid">
         <div className="vm-footer-intro"><img src="/legacy/vapmart-logo-white.webp" alt="Vapmart" width={112} height={25}/>
