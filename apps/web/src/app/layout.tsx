@@ -5,6 +5,7 @@ import {CustomerAuthProvider} from '@/lib/customer-auth';
 import {WishlistProvider} from '@/lib/wishlist';
 import {SiteHeader} from '@/components/site-header';
 import {ThemeProvider} from '@/lib/theme';
+import {BrandLogo} from '@/components/brand-logo';
 import './globals.css';
 import './legacy.css';
 import './brand.css';
@@ -22,6 +23,7 @@ import './cp23-details.css';
 import './cp23-member.css';
 import './cp23-commerce.css';
 import './cp23-shell.css';
+import './cp24-logo.css';
 // Runs before React hydration, preventing a bright flash on dark-theme return visits.
 const initialThemeScript="(function(){var root=document.documentElement;var pref='light';try{var stored=localStorage.getItem('vapmart.color-mode.v1');if(stored==='dark'||stored==='light'||stored==='system')pref=stored}catch(e){}var system=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=pref==='system'?(system?'dark':'light'):pref;root.setAttribute('data-vapmart-color-mode',resolved);root.style.colorScheme=resolved;var meta=document.querySelector('meta[name=theme-color]');if(meta)meta.content=resolved==='dark'?'#131317':'#ffffff'})();";
 export const metadata:Metadata={
@@ -33,7 +35,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
   return <html lang="id" suppressHydrationWarning><head><meta name="theme-color" content="#ffffff"/><script id="vapmart-theme-init" dangerouslySetInnerHTML={{__html:initialThemeScript}}/></head><body data-vapmart-theme="member-cp22" data-vapmart-theme-options="cp23"><ThemeProvider><CustomerAuthProvider><CartProvider><WishlistProvider><SiteHeader/>{children}
     <footer className="legacy-footer vm-reference-footer">
       <div className="main-container vm-reference-footer-grid">
-        <div className="vm-footer-intro"><img src="/branding/vapmart-logo.png" alt="Vapmart" width={112} height={25}/>
+        <div className="vm-footer-intro"><BrandLogo variant="footer"/>
           <p>Platform Vapmart sedang diperbarui. Konten produk lama ditampilkan sebagai referensi visual staging, bukan penawaran aktif.</p>
           <h3>Ikuti Kami</h3>
           <div className="vm-footer-social"><span aria-label="Facebook">f</span><span aria-label="YouTube">▶</span><span aria-label="Instagram">◎</span></div>
@@ -53,7 +55,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
           </div>
         </div>
       </div>
-      <div className="main-container vm-footer-powered">Powered by <img src="/branding/vapmart-logo.png" alt="Vapmart" width={84} height={20}/></div>
+      <div className="main-container vm-footer-powered">Powered by <BrandLogo variant="powered"/></div>
     </footer>
   </WishlistProvider></CartProvider></CustomerAuthProvider></ThemeProvider></body></html>;
 }
