@@ -6,14 +6,15 @@ import {ProductGrid} from '@/components/product-grid';
 import {archivedNews} from '@/lib/archived-reference';
 import {featuredArchiveItems} from '@/lib/archive-catalog';
 import {ArchiveCard} from '@/components/archive-card';
-import {homepageCategoryTiles,homepageBrands} from '@/lib/merchandising';
+import {homepageCategoryTiles} from '@/lib/merchandising';
+import {BrandRail} from '@/components/brand-rail';
 
 export const dynamic='force-dynamic';
 
 export default async function Home(){
   const products=await getProducts();
   const verifiedProducts=products.filter(p=>!p.slug.startsWith('demo-'));
-  return <main className="legacy-home vm-reference-home vm-trendora-home" id="home" data-vapmart-ui="cp18">
+  return <main className="legacy-home vm-reference-home vm-trendora-home" id="home" data-vapmart-ui="cp19">
     <div className="vm-hero-stage vm-trendora-hero">
       <ParallaxAmbient />
       <HeroCarousel />
@@ -62,9 +63,7 @@ export default async function Home(){
         <div><span className="vm-trendora-eyebrow">EXPLORE THE NAMES</span><h2>Brand Partner</h2></div>
         <Link href="/brand-partner" className="vm-trendora-see-all">Lihat semua <span aria-hidden="true">↗</span></Link>
       </div>
-      <div className="vm-brand-logos" aria-label="Logo brand dari website Vapmart original">
-        {homepageBrands.map((brand,index)=><div className="vm-brand-logo" key={brand} title={brand}><img src={'/legacy/brands/brand-'+String(index+1).padStart(2,'0')+'.png'} width="100" height="100" alt={'Logo '+brand} loading="lazy"/></div>)}
-      </div>
+      <BrandRail />
     </section>
 
     <section className="main-container vm-ref-news vm-trendora-news" id="news">
