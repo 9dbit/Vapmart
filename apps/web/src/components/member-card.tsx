@@ -1,6 +1,6 @@
 import {CoinVisualStack} from './coin-visual-stack';
 
-type MemberStatus='GUEST'|'REGISTERED'|'ACTIVE'|'UNAVAILABLE';
+type MemberStatus='GUEST'|'REGISTERED'|'ACTIVE'|'SUSPENDED'|'UNAVAILABLE';
 export function MemberCard({name,balance,status,cardLast4}:{name:string;balance:number|null;status:MemberStatus;cardLast4?:string|null}){
  const active=status==='ACTIVE';
  return <section className="vm-new-member-card" aria-label="Vapmart Member Card">
@@ -23,7 +23,7 @@ export function MemberCard({name,balance,status,cardLast4}:{name:string;balance:
        <small>{cardLast4?'•••• •••• '+cardLast4:'Nomor kartu muncul setelah aktivasi'}</small>
      </div>
      <span className={active?'vm-new-member-status active':'vm-new-member-status'}>
-       {active?'MEMBER ACTIVE':status==='REGISTERED'?'BELUM AKTIF':status==='GUEST'?'PREVIEW':'BELUM TERHUBUNG'}
+       {active?'MEMBER ACTIVE':status==='REGISTERED'?'BELUM AKTIF':status==='GUEST'?'PREVIEW':status==='SUSPENDED'?'DITANGGUHKAN':'BELUM TERHUBUNG'}
      </span>
    </div>
  </section>;
