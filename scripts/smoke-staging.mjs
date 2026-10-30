@@ -48,14 +48,14 @@ for (const product of catalog.data.items) {
 assert.equal(webCatalog.status,200);
 assert.equal(webCatalog.data?.items?.length,catalog.data.items.length);
 let storefront=home;
-for(let attempt=0;attempt<36&&!storefront.text.includes('data-vapmart-theme="liquid-cp19"');attempt++){
-  console.log('waiting for Vapmart CP19 liquid glass release',attempt+1);
+for(let attempt=0;attempt<36&&!storefront.text.includes('data-vapmart-theme="coin-cp21"');attempt++){
+  console.log('waiting for Vapmart CP21 member and coin release',attempt+1);
   await sleep(8000);
   storefront=await request(WEB+'/');
 }
 assert.equal(storefront.status,200);
-assert.match(storefront.text,/data-vapmart-theme="liquid-cp19"/,'Checkpoint 19 liquid theme not yet deployed');
-assert.match(storefront.text,/data-vapmart-ui="cp19"/,'expected full-bleed CP19 homepage');
+assert.match(storefront.text,/data-vapmart-theme="coin-cp21"/,'Checkpoint 21 coin theme not yet deployed');
+assert.match(storefront.text,/data-vapmart-ui="cp21"/,'expected CP21 homepage');
 assert.match(storefront.text,/Kategori/);
 assert.match(storefront.text,/Brand Partner/i);
 assert.match(storefront.text,/Featured Products|Produk Pilihan/i);
@@ -65,4 +65,22 @@ assert.equal(webAdminProductsAnon.status,401,'Admin web proxy must reject anonym
 assert.equal(adminPage.status,200,'Admin entry screen should render');
 assert.match(adminPage.text,/Authentication not configured|Administrator sign in|Memeriksa sesi/);
 assert.equal(checkout.status,503,'Checkout must remain disabled');
+const [packs,memberAnon,digitalAnon,login,memberPage,cartPage]=await Promise.all([
+  request(API+'/v1/coin-packs'),
+  request(API+'/v1/member/overview'),
+  request(API+'/v1/digital-orders',{method:'POST',headers:{'content-type':'application/json'},body:'{}'}),
+  request(WEB+'/login'),request(WEB+'/member-2'),request(WEB+'/keranjang-2')
+]);
+assert.equal(packs.status,200,'public coin catalog should be available');
+assert.deepEqual(packs.data?.items?.map(x=>x.priceIdr),
+  [100000,50000,100000,300000,500000,1000000,2000000],
+  'activation and six coin packs must retain exact price levels');
+assert.equal(packs.data?.checkoutEnabled,false,'real payment must remain disabled');
+assert.equal(memberAnon.status,401,'anonymous wallet reads must be rejected');
+assert.equal(digitalAnon.status,401,'anonymous digital order must be rejected');
+assert.equal(login.status,200);
+assert.equal(memberPage.status,200);
+assert.equal(cartPage.status,200);
+assert.match(memberPage.text,/VAPMART CLUB|More benefits/,'member UI should render');
+
 console.log('VAPMART_STAGING_SMOKE_SUCCESS',{items:catalog.data.items.length,web:WEB,api:API,checkout:'disabled',admin_anon:'denied'});
