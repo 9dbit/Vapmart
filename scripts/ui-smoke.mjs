@@ -213,7 +213,7 @@ try{
   assert.ok(await page.getByRole('button',{name:'Checkout produk belum tersedia'}).isDisabled());
   const beforeQty=await page.locator('.vm21-cart-product .vm21-drawer-qty span').first().innerText();
   await page.locator('.vm21-cart-product .vm21-drawer-qty button').last().click();
-  assert.equal(Number(await page.locator('.vm-cart-qty span').first().innerText()),Number(beforeQty)+1,'Cart quantity should increment');
+  assert.equal(Number(await page.locator('.vm21-cart-product .vm21-drawer-qty span').first().innerText()),Number(beforeQty)+1,'Cart quantity should increment');
   await page.getByRole('button',{name:'Hapus'}).first().click();
   assert.equal(await page.locator('.vm21-cart-product').count(),0,'Delete should remove cart item');
   await page.goto(BASE+'/catalog',{waitUntil:'networkidle',timeout:45000});
