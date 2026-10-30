@@ -13,24 +13,7 @@ export const dynamic='force-dynamic';
 export default async function Home(){
   const products=await getProducts();
   const verifiedProducts=products.filter(p=>!p.slug.startsWith('demo-'));
-  return <main className="legacy-home vm-reference-home vm-trendora-home" id="home" data-vapmart-ui="cp16">
-    <section className="main-container vm-home-intro" aria-label="Selamat datang di Vapmart">
-      <div className="vm-home-intro-row">
-        <div>
-          <p className="vm-trendora-eyebrow"><span className="vm-trendora-spark" aria-hidden="true">✳</span> VAPMART / DISCOVER</p>
-          <h1>Find your next favorite.</h1>
-          <p className="vm-home-subtitle">Jelajahi koleksi, temukan inspirasi, dan nikmati pengalaman Vapmart yang baru.</p>
-        </div>
-        <Link href="/catalog" className="vm-home-discover">Explore collection <span aria-hidden="true">↗</span></Link>
-      </div>
-      <form className="vm-home-quicksearch" action="/catalog" role="search">
-        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="10.7" cy="10.7" r="6.7"/><path d="m16 16 5 5"/></svg>
-        <label className="sr-only" htmlFor="vm-home-q">Cari di Vapmart</label>
-        <input type="search" id="vm-home-q" name="q" placeholder="Cari produk, kategori, brand..." maxLength={80} autoComplete="off"/>
-        <button type="submit" aria-label="Cari produk">Cari <span aria-hidden="true">↗</span></button>
-      </form>
-    </section>
-
+  return <main className="legacy-home vm-reference-home vm-trendora-home" id="home" data-vapmart-ui="cp18">
     <div className="vm-hero-stage vm-trendora-hero">
       <ParallaxAmbient />
       <HeroCarousel />
