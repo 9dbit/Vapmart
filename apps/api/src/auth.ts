@@ -50,3 +50,13 @@ export class AdminGuard implements CanActivate {
     return true;
   }
 }
+
+@Injectable()
+export class CustomerGuard implements CanActivate {
+  constructor(private readonly auth:SupabaseAuthService){}
+  async canActivate(context:ExecutionContext):Promise<boolean>{
+    const req=context.switchToHttp().getRequest<{headers:{authorization?:string};user?:Principal}>();
+    req.user=await this.auth.verify(req.headers.authorization);
+    return true;
+  }
+}
