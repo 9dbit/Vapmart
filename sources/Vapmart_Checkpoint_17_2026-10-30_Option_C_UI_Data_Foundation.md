@@ -127,3 +127,31 @@ HOSTINGER AUTHORIZED MYSQL EXPORT [PENDING] ──> schema/table counts ──> 
 ## 7. Continuity notes
 
 This checkpoint does not merge PR #1, touch WordPress production, export protected customer data, execute the schema draft, enable payments, or accept live orders. New frontend use of legacy assets stays read-only. Track any pending/latest QA result before declaring CP17 complete.
+
+## 8. Completed execution and final QA addendum
+
+**Source capture completed on authorized SPARK.local**:
+- Wrote private, strictly whitelisted original design source files to `/Users/macuser/Documents/Vapmart/private-source-capture-cp17/`.
+- 53 files, 17,071,766 total bytes: 41 generated Elementor stylesheets, 6 full-resolution hero banners, 5 original category icons, 1 Astra theme CSS.
+- Private directory includes `source_capture_manifest.json` with per-file SHA-256 and `README.txt`; excluded DB exports, secrets, user/order records, font binaries and plugin PHP.
+- Public GitHub includes only the safe provenance report `docs/legacy-source-capture-cp17.json`, not copied private original assets.
+
+**UI refinements added after initial plan**:
+- Demo detail placeholder now uses the same warm peach visual styling as catalogue cards instead of falling back to a dark Vapmart logo panel.
+- Favorite buttons have minimum **44 × 44px** click targets on desktop and mobile.
+- Fixed a transient GitHub browser-smoke false failure caused by checking an archive-detail image before Next.js client-side route hydration. Tests now wait for image visibility/decode readiness.
+
+**Verified staging web release:**
+- Railway `vapmart-web` commit `5c67a32a148ed9ca4ea12a99f6945abe2bb0b93a` deployment `bf7b9c2e-bd96-4bf8-a7e7-6cc58c4b1cfd` **SUCCESS**.
+- GitHub final test-only commit `56cbfa4e3b93bb23a5b776ad7966c8030903d3ea`: **Foundation checks SUCCESS**, **Browser UI smoke SUCCESS**, **Staging smoke SUCCESS**, **Dependency security audit SUCCESS**. Test-only code changes were SKIPPED for Railway application rebuild by change detection.
+- Actual Chromium on SPARK.local: full `scripts/ui-smoke.mjs` **SUCCESS** (homepage, archival detail, demo catalog, wishlist persistence, cart, admin/account preview, checkout-disabled guard, mobile and reduced-motion).
+- Browser QA `/tmp/vapmart-cp17-*.png` local device, viewports **360, 390, 1024, 1440px**: five source category images loaded, demo gallery warm placeholder visible, catalogue 4 demo cards, 12 archive homepage cards, no horizontal overflow, favorite touch buttons 44px. No screenshots added to public repo.
+- Wishlist add, favorite-only filtering, reload persistence, detail synchronization and remove were verified interactively without creating orders or accounts.
+
+### CP17 disposition
+
+**Complete:** implemented UI refinements, source inventory and private design-file capture, static merchandising mapping, review-only database contract, staging frontend deploy and browser/CI QA.
+
+**Not complete / intentionally gated:** full WordPress MySQL export and historical customer/order data, applying the proposed PostgreSQL schema, turning on account authentication or checkout, full CSS legacy-stack consolidation, and measured LCP/CLS. These are dependency-gated subsequent checkpoints, not hidden successes.
+
+**Safety:** original WordPress production and GitHub `main` left untouched; PR remains draft. No credentials, customer records or payment data published.
