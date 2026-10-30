@@ -2,7 +2,7 @@ import Link from 'next/link';
 import {ProductGrid} from '@/components/product-grid';
 import {getProducts} from '@/lib/api';
 export const dynamic='force-dynamic';
-export const metadata={title:'Katalog Staging | Vapmart',robots:{index:false,follow:false}};
+export const metadata={title:'Katalog | Vapmart',robots:{index:false,follow:false}};
 export default async function CatalogPage({searchParams}:{searchParams:Promise<{category?:string;q?:string}>}){
   const params=await searchParams;
   const category=typeof params.category==='string'?params.category:'all';
@@ -11,9 +11,11 @@ export default async function CatalogPage({searchParams}:{searchParams:Promise<{
   const products=await getProducts();
   return <main className="main-container legacy-product-wrapper vm-catalog-page">
     <div className="vm-catalog-intro">
-      <Link href="/" className="back-link">← Kembali ke homepage Vapmart</Link>
-      <h1>Katalog Pengujian</h1>
-      <p>Produk DEMO untuk menguji pencarian, kategori, detail, dan keranjang. Checkout dan pembayaran tidak aktif.</p>
+      <Link href="/" className="back-link">← Kembali ke beranda</Link>
+      <span className="vm-trendora-eyebrow">DISCOVER VAPMART</span>
+      <h1>Explore the catalog.</h1>
+      <p>Jelajahi pilihan produk, cari berdasarkan nama atau SKU, lalu saring menurut kategori.</p>
+      <span className="vm-catalog-preview">Preview staging · Checkout belum tersedia</span>
     </div>
     <ProductGrid products={products} initialTerm={q} initialCategory={allowed.includes(category)?category:'all'}/>
   </main>;
