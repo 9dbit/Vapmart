@@ -88,7 +88,7 @@ try{
  await page.waitForFunction(()=>document.documentElement.dataset.vapmartColorMode==='dark');
  assert.equal(await page.evaluate(()=>localStorage.getItem('vapmart.color-mode.v1')),'dark','choice persists');
  assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(14, 14, 18)');
- const newLogo=await auditLogo('dark');
+ const darkLogoAudit=await auditLogo('dark');
  await page.waitForFunction(()=>{const el=document.querySelector('.vm22-member-shortcut.is-lilac');return el&&getComputedStyle(el).backgroundColor==='rgb(48, 34, 63)';},null,{timeout:6000});
  assert.equal(await page.locator('.vm22-member-shortcut.is-lilac').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(48, 34, 63)','benefit cards must be solid dark after transition');
  const card=await page.locator('.vm22-member-card').evaluate(el=>{
@@ -145,6 +145,6 @@ try{
  console.log('VAPMART_THEME_SMOKE_SUCCESS',JSON.stringify({
    initial:lightBg,card,headerBg,modes:['light','dark','system'],compact,
    originalLogo:{glyph:originalLogo.glyph,purple:originalLogo.purple},
-   darkLogo:{glyph:newLogo.glyph,grey:newLogo.grey,purple:newLogo.purple},desktopLogo:true
+   darkLogo:{glyph:darkLogoAudit.glyph,grey:darkLogoAudit.grey,purple:darkLogoAudit.purple},desktopLogo:true
  }));
 }finally{await context.close();await browser.close();}
