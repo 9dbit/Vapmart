@@ -650,3 +650,12 @@ html body .vm-cp17-detail-copy .vm-cp17-button{width:100%;height:52px;margin-top
   html body .vm-cp17-skeleton{animation:none;background:#f1eae1}
   html body .vm-favorite-button{transition:none}
 }
+
+/* Keep demo product detail and catalog thumbnail placeholders consistent. */
+html body .vm-demo-detail .vm-cp17-demo-placeholder{
+  display:grid;place-items:center;min-height:280px;background:#fff0df;border:5px solid white;
+}
+html body .vm-cp17-demo-placeholder-inner{display:flex;align-items:center;flex-direction:column;gap:15px;color:#99755a;text-align:center}
+html body .vm-cp17-demo-placeholder-inner>span{font-size:clamp(88px,13vw,145px);line-height:1;color:#ebad75}
+html body .vm-cp17-demo-placeholder-inner>strong{font-size:13px;letter-spacing:.28em}
+html body .vm-cp17-demo-placeholder-inner>small{font-size:11px;color:#ac8e77;letter-spacing:.08em}
