@@ -5,7 +5,7 @@ export function MemberCard({name,balance,status,cardLast4}:{name:string;balance:
  const active=status==='ACTIVE';
  return <section className="vm-new-member-card" aria-label="Vapmart Member Card">
    <div className="vm-new-member-card-top">
-     <div className="vm-new-card-brand"><span className="vm-new-card-symbol">V</span><strong>vapmart</strong></div>
+     <div className="vm-new-card-brand"><img src="/branding/vapmart-logo.png" alt="Vapmart" width={155} height={42}/></div>
      <span className="vm-new-card-chip">MEMBER CARD</span>
    </div>
    <div className="vm-new-card-center">
