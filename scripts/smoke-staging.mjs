@@ -48,13 +48,14 @@ for (const product of catalog.data.items) {
 assert.equal(webCatalog.status,200);
 assert.equal(webCatalog.data?.items?.length,catalog.data.items.length);
 let storefront=home;
-for(let attempt=0;attempt<36&&!storefront.text.includes('data-vapmart-theme="trendora-cp16"');attempt++){
-  console.log('waiting for Trendora storefront release',attempt+1);
+for(let attempt=0;attempt<36&&!storefront.text.includes('data-vapmart-theme="liquid-cp19"');attempt++){
+  console.log('waiting for Vapmart CP19 liquid glass release',attempt+1);
   await sleep(8000);
   storefront=await request(WEB+'/');
 }
 assert.equal(storefront.status,200);
-assert.match(storefront.text,/data-vapmart-theme="trendora-cp16"/,'Checkpoint 16 theme not yet deployed');
+assert.match(storefront.text,/data-vapmart-theme="liquid-cp19"/,'Checkpoint 19 liquid theme not yet deployed');
+assert.match(storefront.text,/data-vapmart-ui="cp19"/,'expected full-bleed CP19 homepage');
 assert.match(storefront.text,/Kategori/);
 assert.match(storefront.text,/Brand Partner/i);
 assert.match(storefront.text,/Featured Products|Produk Pilihan/i);
