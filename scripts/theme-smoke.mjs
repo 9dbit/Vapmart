@@ -10,6 +10,62 @@ const choose=async(label)=>{
  await page.locator('.vm23-theme-trigger').click();
  await page.locator('.vm23-theme-menu button',{hasText:label}).click();
 };
+const auditLogo=async(expected)=>{
+ const marks=await page.locator('.vm24-brand-logo').count();
+ assert.equal(marks,3,'header, footer and Powered by must all show mode-aware official Vapmart logos');
+ const state=await page.evaluate(()=>{
+   const logos=[...document.querySelectorAll('.vm24-brand-logo')];
+   const activeClass=document.documentElement.dataset.vapmartColorMode==='dark'?'vm24-logo-dark':'vm24-logo-light';
+   const samples=logos.map((logo)=>{
+     const light=logo.querySelector('.vm24-logo-light');
+     const dark=logo.querySelector('.vm24-logo-dark');
+     const active=logo.querySelector('.'+activeClass);
+     const box=logo.getBoundingClientRect();
+     return {
+       activeVisible:getComputedStyle(active).display!=='none',
+       inactiveHidden:getComputedStyle(active===light?dark:light).display==='none',
+       loaded:active.complete&&active.naturalWidth===400&&active.naturalHeight===79,
+       background:getComputedStyle(logo).backgroundColor,
+       width:box.width,height:box.height
+     };
+   });
+   const img=logos[0].querySelector('.'+activeClass);
+   const canvas=document.createElement('canvas');
+   canvas.width=400;canvas.height=79;
+   const ctx=canvas.getContext('2d',{willReadFrequently:true});
+   ctx.drawImage(img,0,0,400,79);
+   const pixels=ctx.getImageData(0,0,400,79).data;
+   let glyph=0,grey=0,purple=0;
+   for(let y=0;y<79;y++)for(let x=0;x<400;x++){
+     const at=(y*400+x)*4;
+     const r=pixels[at],g=pixels[at+1],b=pixels[at+2],a=pixels[at+3];
+     if(x>=86&&a>200){
+       glyph++;
+       if(r>=202&&r<=216&&g>=202&&g<=216&&b>=208&&b<=220)grey++;
+     }
+     if(x<80&&a>190&&r>65&&b>155&&b>g*1.8)purple++;
+   }
+   return {samples,glyph,grey,purple,topLeftAlpha:pixels[3],
+     headerPlate:getComputedStyle(document.querySelector('.vm-modern-header .legacy-logo')).backgroundColor};
+ });
+ assert.ok(state.samples.every(x=>x.activeVisible&&x.inactiveHidden&&x.loaded),
+   'exactly one fully loaded brand asset must be visible at each logo position: '+JSON.stringify(state));
+ assert.ok(state.samples.every(x=>Math.abs(x.width/x.height-400/79)<.035),
+   'original logo proportions remain intact');
+ assert.ok(state.samples.every(x=>x.background==='rgba(0, 0, 0, 0)'),
+   'logo containers must be transparent');
+ assert.ok(state.topLeftAlpha<=3,'PNG background must be transparent, not a white rectangle');
+ assert.ok(state.purple>150,'original purple square icon must remain present');
+ if(expected==='dark'){
+   assert.ok(state.glyph>100&&state.grey/state.glyph>.95,
+     'dark logo wordmark must be real #D1D1D6 pixels: '+JSON.stringify(state));
+   assert.equal(state.headerPlate,'rgba(0, 0, 0, 0)',
+     'dark header cannot show a white logo plate');
+ }else{
+   assert.ok(state.grey/state.glyph<.01,'light mode logo must retain original dark wordmark');
+ }
+ return state;
+};
 try{
  let ready=false;
  for(let i=0;i<45;i++){
@@ -25,12 +81,14 @@ try{
  await page.waitForLoadState('networkidle',{timeout:45000});
  assert.equal(await mode(),'light','new visitors keep existing light mode even on dark OS');
  assert.equal(await page.locator('.vm23-theme-menu button').count(),3,'light, dark and system are required');
+ const originalLogo=await auditLogo('light');
  const lightBg=await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor);
  assert.ok(lightBg!=='rgb(14, 14, 18)','light palette must remain enabled by default');
  await choose('Dark');
  await page.waitForFunction(()=>document.documentElement.dataset.vapmartColorMode==='dark');
  assert.equal(await page.evaluate(()=>localStorage.getItem('vapmart.color-mode.v1')),'dark','choice persists');
  assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(14, 14, 18)');
+ const newLogo=await auditLogo('dark');
  await page.waitForFunction(()=>{const el=document.querySelector('.vm22-member-shortcut.is-lilac');return el&&getComputedStyle(el).backgroundColor==='rgb(48, 34, 63)';},null,{timeout:6000});
  assert.equal(await page.locator('.vm22-member-shortcut.is-lilac').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(48, 34, 63)','benefit cards must be solid dark after transition');
  const card=await page.locator('.vm22-member-card').evaluate(el=>{
@@ -79,5 +137,14 @@ try{
  const compact=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth-innerWidth,menuRight:document.querySelector('.vm23-theme-switcher').getBoundingClientRect().right}));
  assert.ok(compact.overflow<=2,'360px screen overflow '+JSON.stringify(compact));
  assert.ok(compact.menuRight<=360,'theme switcher must not overflow 360px header');
- console.log('VAPMART_THEME_SMOKE_SUCCESS',JSON.stringify({initial:lightBg,card,headerBg,modes:['light','dark','system'],compact}));
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto(BASE+'/',{waitUntil:'networkidle',timeout:45000});
+ assert.equal(await mode(),'dark');
+ const desktopLogo=await auditLogo('dark');
+ assert.ok(desktopLogo.samples.every(x=>x.width>80),'desktop logos must remain legible');
+ console.log('VAPMART_THEME_SMOKE_SUCCESS',JSON.stringify({
+   initial:lightBg,card,headerBg,modes:['light','dark','system'],compact,
+   originalLogo:{glyph:originalLogo.glyph,purple:originalLogo.purple},
+   darkLogo:{glyph:newLogo.glyph,grey:newLogo.grey,purple:newLogo.purple},desktopLogo:true
+ }));
 }finally{await context.close();await browser.close();}
