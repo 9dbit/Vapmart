@@ -6,17 +6,9 @@ import {ProductGrid} from '@/components/product-grid';
 import {archivedNews} from '@/lib/archived-reference';
 import {featuredArchiveItems} from '@/lib/archive-catalog';
 import {ArchiveCard} from '@/components/archive-card';
+import {homepageCategoryTiles,homepageBrands} from '@/lib/merchandising';
 
 export const dynamic='force-dynamic';
-
-const categories=[
- {name:'Brand',image:'/legacy/categories/brand.png',href:'/brand-partner'},
- {name:'Pod',image:'/legacy/categories/pod.png',href:'/product-category/pod'},
- {name:'Mod',image:'/legacy/categories/mod.png',href:'/product-category/mod'},
- {name:'Cartridge',image:'/legacy/categories/cartridge.png',href:'/product-category/cartridge'},
- {name:'Liquid',image:'/legacy/categories/liquid.png',href:'/product-category/e-juice'}
-] as const;
-const brands=['OXVA','FOOM','IQOS','INTO','JOIWAY','SP2S','LANAVAPE','E-SUPER','ROLV','LIQUID CULT','TAZE','SEVEN LIQUID'];
 
 export default async function Home(){
   const products=await getProducts();
@@ -50,7 +42,7 @@ export default async function Home(){
         <Link href="/catalog" className="vm-trendora-see-all">Lihat semua <span aria-hidden="true">↗</span></Link>
       </div>
       <div className="vm-trendora-category-grid">
-        {categories.map(item=><Link href={item.href} key={item.name} className="vm-trendora-category" aria-label={'Lihat kategori '+item.name}>
+        {homepageCategoryTiles.map(item=><Link href={item.href} key={item.name} className="vm-trendora-category" aria-label={'Lihat kategori '+item.name}>
           <span className="vm-trendora-category-image"><img src={item.image} width={1080} height={1080} alt="" loading="eager"/></span>
           <span className="vm-trendora-category-title">{item.name}</span>
         </Link>)}
@@ -88,7 +80,7 @@ export default async function Home(){
         <Link href="/brand-partner" className="vm-trendora-see-all">Lihat semua <span aria-hidden="true">↗</span></Link>
       </div>
       <div className="vm-brand-logos" aria-label="Logo brand dari website Vapmart original">
-        {brands.map((brand,index)=><div className="vm-brand-logo" key={brand} title={brand}><img src={'/legacy/brands/brand-'+String(index+1).padStart(2,'0')+'.png'} width="100" height="100" alt={'Logo '+brand} loading="lazy"/></div>)}
+        {homepageBrands.map((brand,index)=><div className="vm-brand-logo" key={brand} title={brand}><img src={'/legacy/brands/brand-'+String(index+1).padStart(2,'0')+'.png'} width="100" height="100" alt={'Logo '+brand} loading="lazy"/></div>)}
       </div>
     </section>
 
