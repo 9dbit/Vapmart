@@ -278,3 +278,8 @@ html body .vm21-checkout-feedback{padding:9px;border-radius:12px;background:#eee
 @media(prefers-reduced-motion:reduce){
  html body .vm-gold-coin,html body .vm21-primary,html body .vm21-coin-pack{transition:none!important;animation:none!important}
 }
+
+/* The authentic black-on-purple logo is displayed on a small white glass badge for contrast. */
+html body .vm-new-card-brand{padding:6px 11px;border-radius:13px;background:rgba(255,255,255,.95);box-shadow:0 5px 15px #200c3533}
+html body .vm-new-card-brand img{display:block;width:150px;max-width:100%;height:auto;filter:none!important}
+@media(max-width:767px){html body .vm-new-card-brand img{width:125px}}
