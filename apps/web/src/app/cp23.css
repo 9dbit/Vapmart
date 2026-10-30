@@ -27,3 +27,34 @@ html[data-vapmart-color-mode="dark"]{
  --vm21-canvas:var(--vm23-bg);--vm21-paper:var(--vm23-surface);--vm21-ink:var(--vm23-text);--vm21-muted:var(--vm23-muted);--vm21-border:var(--vm23-line);--vm22-ink:var(--vm23-text)
 }
 html[data-vapmart-color-mode="dark"] body{background:var(--vm23-bg);color:var(--vm23-text)}
+
+/* Dark header, real logo, theme menu and back row. */
+html[data-vapmart-color-mode="dark"] body .vm-modern-header{background:#131317;border-color:#35303b;box-shadow:0 3px 17px #0005}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-header-main{color:#f5f0f9;background:transparent!important}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .legacy-logo{box-sizing:border-box;border-radius:10px;padding:5px 7px;background:#fff}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .legacy-logo img{filter:none!important;opacity:1!important}
+html[data-vapmart-color-mode="dark"] body .vm-desktop-links{background:#211e27;border-color:#403646}
+html[data-vapmart-color-mode="dark"] body .vm-desktop-links a{color:#cfc5d8}
+html[data-vapmart-color-mode="dark"] body .vm-desktop-links a:hover:not(.is-active){background:#352641;color:#fff}
+html[data-vapmart-color-mode="dark"] body .vm-desktop-links a.is-active{background:#8310e8;color:#fff}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-reference-cart,html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-search-disclosure summary,html[data-vapmart-color-mode="dark"] body .vm23-theme-trigger{background:#25232b;color:#ebe3f4;border:1px solid #49404f}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-reference-cart:hover,html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-search-disclosure[open] summary,html[data-vapmart-color-mode="dark"] body .vm23-theme-trigger:hover,html[data-vapmart-color-mode="dark"] body .vm23-theme-switcher[open] .vm23-theme-trigger{background:#3b2a4b;color:#fff;border-color:#9760d5}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-reference-cart .cart-count{background:#8310e8;color:#fff;border-color:#19151c}
+html[data-vapmart-color-mode="dark"] body .vm-header-pill-search{background:#242029;color:#cfc4d6;border-color:#47384e}
+html[data-vapmart-color-mode="dark"] body .vm-header-pill-search input{color:#f8f3ff}
+html[data-vapmart-color-mode="dark"] body .vm-header-pill-search input::placeholder{color:#a99eb3}
+html[data-vapmart-color-mode="dark"] body .vm-header-pill-search button{background:#8310e8;color:#fff}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-search-disclosure form{background:#22202a;border-color:#5b4769}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-search-disclosure form input{background:#2b2832;color:#fff;border-color:#584662}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-search-disclosure form button{background:#8310e8;color:#fff}
+html[data-vapmart-color-mode="dark"] body .vm22-backbar{background:#1b191f;border-color:#37313f}
+html[data-vapmart-color-mode="dark"] body .vm22-back-link{color:#f0e9f5}
+html[data-vapmart-color-mode="dark"] body .vm22-back-icon{background:#2c2733;border-color:#51465b;color:#eee4f8}
+html[data-vapmart-color-mode="dark"] body .vm22-back-caption{color:#bdb2c9}
+html[data-vapmart-color-mode="dark"] body .vm23-theme-menu{background:#1f1b25;color:#f3edf7;border-color:#4d4056;box-shadow:0 21px 50px #000b}
+html[data-vapmart-color-mode="dark"] body .vm23-theme-menu-heading small,html[data-vapmart-color-mode="dark"] body .vm23-theme-choice-text small{color:#beb2c9}
+html[data-vapmart-color-mode="dark"] body .vm23-theme-menu button{color:#eee7f5}
+html[data-vapmart-color-mode="dark"] body .vm23-theme-menu button:hover{background:#372844}
+html[data-vapmart-color-mode="dark"] body .vm23-theme-menu button.is-current{background:#49285f;border-color:#795397}
+html[data-vapmart-color-mode="dark"] body .vm23-theme-choice-icon{background:#362742;color:#ddadff}
+html[data-vapmart-color-mode="dark"] body .vm23-theme-choice-check{color:#e2c0ff}
