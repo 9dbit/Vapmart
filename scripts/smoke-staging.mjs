@@ -47,10 +47,17 @@ for (const product of catalog.data.items) {
 }
 assert.equal(webCatalog.status,200);
 assert.equal(webCatalog.data?.items?.length,catalog.data.items.length);
-assert.equal(home.status,200);
-assert.match(home.text,/Jelajahi Kategori|Kategori Produk/i);
-assert.match(home.text,/Brand Partner/i);
-assert.match(home.text,/Produk Pilihan/i);
+let storefront=home;
+for(let attempt=0;attempt<36&&!storefront.text.includes('data-vapmart-theme="trendora-cp16"');attempt++){
+  console.log('waiting for Trendora storefront release',attempt+1);
+  await sleep(8000);
+  storefront=await request(WEB+'/');
+}
+assert.equal(storefront.status,200);
+assert.match(storefront.text,/data-vapmart-theme="trendora-cp16"/,'Checkpoint 16 theme not yet deployed');
+assert.match(storefront.text,/Kategori/);
+assert.match(storefront.text,/Brand Partner/i);
+assert.match(storefront.text,/Featured Products|Produk Pilihan/i);
 assert.equal(unauthorized.status,401,'Admin status must reject anonymous users');
 assert.equal(adminProductsAnon.status,401,'Admin product inventory must reject anonymous users');
 assert.equal(webAdminProductsAnon.status,401,'Admin web proxy must reject anonymous users');
