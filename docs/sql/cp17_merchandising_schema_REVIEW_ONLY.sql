@@ -128,6 +128,22 @@ VALUES ('legacy-hero-01','Vapmart legacy banner 1','/legacy/banners/desktop-01.p
        ('legacy-hero-03','Vapmart legacy banner 3','/legacy/banners/desktop-03.png','/legacy/banners/mobile-03.png',3)
 ON CONFLICT (source_key) DO NOTHING;
 
+-- Existing homepage brand/logo references only; disabled for live merchandising until verified.
+INSERT INTO product.brands (slug,name,logo_url,sort_order)
+VALUES ('oxva','OXVA','/legacy/brands/brand-01.png',1),
+       ('foom','FOOM','/legacy/brands/brand-02.png',2),
+       ('iqos','IQOS','/legacy/brands/brand-03.png',3),
+       ('into','INTO','/legacy/brands/brand-04.png',4),
+       ('joiway','JOIWAY','/legacy/brands/brand-05.png',5),
+       ('sp2s','SP2S','/legacy/brands/brand-06.png',6),
+       ('lanavape','LANAVAPE','/legacy/brands/brand-07.png',7),
+       ('e-super','E-SUPER','/legacy/brands/brand-08.png',8),
+       ('rolv','ROLV','/legacy/brands/brand-09.png',9),
+       ('liquid-cult','LIQUID CULT','/legacy/brands/brand-10.png',10),
+       ('taze','TAZE','/legacy/brands/brand-11.png',11),
+       ('seven-liquid','SEVEN LIQUID','/legacy/brands/brand-12.png',12)
+ON CONFLICT (slug) DO NOTHING;
+
 -- No public table grants are created. Existing application role policy must be reviewed first.
 REVOKE ALL ON SCHEMA storefront FROM PUBLIC;
 REVOKE ALL ON ALL TABLES IN SCHEMA storefront FROM PUBLIC;
