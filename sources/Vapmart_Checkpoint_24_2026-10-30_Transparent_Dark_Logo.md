@@ -50,14 +50,28 @@ Immediately upgrade the real Vapmart ecommerce engine so that **only in Dark mod
 
 ## Acceptance tests
 
-- [ ] All three positions (header, footer and Powered by) use the original dark logo without white background on Dark mode.
-- [ ] Wordmark pixel color `#D1D1D6`, purple icon and alpha transparency verified against actual raster.
-- [ ] Light mode retains original PNG and dark-OS System mode switches correctly.
-- [ ] 360px and 390px mobile, 1440px desktop have no logo shift or horizontal overflow.
-- [ ] Foundation, security, HTTP staging, Browser UI smoke, Theme mode browser and Coin Ledger checks pass.
-- [ ] Railway `vapmart-web` deployment is terminal **SUCCESS**.
+- [x] All three positions (header, footer and Powered by) use the original dark logo without white background on Dark mode.
+- [x] Wordmark pixel color `#D1D1D6`, purple icon and alpha transparency verified against actual raster.
+- [x] Light mode retains original PNG and dark-OS System mode switches correctly.
+- [x] 360px and 390px mobile, 1440px desktop have no logo shift or horizontal overflow.
+- [x] Foundation, security, HTTP staging, Browser UI smoke, Theme mode browser and Coin Ledger checks pass.
+- [x] Railway `vapmart-web` deployment is terminal **SUCCESS**.
 
 ## Release verification
 
-**Pending in initial checkpoint revision.** Verify final GitHub Action SHA and Railway deployment ID/status before claiming the release completed. Documentation-only commits may be SKIPPED by Railway change detection.
+### Staging deployment (verified)
+- Frontend `vapmart-web` deployed application commit: `7db050e41d9158df2853b3a82fbeab516b14465f`.
+- Railway deployment `3f22b676-43e3-4d30-9fdc-6b059432cfb5`: terminal **SUCCESS**.
+- Checkpoint documentation and test-only commits after the application commit were **SKIPPED** by Railway change detection, as expected. The deployed app includes the dark PNG, shared BrandLogo component, header/footer wiring and final CSS cascade fix.
+- Existing `vapmart-api` and Postgres staging services unchanged. WordPress production and GitHub `main` untouched.
+
+### CI (verified)
+- Source/test commit `4e3467055f2e23c7e29feae04cf37f76a7f50a8d`: **7/7 GitHub workflow runs SUCCESS**.
+- Theme browser QA verified Light, Dark, System, reload persistence, exact 3 logo instances in header/footer, **no overlapping logo variants**, real PNG transparent background, original purple icon, and CSS logo plates removed.
+- Exact raster audit: 7,485/7,485 sampled dark wordmark pixels were light-grey; 4,320 sampled icon pixels kept original purple. Member Card ISO ratio `1.5858717` preserved.
+- Zero horizontal overflow at 360px and 390px. 1440px desktop logo/brand check passed.
+- Existing catalog, search, cart, member, API safety, wallet ledger, dependency audit, foundation and staging smoke checks all **SUCCESS**.
+- A temporary older application build failed when it referenced the new CSS before the file was committed; this was superseded by the successful final application deploy. A transient browser test failure on obsolete two-image selectors was corrected and is green on final source/test SHA.
+
+**CP24 closeout:** dark-mode header/footer logo upgrade completed and verified on staging. Do not merge draft PR #1 or enable production checkout without separate authorization.
 
