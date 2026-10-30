@@ -144,6 +144,32 @@ try{
   await page.goto(BASE+'/catalog',{waitUntil:'networkidle',timeout:45000});
   await page.locator('.product-card').first().waitFor({timeout:30000});
   assert.ok(await page.locator('.product-card').count()>=4,'four DEMO items should remain in a separate catalog');
+  // CP17: wait for the released favorite controls and confirm persistence across routes.
+  let favoritesReleaseReady=false;
+  for(let attempt=0;attempt<40;attempt++){
+    if(await page.locator('.vm-cp17-card-favorite').count()>=4){favoritesReleaseReady=true;break;}
+    await sleep(5000);
+    await page.reload({waitUntil:'networkidle',timeout:45000});
+  }
+  assert.ok(favoritesReleaseReady,'Checkpoint17 wishlist UI did not reach staging');
+  const favToggle=page.locator('.vm-cp17-card-favorite').first();
+  assert.equal(await favToggle.getAttribute('aria-pressed'),'false','first product should start unsaved in new test browser');
+  await favToggle.click();
+  assert.equal(await favToggle.getAttribute('aria-pressed'),'true','heart should mark product as saved');
+  await page.getByRole('button',{name:'Tampilkan hanya produk favorit'}).click();
+  assert.equal(await page.locator('.product-card').count(),1,'favorites filter must show only saved products');
+  await page.reload({waitUntil:'networkidle',timeout:45000});
+  assert.equal(await page.locator('.vm-cp17-favorites-number').innerText(),'1','saved count should persist after reload');
+  await page.getByRole('button',{name:'Tampilkan hanya produk favorit'}).click();
+  assert.equal(await page.locator('.product-card').count(),1,'favorite should still be in browser storage');
+  await page.getByRole('button',{name:'Tampilkan hanya produk favorit'}).click();
+  await page.goto(BASE+'/product/demo-modular-desk-organizer',{waitUntil:'networkidle',timeout:45000});
+  assert.equal(await page.locator('.vm-cp17-detail-favorite').getAttribute('aria-pressed'),'true','detail page must share saved wishlist state');
+  await page.locator('.vm-cp17-detail-favorite').click();
+  assert.equal(await page.locator('.vm-cp17-detail-favorite').getAttribute('aria-pressed'),'false','detail page heart should remove saved item');
+  await page.goto(BASE+'/catalog',{waitUntil:'networkidle',timeout:45000});
+  assert.equal(await page.locator('.vm-cp17-favorites-number').innerText(),'0','wishlist should be cleared after unfavorite');
+
   await page.getByRole('button',{name:/Tambahkan DEMO/}).first().click();
   await page.getByRole('dialog',{name:'Keranjang belanja'}).waitFor();
   assert.equal(await page.locator('.cart-row').count(),1);
