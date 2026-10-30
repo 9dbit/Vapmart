@@ -65,7 +65,11 @@ export default async function ProductPage({params}:{params:Promise<{slug:string}
  if(!product)notFound();
  return <main className="vm-detail-page vm-demo-detail">
    <div className="vm-detail-main">
-    <ArchiveGallery images={product.image_url?[product.image_url]:['/legacy/vapmart-logo-white.webp']} title={product.name}/>
+    {product.image_url?<ArchiveGallery images={[product.image_url]} title={product.name}/>:<div className="vm-detail-gallery">
+      <div className="vm-detail-hero-image vm-cp17-demo-placeholder" role="img" aria-label={`Placeholder gambar untuk ${product.name}`}>
+        <div className="vm-cp17-demo-placeholder-inner" aria-hidden="true"><span>✦</span><strong>VAPMART OBJECTS</strong><small>Preview Collection</small></div>
+      </div>
+    </div>}
     <section className="vm-detail-content">
       <nav className="vm-detail-breadcrumb" aria-label="Breadcrumb"><Link href="/">Vapmart</Link><span>/</span><Link href="/catalog">Katalog DEMO</Link></nav>
       <h1>{product.name}</h1><div className="vm-detail-price"><strong>{formatIDR(product.price_idr)}</strong></div>
