@@ -1,0 +1,29 @@
+/* Vapmart CP23: theme layer imported after CP22. */
+html{color-scheme:light}
+html[data-vapmart-color-mode="dark"]{color-scheme:dark}
+html body .vm23-theme-switcher{position:relative;z-index:78;flex:0 0 43px;min-width:43px;height:43px}
+html body .vm23-theme-trigger{box-sizing:border-box;list-style:none;display:grid;place-items:center;cursor:pointer;width:43px;height:43px;border:1px solid #e8e2ed;border-radius:50%;color:#352a40;background:#f8f6fa}
+html body .vm23-theme-trigger::-webkit-details-marker{display:none}
+html body .vm23-theme-trigger::marker{content:""}
+html body .vm23-theme-trigger:hover,html body .vm23-theme-switcher[open] .vm23-theme-trigger{background:#e9d5ff;color:#6d23b1;border-color:#c8a7f1}
+html body .vm23-theme-menu{position:absolute;right:-52px;top:calc(100% + 12px);box-sizing:border-box;width:258px;max-width:calc(100vw - 24px);display:flex;flex-direction:column;gap:5px;padding:12px;background:#fff;border:1px solid #e5dbea;border-radius:22px;box-shadow:0 18px 46px #271b3738;color:#2c2636}
+html body .vm23-theme-switcher:not([open]) .vm23-theme-menu{display:none}
+html body .vm23-theme-menu-heading{display:flex;flex-direction:column;gap:4px;padding:5px 8px 9px}
+html body .vm23-theme-menu-heading strong{font-size:14px;font-weight:800}
+html body .vm23-theme-menu-heading small{color:#857b8d;font-size:11px}
+html body .vm23-theme-menu button{width:100%;min-height:52px;display:flex;align-items:center;gap:10px;padding:8px 9px;border:1px solid transparent;border-radius:14px;background:transparent;color:#332b3d;text-align:left;cursor:pointer}
+html body .vm23-theme-menu button:hover{background:#f3eaff}
+html body .vm23-theme-menu button.is-current{background:#efe1ff;border-color:#d5b7f6}
+html body .vm23-theme-choice-icon{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:11px;background:#f3eafb;color:#7821c2}
+html body .vm23-theme-choice-text{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}
+html body .vm23-theme-choice-text strong{font-size:12px;font-weight:770}
+html body .vm23-theme-choice-text small{font-size:10px;color:#82768e}
+html body .vm23-theme-choice-check{flex:none;width:20px;text-align:center;font-size:15px;font-weight:800;color:#7b18cc}
+html body .vm23-theme-trigger:focus-visible,html body .vm23-theme-menu button:focus-visible{outline:2px solid #9d58e5;outline-offset:3px}
+html[data-vapmart-color-mode="dark"]{
+ --vm23-bg:#0e0e12;--vm23-surface:#19191e;--vm23-muted:#bdb4c7;--vm23-line:#38323e;--vm23-text:#f5f0f9;
+ --vm16-page:var(--vm23-bg);--vm16-white:var(--vm23-surface);--vm16-tint:#2d1f3b;--vm16-soft:#222026;--vm16-cocoa:var(--vm23-text);--vm16-muted:var(--vm23-muted);--vm16-hair:var(--vm23-line);--vm16-shadow:0 10px 30px #0005;
+ --vm12-bg:var(--vm23-bg);--vm12-surface:var(--vm23-surface);--vm12-strong:var(--vm23-text);--vm12-text:#ded6e6;--vm12-sub:var(--vm23-muted);
+ --vm21-canvas:var(--vm23-bg);--vm21-paper:var(--vm23-surface);--vm21-ink:var(--vm23-text);--vm21-muted:var(--vm23-muted);--vm21-border:var(--vm23-line);--vm22-ink:var(--vm23-text)
+}
+html[data-vapmart-color-mode="dark"] body{background:var(--vm23-bg);color:var(--vm23-text)}
