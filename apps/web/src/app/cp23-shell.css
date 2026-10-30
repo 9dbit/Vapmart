@@ -44,3 +44,9 @@ html[data-vapmart-color-mode="dark"] body .vm-reference-footer .vm-footer-suppor
  }
 }
 @media(prefers-reduced-motion:reduce){html body .vm23-theme-trigger{transition:none}}
+
+/* Category artwork uses its unmodified, contrast-safe neutral image stage. */
+html[data-vapmart-color-mode="dark"] body .vm-trendora-category-image{background:#f1eff4}
+html[data-vapmart-color-mode="dark"] body .vm-archive-image img,
+html[data-vapmart-color-mode="dark"] body .vm-trendora-category-image img,
+html[data-vapmart-color-mode="dark"] body .vm-brand-stage img{filter:none!important;mix-blend-mode:normal}
