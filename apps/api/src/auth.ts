@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { DatabaseService } from './database';
 
-export interface Principal { id: string; email: string | null; }
+export interface Principal { id: string; email: string | null; emailVerified: boolean; }
 
 export function readBearer(value?: string): string {
   const match = /^Bearer ([A-Za-z0-9._~+/=-]+)$/.exec(value || '');
@@ -26,11 +26,12 @@ export class SupabaseAuthService {
       throw new ServiceUnavailableException('Auth provider unavailable');
     }
     if (!response.ok) throw new UnauthorizedException('Invalid or expired access token');
-    const user = await response.json() as { id?: unknown; email?: unknown };
+    const user = await response.json() as { id?: unknown; email?: unknown; email_confirmed_at?: unknown };
     if (typeof user.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(user.id)) {
       throw new UnauthorizedException('Invalid user identity');
     }
-    return { id: user.id, email: typeof user.email === 'string' ? user.email : null };
+    return { id: user.id, email: typeof user.email === 'string' ? user.email : null,
+      emailVerified: typeof user.email_confirmed_at === 'string' && user.email_confirmed_at.length > 0 };
   }
 }
 
