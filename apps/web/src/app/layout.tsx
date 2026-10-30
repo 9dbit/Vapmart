@@ -4,6 +4,7 @@ import {CartProvider} from '@/lib/cart';
 import {CustomerAuthProvider} from '@/lib/customer-auth';
 import {WishlistProvider} from '@/lib/wishlist';
 import {SiteHeader} from '@/components/site-header';
+import {ThemeProvider} from '@/lib/theme';
 import './globals.css';
 import './legacy.css';
 import './brand.css';
@@ -16,13 +17,16 @@ import './checkpoint13.css';
 import './trendora.css';
 import './cp21.css';
 import './cp22.css';
+import './cp23.css';
+// Runs before React hydration, preventing a bright flash on dark-theme return visits.
+const initialThemeScript="(function(){var root=document.documentElement;var pref='light';try{var stored=localStorage.getItem('vapmart.color-mode.v1');if(stored==='dark'||stored==='light'||stored==='system')pref=stored}catch(e){}var system=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=pref==='system'?(system?'dark':'light'):pref;root.setAttribute('data-vapmart-color-mode',resolved);root.style.colorScheme=resolved})();";
 export const metadata:Metadata={
  title:{default:'VapMart | Marketplace',template:'%s | VapMart'},
  description:'Rebuild staging Vapmart. Referensi visual WordPress, katalog baru sedang disiapkan. Checkout belum tersedia.',
  robots:{index:false,follow:false},
 };
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="id"><body data-vapmart-theme="member-cp22"><CustomerAuthProvider><CartProvider><WishlistProvider><SiteHeader/>{children}
+  return <html lang="id" suppressHydrationWarning><head><script id="vapmart-theme-init" dangerouslySetInnerHTML={{__html:initialThemeScript}}/></head><body data-vapmart-theme="member-cp22"><ThemeProvider><CustomerAuthProvider><CartProvider><WishlistProvider><SiteHeader/>{children}
     <footer className="legacy-footer vm-reference-footer">
       <div className="main-container vm-reference-footer-grid">
         <div className="vm-footer-intro"><img src="/branding/vapmart-logo.png" alt="Vapmart" width={112} height={25}/>
@@ -47,5 +51,5 @@ export default function RootLayout({children}:{children:React.ReactNode}){
       </div>
       <div className="main-container vm-footer-powered">Powered by <img src="/branding/vapmart-logo.png" alt="Vapmart" width={84} height={20}/></div>
     </footer>
-  </WishlistProvider></CartProvider></CustomerAuthProvider></body></html>;
+  </WishlistProvider></CartProvider></CustomerAuthProvider></ThemeProvider></body></html>;
 }
