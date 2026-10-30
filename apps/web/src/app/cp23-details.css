@@ -1,0 +1,8 @@
+/* CP23 product detail. */
+html[data-vapmart-color-mode="dark"] body .vm-detail-content,
+html[data-vapmart-color-mode="dark"] body .vm-detail-partner{background:#19191e;color:#f5f0f9;border-color:#38323e}
+html[data-vapmart-color-mode="dark"] body .vm-detail-content h1,
+html[data-vapmart-color-mode="dark"] body .vm-detail-variations h2,
+html[data-vapmart-color-mode="dark"] body .vm-detail-description h2{color:#f6f0fa}
+html[data-vapmart-color-mode="dark"] body .vm-detail-description p{color:#bdb3c5}
+html[data-vapmart-color-mode="dark"] body .vm-detail-hero-image{background:#292630;border-color:#39333f}
