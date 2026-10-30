@@ -63,7 +63,18 @@ Staging-only implementation. No WordPress production change, GitHub `main` merge
 
 ## QA status
 
-**Release verification pending when this checkpoint document was created.** Do not report deployment or CI PASS until latest application artifact reaches Railway terminal SUCCESS and final browser/security workflows conclude. If an earlier application deployment succeeds but test-only commits are SKIPPED, report it explicitly and compare the app-source SHA.
+**Verified release:** Railway `vapmart-web` application commit `7d0487a2290a050485d75ddeb24a4dcff2c1b064`, deployment `90b96cba-23c4-4390-9e19-d69300486a9e`, reached terminal **SUCCESS**. It contains Member Card JSX, member page shortcuts, separate Back bar, `cp22.css`, CSS import, and release marker. Subsequent test-only and Markdown-only commits were **SKIPPED** by Railway change detection. Existing `vapmart-api` and PostgreSQL services remained **SUCCESS**.
+
+**Final code/test commit:** `91c245a937c28b898fce08f461058f4f1a6e67ea`. All **6 of 6 GitHub workflows SUCCESS**:
+- Foundation checks: **SUCCESS** (two runs)
+- Browser UI smoke: **SUCCESS** (includes 390px + 360px ISO ratio, full opacity of purple/charcoal, responsive logo, Back bar, three action tiles, real dashboard tab switching, prior catalog/cart flows)
+- Staging HTTP smoke: **SUCCESS** (CP22 theme/home release markers, API 401 guest gates, checkout 503)
+- Coin wallet ledger integration: **SUCCESS** (disposable Postgres, idempotent activation and topups)
+- Dependency security audit: **SUCCESS**.
+
+The first Staging Smoke run temporarily failed because the app layout/home deploy rolled out in separate commits: the former release marker appeared before the latter. The smoke matcher was corrected to wait for **both** CP22 markers, then the final run succeeded; this was not an API regression or member-card failure.
+
+Actual Safari iPhone visual QA remains pending because authorized SPARK.local was offline. Chromium browser QA is passing.
 
 ## Known gaps / next checkpoint
 
