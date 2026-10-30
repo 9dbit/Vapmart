@@ -43,7 +43,7 @@ export function SiteHeader(){
       <div className="main-container vm-header-main">
         {isSubpage&&<Link href="/" className="vm-subpage-back" aria-label="Kembali ke beranda"><Icon name="back"/></Link>}
         {isSubpage&&<span className="vm-subpage-caption">{caption}</span>}
-        <Link href="/" className="legacy-logo" aria-label="Beranda Vapmart"><img src="/legacy/vapmart-logo-white.webp" alt="Vapmart" width="120" height="26"/></Link>
+        <Link href="/" className="legacy-logo" aria-label="Beranda Vapmart"><img src="/branding/vapmart-logo.png" alt="Vapmart" width="180" height="36"/></Link>
         <nav className="vm-desktop-links" aria-label="Menu utama">
           {menu.map(item=><Link href={item.href} key={item.href} className={item.active?'is-active':''} aria-current={item.active?'page':undefined}>{item.label}</Link>)}
         </nav>
