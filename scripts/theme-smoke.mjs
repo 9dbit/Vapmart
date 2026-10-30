@@ -73,11 +73,12 @@ try{
      const response=await page.goto(BASE+'/member-2',{waitUntil:'domcontentloaded',timeout:20000});
      if(response?.status()===200
        &&await page.locator('body[data-vapmart-theme-options="cp23"]').count()
-       &&await page.locator('.vm23-theme-switcher').count()){ready=true;break;}
+       &&await page.locator('.vm23-theme-switcher').count()
+       &&await page.locator('.vm24-brand-logo').count()===3){ready=true;break;}
    }catch(e){console.log('wait theme',i,String(e).slice(0,90));}
    await sleep(6000);
  }
- assert.ok(ready,'CP23 theme release did not reach Railway');
+ assert.ok(ready,'CP24 transparent logo release did not reach Railway');
  await page.waitForLoadState('networkidle',{timeout:45000});
  assert.equal(await mode(),'light','new visitors keep existing light mode even on dark OS');
  assert.equal(await page.locator('.vm23-theme-menu button').count(),3,'light, dark and system are required');
