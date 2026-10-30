@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
   app.enableCors({
     origin: process.env.WEB_ORIGIN ? process.env.WEB_ORIGIN.split(',').map(s => s.trim()) : false,
     methods: ['GET', 'POST', 'PATCH'],
