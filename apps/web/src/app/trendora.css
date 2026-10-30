@@ -917,13 +917,13 @@ html body .drawer-shell{z-index:115}
   html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav .vm-liquid-active-pill{
     position:absolute;z-index:1;pointer-events:none;
     left:var(--vm-liquid-padding);top:7px;bottom:7px;
-    width:calc((100% - 2 * var(--vm-liquid-padding)) / 5);
+    width:calc(20% - 2.8px);
     height:auto;border-radius:999px;
     background:#8310e8;
     border:1px solid #a75bff85;
     box-shadow:0 7px 19px #6628bb40,inset 0 1px 2px #ffffff55,
                inset 0 -3px 6px #46007f4a;
-    transform:translate3d(calc(var(--vm-active-index) * 100%),0,0);
+    transform:translate3d(var(--vm-active-offset,0%),0,0);
     transition:transform 560ms cubic-bezier(.16,1,.3,1),
                box-shadow 400ms ease;
     will-change:transform;
