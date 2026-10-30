@@ -45,6 +45,7 @@ export function ThemeProvider({children}:{children:ReactNode}){
     if(!initialized)return;
     document.documentElement.setAttribute('data-vapmart-color-mode',resolvedTheme);
     document.documentElement.style.colorScheme=resolvedTheme;
+    document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute('content',resolvedTheme==='dark'?'#131317':'#ffffff');
   },[initialized,resolvedTheme]);
   const setPreference=useCallback((next:ThemePreference)=>{
     if(!validPreference(next))return;
@@ -54,6 +55,7 @@ export function ThemeProvider({children}:{children:ReactNode}){
     const resolved=next==='system'?(prefersDark?'dark':'light'):next;
     document.documentElement.setAttribute('data-vapmart-color-mode',resolved);
     document.documentElement.style.colorScheme=resolved;
+    document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute('content',resolved==='dark'?'#131317':'#ffffff');
   },[]);
   const value=useMemo(()=>({preference,resolvedTheme,setPreference}),[preference,resolvedTheme,setPreference]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
