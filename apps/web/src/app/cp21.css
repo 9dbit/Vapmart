@@ -1,0 +1,280 @@
+/* Vapmart CP21 - Member + Coin Wallet / premium purple and gold.
+   All checkout monetary actions remain feature-gated; no green emoji UI. */
+:root{--vm21-purple:#8310e8;--vm21-purple-dark:#6610b0;--vm21-ink:#241d2d;--vm21-muted:#77717f;
+--vm21-paper:#fff;--vm21-canvas:#f5f3f7;--vm21-border:#e8e1ed;--vm21-gold:#f4be49}
+html body .vm21-eyebrow{font-size:10px;letter-spacing:.17em;color:#8e50bf;font-weight:800;line-height:1.5;text-transform:uppercase}
+html body .vm21-primary,html body .vm21-secondary{display:inline-flex;align-items:center;justify-content:center;gap:14px;min-height:48px;padding:12px 20px;border-radius:999px;
+ font-size:13px;font-weight:750;line-height:1.3;text-align:center;transition:background .2s,transform .2s,border-color .2s;cursor:pointer;text-decoration:none}
+html body .vm21-primary{border:1px solid var(--vm21-purple);background:var(--vm21-purple);color:#fff;box-shadow:0 8px 18px #6610b01f}
+html body .vm21-primary:hover:not(:disabled){background:#6f08c9;transform:translateY(-1px)}
+html body .vm21-secondary{background:white;border:1px solid #d5b4ed;color:#6827ae}
+html body .vm21-secondary:hover:not(:disabled){background:#f3e9ff}
+html body .vm21-primary:disabled,html body .vm21-secondary:disabled{opacity:.58;cursor:not-allowed;box-shadow:none;transform:none}
+html body .vm21-text-link{border:0;padding:8px 0;background:none;color:#7624c3;text-decoration:none;font-size:13px;font-weight:750;cursor:pointer}
+html body .vm21-text-link:hover{text-decoration:underline;text-underline-offset:4px}
+html body .vm21-config-warning,html body .vm21-info{padding:13px 16px;border:1px solid #d9c5e8;border-radius:15px;background:#f4eaff;color:#59326f;font-size:12px;line-height:1.7}
+html body .vm21-fine-print{font-size:11px;color:#86808b;line-height:1.6}
+html body .vm21-form-error{color:#9e214b;font-size:12px;line-height:1.6;background:#fff0f3;border:1px solid #f3cbd5;padding:10px 12px;border-radius:12px}
+html body .vm21-form-success{color:#57278b;background:#f0e4ff;border:1px solid #d5b5fa;font-size:12px;padding:10px 12px;border-radius:12px}
+/* Authentication */
+html body .vm21-account-page{min-height:calc(100vh - 200px);background:var(--vm21-canvas);padding:48px 15px 88px;display:grid;place-items:start center}
+html body .vm21-auth-card{background:white;border:1px solid var(--vm21-border);box-shadow:0 20px 60px #42215c12;max-width:505px;width:100%;padding:34px;border-radius:30px}
+html body .vm21-auth-ident{margin-bottom:24px}
+html body .vm21-auth-ident img{max-width:175px;height:auto;object-fit:contain}
+html body .vm21-auth-card h1{font-size:clamp(27px,3vw,35px);line-height:1.13;letter-spacing:-.05em;color:var(--vm21-ink);margin:9px 0}
+html body .vm21-auth-card>p{font-size:13px;color:#77717f;line-height:1.7}
+html body .vm21-auth-tabs{display:flex;gap:5px;margin:25px 0 22px;border-radius:999px;background:#f6f3f9;padding:5px;border:1px solid #ece5f3}
+html body .vm21-auth-tabs button{flex:1;min-height:42px;border:0;border-radius:999px;background:transparent;color:#77717e;font-size:13px;font-weight:700}
+html body .vm21-auth-tabs button.is-active{background:#8310e8;color:white;box-shadow:0 5px 13px #6815af29}
+html body .vm21-auth-form{display:flex;flex-direction:column;gap:14px;margin-top:18px}
+html body .vm21-auth-form label{display:flex;flex-direction:column;gap:7px;font-size:12px;color:#4e4358;font-weight:700}
+html body .vm21-auth-form input{min-width:0;height:49px;border:1px solid #e6dfea;border-radius:15px;background:#faf9fb;padding:0 15px;color:#2e2930;font-size:13px}
+html body .vm21-auth-form input:focus{border-color:#9e4ee9;outline:2px solid #b38bff40;outline-offset:0}
+html body .vm21-auth-form>button{margin-top:8px;width:100%}
+html body .vm21-auth-links{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px}
+html body .vm21-auth-links a,html body .vm21-auth-links button{border:0;background:none;color:#7321b8;font-size:12px;font-weight:700;padding:7px 0;text-decoration:none}
+/* Gold coin stack: individual deterministic layers, increasing by tier.
+   Each coin is a CSS metallic embossed visual, not an image or a real currency token. */
+html body .vm-gold-coins{position:relative;isolation:isolate;display:block;width:100%;height:112px;min-height:112px;overflow:hidden;pointer-events:none}
+html body .vm-gold-coins.is-large{width:160px;height:140px;min-height:140px;flex-shrink:0}
+html body .vm-gold-coin{
+ position:absolute;left:50%;top:63%;z-index:var(--coin-z);
+ width:41px;height:41px;box-sizing:border-box;display:grid;place-items:center;border-radius:50%;
+ border:3px solid #8d5216;
+ background:radial-gradient(circle at 30% 22%,#fffbc1 0%,#ffe98b 22%,#f6be39 48%,#d78916 73%,#9c520a 100%);
+ box-shadow:inset 0 0 0 2px #ffe68e,inset 0 0 0 4px #c97b15,inset 0 0 0 6px #ffe08a,
+   0 2px 0 #8b490a,0 4px 2px #763f1040,0 7px 10px #5d350e39;
+ transform:translate(calc(-50% + var(--coin-x)),calc(-50% + var(--coin-y))) rotate(var(--coin-rotation));
+ transition:transform .5s cubic-bezier(.17,1,.3,1),filter .4s;
+}
+html body .vm-gold-coin span{font-weight:1000;line-height:1;color:#a96a0d;font-size:19px;font-style:italic;text-shadow:1px 1px #ffe48b,-1px -1px #89500f55}
+html body .vm-gold-coins.is-large .vm-gold-coin{width:43px;height:43px}
+html body .vm-gold-coins-glow{position:absolute;inset:auto 7% 2px;height:21px;z-index:0;
+ border-radius:50%;background:#b584e54d;filter:blur(12px)}
+html body .vm21-coin-pack:hover .vm-gold-coin,
+html body .vm21-coin-pack.is-selected .vm-gold-coin{
+ filter:brightness(1.08);
+ transform:translate(calc(-50% + var(--coin-x)),calc(-54% + var(--coin-y))) rotate(var(--coin-rotation));
+}
+/* Member hub */
+html body .vm21-member-page{background:var(--vm21-canvas);min-height:calc(100vh - 180px);padding:39px 5% 90px;color:var(--vm21-ink)}
+html body .vm21-member-header{max-width:1100px;margin:0 auto 24px}
+html body .vm21-member-header h1{font-size:clamp(28px,3.1vw,43px);line-height:1.09;letter-spacing:-.058em;font-weight:780;margin:8px 0 11px;color:var(--vm21-ink)}
+html body .vm21-member-header p{font-size:13px;color:#746f78;line-height:1.65;max-width:580px}
+html body .vm21-member-columns{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:21px;max-width:1100px;margin:auto;align-items:start}
+html body .vm21-member-primary,html body .vm21-member-secondary{min-width:0;display:flex;flex-direction:column;gap:17px}
+html body .vm-new-member-card{
+ min-height:266px;position:relative;overflow:hidden;isolation:isolate;padding:24px 26px;
+ display:flex;flex-direction:column;justify-content:space-between;gap:22px;border-radius:29px;
+ color:white!important;border:1px solid #9264d5;
+ background:radial-gradient(circle at 97% 10%,#8d31e470,transparent 46%),linear-gradient(135deg,#2d1549,#1d1427 64%,#18101e);
+ box-shadow:0 22px 40px #3c155a33,inset 0 2px 2px #ffffff25;
+}
+html body .vm-new-member-card:before{content:"";position:absolute;inset:-50% -20% auto auto;height:160%;width:55%;transform:rotate(-24deg);
+ background:linear-gradient(90deg,transparent,#f3eaff16,transparent);z-index:-1;pointer-events:none}
+html body .vm-new-member-card-top,.vm-new-member-card-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px}
+html body .vm-new-card-brand{display:flex;align-items:center;gap:9px}
+html body .vm-new-card-brand>strong{font-size:24px;letter-spacing:-.06em;color:white;font-weight:850;font-style:italic}
+html body .vm-new-card-symbol{height:34px;width:34px;border-radius:10px;background:#9127eb;color:white;display:grid;place-items:center;
+ box-shadow:inset 0 1px #ffffff77,0 4px 13px #39006966;font-size:20px;font-style:italic;font-weight:950}
+html body .vm-new-card-chip{font-size:9px;font-weight:750;letter-spacing:.12em;color:#dec8fa;border:1px solid #ffffff3c;padding:7px 10px;border-radius:999px}
+html body .vm-new-card-center{display:flex;align-items:center;justify-content:space-between;gap:4px}
+html body .vm-new-card-center>div:first-child{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+html body .vm-new-card-label{display:block;font-size:9px;font-weight:750;letter-spacing:.12em;color:#cdb4ed}
+html body .vm-new-card-balance{display:block;font-size:clamp(28px,3.1vw,42px);line-height:1.03;letter-spacing:-.03em;color:white}
+html body .vm-new-card-caption{font-size:9px;color:#dbcced;max-width:220px;line-height:1.5}
+html body .vm-new-card-holder{display:block;color:white;font-size:13px;font-weight:800;line-height:1.6;text-transform:uppercase;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html body .vm-new-member-card-bottom small{color:#d2bbeb;font-size:9px}
+html body .vm-new-member-status{color:#d9caed;border:1px solid #b9a4d850;background:#ffffff14;border-radius:999px;padding:8px 11px;font-size:9px;font-weight:800;white-space:nowrap}
+html body .vm-new-member-status.active{color:white;border-color:#ca8eff;background:#6f26b9}
+html body .vm21-guest-actions{display:flex;gap:10px;flex-wrap:wrap}
+html body .vm21-guest-actions>*{flex:1}
+html body .vm21-activation{background:white;border:1px solid var(--vm21-border);border-radius:25px;box-shadow:0 9px 24px #3c275710;padding:23px;display:flex;flex-direction:column;gap:15px}
+html body .vm21-activation h2{color:#282031;font-size:20px;letter-spacing:-.04em;margin:7px 0}
+html body .vm21-activation p,.vm21-member-active-note{font-size:12px;line-height:1.7;color:#736c7c}
+html body .vm21-member-active-note{border:1px solid #c9ace5;border-radius:16px;background:#efe2ff;padding:13px 16px}
+html body .vm21-member-secondary{background:white;border:1px solid var(--vm21-border);border-radius:28px;padding:19px;box-shadow:0 9px 24px #3c27570d}
+html body .vm21-member-tabs{display:flex;gap:5px;background:#f5f2f9;padding:5px;border-radius:999px;overflow-x:auto}
+html body .vm21-member-tabs button{min-height:42px;flex:1 0 auto;border:0;border-radius:999px;background:transparent;color:#766d7f;padding:7px 11px;font-size:11px;font-weight:740}
+html body .vm21-member-tabs button.active{background:#8310e8;color:white;box-shadow:0 5px 12px #8310e82c}
+html body .vm21-overview-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:17px 0}
+html body .vm21-overview-stats>div{min-width:0;background:#f8f6fa;border:1px solid #eee8f3;border-radius:21px;padding:20px 15px;display:flex;flex-direction:column;gap:10px}
+html body .vm21-overview-stats>div>span{font-size:10px;font-weight:780;letter-spacing:.12em;color:#9478a9}
+html body .vm21-overview-stats>div strong{font-size:clamp(20px,2vw,29px);line-height:1.15;letter-spacing:-.04em;color:#2c2631;overflow-wrap:anywhere}
+html body .vm21-overview-stats>div small{font-size:11px;color:#837989}
+html body .vm21-benefit-intro{padding:17px 7px 5px}
+html body .vm21-benefit-intro h2,.vm21-benefits h2,.vm21-history h2,.vm21-packs-section h2{font-size:22px;letter-spacing:-.045em;margin:8px 0;color:#241c2e}
+html body .vm21-benefit-intro p,.vm21-packs-section p{color:#7f7587;font-size:12px;line-height:1.75}
+html body .vm21-packs-section{padding:16px 1px 5px}
+html body .vm21-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+html body .vm21-tag{font-size:10px;font-weight:740;background:#f3e7ff;color:#731bb1;border-radius:999px;padding:8px 11px}
+html body .vm21-coin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin:20px 0}
+html body .vm21-coin-pack{display:flex;flex-direction:column;align-items:stretch;min-width:0;padding:12px 12px 15px;gap:4px;overflow:hidden;isolation:isolate;
+ background:#fbf9fc;border:1.5px solid #ede6f0;border-radius:23px;color:#24212a;box-shadow:0 5px 11px #2b173008;
+ transition:border-color .22s,background .22s,transform .22s,box-shadow .22s;cursor:pointer}
+html body .vm21-coin-pack.is-selected{background:#f6efff;border-color:#8310e8;box-shadow:0 0 0 2px #8310e826,0 12px 23px #50216a17;transform:translateY(-1px)}
+html body .vm21-coin-pack:hover{border-color:#ab73e5}
+html body .vm21-coin-pack-top{display:flex;align-items:center;justify-content:space-between;gap:5px;color:#7d7085;font-size:10px;font-weight:760}
+html body .vm21-pack-check{width:24px;height:24px;border-radius:50%;border:1px solid #e4c9f6;background:#fff;display:grid;place-items:center;color:#7d35b6;font-size:12px}
+html body .vm21-coin-pack.is-selected .vm21-pack-check{background:#8310e8;color:white;border-color:#8310e8}
+html body .vm21-coin-pack>strong{font-size:clamp(16px,1.75vw,21px);line-height:1.1;color:#281e30;letter-spacing:-.035em}
+html body .vm21-coin-pack>strong small{font-size:10px;letter-spacing:0;font-weight:650;color:#6d6173}
+html body .vm21-pack-price{font-size:11px;color:#7c5e8f}
+html body .vm21-pack-summary{border-radius:19px;background:#28183c;color:white;padding:19px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+html body .vm21-pack-summary>div{display:flex;flex-direction:column;gap:5px}
+html body .vm21-pack-summary>div>span{color:#cdb8ed;font-size:9px;letter-spacing:.14em;font-weight:750}
+html body .vm21-pack-summary>div>strong{font-size:20px;color:white;letter-spacing:-.04em}
+html body .vm21-pack-summary>div>small{font-size:10px;color:#d6cae5}
+html body .vm21-pack-summary>.vm21-primary{min-height:44px;padding:10px 15px;font-size:11px;white-space:nowrap}
+html body .vm21-benefits,.vm21-history{padding:15px 4px}
+html body .vm21-benefit-list{display:flex;flex-direction:column;gap:10px;margin:16px 0 19px}
+html body .vm21-benefit-list article{display:flex;gap:13px;align-items:start;background:#faf9fc;border:1px solid #ede7f2;border-radius:17px;padding:15px}
+html body .vm21-benefit-list article>span{display:grid;place-items:center;width:34px;height:34px;border-radius:12px;background:#eee1ff;color:#7a22c8;flex:none;font-size:11px;font-weight:800}
+html body .vm21-benefit-list article h3{font-size:13px;margin:1px 0 4px;color:#2f2636}
+html body .vm21-benefit-list article p{font-size:11px;line-height:1.65;color:#827989;margin:0}
+html body .vm21-promo-empty{background:#f7f4fa;padding:22px;border-radius:20px;border:1px dashed #d8c3e9;margin-top:14px}
+html body .vm21-promo-empty strong{font-size:13px;color:#352c40}
+html body .vm21-promo-empty p{font-size:12px;line-height:1.7;color:#837789;margin:7px 0 0}
+html body .vm21-real-promo{border:1px solid #ddc5f5;background:#faf6ff;border-radius:17px;padding:14px;margin:12px 0}
+html body .vm21-real-promo strong{color:#522287}
+html body .vm21-real-promo p,.vm21-real-promo small{font-size:11px;color:#6a5c78}
+html body .vm21-history article{display:flex;align-items:center;justify-content:space-between;gap:11px;border-bottom:1px solid #eae3f0;padding:14px 4px}
+html body .vm21-history article>div{display:flex;flex-direction:column;gap:5px}
+html body .vm21-history article strong{font-size:12px;color:#2f2833}
+html body .vm21-history article small{font-size:10px;color:#81788b}
+html body .vm21-topup-shortcut{max-width:1100px;margin:22px auto 0;display:flex;gap:15px;justify-content:space-between;align-items:center;background:#e9d8ff;border-radius:26px;padding:25px 31px}
+html body .vm21-topup-shortcut h2{font-size:23px;color:#362447;letter-spacing:-.05em;margin:7px 0}
+html body .vm21-topup-shortcut p{color:#655273;font-size:12px;line-height:1.5}
+/* Cart drawer: always above floating bar, compact centered empty state. */
+html body .drawer-shell.vm21-cart-shell{position:fixed;inset:0;z-index:180;isolation:isolate}
+html body .vm21-cart-shell .drawer-shade{position:absolute;inset:0;z-index:0;background:#1e1528a8;backdrop-filter:blur(5px);border:0;cursor:pointer}
+html body .cart-drawer.vm21-cart-drawer{position:absolute;z-index:1;top:0;right:0;bottom:0;left:auto;width:min(460px,100vw);height:100dvh;max-height:none;
+ background:white;color:#2d2734;border:1px solid #e9e1f0;border-radius:27px 0 0 27px;box-shadow:-15px 0 50px #21112935;
+ display:flex;flex-direction:column;padding:0;overflow:hidden}
+html body .vm21-drawer-handle{display:none}
+html body .vm21-drawer-header{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:14px;
+ border-bottom:1px solid #eae5ee;padding:29px 24px 22px;background:white}
+html body .vm21-drawer-header h2{font-size:29px;letter-spacing:-.05em;color:#292331;margin:7px 0 0}
+html body .vm21-drawer-header h2 span{font-weight:700;color:#a78ab6}
+html body .vm21-drawer-close{border:0;border-radius:50%;display:grid;place-items:center;flex:none;width:46px;height:46px;background:#f3f0f6;color:#33273f;font-size:30px;line-height:1;cursor:pointer}
+html body .vm21-drawer-close:hover{background:#e9d5ff}
+html body .vm21-drawer-empty{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;flex-direction:column;
+ gap:13px;text-align:center;padding:24px 25px 36px;overflow-y:auto}
+html body .vm21-drawer-bag-illustration{color:#8010dc;background:#f2e7ff;border-radius:26px;width:114px;height:114px;display:grid;place-items:center}
+html body .vm21-drawer-bag-illustration svg{width:65px;height:65px}
+html body .vm21-drawer-empty h3{color:#2e2633;font-size:21px;font-weight:800;letter-spacing:-.04em;margin:5px 0 0}
+html body .vm21-drawer-empty p{font-size:12px;color:#817a85;line-height:1.65;margin:0 0 5px;max-width:300px}
+html body .vm21-drawer-empty .vm21-primary{width:min(290px,100%)}
+html body .vm21-drawer-items{flex:1 1 auto;min-height:0;overflow-y:auto;padding:12px 21px;display:flex;flex-direction:column;gap:4px}
+html body .vm21-drawer-item{position:relative;display:flex;gap:12px;padding:15px 0;border-bottom:1px solid #ede7f0;min-width:0}
+html body .vm21-drawer-item-illustration{flex:0 0 69px;height:75px;border-radius:14px;display:grid;place-items:center;background:#efe5fa;overflow:hidden}
+html body .vm21-drawer-item-illustration img{width:100%;height:100%;object-fit:contain}
+html body .vm21-drawer-item-illustration>span{font-size:30px;color:#8329dd;font-weight:900}
+html body .vm21-drawer-item-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-right:18px}
+html body .vm21-drawer-item-body>small{font-size:9px;color:#8744b6;font-weight:770}
+html body .vm21-drawer-item-body strong{font-size:12px;color:#302a35;line-height:1.4}
+html body .vm21-drawer-item-body>span{font-size:11px;color:#655e6e}
+html body .vm21-drawer-item-remove{position:absolute;right:0;top:14px;background:#f6f3fa;color:#6b6473;border:0;border-radius:50%;width:30px;height:30px;font-size:22px}
+html body .vm21-drawer-qty{display:flex;align-items:center;gap:9px;width:max-content;background:#f3f0f8;border-radius:999px;padding:3px}
+html body .vm21-drawer-qty button{border:0;background:white;border-radius:50%;width:30px;height:30px;font-size:15px;color:#4a325f}
+html body .vm21-drawer-qty button:disabled{opacity:.4}
+html body .vm21-drawer-qty span{font-size:12px;font-weight:700;color:#2e2435}
+html body .vm21-digital-qty{font-size:10px;color:#78568b;background:#f4edfb;border-radius:999px;padding:6px 10px;width:max-content}
+html body .vm21-drawer-footer{flex:0 0 auto;background:white;border-top:1px solid #eae4ee;padding:19px 24px calc(22px + env(safe-area-inset-bottom))}
+html body .vm21-drawer-footer>div{display:flex;justify-content:space-between;margin-bottom:16px;font-size:13px;color:#6a6270}
+html body .vm21-drawer-footer strong{font-size:17px;color:#302638}
+html body .vm21-drawer-footer>.vm21-primary{width:100%}
+html body .vm21-drawer-footer p{font-size:10px;text-align:center;color:#8a828f;line-height:1.5;margin:12px 0 0}
+/* Full cart */
+html body .vm-cart-page:has(.vm21-cart-page-content){padding:0;min-height:60vh;background:var(--vm21-canvas)}
+html body .vm21-cart-page-content{max-width:1200px;margin:auto;padding:36px 5% 85px;color:var(--vm21-ink)}
+html body .vm21-cart-page-heading{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:22px}
+html body .vm21-cart-page-heading h1{font-size:clamp(27px,3vw,39px);letter-spacing:-.055em;color:#2e2736;margin:5px 0}
+html body .vm21-cart-page-heading h1 span{color:#a38eae}
+html body .vm21-cart-page-heading p{font-size:12px;color:#837b87;margin:0}
+html body .vm21-cart-empty-page{border:1px solid #eae4ee;border-radius:29px;background:white;display:flex;flex-direction:column;align-items:center;text-align:center;
+ padding:55px 20px;box-shadow:0 10px 30px #4525570c}
+html body .vm21-cart-empty-page h2{font-size:25px;letter-spacing:-.045em;margin:17px 0 8px;color:#292331}
+html body .vm21-cart-empty-page p{font-size:13px;color:#827b86;line-height:1.7;max-width:380px}
+html body .vm21-cart-empty-page>div:last-child{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:20px}
+html body .vm21-cart-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,.8fr);gap:20px;align-items:start}
+html body .vm21-cart-items,html body .vm21-cart-order-summary{background:white;border:1px solid #eae4ee;border-radius:25px;padding:22px;box-shadow:0 8px 25px #4224590d}
+html body .vm21-cart-product{display:flex;align-items:start;gap:14px;padding:17px 0;border-bottom:1px solid #eee7f1}
+html body .vm21-cart-product:first-child{padding-top:0}
+html body .vm21-cart-product-image{width:82px;height:88px;flex:none;display:grid;place-items:center;border-radius:17px;overflow:hidden;background:#efe5fb;color:#7923d1;font-size:31px;font-weight:900}
+html body .vm21-cart-product-image img{height:100%;width:100%;object-fit:contain}
+html body .vm21-cart-product-body{flex:1;min-width:0}
+html body .vm21-cart-product-body h2{color:#2e2734;font-size:15px;line-height:1.35;margin:6px 0}
+html body .vm21-cart-product-body p{font-size:11px;color:#837b8a;line-height:1.5;margin:0 0 8px}
+html body .vm21-cart-product-body>strong{font-size:14px;color:#342c3a}
+html body .vm21-cart-product-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:12px}
+html body .vm21-remove-action{color:#7721ba;border:0;background:none;font-size:11px;font-weight:720;padding:8px}
+html body .vm21-line-total{font-size:13px;color:#322b36;text-align:right;white-space:nowrap}
+html body .vm21-cart-order-summary{display:flex;flex-direction:column;gap:14px}
+html body .vm21-cart-order-summary h2{margin:0;font-size:22px;letter-spacing:-.045em;color:#292331}
+html body .vm21-cart-order-summary>div:not(.vm21-checkout-action){display:flex;align-items:center;justify-content:space-between;gap:10px;color:#746b7b;font-size:12px}
+html body .vm21-cart-order-summary>div strong{color:#312936}
+html body .vm21-cart-order-summary>.vm21-cart-total{padding-top:16px;border-top:1px solid #ece5f1;font-weight:770;font-size:14px}
+html body .vm21-cart-order-summary>.vm21-cart-total strong{font-size:18px}
+html body .vm21-cart-order-summary>p{font-size:10px;color:#918997;line-height:1.7}
+html body .vm21-cart-order-summary>.vm21-primary,.vm21-checkout-action>.vm21-primary{width:100%}
+html body .vm21-checkout-action{display:flex;flex-direction:column;gap:9px}
+html body .vm21-checkout-review{border:1px solid #e4d4f1;border-radius:19px;padding:15px;background:#faf5ff;display:flex;flex-direction:column;gap:11px}
+html body .vm21-checkout-review h3{margin:0 0 5px;color:#31233e;font-size:15px}
+html body .vm21-checkout-review>div:not(.vm21-config-warning){display:flex;justify-content:space-between;gap:8px;font-size:11px;color:#61546c}
+html body .vm21-checkout-review p{font-size:11px;color:#766582;line-height:1.65}
+html body .vm21-checkout-feedback{padding:9px;border-radius:12px;background:#eee0ff;color:#592489}
+@media(max-width:900px){
+ html body .vm21-member-columns,html body .vm21-cart-layout{grid-template-columns:1fr}
+ html body .vm21-member-columns{max-width:650px}
+ html body .vm21-topup-shortcut{max-width:650px}
+}
+@media(max-width:767px){
+ html body .vm21-account-page{padding:20px 14px 105px}
+ html body .vm21-auth-card{border-radius:25px;padding:24px 19px}
+ html body .vm21-member-page{padding:21px 14px calc(120px + env(safe-area-inset-bottom))}
+ html body .vm21-member-header h1{font-size:27px}
+ html body .vm21-member-header p{font-size:11px}
+ html body .vm21-member-columns{gap:13px}
+ html body .vm-new-member-card{padding:20px 19px;min-height:232px;border-radius:25px}
+ html body .vm-new-card-brand>strong{font-size:22px}
+ html body .vm-new-card-balance{font-size:35px}
+ html body .vm-gold-coins.is-large{width:118px;height:115px;min-height:115px}
+ html body .vm21-member-secondary{padding:13px;border-radius:23px}
+ html body .vm21-member-tabs button{font-size:10px;min-height:39px;padding:8px 9px}
+ html body .vm21-overview-stats>div{padding:15px 12px}
+ html body .vm21-overview-stats>div strong{font-size:21px}
+ html body .vm21-coin-grid{gap:9px}
+ html body .vm21-coin-pack{padding:10px 9px 13px;border-radius:19px}
+ html body .vm21-coin-pack>strong{font-size:17px}
+ html body .vm21-coin-pack .vm-gold-coins{height:102px;min-height:102px}
+ html body .vm21-pack-summary{flex-direction:column;align-items:stretch}
+ html body .vm21-topup-shortcut{margin:16px auto 0;padding:23px 19px;flex-direction:column;align-items:stretch}
+ html body .vm21-topup-shortcut h2{font-size:22px}
+ html body .vm21-cart-shell .vm21-cart-drawer{
+   left:0;right:0;bottom:0;top:auto;width:100%;height:min(83dvh,740px);max-height:calc(100dvh - 16px);
+   border-radius:28px 28px 0 0;border:1px solid #ede6f3;box-shadow:0 -17px 45px #301b4b2b;
+ }
+ html body .vm21-drawer-handle{display:block;flex:none;width:46px;height:5px;background:#dfd5e5;border-radius:999px;margin:10px auto 0}
+ html body .vm21-drawer-header{padding:16px 20px 17px}
+ html body .vm21-drawer-header h2{font-size:27px}
+ html body .vm21-drawer-empty{padding:18px 19px 27px}
+ html body .vm21-drawer-bag-illustration{width:90px;height:90px;border-radius:23px}
+ html body .vm21-drawer-bag-illustration svg{height:52px;width:52px}
+ html body .vm21-drawer-empty h3{font-size:19px}
+ html body .vm21-drawer-footer{padding:15px 18px calc(19px + env(safe-area-inset-bottom))}
+ html body .vm21-cart-page-content{padding:25px 14px calc(115px + env(safe-area-inset-bottom))}
+ html body .vm21-cart-page-heading{align-items:start}
+ html body .vm21-cart-page-heading>.vm21-secondary{font-size:11px;padding:8px 13px;min-height:40px}
+ html body .vm21-cart-empty-page{padding:43px 17px;border-radius:23px}
+ html body .vm21-cart-empty-page h2{font-size:21px}
+ html body .vm21-cart-empty-page>div:last-child{width:100%;display:flex;flex-direction:column}
+ html body .vm21-cart-items,html body .vm21-cart-order-summary{padding:17px;border-radius:22px}
+ html body .vm21-cart-product-image{width:63px;height:67px}
+ html body .vm21-cart-product{gap:10px}
+ html body .vm21-cart-product-body h2{font-size:13px}
+ html body .vm21-line-total{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ html body .vm-gold-coin,html body .vm21-primary,html body .vm21-coin-pack{transition:none!important;animation:none!important}
+}
