@@ -40,3 +40,15 @@ At initial checkpoint writing, final UI code was committed, and Railway builds a
 ## Next after this checkpoint
 
 Consolidate legacy/modern CSS into stable component design tokens after visual acceptance; polish partner directory, full-width banner crop control for future responsive imagery, and measured LCP/CLS. This checkpoint does **not** require SPARK or historical customer/database import.
+
+## Final staging evidence (2026-10-30)
+
+- `vapmart-web` application deployment `b05bb581-1809-415a-9896-9730cd53e2e6` on code SHA `cbf6feea0c21eda96ac4677e6b47bb3457c10aaa` reached Railway terminal **SUCCESS**.
+- Subsequent commits `0387532f...` (browser regression only) and initial checkpoint documentation were intentionally **SKIPPED** for Railway because they did not change application files.
+- GitHub source/test commit `0387532f1561b1ae471dfc33b9ea3a70d8997653` checked:
+  - Foundation checks: **SUCCESS** (both runs)
+  - Dependency security audit: **SUCCESS**
+  - Browser UI smoke: **SUCCESS** (job 123944800748)
+  - Staging HTTP smoke: still in progress at first final QA read; report separately once terminal.
+- Browser UI test includes 390px **zero-radius, zero-border, full-width** hero; 360px horizontal overflow; 12 original brand image sources; dark inset for white wordmarks; one blurred navigation glass plate; 5 route links and sliding active indicator; Home → Brand → Member → Keranjang → Katalog → Home; desktop hero, catalog, product detail, wallet-free cart simulation, reduced motion.
+- Original WordPress production and GitHub `main` remain unchanged. Draft PR #1 remains open.
