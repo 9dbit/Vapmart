@@ -59,9 +59,9 @@ export function MemberHub(){
      .finally(()=>{if(!cancelled)setLoading(false);});
    return()=>{cancelled=true;};
  },[auth.accessToken]);
- const status=auth.user?(overview?(overview.status==='ACTIVE'?'ACTIVE':'REGISTERED'):'UNAVAILABLE'):'GUEST';
+ const status=auth.user?(overview?overview.status:'UNAVAILABLE'):'GUEST';
  const balance=auth.user?(overview?overview.balanceCoin:null):null;
- const cardName=overview?.name||auth.user?.user_metadata?.display_name||auth.user?.email?.split('@')[0]||'VAPMART GUEST';
+ const cardName=auth.user?.user_metadata?.display_name||overview?.name||auth.user?.email?.split('@')[0]||'VAPMART GUEST';
  return <main className="vm21-member-page">
    <div className="vm21-member-header">
      <span className="vm21-eyebrow">VAPMART CLUB / DIGITAL MEMBERSHIP</span>
@@ -74,7 +74,7 @@ export function MemberHub(){
        {loading&&<p className="vm21-info" role="status">Memuat saldo dari server…</p>}
        {error&&<p className="vm21-info" role="status">{error} Tidak ada saldo perkiraan yang ditampilkan.</p>}
        {!auth.user&&<div className="vm21-guest-actions"><Link href="/login?mode=signup" className="vm21-primary">Daftar Gratis <span aria-hidden="true">↗</span></Link><Link href="/login" className="vm21-secondary">Masuk Akun</Link></div>}
-       {auth.user&&overview?.status!=='ACTIVE'&&<section className="vm21-activation">
+       {auth.user&&overview?.status==='REGISTERED'&&<section className="vm21-activation">
          <div><span className="vm21-eyebrow">ONE-TIME ACTIVATION</span><h2>Aktifkan Vapmart Member</h2>
            <p>Bayar Rp100.000 satu kali. Setelah pembayaran terverifikasi, status member aktif dan 100.000 Coin dikreditkan tepat satu kali.</p>
          </div><button type="button" className="vm21-primary" onClick={()=>add(digitalProduct(membershipActivation))}>Aktivasi Member · Rp100.000</button>
@@ -91,7 +91,7 @@ export function MemberHub(){
        {tab==='overview'&&<div role="tabpanel" className="vm21-overview">
          <div className="vm21-overview-stats">
            <div><span>SALDO COIN</span><strong>{balance===null?'—':balance.toLocaleString('id-ID')}</strong><small>Coin tersedia</small></div>
-           <div><span>STATUS MEMBER</span><strong>{status==='ACTIVE'?'Active':status==='REGISTERED'?'Belum Aktif':status==='GUEST'?'Guest':'Belum Sinkron'}</strong><small>Benefit sesuai status</small></div>
+           <div><span>STATUS MEMBER</span><strong>{status==='ACTIVE'?'Active':status==='REGISTERED'?'Belum Aktif':status==='GUEST'?'Guest':status==='SUSPENDED'?'Ditangguhkan':'Belum Sinkron'}</strong><small>Benefit sesuai status</small></div>
          </div>
          <div className="vm21-benefit-intro"><span className="vm21-eyebrow">MEMBERSHIP BENEFIT</span><h2>One card. More access.</h2>
            <p>Keanggotaan membuka akses promo event, penawaran khusus, dan benefit yang ditentukan admin. Tidak ada diskon yang diklaim aktif sebelum event dipublikasikan.</p>
