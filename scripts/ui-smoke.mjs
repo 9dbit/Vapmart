@@ -111,6 +111,8 @@ try{
   assert.ok(categoryMetrics&&categoryMetrics.y>90&&categoryMetrics.y<440,'Pod desktop card position unreasonable');
   await page.locator('.vm-category-page .vm-archive-link').first().click();
   await page.waitForURL(/\/product\/into-earth-mission-1100mah-pod-system-kit/,{timeout:15000});
+  await page.locator('.vm-detail-hero-image img').first().waitFor({state:'visible',timeout:15000});
+  await page.waitForFunction(()=>{const image=document.querySelector('.vm-detail-hero-image img');return Boolean(image&&image.complete&&image.naturalWidth>0);},{timeout:15000});
   assert.equal(await page.locator('.vm-detail-hero-image img').count(),1);
   assert.ok(await page.locator('.vm-detail-hero-image img').evaluate(img=>img.complete&&img.naturalWidth>0));
   assert.ok(await page.locator('.vm-detail-disabled-actions button').first().isDisabled());
