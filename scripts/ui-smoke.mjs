@@ -23,6 +23,7 @@ try{
   assert.equal(await page.locator('.vm-trendora-category img').count(),5,'five original Vapmart category images');
   const categoryImages=await page.locator('.vm-trendora-category img').evaluateAll(imgs=>imgs.map(img=>({src:img.getAttribute('src'),loaded:img.complete&&img.naturalWidth>0})));
   assert.ok(categoryImages.every(img=>img.src?.startsWith('/legacy/categories/')&&img.loaded),'category thumbnails must come from original Vapmart assets: '+JSON.stringify(categoryImages));
+  assert.equal(await page.locator('.vm-home-intro').count(),0,'intro/search block removed');
   const merchandising=await page.evaluate(()=>({
     hero:document.querySelector('.vm-hero-stage').getBoundingClientRect().top+scrollY,
     categories:document.querySelector('.vm-trendora-categories').getBoundingClientRect().top+scrollY,
