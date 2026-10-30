@@ -9,7 +9,7 @@ try{
   for(let attempt=0;attempt<45;attempt++){
     try{
       const response=await page.goto(BASE+'/',{waitUntil:'domcontentloaded',timeout:20000});
-      if(response?.status()===200&&await page.locator('[data-vapmart-ui="cp16"]').count()===1 && await page.locator('[data-vapmart-theme="trendora-cp16"]').count()===1 && await page.locator('.vm-footer-links h3',{hasText:'Jelajahi'}).count()===1){ready=true;break;}
+      if(response?.status()===200&&await page.locator('[data-vapmart-ui="cp16"]').count()===1 && await page.locator('[data-vapmart-theme="trendora-cp16"]').count()===1 && await page.locator('.vm-footer-links h3',{hasText:'Jelajahi'}).count()===1 && await page.locator('.vm-header-main').evaluate(el=>getComputedStyle(el).backgroundColor==='rgba(0, 0, 0, 0)')){ready=true;break;}
     }catch(e){console.log('wait for staging revision',attempt,String(e).slice(0,100));}
     await sleep(6000);
   }
