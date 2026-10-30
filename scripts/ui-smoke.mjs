@@ -9,11 +9,11 @@ try{
   for(let attempt=0;attempt<45;attempt++){
     try{
       const response=await page.goto(BASE+'/',{waitUntil:'domcontentloaded',timeout:20000});
-      if(response?.status()===200&&await page.locator('[data-vapmart-ui="cp19"]').count()===1 && await page.locator('[data-vapmart-theme="liquid-cp19"]').count()===1 && await page.locator('.vm-footer-links h3',{hasText:'Jelajahi'}).count()===1 && await page.locator('.vm-header-main').evaluate(el=>getComputedStyle(el).backgroundColor==='rgba(0, 0, 0, 0)')){ready=true;break;}
+      if(response?.status()===200&&await page.locator('[data-vapmart-ui="cp21"]').count()===1 && await page.locator('[data-vapmart-theme="coin-cp21"]').count()===1 && await page.locator('.vm-footer-links h3',{hasText:'Jelajahi'}).count()===1 && await page.locator('.vm-header-main').evaluate(el=>getComputedStyle(el).backgroundColor==='rgba(0, 0, 0, 0)')){ready=true;break;}
     }catch(e){console.log('wait for staging revision',attempt,String(e).slice(0,100));}
     await sleep(6000);
   }
-  assert.ok(ready,'Checkpoint19 liquid glass UI did not appear on staging within deployment retry window');
+  assert.ok(ready,'Checkpoint21 coin store UI did not appear on staging within deployment retry window');
   // Font metrics can change for a few frames after DOMContentLoaded on GitHub Actions.
   // Settle network activity and web fonts before measuring WordPress pixel positions.
   await page.waitForLoadState('networkidle',{timeout:45000});
@@ -144,10 +144,34 @@ try{
   await page.goto(BASE+'/brand-partner',{waitUntil:'networkidle',timeout:45000});
   assert.equal(await page.locator('.vm-partner-logos img').count(),12);
   await page.goto(BASE+'/login',{waitUntil:'networkidle',timeout:45000});
-  assert.ok(await page.locator('#customer-identity').isDisabled());
-  assert.ok(await page.getByRole('button',{name:'Login belum tersedia'}).isDisabled());
+  await page.locator('.vm21-auth-card').waitFor();
+  assert.ok(await page.locator('.vm21-auth-tabs').isVisible(),'real sign in/sign up tabs');
+  assert.ok(await page.locator('.vm21-auth-form input[type="email"]').isVisible(),'email input');
+  await page.getByRole('button',{name:'Daftar',exact:true}).click();
+  assert.ok(await page.locator('.vm21-auth-form input[autocomplete="name"]').isVisible(),'signup name');
+  await page.getByRole('button',{name:'Masuk',exact:true}).first().click();
+  assert.ok(await page.locator('.vm21-auth-form input[type="password"]').isVisible(),'password input');
+  if(await page.locator('.vm21-config-warning').count()){
+    assert.ok(await page.locator('.vm21-auth-form button[type="submit"]').isDisabled(),'auth disabled only when dedicated Supabase is not configured');
+  }
   await page.goto(BASE+'/member-2',{waitUntil:'networkidle',timeout:45000});
-  assert.match(await page.locator('.vm-member-tiles').innerText(),/0 Points/);
+  await page.locator('.vm-new-member-card').waitFor();
+  assert.ok(await page.locator('.vm-new-member-card').isVisible(),'Vapmart Member Card');
+  assert.equal(await page.locator('.vm21-member-tabs button').count(),4,'all member tabs');
+  await page.getByRole('tab',{name:'Top Up'}).click();
+  const coinVisuals=await page.locator('.vm21-coin-pack').evaluateAll(cards=>cards.map(card=>card.querySelectorAll('.vm-gold-coin').length));
+  assert.deepEqual(coinVisuals,[3,5,9,13,19,26],'larger Coin pack must show more gold coins');
+  assert.equal(await page.locator('.vm21-coin-pack').count(),6,'six fixed value coin packs');
+  await page.getByRole('button',{name:/Masukkan Keranjang/}).click();
+  assert.equal(await page.locator('.vm21-drawer-item').count(),1,'Coin pack enters cart as a digital product');
+  assert.match(await page.locator('.vm21-drawer-item').innerText(),/DIGITAL PRODUCT/);
+  await page.getByRole('button',{name:'Tutup keranjang',exact:true}).last().click();
+  await page.goto(BASE+'/keranjang-2',{waitUntil:'networkidle',timeout:45000});
+  assert.equal(await page.locator('.vm21-cart-product').count(),1,'digital SKU stays in cart');
+  await page.getByRole('button',{name:/Tinjau Pembelian Coin/}).click();
+  assert.match(await page.locator('.vm21-checkout-review').innerText(),/Coin baru masuk saldo setelah webhook/);
+  await page.getByRole('button',{name:/Hapus/}).first().click();
+  assert.equal(await page.locator('.vm21-cart-product').count(),0,'digital pack removal works');
   await page.goto(BASE+'/catalog',{waitUntil:'networkidle',timeout:45000});
   await page.locator('.product-card').first().waitFor({timeout:30000});
   assert.ok(await page.locator('.product-card').count()>=4,'four DEMO items should remain in a separate catalog');
@@ -181,17 +205,17 @@ try{
 
   await page.getByRole('button',{name:/Tambahkan DEMO/}).first().click();
   await page.getByRole('dialog',{name:'Keranjang belanja'}).waitFor();
-  assert.equal(await page.locator('.cart-row').count(),1);
-  await page.getByRole('button',{name:'Tutup',exact:true}).click();
+  assert.equal(await page.locator('.vm21-drawer-item').count(),1);
+  await page.getByRole('button',{name:'Tutup keranjang',exact:true}).last().click();
   assert.equal(await page.getByRole('dialog',{name:'Keranjang belanja'}).count(),0,'closing cart drawer must dismiss modal');
   await page.goto(BASE+'/keranjang-2',{waitUntil:'networkidle',timeout:45000});
-  assert.equal(await page.locator('.vm-cart-item').count(),1,'DEMO cart should persist across routes');
-  assert.ok(await page.getByRole('button',{name:'Checkout belum tersedia'}).isDisabled());
-  const beforeQty=await page.locator('.vm-cart-qty span').first().innerText();
-  await page.locator('.vm-cart-qty button').last().click();
+  assert.equal(await page.locator('.vm21-cart-product').count(),1,'DEMO cart should persist across routes');
+  assert.ok(await page.getByRole('button',{name:'Checkout produk belum tersedia'}).isDisabled());
+  const beforeQty=await page.locator('.vm21-cart-product .vm21-drawer-qty span').first().innerText();
+  await page.locator('.vm21-cart-product .vm21-drawer-qty button').last().click();
   assert.equal(Number(await page.locator('.vm-cart-qty span').first().innerText()),Number(beforeQty)+1,'Cart quantity should increment');
   await page.getByRole('button',{name:'Hapus'}).first().click();
-  assert.equal(await page.locator('.vm-cart-item').count(),0,'Delete should remove cart item');
+  assert.equal(await page.locator('.vm21-cart-product').count(),0,'Delete should remove cart item');
   await page.goto(BASE+'/catalog',{waitUntil:'networkidle',timeout:45000});
   await page.locator('#shop-search').fill('Ceramic');
   assert.equal(await page.locator('.product-card').count(),1);
@@ -300,5 +324,5 @@ try{
     assert.equal(motion.prefer,true);
     assert.equal(motion.display,'none','reduced-motion setting must disable parallax');
   }finally{await reduced.close();}
-  console.log('VAPMART_UI_SMOKE_SUCCESS',JSON.stringify({visual,mobile,merchandising,archiveProducts:12,news:10,cart:'tested-on-catalog',checkout:'disabled',theme:'liquid-cp19'}));
+  console.log('VAPMART_UI_SMOKE_SUCCESS',JSON.stringify({visual,mobile,merchandising,archiveProducts:12,news:10,cart:'tested-on-catalog',checkout:'disabled',theme:'coin-cp21'}));
 }finally{await browser.close();}
