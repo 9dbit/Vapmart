@@ -66,7 +66,7 @@ export class MemberCommerceService{
  async createOrder(user:Principal,input:unknown){
    if(!digitalEnabled())throw new ServiceUnavailableException({code:'DIGITAL_PAYMENT_DISABLED'});
    const {sku,idempotencyKey}=validateOrder(input);
-   if(!user.email)throw new ForbiddenException('Verified email required');
+   if(!user.email || !user.emailVerified)throw new ForbiddenException('Confirmed email required');
    return this.db.transaction(async client=>{
      await client.query(
       "INSERT INTO public.customer_profiles(user_id,email) VALUES($1,$2) ON CONFLICT(user_id) DO UPDATE SET email=excluded.email,updated_at=now()",
