@@ -1,0 +1,46 @@
+/* CP23: genuine Vapmart logo stays unfiltered, even in dark mode. */
+html[data-vapmart-color-mode="dark"] body .vm-reference-footer{color:#f0ebf5;background:#15151a;border-color:#36313d}
+html[data-vapmart-color-mode="dark"] body .vm-reference-footer h3,
+html[data-vapmart-color-mode="dark"] body .vm-reference-footer .vm-support-box strong{color:#f1ebf6}
+html[data-vapmart-color-mode="dark"] body .vm-reference-footer .vm-footer-intro p,
+html[data-vapmart-color-mode="dark"] body .vm-reference-footer .vm-footer-links p,
+html[data-vapmart-color-mode="dark"] body .vm-reference-footer .vm-footer-links a,
+html[data-vapmart-color-mode="dark"] body .vm-reference-footer .vm-support-box small,
+html[data-vapmart-color-mode="dark"] body .vm-reference-footer .vm-footer-powered{color:#bdb4c8}
+html[data-vapmart-color-mode="dark"] body .vm-reference-footer .vm-footer-links a:hover{color:#c58fff}
+html[data-vapmart-color-mode="dark"] body .vm-reference-footer .vm-footer-intro>img,
+html[data-vapmart-color-mode="dark"] body .vm-reference-footer .vm-footer-powered img{background:#fff;padding:6px;border-radius:9px;box-sizing:content-box;filter:none!important;opacity:1!important}
+html[data-vapmart-color-mode="dark"] body .vm-reference-footer .vm-support-box{color:#f0eaf6;background:#25222b;border-color:#413948}
+html[data-vapmart-color-mode="dark"] body .vm-reference-footer .vm-footer-social span{color:#e5c9ff;background:#4b2d6b}
+html[data-vapmart-color-mode="dark"] body .vm-reference-footer .vm-footer-support-title strong{background:#7416c5;color:#fff}
+@media(max-width:767px){
+ html body .vm23-theme-switcher{height:40px;min-width:40px;flex:0 0 40px}
+ html body .vm23-theme-trigger{width:40px;height:40px}
+ html body .vm23-theme-menu{right:-52px;top:calc(100% + 11px)}
+ html body .vm-modern-header .vm-reference-actions{gap:6px}
+ html[data-vapmart-color-mode="dark"] body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav{
+   background:rgba(27,24,35,.84);color:#d7c8e6;border-color:#5b476a;
+   box-shadow:0 16px 38px #0009,inset 0 1px 2px #ffffff2d,inset 0 -2px 4px #0006,0 0 0 1px #2b2430;
+   backdrop-filter:blur(28px) saturate(145%);-webkit-backdrop-filter:blur(28px) saturate(145%);
+ }
+ html[data-vapmart-color-mode="dark"] body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav::before{
+   background:linear-gradient(180deg,#ffffff16,transparent);
+ }
+ html[data-vapmart-color-mode="dark"] body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a{color:#cfc4d8}
+ html[data-vapmart-color-mode="dark"] body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a.is-active{color:#fff!important}
+ html[data-vapmart-color-mode="dark"] body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav .vm-liquid-active-pill{
+   background:#8310e8;border-color:#b367ff;
+ }
+ html[data-vapmart-color-mode="dark"] body .vm-modern-header .legacy-logo{padding:5px 6px;border-radius:9px}
+}
+@media(max-width:359px){
+ html body .vm23-theme-switcher{min-width:36px;flex-basis:36px;height:36px}
+ html body .vm23-theme-trigger{width:36px;height:36px}
+ html body .vm-modern-header .vm-reference-actions{gap:4px}
+}
+@supports not ((backdrop-filter:blur(8px)) or (-webkit-backdrop-filter:blur(8px))){
+ @media(max-width:767px){
+ html[data-vapmart-color-mode="dark"] body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav{background:#201b28}
+ }
+}
+@media(prefers-reduced-motion:reduce){html body .vm23-theme-trigger{transition:none}}
