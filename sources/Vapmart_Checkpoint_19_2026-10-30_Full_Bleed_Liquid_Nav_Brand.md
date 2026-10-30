@@ -35,7 +35,7 @@ Implement immediately, no image preview: full-width edge-to-edge mobile hero ban
 
 ## Deployment state
 
-At initial checkpoint writing, final UI code was committed, and Railway builds and GitHub workflows were in progress. This note must be updated with terminal verification rather than assuming success.
+Final application deployment verified: Railway web deployment `b05bb581-1809-415a-9896-9730cd53e2e6` at source commit `cbf6feea0c21eda96ac4677e6b47bb3457c10aaa` reached **SUCCESS**. Code-only CI smoke subsequently passed at `0387532f...` and final test patch `bdc0a550...`. The test/docs-only commits were **SKIPPED** by Railway change detection because no app files changed.
 
 ## Next after this checkpoint
 
@@ -49,6 +49,14 @@ Consolidate legacy/modern CSS into stable component design tokens after visual a
   - Foundation checks: **SUCCESS** (both runs)
   - Dependency security audit: **SUCCESS**
   - Browser UI smoke: **SUCCESS** (job 123944800748)
-  - Staging HTTP smoke: still in progress at first final QA read; report separately once terminal.
+  - Staging HTTP smoke: **SUCCESS** on final corrected checkpoint 19 test run `bdc0a550...`.
 - Browser UI test includes 390px **zero-radius, zero-border, full-width** hero; 360px horizontal overflow; 12 original brand image sources; dark inset for white wordmarks; one blurred navigation glass plate; 5 route links and sliding active indicator; Home → Brand → Member → Keranjang → Katalog → Home; desktop hero, catalog, product detail, wallet-free cart simulation, reduced motion.
 - Original WordPress production and GitHub `main` remain unchanged. Draft PR #1 remains open.
+
+## Final checkpoint closure
+
+**Completed:** App build and deploy, mobile 360/390 edge-to-edge banner QA, partner asset mapping and contrast, animated glass navigation with reduced-motion fallback, all menu routes, staging checkout safety.
+
+**Latest validation commit:** `bdc0a5505328d79faba335ecb6267b75c2293b0e`. Five GitHub workflow runs were verified completed **SUCCESS**: two Foundation checks, Browser UI smoke, Staging HTTP smoke and Dependency security audit. The last adjustment corrected an obsolete CP16 marker in `scripts/smoke-staging.mjs`, without changing the deployed UI.
+
+**Railway status:** `vapmart-web`, `vapmart-api` and `Postgres` all showed terminal **SUCCESS** in staging environment. No data migration, production cutover or merge. Original assets and checkout safety unchanged.
