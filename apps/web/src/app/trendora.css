@@ -568,3 +568,7 @@ html body .legacy-product-wrapper .product-art-3{background:#fff4e5}
 html body .legacy-product-wrapper .product-placeholder{color:#97745b}
 html body .legacy-product-wrapper .placeholder-spark{color:#e9a86b;text-shadow:none;opacity:.88}
 html body .legacy-product-wrapper .product-index{color:#9e7b60}
+
+html body .vm-catalog-intro .vm-trendora-eyebrow{margin-bottom:9px}
+html body .vm-catalog-intro h1{margin:0 0 10px;letter-spacing:-.06em;color:#2a2928}
+html body .vm-catalog-preview{display:inline-flex;align-items:center;margin-top:10px;padding:7px 11px;border-radius:999px;background:#fff0de;border:1px solid #f2d6b8;color:#9f653b;font-size:10px;font-weight:690}
