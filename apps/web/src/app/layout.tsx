@@ -1,6 +1,7 @@
 import type {Metadata} from 'next';
 import Link from 'next/link';
 import {CartProvider} from '@/lib/cart';
+import {WishlistProvider} from '@/lib/wishlist';
 import {SiteHeader} from '@/components/site-header';
 import './globals.css';
 import './legacy.css';
@@ -18,7 +19,7 @@ export const metadata:Metadata={
  robots:{index:false,follow:false},
 };
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="id"><body data-vapmart-theme="trendora-cp16"><CartProvider><SiteHeader/>{children}
+  return <html lang="id"><body data-vapmart-theme="trendora-cp16"><CartProvider><WishlistProvider><SiteHeader/>{children}
     <footer className="legacy-footer vm-reference-footer">
       <div className="main-container vm-reference-footer-grid">
         <div className="vm-footer-intro"><img src="/legacy/vapmart-logo-white.webp" alt="Vapmart" width={112} height={25}/>
@@ -43,5 +44,5 @@ export default function RootLayout({children}:{children:React.ReactNode}){
       </div>
       <div className="main-container vm-footer-powered">Powered by <img src="/legacy/vapmart-logo-white.webp" alt="Vapmart" width={84} height={20}/></div>
     </footer>
-  </CartProvider></body></html>;
+  </WishlistProvider></CartProvider></body></html>;
 }
