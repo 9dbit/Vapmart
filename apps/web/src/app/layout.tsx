@@ -23,14 +23,14 @@ import './cp23-member.css';
 import './cp23-commerce.css';
 import './cp23-shell.css';
 // Runs before React hydration, preventing a bright flash on dark-theme return visits.
-const initialThemeScript="(function(){var root=document.documentElement;var pref='light';try{var stored=localStorage.getItem('vapmart.color-mode.v1');if(stored==='dark'||stored==='light'||stored==='system')pref=stored}catch(e){}var system=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=pref==='system'?(system?'dark':'light'):pref;root.setAttribute('data-vapmart-color-mode',resolved);root.style.colorScheme=resolved})();";
+const initialThemeScript="(function(){var root=document.documentElement;var pref='light';try{var stored=localStorage.getItem('vapmart.color-mode.v1');if(stored==='dark'||stored==='light'||stored==='system')pref=stored}catch(e){}var system=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=pref==='system'?(system?'dark':'light'):pref;root.setAttribute('data-vapmart-color-mode',resolved);root.style.colorScheme=resolved;var meta=document.querySelector('meta[name=theme-color]');if(meta)meta.content=resolved==='dark'?'#131317':'#ffffff'})();";
 export const metadata:Metadata={
  title:{default:'VapMart | Marketplace',template:'%s | VapMart'},
  description:'Rebuild staging Vapmart. Referensi visual WordPress, katalog baru sedang disiapkan. Checkout belum tersedia.',
  robots:{index:false,follow:false},
 };
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="id" suppressHydrationWarning><head><script id="vapmart-theme-init" dangerouslySetInnerHTML={{__html:initialThemeScript}}/></head><body data-vapmart-theme="member-cp22"><ThemeProvider><CustomerAuthProvider><CartProvider><WishlistProvider><SiteHeader/>{children}
+  return <html lang="id" suppressHydrationWarning><head><meta name="theme-color" content="#ffffff"/><script id="vapmart-theme-init" dangerouslySetInnerHTML={{__html:initialThemeScript}}/></head><body data-vapmart-theme="member-cp22" data-vapmart-theme-options="cp23"><ThemeProvider><CustomerAuthProvider><CartProvider><WishlistProvider><SiteHeader/>{children}
     <footer className="legacy-footer vm-reference-footer">
       <div className="main-container vm-reference-footer-grid">
         <div className="vm-footer-intro"><img src="/branding/vapmart-logo.png" alt="Vapmart" width={112} height={25}/>
