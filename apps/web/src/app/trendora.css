@@ -554,3 +554,6 @@ html body .vm-reference-footer .vm-footer-powered{color:#837b72}
   html body .vm-reference-news-card,
   html body .vm-trendora-see-all{transition:none!important;transform:none!important}
 }
+
+/* Header inner container inherited a black legacy backdrop from reference.css. */
+html body .vm-modern-header .vm-header-main{background:transparent!important;color:var(--vm16-cocoa)}
