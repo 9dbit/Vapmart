@@ -74,7 +74,8 @@ try{
      if(response?.status()===200
        &&await page.locator('body[data-vapmart-theme-options="cp23"]').count()
        &&await page.locator('.vm23-theme-switcher').count()
-       &&await page.locator('.vm24-brand-logo').count()===3){ready=true;break;}
+       &&await page.locator('.vm24-brand-logo').count()===3
+       &&await page.locator('.vm-modern-header .vm24-logo-dark').evaluate(el=>getComputedStyle(el).display==='none')){ready=true;break;}
    }catch(e){console.log('wait theme',i,String(e).slice(0,90));}
    await sleep(6000);
  }
