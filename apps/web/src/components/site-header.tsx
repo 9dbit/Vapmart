@@ -121,5 +121,6 @@ export function SiteHeader(){
         <Icon name="cart"/><span>Keranjang</span>{count>0&&<b className="vm-mobile-cart-count">{count}</b>}
       </Link>
     </nav>
-    <CartDrawer/>\n  </>;
+    <CartDrawer/>
+  </>;
 }
