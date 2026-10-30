@@ -107,7 +107,7 @@ export function SiteHeader(){
     </header>
     <nav className="legacy-mobile-nav vm-reference-mobile-nav vm-modern-mobile-nav"
       aria-label="Navigasi seluler" data-active-index={activeIndex}
-      style={{'--vm-active-index':activeIndex} as CSSProperties}>
+      style={{'--vm-active-index':activeIndex,'--vm-active-offset':`${activeIndex*100}%`} as CSSProperties}>
       <span className="vm-liquid-active-pill" aria-hidden="true"/>
       {menu.map((item,index)=><Link key={item.href} href={item.href}
         className={activeIndex===index?'is-active':''} aria-current={item.active?'page':undefined}>
