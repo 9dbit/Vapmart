@@ -10,9 +10,23 @@ export const homepageCategoryTiles=[
   {name:'Liquid',image:'/legacy/categories/liquid.png',href:'/product-category/e-juice',legacy_key:'e-juice'}
 ] as const;
 
-export const homepageBrands=[
-  'OXVA','FOOM','IQOS','INTO','JOIWAY','SP2S','LANAVAPE','E-SUPER',
-  'ROLV','LIQUID CULT','TAZE','SEVEN LIQUID'
+/** Original partner image files checked against docs/legacy-assets-manifest.json.
+ * Several authentic wordmarks are white, so use a dark contrast stage rather than replacing the logos.
+ * The order here is the original media order, not a claim about active partnerships.
+ */
+export const brandPartners=[
+  {slug:'oxva',name:'OXVA',image:'/legacy/brands/brand-01.png'},
+  {slug:'foom',name:'FOOM',image:'/legacy/brands/brand-02.png'},
+  {slug:'iqos',name:'IQOS',image:'/legacy/brands/brand-03.png'},
+  {slug:'into',name:'INTO',image:'/legacy/brands/brand-04.png'},
+  {slug:'joiway',name:'JOIWAY',image:'/legacy/brands/brand-05.png'},
+  {slug:'sp2s',name:'SP2S',image:'/legacy/brands/brand-06.png'},
+  {slug:'lanavape',name:'LANAVAPE',image:'/legacy/brands/brand-07.png'},
+  {slug:'e-super',name:'E-SUPER',image:'/legacy/brands/brand-08.png'},
+  {slug:'rolv',name:'ROLV',image:'/legacy/brands/brand-09.png'},
+  {slug:'liquid-cult',name:'LIQUID CULT',image:'/legacy/brands/brand-10.png'},
+  {slug:'taze',name:'TAZE',image:'/legacy/brands/brand-11.png'},
+  {slug:'seven-liquid',name:'SEVEN LIQUID',image:'/legacy/brands/brand-12.png'},
 ] as const;
 
 export const homepageHeroSlides=[
