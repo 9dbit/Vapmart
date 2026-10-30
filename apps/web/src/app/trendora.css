@@ -557,3 +557,14 @@ html body .vm-reference-footer .vm-footer-powered{color:#837b72}
 
 /* Header inner container inherited a black legacy backdrop from reference.css. */
 html body .vm-modern-header .vm-header-main{background:transparent!important;color:var(--vm16-cocoa)}
+
+/* Catalog section heading and demo image placeholders must inherit the light palette. */
+html body .legacy-product-wrapper .section-heading h2{color:#2c2928}
+html body .legacy-product-wrapper .section-heading>p{color:#807c78}
+html body .legacy-product-wrapper .product-art,
+html body .legacy-product-wrapper .product-art-1,
+html body .legacy-product-wrapper .product-art-2,
+html body .legacy-product-wrapper .product-art-3{background:#fff4e5}
+html body .legacy-product-wrapper .product-placeholder{color:#97745b}
+html body .legacy-product-wrapper .placeholder-spark{color:#e9a86b;text-shadow:none;opacity:.88}
+html body .legacy-product-wrapper .product-index{color:#9e7b60}
