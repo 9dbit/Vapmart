@@ -60,4 +60,14 @@ Add an explicit dark mode option for the full Vapmart ecommerce experience witho
 6. Existing Foundation/Security/Staging HTTP/Browser UI/Ledger CI remain passing.
 7. Independent theme browser QA green, Railway web deployment terminal SUCCESS.
 
-**Deployment and final check status:** verify exact final SHA in Railway and CI before declaring successful production rollout. This is staging-only.
+## Final verified staging release
+
+- **Application source SHA:** `2bfdbab47bf9f740238e28e24efa5c52d34c2c7a`
+- **Railway web deployment:** `dd5d4d25-388a-4389-aa49-5baa07540d58` = terminal **SUCCESS**.
+- **Latest source GitHub workflows:** **7/7 SUCCESS** (2 Foundation checks, Staging HTTP smoke, Browser UI smoke, separate Theme browser QA, Dependency Security audit, and Coin Wallet integration).
+- **Browser theme QA facts:** initial existing light canvas `rgb(244,243,239)`; dark header `rgb(19,19,23)`; Member Card measured ratio `1.58587` with solid purple `rgb(128,16,230)` and solid charcoal `rgb(32,32,38)`; no horizontal overflow at 390px or 360px; device/system mode, preference persistence and refresh tested.
+- Previous browser test transiently asserted a transitioning card background too early. Updated assertion waits for the actual CSS transition to complete; independent theme suite then passed.
+- **Other Railway services:** `vapmart-api` and PostgreSQL remained healthy/online, unaffected by this frontend-only change.
+- WordPress production and GitHub `main` untouched; PR #1 remains draft. No live payment activation.
+
+The final documentation-only commit does not modify deployable app code and may be SKIPPED by Railway change detection. This is a staging release, not a WordPress production cutover.
