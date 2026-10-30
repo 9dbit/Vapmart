@@ -14,7 +14,9 @@ export const PACKS=[
 export function digitalEnabled(){
  return process.env.DIGITAL_COMMERCE_ENABLED==='true' &&
         process.env.PAYMENT_MODE==='sandbox' &&
-        process.env.RAILWAY_ENVIRONMENT_NAME==='staging';
+        process.env.RAILWAY_ENVIRONMENT_NAME==='staging' &&
+        typeof process.env.SANDBOX_WEBHOOK_SECRET==='string' &&
+        process.env.SANDBOX_WEBHOOK_SECRET.length>=32;
 }
 export function validateOrder(body:unknown){
  if(!body||typeof body!=='object'||Array.isArray(body))throw new BadRequestException('Invalid payload');
@@ -90,8 +92,15 @@ export class MemberCommerceService{
        "SELECT count(*)::text AS total FROM commerce.digital_orders WHERE user_id=$1 AND status='pending' AND created_at>now()-interval '24 hours'",[user.id]);
      if(Number(outstanding.rows[0]?.total??0)>=5)throw new ConflictException('Too many pending orders');
      const order=await client.query<{id:string;status:string}>(
-       "INSERT INTO commerce.digital_orders(user_id,sku,amount_idr,credit_coins,idempotency_key) VALUES($1,$2,$3,$4,$5) RETURNING id,status",
+       "INSERT INTO commerce.digital_orders(user_id,sku,amount_idr,credit_coins,idempotency_key) VALUES($1,$2,$3,$4,$5) ON CONFLICT(user_id,idempotency_key) DO NOTHING RETURNING id,status",
        [user.id,sku,r.rows[0].price_idr,r.rows[0].credit_coins,idempotencyKey]);
+     if(!order.rows[0]){
+       const duplicate=await client.query<{id:string;sku:string;status:string}>(
+         'SELECT id,sku,status FROM commerce.digital_orders WHERE user_id=$1 AND idempotency_key=$2',
+         [user.id,idempotencyKey]);
+       if(!duplicate.rows[0]||duplicate.rows[0].sku!==sku)throw new ConflictException('Idempotency key conflicts with another order');
+       return {id:duplicate.rows[0].id,status:duplicate.rows[0].status};
+     }
      return order.rows[0];
    });
  }
