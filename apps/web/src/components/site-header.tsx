@@ -28,6 +28,11 @@ export function SiteHeader(){
   const categoryName:Record<string,string>={pod:'Pod',mod:'Mod',cartridge:'Cartridge','e-juice':'Liquid'};
   const segment=pathname.split('/')[2]||'';
   const caption=pathname.startsWith('/product-category/')?(categoryName[segment]||'Kategori'):pathname.startsWith('/product/')?'Detail Produk':pathname==='/catalog'?'Katalog':pathname==='/keranjang-2'?'Keranjang':pathname==='/brand-partner'?'Brand Partner':pathname==='/member-2'?'Member':pathname==='/login'||pathname==='/akun'?'Akun':'';
+  // Keep the brand anchored in the same header position across every route.
+  // Back is a dedicated control below the sticky header, never inserted before the logo.
+  const backHref=pathname.startsWith('/product/')||pathname.startsWith('/product-category/')?'/catalog':
+    pathname==='/login'||pathname==='/akun'?'/member-2':
+    pathname==='/keranjang-2'?'/catalog':'/';
   const routeIndex=pathname==='/'
     ? 0
     : pathname==='/catalog'||pathname.startsWith('/product/')||pathname.startsWith('/product-category/')||pathname==='/asset-review'
@@ -79,8 +84,6 @@ export function SiteHeader(){
   return <>
     <header className={isSubpage?'legacy-header vm-reference-header vm-subpage vm-modern-header':'legacy-header vm-reference-header vm-modern-header'}>
       <div className="main-container vm-header-main">
-        {isSubpage&&<Link href="/" className="vm-subpage-back" aria-label="Kembali ke beranda"><Icon name="back"/></Link>}
-        {isSubpage&&<span className="vm-subpage-caption">{caption}</span>}
         <Link href="/" className="legacy-logo" aria-label="Beranda Vapmart"><img src="/branding/vapmart-logo.png" alt="Vapmart" width="180" height="36"/></Link>
         <nav className="vm-desktop-links" aria-label="Menu utama">
           {menu.map(item=><Link href={item.href} key={item.href} className={item.active?'is-active':''} aria-current={item.active?'page':undefined}>{item.label}</Link>)}
@@ -107,6 +110,15 @@ export function SiteHeader(){
         </div>
       </div>
     </header>
+    {isSubpage&&<nav className="vm22-backbar" aria-label="Navigasi kembali">
+      <div className="main-container vm22-backbar-inner">
+        <Link href={backHref} className="vm22-back-link" aria-label={'Kembali dari '+caption}>
+          <span className="vm22-back-icon"><Icon name="back"/></span>
+          <span>Kembali</span>
+        </Link>
+        <span className="vm22-back-caption">{caption}</span>
+      </div>
+    </nav>}
     <nav className="legacy-mobile-nav vm-reference-mobile-nav vm-modern-mobile-nav"
       aria-label="Navigasi seluler" data-active-index={activeIndex}
       style={{'--vm-active-index':activeIndex,'--vm-active-offset':`${activeIndex*100}%`} as CSSProperties}>
