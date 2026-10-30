@@ -709,3 +709,295 @@ html body .legacy-product-wrapper .product-art{background:#f0e7fb}
  html body .vm-trendora-hero.vm-hero-stage{padding-top:10px}
  html body .vm-trendora-categories{margin-top:18px}
 }
+
+/* === CP19: full-bleed mobile hero, authentic partner logos, liquid glass nav ===
+   Preserves original Vapmart banner artwork and read-only commerce gates. */
+:root{
+  --vm19-purple:#8310e8;
+  --vm19-deep:#6800c3;
+  --vm19-lilac:#ede0ff;
+  --vm19-edge:rgba(255,255,255,.84);
+}
+/* True source logo on dark inset; most WordPress partner wordmarks are white.
+   Do not invert, filter, replace or distort any original partner asset. */
+html body .vm-trendora-brands .vm-brand-rail{position:relative;padding-bottom:52px;min-width:0}
+html body .vm-trendora-brands .vm-brand-rail .vm-brand-logos{
+  display:flex;flex-wrap:nowrap;gap:13px;align-items:stretch;
+  overflow-x:auto;overscroll-behavior-inline:contain;
+  scroll-snap-type:x mandatory;scroll-padding-inline:2px;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;padding:4px 2px 10px;
+}
+html body .vm-trendora-brands .vm-brand-rail .vm-brand-logos::-webkit-scrollbar{display:none}
+html body .vm-trendora-brands .vm-brand-rail .vm-brand-card{
+  box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-start;
+  align-items:stretch;gap:8px;flex:0 0 161px;width:161px;min-width:0;
+  height:137px;min-height:137px;padding:8px;border:1px solid #e8e1ef;
+  background:#fff;border-radius:23px;
+  box-shadow:0 7px 26px #442a6910;
+  scroll-snap-align:start;overflow:hidden;
+}
+html body .vm-brand-card .vm-brand-stage{
+  display:flex;align-items:center;justify-content:center;
+  box-sizing:border-box;position:relative;min-width:0;flex:1 1 auto;
+  background:#18131f;border:1px solid #2e243a;border-radius:16px;overflow:hidden;
+}
+html body .vm-brand-card .vm-brand-stage img{
+  width:90%!important;height:87%!important;max-width:90%!important;
+  max-height:87%!important;object-fit:contain!important;
+  display:block;filter:none!important;mix-blend-mode:normal;
+}
+html body .vm-brand-card .vm-brand-name{
+  display:block;flex:0 0 auto;color:#45404a!important;
+  font-size:11px!important;font-weight:700;line-height:1.25;
+  text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+html body .vm-brand-rail .vm-brand-card:hover{
+  transform:translateY(-3px);background:#fbf8ff;
+  border-color:#c6a4f5;box-shadow:0 12px 28px #6f35a41a;
+}
+html body .vm-brand-controls{position:absolute;right:0;bottom:0;display:flex;gap:9px}
+html body .vm-brand-controls button{
+  width:44px;height:44px;display:grid;place-items:center;
+  background:#fff;color:#6620ad;border:1px solid #ddcdf2;
+  border-radius:50%;font-size:27px;line-height:1;
+  box-shadow:0 4px 14px #4a2b6912;cursor:pointer;
+}
+html body .vm-brand-controls button:hover:not(:disabled){background:#ead8ff;border-color:#a975e3}
+html body .vm-brand-controls button:disabled{opacity:.4;cursor:default;box-shadow:none}
+/* Brand directory is a separate scannable grid rather than repeated generic chips. */
+html body .vm-brand-page.vm-partner-page .vm-partner-intro{max-width:760px}
+html body .vm-brand-page.vm-partner-page .vm-partner-intro .vm-trendora-eyebrow{margin:14px 0 8px}
+html body .vm-brand-page.vm-partner-page .vm-partner-intro h1{
+  margin:0 0 9px;font-size:clamp(25px,3vw,36px);
+  letter-spacing:-.05em;color:#27232d;
+}
+html body .vm-brand-page.vm-partner-page .vm-partner-intro p{
+  margin:0;color:#7a7482;font-size:13px;line-height:1.75;
+}
+html body .vm-brand-page.vm-partner-page .vm-partner-logos{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:16px;margin:25px 0 43px;
+}
+html body .vm-brand-page.vm-partner-page .vm-partner-logos .vm-partner-card{
+  box-sizing:border-box;display:flex;align-items:stretch;justify-content:flex-start;
+  flex-direction:column;gap:10px;min-width:0;min-height:155px;
+  height:auto;padding:10px;border-radius:24px;
+  background:white;border:1px solid #eae4ef;
+  box-shadow:0 9px 28px #4527680c;scroll-margin-top:96px;
+}
+html body .vm-brand-page.vm-partner-page .vm-partner-logos .vm-brand-stage{height:110px;flex:1 1 110px}
+html body .vm-brand-page.vm-partner-page .vm-partner-logos .vm-brand-name{font-size:12px!important;color:#453d4f!important}
+html body .vm-brand-page.vm-partner-page .vm-partner-card:target{
+  border-color:#a46bef;box-shadow:0 0 0 3px #b886f02c,0 9px 28px #45276815;
+}
+html body .vm-brand-page.vm-partner-page .vm-lined-heading{color:#292630}
+/* Shared navigation, filter, form, modal and cart visual feedback. */
+html body .vm-desktop-links a,
+html body .vm-trendora-category,
+html body .vm-trendora-see-all,
+html body .vm-brand-controls button,
+html body .vm-member-actions a,
+html body .vm-account-tabs span,
+html body .vm-reference-cart,
+html body .vm-header-pill-search button{
+  transition:background .24s ease,color .24s ease,border-color .24s ease,
+             transform .24s cubic-bezier(.22,1,.36,1),box-shadow .24s ease;
+}
+html body .vm-desktop-links a.is-active{
+  background:var(--vm19-purple);color:#fff;
+  box-shadow:0 4px 12px #7316ca37;
+}
+html body .vm-desktop-links a:hover:not(.is-active){background:#f0e5ff;color:#6819b1}
+html body .vm-desktop-links a:active,
+html body .vm-trendora-category:active,
+html body .vm-trendora-see-all:active,
+html body .vm-brand-controls button:active:not(:disabled){transform:scale(.97)}
+html body .vm-trendora-category:focus-visible,
+html body .vm-brand-card:focus-visible,
+html body .vm-modern-header a:focus-visible,
+html body .vm-brand-controls button:focus-visible,
+html body .vm-modern-mobile-nav a:focus-visible{
+  outline:2px solid #8b21e1;outline-offset:3px;
+}
+html body .vm-modern-header .vm-search-disclosure[open] summary{
+  border-color:#a768e8;background:#f0e5ff;color:#6a1bb8;
+}
+html body .vm-modern-header .vm-search-disclosure form{
+  z-index:65;box-shadow:0 16px 35px #36214c28;
+}
+html body .vm-modern-header .vm-reference-cart:focus-visible{outline:2px solid #8310e8;outline-offset:3px}
+html body .vm-modern-header .vm-reference-cart .cart-count{
+  background:#8310e8;color:white;border-color:white;
+}
+html body .legacy-product-wrapper .category:hover:not(.active),
+html body .legacy-product-wrapper .vm-reset-filters:hover,
+html body .vm-cp17-favorites-filter:hover:not(.is-active){
+  background:#f2e8ff;border-color:#ca9ef1;color:#5f198f;
+}
+html body .legacy-product-wrapper .category.active,
+html body .vm-cp17-favorites-filter.is-active{
+  color:#fff;background:var(--vm19-purple);border-color:var(--vm19-purple);
+}
+html body .vm-cp17-favorites-filter.is-active .vm-cp17-favorites-number{color:#6b23b6}
+html body .vm-member-actions a:hover,
+html body .vm-account-links a:hover,
+html body .vm-cart-continue:hover{filter:brightness(.93)}
+html body .vm-view-cart-link:hover{background:#e8d4ff}
+html body .cart-drawer{z-index:120}
+html body .drawer-shell{z-index:115}
+/* Liquid glass navigation: frosted optical depth and one sliding, solid-purple active pill. */
+@media(max-width:1100px){
+  html body .vm-modern-header .vm-search-disclosure summary{cursor:pointer}
+}
+@media(max-width:1024px) and (min-width:768px){
+  html body .vm-brand-page.vm-partner-page .vm-partner-logos{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:767px){
+  html body{padding-bottom:calc(102px + env(safe-area-inset-bottom))}
+  /* Flush the carousel artwork to both screen edges. No card margin/radius/frame. */
+  html body .vm-trendora-home .vm-trendora-hero.vm-hero-stage{
+    width:100%;max-width:none;margin:0;padding:0!important;border:0;background:none;
+    border-radius:0;box-shadow:none;
+  }
+  html body .vm-trendora-home .vm-trendora-hero .vm-original-banner{
+    box-sizing:border-box;width:100%!important;max-width:none!important;
+    margin:0!important;padding:0!important;border:0!important;border-radius:0!important;
+  }
+  html body .vm-trendora-home .vm-trendora-hero .vm-carousel-shell{
+    box-sizing:border-box;width:100%;max-width:none;
+    aspect-ratio:1024/448;height:auto;
+    border:0!important;border-radius:0!important;
+    margin:0!important;box-shadow:none!important;outline:0;
+  }
+  html body .vm-trendora-home .vm-trendora-hero .vm-carousel-slide,
+  html body .vm-trendora-home .vm-trendora-hero .vm-carousel-track{border-radius:0}
+  html body .vm-trendora-home .vm-trendora-hero .vm-carousel-slide img{
+    display:block;width:100%;height:100%;object-fit:cover;
+  }
+  html body .vm-trendora-home .vm-trendora-hero .vm-carousel-arrow{
+    width:44px;height:44px;font-size:29px;
+    background:#fffdf6db;color:#44215c;border-color:#ffffffbd;
+    backdrop-filter:blur(12px) saturate(160%);
+    -webkit-backdrop-filter:blur(12px) saturate(160%);
+  }
+  html body .vm-trendora-home .vm-trendora-hero .vm-carousel-previous{left:8px}
+  html body .vm-trendora-home .vm-trendora-hero .vm-carousel-next{right:8px}
+  html body .vm-trendora-home .vm-trendora-hero .vm-carousel-pause{
+    bottom:9px;right:10px;width:36px;height:36px;
+  }
+  html body .vm-trendora-home .vm-trendora-categories{margin-top:20px}
+  /* Keep the logo and tap controls readable even on a 360px screen. */
+  html body .vm-modern-header .vm-header-main{gap:8px}
+  html body .vm-modern-header .vm-search-disclosure summary,
+  html body .vm-modern-header .vm-reference-cart{min-width:44px;width:44px;height:44px}
+  html body .vm-modern-header.vm-subpage .vm-subpage-back{width:40px;height:40px;min-width:40px}
+  /* Single glass plate. Never put a second active fill behind the sliding pill. */
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav{
+    --vm-liquid-padding:7px;
+    display:flex;align-items:center;justify-content:stretch;gap:0;
+    box-sizing:border-box;isolation:isolate;overflow:hidden;
+    position:fixed;left:12px;right:12px;bottom:max(10px,env(safe-area-inset-bottom));
+    width:auto;height:75px;min-height:75px;padding:var(--vm-liquid-padding);
+    border:1px solid rgba(255,255,255,.8);
+    border-radius:999px;
+    background:rgba(245,240,254,.60);
+    color:#5a5365;
+    backdrop-filter:blur(27px) saturate(185%) brightness(1.08);
+    -webkit-backdrop-filter:blur(27px) saturate(185%) brightness(1.08);
+    box-shadow:0 16px 34px #3823572a,inset 0 2px 2px #ffffffdb,
+               inset 0 -1px 5px #8970af20,0 0 0 1px #7e56a318;
+    z-index:42;
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav::before{
+    content:"";position:absolute;inset:1px 9px auto;height:48%;
+    border-radius:999px;pointer-events:none;z-index:0;
+    background:linear-gradient(180deg,rgba(255,255,255,.62),rgba(255,255,255,0));
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav .vm-liquid-active-pill{
+    position:absolute;z-index:1;pointer-events:none;
+    left:var(--vm-liquid-padding);top:7px;bottom:7px;
+    width:calc((100% - 2 * var(--vm-liquid-padding)) / 5);
+    height:auto;border-radius:999px;
+    background:#8310e8;
+    border:1px solid #a75bff85;
+    box-shadow:0 7px 19px #6628bb40,inset 0 1px 2px #ffffff55,
+               inset 0 -3px 6px #46007f4a;
+    transform:translate3d(calc(var(--vm-active-index) * 100%),0,0);
+    transition:transform 560ms cubic-bezier(.16,1,.3,1),
+               box-shadow 400ms ease;
+    will-change:transform;
+  }
+  html body .vm-liquid-active-pill::before{
+    content:"";position:absolute;left:13%;right:13%;top:4px;height:41%;
+    border-radius:99px 99px 50% 50%;
+    background:linear-gradient(to bottom,#ffffff38,transparent);
+    filter:blur(1px);
+  }
+  html body .vm-liquid-active-pill::after{
+    content:"";position:absolute;left:15%;right:15%;bottom:5px;height:2px;
+    border-radius:20px;background:#dcb5ff70;filter:blur(2px);
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a{
+    z-index:2;position:relative;flex:1 1 0;min-width:0;
+    height:59px;min-height:59px;box-sizing:border-box;
+    padding:5px 1px;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:3px;white-space:nowrap;
+    color:#645b6d;background:transparent!important;border:0;
+    border-radius:999px;box-shadow:none!important;
+    font-weight:550;line-height:1.16;
+    transition:color 320ms ease,transform 440ms cubic-bezier(.16,1,.3,1);
+    -webkit-tap-highlight-color:transparent;
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a.is-active{
+    color:#fff!important;background:transparent!important;
+    box-shadow:none!important;font-weight:750;
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a:active{
+    transform:scale(.95);
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a svg{
+    width:21px;height:21px;flex:none;
+    transition:transform 480ms cubic-bezier(.2,.92,.2,1);
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a.is-active svg{
+    transform:translateY(-1px) scale(1.08);
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a>span{
+    color:inherit!important;font-size:10px!important;
+    line-height:1.15!important;font-weight:inherit;letter-spacing:-.012em;
+  }
+  html body .vm-mobile-cart-count{
+    z-index:3;top:0;right:6px;border:1px solid white;
+    background:#7900d3;color:white;
+  }
+  /* All five menus, including Cart, are real destinations. */
+  html body .vm-trendora-brands .vm-brand-rail .vm-brand-card{
+    flex-basis:139px;width:139px;height:130px;min-height:130px;padding:7px;border-radius:19px;
+  }
+  html body .vm-brand-card .vm-brand-stage{border-radius:13px}
+  html body .vm-trendora-brands .vm-brand-rail{padding-bottom:51px}
+  html body .vm-brand-page.vm-partner-page .vm-partner-logos{
+    grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;
+  }
+  html body .vm-brand-page.vm-partner-page .vm-partner-logos .vm-partner-card{
+    min-height:142px;padding:8px;border-radius:19px;
+  }
+  html body .vm-brand-page.vm-partner-page .vm-partner-logos .vm-brand-stage{height:103px;flex-basis:103px}
+}
+@supports not ((backdrop-filter:blur(8px)) or (-webkit-backdrop-filter:blur(8px))){
+  @media(max-width:767px){
+    html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav{
+      background:rgba(250,246,255,.96);
+    }
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav .vm-liquid-active-pill,
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a,
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a svg,
+  html body .vm-brand-card,html body .vm-brand-controls button{
+    transition:none!important;animation:none!important;
+  }
+  html body .vm-brand-rail .vm-brand-logos{scroll-behavior:auto!important}
+}
