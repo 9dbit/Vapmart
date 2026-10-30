@@ -15,7 +15,7 @@ export function validateSandboxEvent(body:unknown){
   const v=body as Record<string,unknown>;
   if(typeof v.eventId!=='string'||!/^[A-Za-z0-9._:-]{8,120}$/.test(v.eventId))
     throw new BadRequestException('Invalid event ID');
-  if(typeof v.orderId!=='string'||!/^[0-9a-f-]{36}$/i.test(v.orderId))
+  if(typeof v.orderId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v.orderId))
     throw new BadRequestException('Invalid order ID');
   if(!['paid','failed','expired'].includes(String(v.status))||
     typeof v.amountIdr!=='number'||!Number.isSafeInteger(v.amountIdr)||v.amountIdr<=0||v.amountIdr>2000000)
