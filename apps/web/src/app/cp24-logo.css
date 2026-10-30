@@ -34,9 +34,11 @@ html body .vm24-brand-logo > .vm24-logo-dark{
   border:0!important;
   border-radius:0!important;
 }
-html body .vm24-brand-logo > .vm24-logo-dark{display:none}
-html[data-vapmart-color-mode="dark"] body .vm24-brand-logo > .vm24-logo-light{display:none}
-html[data-vapmart-color-mode="dark"] body .vm24-brand-logo > .vm24-logo-dark{display:block}
+/* Strong enough to beat older direct image selectors inside the header. */
+html body .vm24-brand-logo > .vm24-logo-light{display:block!important}
+html body .vm24-brand-logo > .vm24-logo-dark{display:none!important}
+html[data-vapmart-color-mode="dark"] body .vm24-brand-logo > .vm24-logo-light{display:none!important}
+html[data-vapmart-color-mode="dark"] body .vm24-brand-logo > .vm24-logo-dark{display:block!important}
 
 /* Remove the CP23 white block around header logo, retain position and width.
    Header uses the existing fixed desktop/mobile logo slot. */
