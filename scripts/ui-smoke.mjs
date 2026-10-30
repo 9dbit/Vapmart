@@ -152,6 +152,8 @@ try{
     await page.reload({waitUntil:'networkidle',timeout:45000});
   }
   assert.ok(favoritesReleaseReady,'Checkpoint17 wishlist UI did not reach staging');
+  const savedDetailHref=await page.locator('.product-card .product-art').first().getAttribute('href');
+  assert.ok(savedDetailHref?.startsWith('/product/'),'favorite must map to product detail');
   const favToggle=page.locator('.vm-cp17-card-favorite').first();
   assert.equal(await favToggle.getAttribute('aria-pressed'),'false','first product should start unsaved in new test browser');
   await favToggle.click();
@@ -163,7 +165,7 @@ try{
   await page.getByRole('button',{name:'Tampilkan hanya produk favorit'}).click();
   assert.equal(await page.locator('.product-card').count(),1,'favorite should still be in browser storage');
   await page.getByRole('button',{name:'Tampilkan hanya produk favorit'}).click();
-  await page.goto(BASE+'/product/demo-modular-desk-organizer',{waitUntil:'networkidle',timeout:45000});
+  await page.goto(BASE+savedDetailHref,{waitUntil:'networkidle',timeout:45000});
   assert.equal(await page.locator('.vm-cp17-detail-favorite').getAttribute('aria-pressed'),'true','detail page must share saved wishlist state');
   await page.locator('.vm-cp17-detail-favorite').click();
   assert.equal(await page.locator('.vm-cp17-detail-favorite').getAttribute('aria-pressed'),'false','detail page heart should remove saved item');
