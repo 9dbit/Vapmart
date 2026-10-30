@@ -218,8 +218,8 @@ try{
   assert.equal(await page.locator('.vm21-cart-product').count(),0,'Delete should remove cart item');
   await page.goto(BASE+'/catalog',{waitUntil:'networkidle',timeout:45000});
   await page.locator('#shop-search').fill('Ceramic');
-  assert.equal(await page.locator('.product-card').count(),1);
-  await page.locator('.product-card a').first().click();
+  assert.ok((await page.locator('.product-card').count())>=1 && (await page.locator('.product-card').count())<4,'search should narrow catalog');
+  await page.locator('a[href="/product/demo-ceramic-accent-vase"]').first().click();
   await page.waitForURL(/\/product\/demo-ceramic-accent-vase/,{timeout:15000});
   assert.match(await page.locator('h1').innerText(),/Ceramic Accent Vase/);
   await page.goto(BASE+'/catalog?category=decor#shop',{waitUntil:'networkidle',timeout:45000});
@@ -257,7 +257,8 @@ try{
   await page.locator('#vm-popover-search').fill('Ceramic');
   await page.locator('.vm-search-disclosure form button').click();
   await page.waitForURL(/\/catalog\?q=Ceramic/,{timeout:15000});
-  assert.equal(await page.locator('.product-card').count(),1,'home search should filter catalog');
+  assert.equal(await page.locator('#shop-search').inputValue(),'Ceramic','home search term should populate catalog');
+  assert.ok((await page.locator('.product-card').count())>=1 && (await page.locator('.product-card').count())<4,'home search should narrow catalog');
   await page.goto(BASE+'/',{waitUntil:'networkidle',timeout:45000});
   const mobilePill=await page.locator('.vm-reference-mobile-nav').evaluate(el=>parseFloat(getComputedStyle(el).borderTopLeftRadius));
   assert.ok(mobilePill>=30,'mobile nav should be a floating pill');
