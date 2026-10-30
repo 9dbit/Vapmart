@@ -9,11 +9,11 @@ try{
   for(let attempt=0;attempt<45;attempt++){
     try{
       const response=await page.goto(BASE+'/',{waitUntil:'domcontentloaded',timeout:20000});
-      if(response?.status()===200&&await page.locator('[data-vapmart-ui="cp21"]').count()===1 && await page.locator('[data-vapmart-theme="coin-cp21"]').count()===1 && await page.locator('.vm-footer-links h3',{hasText:'Jelajahi'}).count()===1 && await page.locator('.vm-header-main').evaluate(el=>getComputedStyle(el).backgroundColor==='rgba(0, 0, 0, 0)')){ready=true;break;}
+      if(response?.status()===200&&await page.locator('[data-vapmart-ui="cp22"]').count()===1 && await page.locator('[data-vapmart-theme="member-cp22"]').count()===1 && await page.locator('.vm-footer-links h3',{hasText:'Jelajahi'}).count()===1 && await page.locator('.vm-header-main').evaluate(el=>getComputedStyle(el).backgroundColor==='rgba(0, 0, 0, 0)')){ready=true;break;}
     }catch(e){console.log('wait for staging revision',attempt,String(e).slice(0,100));}
     await sleep(6000);
   }
-  assert.ok(ready,'Checkpoint21 coin store UI did not appear on staging within deployment retry window');
+  assert.ok(ready,'Checkpoint22 membership card UI did not appear on staging within deployment retry window');
   // Font metrics can change for a few frames after DOMContentLoaded on GitHub Actions.
   // Settle network activity and web fonts before measuring WordPress pixel positions.
   await page.waitForLoadState('networkidle',{timeout:45000});
@@ -157,6 +157,25 @@ try{
   await page.goto(BASE+'/member-2',{waitUntil:'networkidle',timeout:45000});
   await page.locator('.vm-new-member-card').waitFor();
   assert.ok(await page.locator('.vm-new-member-card').isVisible(),'Vapmart Member Card');
+  const isoRatio=85.60/53.98;
+  const bankCard=await page.locator('.vm22-member-card').evaluate(el=>{
+    const r=el.getBoundingClientRect();
+    const purple=getComputedStyle(el.querySelector('.vm22-card-purple-panel'));
+    const charcoal=getComputedStyle(el.querySelector('.vm22-card-charcoal-panel'));
+    return {ratio:r.width/r.height,width:r.width,height:r.height,
+      purple:purple.backgroundColor,charcoal:charcoal.backgroundColor,
+      purpleOpacity:purple.opacity,charcoalOpacity:charcoal.opacity};
+  });
+  assert.ok(Math.abs(bankCard.ratio-isoRatio)<.022,'Member Card must match ISO ID-1 85.60x53.98 proportions: '+JSON.stringify(bankCard));
+  assert.equal(bankCard.purple,'rgb(128, 16, 230)','card requires solid purple panel');
+  assert.equal(bankCard.charcoal,'rgb(32, 32, 38)','card requires solid charcoal panel');
+  assert.equal(bankCard.purpleOpacity,'1');
+  assert.equal(bankCard.charcoalOpacity,'1');
+  assert.equal(await page.locator('.vm22-member-shortcut').count(),3,'benefit, coin and promo shortcuts');
+  assert.equal(await page.locator('.vm22-card-coin-value strong').innerText(),'—','guest wallet must never display a fabricated positive balance');
+  assert.ok(await page.locator('.vm22-card-brand img').evaluate(el=>el.complete&&el.naturalWidth>0),'original logo on member card');
+  await page.getByRole('button',{name:'Buka benefit member'}).click();
+  assert.equal(await page.getByRole('tab',{name:'Benefit'}).getAttribute('aria-selected'),'true','shortcut activates real member benefit section');
   assert.equal(await page.locator('.vm21-member-tabs button').count(),4,'all member tabs');
   await page.getByRole('tab',{name:'Top Up'}).click();
   const coinVisuals=await page.locator('.vm21-coin-pack').evaluateAll(cards=>cards.map(card=>card.querySelectorAll('.vm-gold-coin').length));
@@ -266,6 +285,7 @@ try{
   assert.ok(labelFont<=11,'mobile navigation label must not overlap: '+labelFont+'px');
   const tapTarget=await page.locator('.vm-reference-mobile-nav a').first().boundingBox();
   assert.ok(tapTarget&&tapTarget.height>=44,'mobile nav touch target must be at least 44px');
+  const homeLogoBox=await page.locator('.vm-modern-header .legacy-logo').boundingBox();
   const nav=page.locator('.vm-modern-mobile-nav');
   assert.equal(await nav.locator('a').count(),5,'mobile bar contains five route links');
   assert.equal(await nav.locator('.vm-liquid-active-pill').count(),1,'only one animated liquid active pill');
@@ -285,7 +305,26 @@ try{
   assert.ok(start&&end&&end.x>start.x+70,'liquid pill must slide toward Brand tab');
   await nav.locator('a[href="/member-2"]').click();
   await page.waitForURL(/\/member-2$/,{timeout:15000});
+  await page.locator('.vm22-member-card').waitFor();
   assert.equal(await nav.getAttribute('data-active-index'),'3','Member tab must activate');
+  const memberGeometry=await page.evaluate(()=>{
+    const rect=selector=>document.querySelector(selector).getBoundingClientRect();
+    const header=rect('.vm-modern-header');
+    const back=rect('.vm22-backbar');
+    const logo=rect('.vm-modern-header .legacy-logo');
+    const card=rect('.vm22-member-card');
+    return {headerBottom:header.bottom,backTop:back.top,backBottom:back.bottom,
+      logoX:logo.x,cardWidth:card.width,cardHeight:card.height,
+      scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth};
+  });
+  assert.ok(Math.abs(memberGeometry.logoX-homeLogoBox.x)<2,'header logo must remain fixed across Home and Member pages');
+  assert.ok(Math.abs(memberGeometry.headerBottom-memberGeometry.backTop)<=2,'back button must be below header');
+  assert.ok(Math.abs(memberGeometry.cardWidth/memberGeometry.cardHeight-isoRatio)<.025,'390px card must keep ISO ratio');
+  assert.ok(memberGeometry.scrollWidth<=memberGeometry.viewport+2,'member page must not horizontally overflow');
+  assert.equal(await page.locator('.vm-modern-header .vm-subpage-back').count(),0,'back button must no longer precede logo inside header');
+  assert.equal(await page.locator('.vm22-backbar .vm22-back-link').getAttribute('href'),'/','member back must navigate home');
+  await page.getByRole('button',{name:'Buka saldo dan riwayat Coin'}).click();
+  assert.equal(await page.getByRole('tab',{name:'Riwayat'}).getAttribute('aria-selected'),'true','coin shortcut opens transaction history');
   await nav.locator('a[href="/keranjang-2"]').click();
   await page.waitForURL(/\/keranjang-2$/,{timeout:15000});
   assert.equal(await nav.getAttribute('data-active-index'),'4','Cart tab must activate and navigate to cart');
@@ -302,6 +341,13 @@ try{
     width:window.innerWidth
   }));
   assert.ok(Math.abs(small.hero-small.width)<=2&&small.overflow<=2,'360px edge-to-edge layout overflow: '+JSON.stringify(small));
+  await page.goto(BASE+'/member-2',{waitUntil:'networkidle',timeout:45000});
+  const compact=await page.evaluate(()=>{
+    const card=document.querySelector('.vm22-member-card').getBoundingClientRect();
+    return {ratio:card.width/card.height,cardWidth:card.width,scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth};
+  });
+  assert.ok(Math.abs(compact.ratio-isoRatio)<.025,'360px member card must retain bank card shape');
+  assert.ok(compact.scrollWidth<=compact.viewport+2,'360px member page must not overflow: '+JSON.stringify(compact));
   await page.setViewportSize({width:390,height:844});
   await page.goto(BASE+'/product-category/pod',{waitUntil:'networkidle',timeout:45000});
   const mobileCategory=await page.locator('.vm-category-page .vm-archive-link').first().boundingBox();
@@ -325,5 +371,5 @@ try{
     assert.equal(motion.prefer,true);
     assert.equal(motion.display,'none','reduced-motion setting must disable parallax');
   }finally{await reduced.close();}
-  console.log('VAPMART_UI_SMOKE_SUCCESS',JSON.stringify({visual,mobile,merchandising,archiveProducts:12,news:10,cart:'tested-on-catalog',checkout:'disabled',theme:'coin-cp21'}));
+  console.log('VAPMART_UI_SMOKE_SUCCESS',JSON.stringify({visual,mobile,merchandising,archiveProducts:12,news:10,cart:'tested-on-catalog',checkout:'disabled',theme:'member-cp22'}));
 }finally{await browser.close();}
