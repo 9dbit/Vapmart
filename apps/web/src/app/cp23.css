@@ -58,3 +58,35 @@ html[data-vapmart-color-mode="dark"] body .vm23-theme-menu button:hover{backgrou
 html[data-vapmart-color-mode="dark"] body .vm23-theme-menu button.is-current{background:#49285f;border-color:#795397}
 html[data-vapmart-color-mode="dark"] body .vm23-theme-choice-icon{background:#362742;color:#ddadff}
 html[data-vapmart-color-mode="dark"] body .vm23-theme-choice-check{color:#e2c0ff}
+
+/* Homepage, category thumbnails, archived product/news cards, authentic brands. */
+html[data-vapmart-color-mode="dark"] body .vm-trendora-home,html[data-vapmart-color-mode="dark"] body .vm-reference-home{background:var(--vm23-bg);color:var(--vm23-text)}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-home .vm-trendora-hero.vm-hero-stage{background:radial-gradient(ellipse at 20% 8%,#6723b522,transparent 48%)}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-eyebrow,html[data-vapmart-color-mode="dark"] body .vm21-eyebrow{color:#c48aff}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-section-heading h2,html[data-vapmart-color-mode="dark"] body .vm-trendora-home .vm-ref-section-head h2,html[data-vapmart-color-mode="dark"] body .vm-trendora-home .vm-ref-brands h2,html[data-vapmart-color-mode="dark"] body .vm-home-intro h1{color:#f5f0f9}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-see-all,html[data-vapmart-color-mode="dark"] body .vm-home-discover,html[data-vapmart-color-mode="dark"] body .vm-home-quicksearch{background:#27242e;border-color:#4a4052;color:#f2eaf9;box-shadow:none}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-see-all:hover,html[data-vapmart-color-mode="dark"] body .vm-home-discover:hover{background:#372a43;color:#fff;border-color:#8456b9}
+html[data-vapmart-color-mode="dark"] body .vm-home-quicksearch input{color:#f2edf7}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-category{background:#1c1b21;color:#f1ecf8;border-color:#3e3645;box-shadow:0 9px 25px #0005}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-category:hover{background:#292231;border-color:#8455c4}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-category-image{background:#2a2731}
+html[data-vapmart-color-mode="dark"] body .vm-reference-card,html[data-vapmart-color-mode="dark"] body .vm-reference-news-card{background:#19191e;color:#f4edf8;border-color:#38323e;box-shadow:0 10px 24px #0006}
+html[data-vapmart-color-mode="dark"] body .vm-reference-card h3,html[data-vapmart-color-mode="dark"] body .vm-reference-news-card>div{color:#f1ecf7}
+html[data-vapmart-color-mode="dark"] body .vm-reference-price{color:#c18aff}
+html[data-vapmart-color-mode="dark"] body .vm-reference-price del{color:#afa5b9}
+html[data-vapmart-color-mode="dark"] body .vm-archive-image{background:#292631}
+html[data-vapmart-color-mode="dark"] body .vm-archive-image:after{background:#302936;color:#f4ecfa}
+html[data-vapmart-color-mode="dark"] body .vm-archive-chip{background:#32243c;color:#dfb8ff;border-color:#744d88}
+html[data-vapmart-color-mode="dark"] body .vm-reference-disclaimer,html[data-vapmart-color-mode="dark"] body .vm-archive-end-note,html[data-vapmart-color-mode="dark"] body .vm-home-subtitle{color:#baafc7}
+html[data-vapmart-color-mode="dark"] body .vm-reference-disclaimer a{color:#c38aff}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-member{background:#3e1c60;color:#fff;box-shadow:0 9px 24px #0007}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-member h2{color:#fff}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-member .vm-trendora-eyebrow{color:#e7c8ff}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-member p{color:#ddc8ed}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-member-mark{color:#9765c2}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-member-link{background:#8310e8;color:#fff;border-color:#8310e8}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-brands .vm-brand-rail .vm-brand-card,html[data-vapmart-color-mode="dark"] body .vm-brand-page.vm-partner-page .vm-partner-logos .vm-partner-card{background:#211d26;border-color:#3c3243;color:#eee7f5}
+html[data-vapmart-color-mode="dark"] body .vm-brand-card .vm-brand-name,html[data-vapmart-color-mode="dark"] body .vm-brand-page.vm-partner-page .vm-partner-logos .vm-brand-name{color:#e4dbea!important}
+html[data-vapmart-color-mode="dark"] body .vm-brand-rail .vm-brand-card:hover{background:#302539;border-color:#8250be}
+html[data-vapmart-color-mode="dark"] body .vm-brand-controls button{background:#312639;color:#e1bbff;border-color:#5f4672}
+html[data-vapmart-color-mode="dark"] body .vm-brand-card .vm-brand-stage{background:#18131f;border-color:#32253f}
