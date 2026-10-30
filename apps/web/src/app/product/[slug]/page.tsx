@@ -4,6 +4,7 @@ import type {Metadata} from 'next';
 import {getProduct} from '@/lib/api';
 import {formatIDR} from '@/lib/types';
 import {AddToCart} from '@/components/add-to-cart';
+import {FavoriteButton} from '@/components/favorite-button';
 import {ArchiveCard} from '@/components/archive-card';
 import {ArchiveGallery} from '@/components/archive-gallery';
 import {archiveBySlug,archiveCategories,categoryArchiveItems,featuredArchiveItems,type ArchiveItem} from '@/lib/archive-catalog';
@@ -71,7 +72,7 @@ export default async function ProductPage({params}:{params:Promise<{slug:string}
       <span className="vm-detail-archive-label">PRODUK DEMO · CHECKOUT DINONAKTIFKAN</span>
       <div className="vm-detail-description"><h2>Deskripsi</h2><p>{product.description||'Produk contoh untuk pengujian katalog.'}</p></div>
       <div className="vm-demo-stock">{product.stock_qty>0?'Stok pengujian: '+product.stock_qty:'Stok habis'}</div>
-      <AddToCart product={product}/>
+      <div className="vm-cp17-detail-actions"><AddToCart product={product}/><FavoriteButton id={product.id} name={product.name} className="vm-cp17-detail-favorite"/></div>
       <p className="vm-detail-bottom-note">Keranjang hanya untuk uji UI. Checkout dan pembayaran belum aktif.</p>
     </section>
    </div>
