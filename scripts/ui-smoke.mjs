@@ -204,10 +204,10 @@ try{
   assert.equal(await page.locator('.vm-cp17-favorites-number').innerText(),'0','wishlist should be cleared after unfavorite');
 
   await page.getByRole('button',{name:/Tambahkan DEMO/}).first().click();
-  await page.getByRole('dialog',{name:'Keranjang belanja'}).waitFor();
+  await page.getByRole('dialog',{name:/Keranjang/}).waitFor();
   assert.equal(await page.locator('.vm21-drawer-item').count(),1);
   await page.getByRole('button',{name:'Tutup keranjang',exact:true}).last().click();
-  assert.equal(await page.getByRole('dialog',{name:'Keranjang belanja'}).count(),0,'closing cart drawer must dismiss modal');
+  assert.equal(await page.getByRole('dialog',{name:/Keranjang/}).count(),0,'closing cart drawer must dismiss modal');
   await page.goto(BASE+'/keranjang-2',{waitUntil:'networkidle',timeout:45000});
   assert.equal(await page.locator('.vm21-cart-product').count(),1,'DEMO cart should persist across routes');
   assert.ok(await page.getByRole('button',{name:'Checkout produk belum tersedia'}).isDisabled());
