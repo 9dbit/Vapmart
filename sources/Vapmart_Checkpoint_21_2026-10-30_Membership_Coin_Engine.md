@@ -74,3 +74,22 @@ Signup is free. Membership activation is Rp100,000 exactly once, paired with 100
 7. Keep PR #1 draft. No WordPress production/merge until real QA and rollback.
 
 **Do not interpret the existence of membership cards or coin visuals as evidence that a paid balance was funded.**
+
+## Final CP21 verification addendum (2026-10-30)
+
+**Application release verified on Railway staging**:
+- `vapmart-web`: terminal **SUCCESS**, deployment `13326cc8-47d1-4fe7-a728-dbb9f21db4b7` (UI code includes the responsive Member Card, Coin Store and new Cart).
+- `vapmart-api`: terminal **SUCCESS**, deployment `99f21fe9-801a-4e85-9aef-e3f95ef51ab7` (includes verified-email purchase rule).
+- Railway PostgreSQL: **SUCCESS**, unchanged database service. API pre-deploy migrations succeeded.
+- No WordPress production changes, GitHub `main` untouched. PR #1 still draft.
+
+**GitHub code/test commit** `f9d74ce369e6c7275bffbc90a9511969cfc34ede`: all six workflow executions **SUCCESS**:
+1. Foundation checks (2 workflows) **PASS**
+2. Dependency security audit **PASS**
+3. Staging HTTP smoke **PASS**, including public Coin pack prices, 401 anonymous member/digital orders and 503 historical checkout
+4. Browser UI smoke **PASS**, including original homepage/banner, 12 brand logos, new login/signup UI, Member Card, 3/5/9/13/19/26 gold coin stacks, digital and demo cart interactions, mobile navigation
+5. Coin wallet ledger integration **PASS** in a disposable PostgreSQL 16 service; verified one-time paid activation +100000 Coin, ACTIVE card creation, repeat callback +0, independent +300000 topup, failure and expiry +0, price mismatch/tampered signature rejected
+
+The tests operate in disposable **sandbox** accounting only; this does NOT mean a live payment gateway or Supabase authentication for Vapmart is connected. The project lacks dedicated Supabase Auth project credentials and licensed PSP configuration. Real signup/login, money movement and funded balances are **NOT LIVE**. No actual customer's wallet was credited.
+
+**Build Pack ZIP:** downloadable file created in conversation at `/mnt/data/Vapmart_CP21_Build_Pack.zip` with API notes, QA, config template, reference component counts and direct links to all GitHub code. Its exact sandbox path was verified by file creation.
