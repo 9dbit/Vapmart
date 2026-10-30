@@ -1,11 +1,6 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-
-const slides=[
- {desktop:'/legacy/banners/desktop-01.png',mobile:'/legacy/banners/mobile-01.png',label:'Banner arsip Vapmart pertama'},
- {desktop:'/legacy/banners/desktop-02.png',mobile:'/legacy/banners/mobile-02.png',label:'Banner arsip Vapmart kedua'},
- {desktop:'/legacy/banners/desktop-03.png',mobile:'/legacy/banners/mobile-03.png',label:'Banner arsip Vapmart ketiga'}
-] as const;
+import {homepageHeroSlides as slides} from '@/lib/merchandising';
 
 export function HeroCarousel(){
   const [active,setActive]=useState(0);
