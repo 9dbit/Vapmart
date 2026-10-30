@@ -9,17 +9,28 @@ try{
   for(let attempt=0;attempt<45;attempt++){
     try{
       const response=await page.goto(BASE+'/',{waitUntil:'domcontentloaded',timeout:20000});
-      if(response?.status()===200&&await page.locator('[data-vapmart-ui="cp12"]').count()===1 && await page.locator('.vm-footer-links h3',{hasText:'Jelajahi'}).count()===1){ready=true;break;}
+      if(response?.status()===200&&await page.locator('[data-vapmart-ui="cp16"]').count()===1 && await page.locator('[data-vapmart-theme="trendora-cp16"]').count()===1 && await page.locator('.vm-footer-links h3',{hasText:'Jelajahi'}).count()===1){ready=true;break;}
     }catch(e){console.log('wait for staging revision',attempt,String(e).slice(0,100));}
     await sleep(6000);
   }
-  assert.ok(ready,'Checkpoint12 final UI did not appear on staging within deployment retry window');
+  assert.ok(ready,'Checkpoint16 Trendora UI did not appear on staging within deployment retry window');
   // Font metrics can change for a few frames after DOMContentLoaded on GitHub Actions.
   // Settle network activity and web fonts before measuring WordPress pixel positions.
   await page.waitForLoadState('networkidle',{timeout:45000});
   await page.evaluate(async()=>{if(document.fonts)await document.fonts.ready;});
 
   await page.locator('.vm-reference-card').first().waitFor({timeout:15000});
+  assert.equal(await page.locator('.vm-trendora-category img').count(),5,'five original Vapmart category images');
+  const categoryImages=await page.locator('.vm-trendora-category img').evaluateAll(imgs=>imgs.map(img=>({src:img.getAttribute('src'),loaded:img.complete&&img.naturalWidth>0})));
+  assert.ok(categoryImages.every(img=>img.src?.startsWith('/legacy/categories/')&&img.loaded),'category thumbnails must come from original Vapmart assets: '+JSON.stringify(categoryImages));
+  const merchandising=await page.evaluate(()=>({
+    hero:document.querySelector('.vm-hero-stage').getBoundingClientRect().top+scrollY,
+    categories:document.querySelector('.vm-trendora-categories').getBoundingClientRect().top+scrollY,
+    products:document.querySelector('.vm-trendora-featured').getBoundingClientRect().top+scrollY,
+    pageBg:getComputedStyle(document.body).backgroundColor
+  }));
+  assert.ok(merchandising.hero<merchandising.categories&&merchandising.categories<merchandising.products,'homepage order must be hero > category thumbnails > featured products');
+  assert.match(merchandising.pageBg,/rgb\(24[0-9], 24[0-9], 23[0-9]\)/,'light ivory theme expected');
   assert.equal(await page.locator('.vm-carousel-slide').count(),3,'Original carousel should contain three slides');
   assert.equal(await page.locator('.vm-carousel-dots button').count(),3,'three pill dots');
   await page.locator('.vm-carousel-dots button').nth(1).click();
@@ -42,7 +53,7 @@ try{
   await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
   await page.waitForTimeout(200);
   assert.equal(await page.locator('.vm-brand-logo').count(),12,'Original brand slider should contain 12 logos');
-  assert.equal(await page.locator('.vm-feature-category').count(),5,'Original category rail should have five tiles');
+  assert.equal(await page.locator('.vm-trendora-category').count(),5,'Original category rail should have five tiles');
   assert.equal(await page.locator('.vm-reference-card').count(),12,'Original reference has twelve product cards');
   assert.equal(await page.locator('.vm-reference-news-card').count(),10,'Original reference has ten article cards');
   for(const id of ['categories','promo','brand','shop','news'])assert.equal(await page.locator('#'+id).count(),1,'missing section '+id);
@@ -74,12 +85,12 @@ try{
       }))
     };
   });
-  assert.equal(visual.headerHeight,82,'modern desktop header is 82px');
+  assert.equal(visual.headerHeight,79,'Trendora desktop header is 79px');
   assert.ok(Math.abs(visual.bannerWidth-1296)<=4,'desktop banner should use 90% at 1440px');
-  assert.equal(visual.productColumns,6,'original featured grid should have six columns desktop');
-  assert.ok(visual.firstCardTop>650&&visual.firstCardTop<1650,'desktop featured card location unreasonable: '+visual.firstCardTop);
+  assert.equal(visual.productColumns,4,'Trendora featured grid should have four columns desktop');
+  assert.ok(visual.firstCardTop>520&&visual.firstCardTop<1800,'desktop featured card location unreasonable: '+visual.firstCardTop);
   assert.equal(visual.newsColumns,5,'original news grid should have five columns desktop');
-  assert.match(visual.headerBg,/rgba?\(/,'dark glass header expected');
+  assert.match(visual.headerBg,/rgba?\(/,'light glass header expected');
   assert.ok(visual.logoLoaded,'Vapmart original logo should load');
   assert.match(visual.bannerSrc,/desktop-01\.png/);
   for(const x of visual.pairs)assert.ok(x.ratio>=4.5,'Unreadable '+x.name+' contrast '+x.ratio);
@@ -163,6 +174,18 @@ try{
   assert.match(mobile.bannerSrc,/mobile-01\.png/);
   assert.ok(mobile.scroll<=mobile.view+2,'horizontal overflow '+JSON.stringify(mobile));
   assert.ok(await page.locator('.vm-reference-mobile-nav').isVisible(),'mobile navigation visible');
+  assert.ok(await page.locator('.vm-home-quicksearch').isVisible(),'mobile home search should appear above hero');
+  assert.equal(await page.locator('.vm-trendora-category').count(),5,'five categories visible on mobile');
+  const mobilePalette=await page.evaluate(()=>({
+    nav:getComputedStyle(document.querySelector('.vm-modern-mobile-nav')).backgroundColor,
+    header:getComputedStyle(document.querySelector('.vm-modern-header')).backgroundColor
+  }));
+  assert.match(mobilePalette.nav,/rgba?\(/,'frosted light bottom nav should render');
+  await page.locator('#vm-home-q').fill('Ceramic');
+  await page.locator('.vm-home-quicksearch button').click();
+  await page.waitForURL(/\/catalog\?q=Ceramic/,{timeout:15000});
+  assert.equal(await page.locator('.product-card').count(),1,'home search should filter catalog');
+  await page.goto(BASE+'/',{waitUntil:'networkidle',timeout:45000});
   const mobilePill=await page.locator('.vm-reference-mobile-nav').evaluate(el=>parseFloat(getComputedStyle(el).borderTopLeftRadius));
   assert.ok(mobilePill>=30,'mobile nav should be a floating pill');
   const labelFont=await page.locator('.vm-modern-mobile-nav a span').first().evaluate(el=>parseFloat(getComputedStyle(el).fontSize));
@@ -191,5 +214,5 @@ try{
     assert.equal(motion.prefer,true);
     assert.equal(motion.display,'none','reduced-motion setting must disable parallax');
   }finally{await reduced.close();}
-  console.log('VAPMART_UI_SMOKE_SUCCESS',JSON.stringify({visual,mobile,archiveProducts:12,news:10,cart:'tested-on-catalog',checkout:'disabled'}));
+  console.log('VAPMART_UI_SMOKE_SUCCESS',JSON.stringify({visual,mobile,merchandising,archiveProducts:12,news:10,cart:'tested-on-catalog',checkout:'disabled',theme:'trendora-cp16'}));
 }finally{await browser.close();}
