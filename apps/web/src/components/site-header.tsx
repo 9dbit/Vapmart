@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import {useEffect} from 'react';
+import {useEffect,useRef,type CSSProperties} from 'react';
 import {usePathname} from 'next/navigation';
 import {useCart} from '@/lib/cart';
 import {formatIDR} from '@/lib/types';
@@ -21,22 +21,58 @@ function Icon({name}:{name:IconName}){
 export function SiteHeader(){
   const {items,count,subtotal,setOpen,open,setQuantity,remove}=useCart();
   const pathname=usePathname();
-  const isSubpage=/^\/(product\/|product-category\/|brand-partner|keranjang-2|login|akun|member-2)/.test(pathname);
+  const searchRef=useRef<HTMLDetailsElement>(null);
+  const isSubpage=/^\/(product\/|product-category\/|catalog|brand-partner|keranjang-2|login|akun|member-2|asset-review)/.test(pathname);
   const categoryName:Record<string,string>={pod:'Pod',mod:'Mod',cartridge:'Cartridge','e-juice':'Liquid'};
   const segment=pathname.split('/')[2]||'';
-  const caption=pathname.startsWith('/product-category/')?(categoryName[segment]||'Kategori'):pathname==='/keranjang-2'?'Keranjang':pathname==='/member-2'?'Member':pathname==='/login'||pathname==='/akun'?'Masuk':'';
+  const caption=pathname.startsWith('/product-category/')?(categoryName[segment]||'Kategori'):pathname.startsWith('/product/')?'Detail Produk':pathname==='/catalog'?'Katalog':pathname==='/keranjang-2'?'Keranjang':pathname==='/brand-partner'?'Brand Partner':pathname==='/member-2'?'Member':pathname==='/login'||pathname==='/akun'?'Akun':'';
+  const routeIndex=pathname==='/'
+    ? 0
+    : pathname==='/catalog'||pathname.startsWith('/product/')||pathname.startsWith('/product-category/')||pathname==='/asset-review'
+      ? 1
+      : pathname==='/brand-partner'
+        ? 2
+        : pathname==='/member-2'||pathname==='/login'||pathname==='/akun'
+          ? 3
+          : pathname==='/keranjang-2'
+            ? 4
+            : 0;
+  const activeIndex=open?4:routeIndex;
   useEffect(()=>{
-    if(!open)return;
-    const onKey=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpen(false)};
+    if(searchRef.current)searchRef.current.open=false;
+    setOpen(false);
+  },[pathname,setOpen]);
+  useEffect(()=>{
+    const onKey=(event:KeyboardEvent)=>{
+      if(event.key==='Escape'){
+        if(searchRef.current?.open)searchRef.current.open=false;
+        if(open)setOpen(false);
+      }
+    };
     document.addEventListener('keydown',onKey);
     return()=>document.removeEventListener('keydown',onKey);
   },[open,setOpen]);
+  useEffect(()=>{
+    const onOutside=(event:PointerEvent)=>{
+      if(searchRef.current?.open&&!searchRef.current.contains(event.target as Node)){
+        searchRef.current.open=false;
+      }
+    };
+    document.addEventListener('pointerdown',onOutside);
+    return()=>document.removeEventListener('pointerdown',onOutside);
+  },[]);
+  useEffect(()=>{
+    if(!open)return;
+    const previous=document.body.style.overflow;
+    document.body.style.overflow='hidden';
+    return()=>{document.body.style.overflow=previous;};
+  },[open]);
 
   const menu=[
-    {href:'/',label:'Beranda',icon:'home' as const,active:pathname==='/'},
-    {href:'/catalog',label:'Katalog',icon:'categories' as const,active:pathname==='/catalog'},
-    {href:'/brand-partner',label:'Brand',icon:'star' as const,active:pathname==='/brand-partner'},
-    {href:'/member-2',label:'Member',icon:'tag' as const,active:pathname==='/member-2'},
+    {href:'/',label:'Beranda',icon:'home' as const,active:routeIndex===0},
+    {href:'/catalog',label:'Katalog',icon:'categories' as const,active:routeIndex===1},
+    {href:'/brand-partner',label:'Brand',icon:'star' as const,active:routeIndex===2},
+    {href:'/member-2',label:'Member',icon:'tag' as const,active:routeIndex===3},
   ];
   return <>
     <header className={isSubpage?'legacy-header vm-reference-header vm-subpage vm-modern-header':'legacy-header vm-reference-header vm-modern-header'}>
@@ -54,7 +90,7 @@ export function SiteHeader(){
             <input id="vm-header-query" name="q" placeholder="Cari produk..." autoComplete="off" maxLength={80}/>
             <button type="submit" aria-label="Jalankan pencarian"><span>↗</span></button>
           </form>
-          <details className="vm-search-disclosure">
+          <details ref={searchRef} className="vm-search-disclosure">
             <summary aria-label="Cari produk" title="Cari produk"><Icon name="search"/></summary>
             <form action="/catalog" role="search">
               <label className="sr-only" htmlFor="vm-popover-search">Cari produk</label>
@@ -62,20 +98,26 @@ export function SiteHeader(){
               <button type="submit">Cari</button>
             </form>
           </details>
-          <button type="button" className="vm-reference-cart" onClick={()=>setOpen(true)} aria-label={'Buka keranjang, '+count+' barang'}>
+          <button type="button" className="vm-reference-cart" onClick={()=>setOpen(true)} aria-label={'Buka keranjang, '+count+' barang'} aria-haspopup="dialog" aria-expanded={open}>
             <Icon name="cart"/><span className="cart-count">{count}</span>
           </button>
           <Link href="/login" className="vm-reference-login"><Icon name="user"/><span>Masuk</span></Link>
         </div>
       </div>
     </header>
-    <nav className="legacy-mobile-nav vm-reference-mobile-nav vm-modern-mobile-nav" aria-label="Navigasi seluler">
-      {menu.map(item=><Link key={item.href} href={item.href} className={item.active?'is-active':''} aria-current={item.active?'page':undefined}>
+    <nav className="legacy-mobile-nav vm-reference-mobile-nav vm-modern-mobile-nav"
+      aria-label="Navigasi seluler" data-active-index={activeIndex}
+      style={{'--vm-active-index':activeIndex} as CSSProperties}>
+      <span className="vm-liquid-active-pill" aria-hidden="true"/>
+      {menu.map((item,index)=><Link key={item.href} href={item.href}
+        className={activeIndex===index?'is-active':''} aria-current={item.active?'page':undefined}>
         <Icon name={item.icon}/><span>{item.label}</span>
       </Link>)}
-      <button type="button" onClick={()=>setOpen(true)} aria-label={'Keranjang, '+count+' barang'}>
+      <Link href="/keranjang-2" className={activeIndex===4?'is-active':''}
+        aria-current={pathname==='/keranjang-2'?'page':undefined}
+        aria-label={'Keranjang, '+count+' barang'}>
         <Icon name="cart"/><span>Keranjang</span>{count>0&&<b className="vm-mobile-cart-count">{count}</b>}
-      </button>
+      </Link>
     </nav>
     {open&&<div className="drawer-shell" role="presentation"><button className="drawer-shade" onClick={()=>setOpen(false)} aria-label="Tutup keranjang"/><aside className="cart-drawer" role="dialog" aria-modal="true" aria-label="Keranjang belanja"><div className="drawer-head"><div><div className="eyebrow">YOUR BAG</div><h2>Keranjang <span className="muted">{count}</span></h2></div><button className="close-btn" onClick={()=>setOpen(false)} aria-label="Tutup">×</button></div>
       <div className="drawer-items">{items.length===0?<div className="cart-empty"><div className="big-mark">✳</div><h3>Keranjang masih kosong.</h3><p>Temukan produk favoritmu di koleksi Vapmart.</p><Link href="/catalog" className="button button-dark" onClick={()=>setOpen(false)}>Jelajahi produk</Link></div>:items.map(({product,quantity})=><div key={product.id} className="cart-row"><div className="tiny-product">{product.image_url?<img src={product.image_url} alt="" />:<span>✦</span>}</div><div className="cart-row-info"><strong>{product.name}</strong><span>{formatIDR(product.price_idr)}</span><div className="quantity"><button onClick={()=>setQuantity(product.id,quantity-1)} disabled={quantity<=1} aria-label="Kurangi jumlah">−</button><span>{quantity}</span><button onClick={()=>setQuantity(product.id,quantity+1)} disabled={quantity>=product.stock_qty} aria-label="Tambah jumlah">+</button></div></div><button className="remove" onClick={()=>remove(product.id)} aria-label={`Hapus ${product.name}`}>×</button></div>)}</div>
