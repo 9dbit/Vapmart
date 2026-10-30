@@ -1,9 +1,8 @@
 import type {CSSProperties} from 'react';
-import {digitalPacks,membershipActivation} from '@/lib/digital-products';
 
 export function CoinVisualStack({amount,large=false}:{amount:number;large?:boolean}){
- const pack=digitalPacks.find(p=>p.amount===amount)??membershipActivation;
- const count=pack.coinCount;
+ const count=amount>=2000000?26:amount>=1000000?19:amount>=500000?13:
+   amount>=300000?9:amount>=100000?5:3;
  return <div className={large?'vm-gold-coins is-large':'vm-gold-coins'}
    role="img" aria-label={count+' koin emas dekoratif untuk '+amount.toLocaleString('id-ID')+' Coin'}>
    {Array.from({length:count},(_,i)=>{
