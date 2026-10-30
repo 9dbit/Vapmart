@@ -9,7 +9,7 @@ try{
   for(let attempt=0;attempt<45;attempt++){
     try{
       const response=await page.goto(BASE+'/',{waitUntil:'domcontentloaded',timeout:20000});
-      if(response?.status()===200&&await page.locator('[data-vapmart-ui="cp16"]').count()===1 && await page.locator('[data-vapmart-theme="trendora-cp16"]').count()===1 && await page.locator('.vm-footer-links h3',{hasText:'Jelajahi'}).count()===1 && await page.locator('.vm-header-main').evaluate(el=>getComputedStyle(el).backgroundColor==='rgba(0, 0, 0, 0)')){ready=true;break;}
+      if(response?.status()===200&&await page.locator('[data-vapmart-ui="cp18"]').count()===1 && await page.locator('[data-vapmart-theme="trendora-cp18"]').count()===1 && await page.locator('.vm-footer-links h3',{hasText:'Jelajahi'}).count()===1 && await page.locator('.vm-header-main').evaluate(el=>getComputedStyle(el).backgroundColor==='rgba(0, 0, 0, 0)')){ready=true;break;}
     }catch(e){console.log('wait for staging revision',attempt,String(e).slice(0,100));}
     await sleep(6000);
   }
@@ -97,7 +97,7 @@ try{
     logoFilter:getComputedStyle(el.querySelector('.legacy-logo img')).filter
   }));
   assert.match(headerInner.background,/rgba\(0, 0, 0, 0\)/,'legacy header inner must be transparent on white header');
-  assert.match(headerInner.logoFilter,/brightness\(0\)/,'original white logo should be darkened only by CSS');
+  assert.equal(headerInner.logoFilter,'none','attached logo should not have CSS filter');
   assert.match(visual.bannerSrc,/desktop-01\.png/);
   for(const x of visual.pairs)assert.ok(x.ratio>=4.5,'Unreadable '+x.name+' contrast '+x.ratio);
   assert.equal(await page.locator('.vm-reference-card button').count(),0,'archival products must not have purchase buttons');
@@ -210,15 +210,16 @@ try{
   assert.match(mobile.bannerSrc,/mobile-01\.png/);
   assert.ok(mobile.scroll<=mobile.view+2,'horizontal overflow '+JSON.stringify(mobile));
   assert.ok(await page.locator('.vm-reference-mobile-nav').isVisible(),'mobile navigation visible');
-  assert.ok(await page.locator('.vm-home-quicksearch').isVisible(),'mobile home search should appear above hero');
+  assert.equal(await page.locator('.vm-home-intro').count(),0);
   assert.equal(await page.locator('.vm-trendora-category').count(),5,'five categories visible on mobile');
   const mobilePalette=await page.evaluate(()=>({
     nav:getComputedStyle(document.querySelector('.vm-modern-mobile-nav')).backgroundColor,
     header:getComputedStyle(document.querySelector('.vm-modern-header')).backgroundColor
   }));
   assert.match(mobilePalette.nav,/rgba?\(/,'frosted light bottom nav should render');
-  await page.locator('#vm-home-q').fill('Ceramic');
-  await page.locator('.vm-home-quicksearch button').click();
+  await page.locator('.vm-search-disclosure summary').click();
+  await page.locator('#vm-popover-search').fill('Ceramic');
+  await page.locator('.vm-search-disclosure form button').click();
   await page.waitForURL(/\/catalog\?q=Ceramic/,{timeout:15000});
   assert.equal(await page.locator('.product-card').count(),1,'home search should filter catalog');
   await page.goto(BASE+'/',{waitUntil:'networkidle',timeout:45000});
@@ -250,5 +251,5 @@ try{
     assert.equal(motion.prefer,true);
     assert.equal(motion.display,'none','reduced-motion setting must disable parallax');
   }finally{await reduced.close();}
-  console.log('VAPMART_UI_SMOKE_SUCCESS',JSON.stringify({visual,mobile,merchandising,archiveProducts:12,news:10,cart:'tested-on-catalog',checkout:'disabled',theme:'trendora-cp16'}));
+  console.log('VAPMART_UI_SMOKE_SUCCESS',JSON.stringify({visual,mobile,merchandising,archiveProducts:12,news:10,cart:'tested-on-catalog',checkout:'disabled',theme:'trendora-cp18'}));
 }finally{await browser.close();}
