@@ -48,14 +48,14 @@ for (const product of catalog.data.items) {
 assert.equal(webCatalog.status,200);
 assert.equal(webCatalog.data?.items?.length,catalog.data.items.length);
 let storefront=home;
-for(let attempt=0;attempt<36&&!storefront.text.includes('data-vapmart-theme="coin-cp21"');attempt++){
-  console.log('waiting for Vapmart CP21 member and coin release',attempt+1);
+for(let attempt=0;attempt<36&&!storefront.text.includes('data-vapmart-theme="member-cp22"');attempt++){
+  console.log('waiting for Vapmart CP22 ISO member card release',attempt+1);
   await sleep(8000);
   storefront=await request(WEB+'/');
 }
 assert.equal(storefront.status,200);
-assert.match(storefront.text,/data-vapmart-theme="coin-cp21"/,'Checkpoint 21 coin theme not yet deployed');
-assert.match(storefront.text,/data-vapmart-ui="cp21"/,'expected CP21 homepage');
+assert.match(storefront.text,/data-vapmart-theme="member-cp22"/,'Checkpoint 22 member theme not yet deployed');
+assert.match(storefront.text,/data-vapmart-ui="cp22"/,'expected CP22 homepage');
 assert.match(storefront.text,/Kategori/);
 assert.match(storefront.text,/Brand Partner/i);
 assert.match(storefront.text,/Featured Products|Produk Pilihan/i);
@@ -81,6 +81,8 @@ assert.equal(digitalAnon.status,401,'anonymous digital order must be rejected');
 assert.equal(login.status,200);
 assert.equal(memberPage.status,200);
 assert.equal(cartPage.status,200);
-assert.match(memberPage.text,/VAPMART CLUB|More benefits/,'member UI should render');
+assert.match(memberPage.text,/Vapmart Member Card/,'real member card component should render');
+assert.match(memberPage.text,/vm22-card-charcoal-panel/,'solid charcoal card panel should render');
+assert.match(memberPage.text,/Buka benefit member/,'member quick actions should be interactive');
 
 console.log('VAPMART_STAGING_SMOKE_SUCCESS',{items:catalog.data.items.length,web:WEB,api:API,checkout:'disabled',admin_anon:'denied'});
