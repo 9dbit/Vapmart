@@ -23,7 +23,7 @@ export function validateOrder(body:unknown){
    throw new BadRequestException('Unknown order field');
  if(typeof b.sku!=='string'||!PACKS.some(p=>p.sku===b.sku))
    throw new BadRequestException('Unknown SKU');
- if(typeof b.idempotencyKey!=='string'||!/^[0-9a-f-]{36}$/i.test(b.idempotencyKey))
+ if(typeof b.idempotencyKey!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(b.idempotencyKey))
    throw new BadRequestException('Idempotency key must be UUID');
  return {sku:b.sku,idempotencyKey:b.idempotencyKey};
 }
@@ -96,7 +96,7 @@ export class MemberCommerceService{
    });
  }
  async getOrder(user:Principal,id:string){
-   if(!/^[0-9a-f-]{36}$/i.test(id))throw new BadRequestException('Invalid ID');
+   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))throw new BadRequestException('Invalid ID');
    const r=await this.db.query(
      "SELECT id,sku,status,amount_idr::text,credit_coins::text FROM commerce.digital_orders WHERE id=$1 AND user_id=$2",[id,user.id]);
    if(!r.rows.length)throw new NotFoundException('Order not found');
