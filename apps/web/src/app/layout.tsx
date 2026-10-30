@@ -22,7 +22,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
   return <html lang="id"><body data-vapmart-theme="trendora-cp16"><CartProvider><WishlistProvider><SiteHeader/>{children}
     <footer className="legacy-footer vm-reference-footer">
       <div className="main-container vm-reference-footer-grid">
-        <div className="vm-footer-intro"><img src="/legacy/vapmart-logo-white.webp" alt="Vapmart" width={112} height={25}/>
+        <div className="vm-footer-intro"><img src="/branding/vapmart-logo.png" alt="Vapmart" width={112} height={25}/>
           <p>Platform Vapmart sedang diperbarui. Konten produk lama ditampilkan sebagai referensi visual staging, bukan penawaran aktif.</p>
           <h3>Ikuti Kami</h3>
           <div className="vm-footer-social"><span aria-label="Facebook">f</span><span aria-label="YouTube">▶</span><span aria-label="Instagram">◎</span></div>
@@ -42,7 +42,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
           </div>
         </div>
       </div>
-      <div className="main-container vm-footer-powered">Powered by <img src="/legacy/vapmart-logo-white.webp" alt="Vapmart" width={84} height={20}/></div>
+      <div className="main-container vm-footer-powered">Powered by <img src="/branding/vapmart-logo.png" alt="Vapmart" width={84} height={20}/></div>
     </footer>
   </WishlistProvider></CartProvider></body></html>;
 }
