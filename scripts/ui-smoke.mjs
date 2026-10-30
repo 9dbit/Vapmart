@@ -9,11 +9,11 @@ try{
   for(let attempt=0;attempt<45;attempt++){
     try{
       const response=await page.goto(BASE+'/',{waitUntil:'domcontentloaded',timeout:20000});
-      if(response?.status()===200&&await page.locator('[data-vapmart-ui="cp18"]').count()===1 && await page.locator('[data-vapmart-theme="trendora-cp18"]').count()===1 && await page.locator('.vm-footer-links h3',{hasText:'Jelajahi'}).count()===1 && await page.locator('.vm-header-main').evaluate(el=>getComputedStyle(el).backgroundColor==='rgba(0, 0, 0, 0)')){ready=true;break;}
+      if(response?.status()===200&&await page.locator('[data-vapmart-ui="cp19"]').count()===1 && await page.locator('[data-vapmart-theme="liquid-cp19"]').count()===1 && await page.locator('.vm-footer-links h3',{hasText:'Jelajahi'}).count()===1 && await page.locator('.vm-header-main').evaluate(el=>getComputedStyle(el).backgroundColor==='rgba(0, 0, 0, 0)')){ready=true;break;}
     }catch(e){console.log('wait for staging revision',attempt,String(e).slice(0,100));}
     await sleep(6000);
   }
-  assert.ok(ready,'Checkpoint16 Trendora UI did not appear on staging within deployment retry window');
+  assert.ok(ready,'Checkpoint19 liquid glass UI did not appear on staging within deployment retry window');
   // Font metrics can change for a few frames after DOMContentLoaded on GitHub Actions.
   // Settle network activity and web fonts before measuring WordPress pixel positions.
   await page.waitForLoadState('networkidle',{timeout:45000});
@@ -54,6 +54,10 @@ try{
   await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
   await page.waitForTimeout(200);
   assert.equal(await page.locator('.vm-brand-logo').count(),12,'Original brand slider should contain 12 logos');
+  const brandSources=await page.locator('.vm-trendora-brands .vm-brand-card img').evaluateAll(images=>images.map(img=>img.getAttribute('src')));
+  assert.deepEqual(brandSources,Array.from({length:12},(_,i)=>'/legacy/brands/brand-'+String(i+1).padStart(2,'0')+'.png'));
+  const brandStageColor=await page.locator('.vm-trendora-brands .vm-brand-stage').first().evaluate(el=>getComputedStyle(el).backgroundColor);
+  assert.equal(brandStageColor,'rgb(24, 19, 31)','white legacy logo must have a dark contrast stage');
   assert.equal(await page.locator('.vm-trendora-category').count(),5,'Original category rail should have five tiles');
   assert.equal(await page.locator('.vm-reference-card').count(),12,'Original reference has twelve product cards');
   assert.equal(await page.locator('.vm-reference-news-card').count(),10,'Original reference has ten article cards');
@@ -212,6 +216,13 @@ try{
   assert.ok(mobile.scroll<=mobile.view+2,'horizontal overflow '+JSON.stringify(mobile));
   assert.ok(await page.locator('.vm-reference-mobile-nav').isVisible(),'mobile navigation visible');
   assert.equal(await page.locator('.vm-home-intro').count(),0);
+  const mobileHero=await page.locator('.vm-hero-stage .vm-carousel-shell').boundingBox();
+  assert.ok(mobileHero&&Math.abs(mobileHero.x)<=1&&Math.abs(mobileHero.width-390)<=2,
+    'mobile hero must span full viewport: '+JSON.stringify(mobileHero));
+  const mobileRadius=await page.locator('.vm-hero-stage .vm-carousel-shell')
+    .evaluate(el=>({radius:parseFloat(getComputedStyle(el).borderTopLeftRadius),border:parseFloat(getComputedStyle(el).borderTopWidth)}));
+  assert.equal(mobileRadius.radius,0,'full-bleed banner must have no rounded corners');
+  assert.equal(mobileRadius.border,0,'full-bleed banner must have no card border');
   assert.equal(await page.locator('.vm-trendora-category').count(),5,'five categories visible on mobile');
   const mobilePalette=await page.evaluate(()=>({
     nav:getComputedStyle(document.querySelector('.vm-modern-mobile-nav')).backgroundColor,
@@ -230,6 +241,43 @@ try{
   assert.ok(labelFont<=11,'mobile navigation label must not overlap: '+labelFont+'px');
   const tapTarget=await page.locator('.vm-reference-mobile-nav a').first().boundingBox();
   assert.ok(tapTarget&&tapTarget.height>=44,'mobile nav touch target must be at least 44px');
+  const nav=page.locator('.vm-modern-mobile-nav');
+  assert.equal(await nav.locator('a').count(),5,'mobile bar contains five route links');
+  assert.equal(await nav.locator('.vm-liquid-active-pill').count(),1,'only one animated liquid active pill');
+  const glass=await nav.evaluate(el=>({
+    background:getComputedStyle(el).backgroundColor,
+    filter:getComputedStyle(el).backdropFilter||getComputedStyle(el).webkitBackdropFilter
+  }));
+  assert.match(glass.filter,/blur/,'floating nav must be frosted glass');
+  assert.equal(await nav.getAttribute('data-active-index'),'0','home is active');
+  const start=await nav.locator('.vm-liquid-active-pill').boundingBox();
+  await nav.locator('a[href="/brand-partner"]').click();
+  await page.waitForURL(/\/brand-partner(?:#.*)?$/,{timeout:15000});
+  assert.equal(await nav.getAttribute('data-active-index'),'2','Brand tab must activate');
+  assert.equal(await page.locator('.vm-partner-card img').count(),12,'directory must use 12 authentic logo images');
+  await page.waitForTimeout(650);
+  const end=await nav.locator('.vm-liquid-active-pill').boundingBox();
+  assert.ok(start&&end&&end.x>start.x+70,'liquid pill must slide toward Brand tab');
+  await nav.locator('a[href="/member-2"]').click();
+  await page.waitForURL(/\/member-2$/,{timeout:15000});
+  assert.equal(await nav.getAttribute('data-active-index'),'3','Member tab must activate');
+  await nav.locator('a[href="/keranjang-2"]').click();
+  await page.waitForURL(/\/keranjang-2$/,{timeout:15000});
+  assert.equal(await nav.getAttribute('data-active-index'),'4','Cart tab must activate and navigate to cart');
+  await nav.locator('a[href="/catalog"]').click();
+  await page.waitForURL(/\/catalog$/,{timeout:15000});
+  assert.equal(await nav.getAttribute('data-active-index'),'1','Catalog tab must activate');
+  await nav.locator('a[href="/"]').click();
+  await page.waitForURL(BASE+'/',{timeout:15000});
+  assert.equal(await nav.getAttribute('data-active-index'),'0','Home tab must reactivate');
+  await page.setViewportSize({width:360,height:780});
+  const small=await page.evaluate(()=>({
+    hero:document.querySelector('.vm-carousel-shell').getBoundingClientRect().width,
+    overflow:document.documentElement.scrollWidth-window.innerWidth,
+    width:window.innerWidth
+  }));
+  assert.ok(Math.abs(small.hero-small.width)<=2&&small.overflow<=2,'360px edge-to-edge layout overflow: '+JSON.stringify(small));
+  await page.setViewportSize({width:390,height:844});
   await page.goto(BASE+'/product-category/pod',{waitUntil:'networkidle',timeout:45000});
   const mobileCategory=await page.locator('.vm-category-page .vm-archive-link').first().boundingBox();
   assert.ok(mobileCategory&&mobileCategory.y>80&&mobileCategory.y<470,'mobile Pod first card position unreasonable');
@@ -252,5 +300,5 @@ try{
     assert.equal(motion.prefer,true);
     assert.equal(motion.display,'none','reduced-motion setting must disable parallax');
   }finally{await reduced.close();}
-  console.log('VAPMART_UI_SMOKE_SUCCESS',JSON.stringify({visual,mobile,merchandising,archiveProducts:12,news:10,cart:'tested-on-catalog',checkout:'disabled',theme:'trendora-cp18'}));
+  console.log('VAPMART_UI_SMOKE_SUCCESS',JSON.stringify({visual,mobile,merchandising,archiveProducts:12,news:10,cart:'tested-on-catalog',checkout:'disabled',theme:'liquid-cp19'}));
 }finally{await browser.close();}
