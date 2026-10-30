@@ -14,7 +14,7 @@ export const dynamic='force-dynamic';
 export default async function Home(){
   const products=await getProducts();
   const verifiedProducts=products.filter(p=>!p.slug.startsWith('demo-'));
-  return <main className="legacy-home vm-reference-home vm-trendora-home" id="home" data-vapmart-ui="cp21">
+  return <main className="legacy-home vm-reference-home vm-trendora-home" id="home" data-vapmart-ui="cp22">
     <div className="vm-hero-stage vm-trendora-hero">
       <ParallaxAmbient />
       <HeroCarousel />
