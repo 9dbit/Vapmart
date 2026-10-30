@@ -578,7 +578,7 @@ html body .vm-catalog-preview{display:inline-flex;align-items:center;margin-top:
  */
 html body .legacy-product-wrapper .product-card{position:relative;isolation:isolate}
 html body .vm-favorite-button{
-  width:42px;height:42px;min-width:42px;display:inline-grid;place-items:center;
+  width:44px;height:44px;min-width:44px;display:inline-grid;place-items:center;
   flex-shrink:0;border:1px solid #ebe3d9;border-radius:50%;
   background:#fffffff0;color:#524f4a;cursor:pointer;
   box-shadow:0 5px 15px #38291b16;transition:transform .18s,color .18s,background .18s;
@@ -590,12 +590,12 @@ html body .vm-favorite-button.is-saved{
 html body .vm-favorite-button svg{width:20px;height:20px}
 html body .vm-cp17-card-favorite{
   position:absolute;top:12px;right:12px;z-index:3;
-  width:37px;height:37px;min-width:37px;
+  width:44px;height:44px;min-width:44px;
 }
 html body .legacy-product-wrapper .product-card .soldout-tag{left:12px;right:auto;top:12px;border-radius:999px}
 html body .vm-cp17-result-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
 html body .vm-cp17-favorites-filter{
-  min-height:42px;display:inline-flex;align-items:center;gap:8px;
+  min-height:44px;display:inline-flex;align-items:center;gap:8px;
   border-radius:999px;padding:9px 14px;border:1px solid #e9e4dc;
   background:white;color:#69635c;font-size:12px;font-weight:690;
 }
@@ -636,9 +636,9 @@ html body .vm-cp17-detail-copy .vm-cp17-button{width:100%;height:52px;margin-top
 @keyframes vm-cp17-shimmer{to{background-position-x:-220%}}
 @media(max-width:1100px){html body .vm-cp17-skeleton-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:767px){
-  html body .vm-cp17-card-favorite{width:35px;height:35px;min-width:35px;top:8px;right:8px}
+  html body .vm-cp17-card-favorite{width:44px;height:44px;min-width:44px;top:8px;right:8px}
   html body .vm-cp17-result-actions{width:100%;justify-content:flex-start}
-  html body .vm-cp17-favorites-filter{min-height:42px}
+  html body .vm-cp17-favorites-filter{min-height:44px}
   html body .vm-cp17-skeleton-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
   html body .vm-cp17-skeleton-card{padding:8px;border-radius:18px}
   html body .vm-cp17-loading{padding:28px 14px 85px}
