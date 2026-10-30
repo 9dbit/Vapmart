@@ -1,3 +1,4 @@
+import type {CSSProperties} from 'react';
 import {digitalPacks,membershipActivation} from '@/lib/digital-products';
 
 export function CoinVisualStack({amount,large=false}:{amount:number;large?:boolean}){
@@ -13,7 +14,7 @@ export function CoinVisualStack({amount,large=false}:{amount:number;large?:boole
      const top=-row*9 + (i%3)*2;
      return <span key={i} className="vm-gold-coin"
        style={{'--coin-x':left+'px','--coin-y':top+'px','--coin-z':i,
-         '--coin-rotation':((i*17)%29-14)+'deg'} as React.CSSProperties} aria-hidden="true">
+         '--coin-rotation':((i*17)%29-14)+'deg'} as CSSProperties} aria-hidden="true">
        <span>V</span>
      </span>;
    })}
