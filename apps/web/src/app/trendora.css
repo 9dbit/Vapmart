@@ -572,3 +572,81 @@ html body .legacy-product-wrapper .product-index{color:#9e7b60}
 html body .vm-catalog-intro .vm-trendora-eyebrow{margin-bottom:9px}
 html body .vm-catalog-intro h1{margin:0 0 10px;letter-spacing:-.06em;color:#2a2928}
 html body .vm-catalog-preview{display:inline-flex;align-items:center;margin-top:10px;padding:7px 11px;border-radius:999px;background:#fff0de;border:1px solid #f2d6b8;color:#9f653b;font-size:10px;font-weight:690}
+
+/* CP17: shared favorites, merchandising controls and route skeletons.
+ * This extends the existing Trendora design layer instead of adding another CSS cascade file.
+ */
+html body .legacy-product-wrapper .product-card{position:relative;isolation:isolate}
+html body .vm-favorite-button{
+  width:42px;height:42px;min-width:42px;display:inline-grid;place-items:center;
+  flex-shrink:0;border:1px solid #ebe3d9;border-radius:50%;
+  background:#fffffff0;color:#524f4a;cursor:pointer;
+  box-shadow:0 5px 15px #38291b16;transition:transform .18s,color .18s,background .18s;
+}
+html body .vm-favorite-button:hover{background:#ffe1bf;transform:translateY(-2px)}
+html body .vm-favorite-button.is-saved{
+  background:#fff0e2;color:#dd7f42;border-color:#f4c18e;
+}
+html body .vm-favorite-button svg{width:20px;height:20px}
+html body .vm-cp17-card-favorite{
+  position:absolute;top:12px;right:12px;z-index:3;
+  width:37px;height:37px;min-width:37px;
+}
+html body .legacy-product-wrapper .product-card .soldout-tag{left:12px;right:auto;top:12px;border-radius:999px}
+html body .vm-cp17-result-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+html body .vm-cp17-favorites-filter{
+  min-height:42px;display:inline-flex;align-items:center;gap:8px;
+  border-radius:999px;padding:9px 14px;border:1px solid #e9e4dc;
+  background:white;color:#69635c;font-size:12px;font-weight:690;
+}
+html body .vm-cp17-favorites-filter:hover{background:#fff5e9}
+html body .vm-cp17-favorites-filter.is-active{
+  background:#ffd09b;color:#3d2b20;border-color:#efb879;
+}
+html body .vm-cp17-favorites-filter>span:first-child{font-size:19px;line-height:.8}
+html body .vm-cp17-favorites-number{
+  display:grid;place-items:center;min-width:20px;height:20px;
+  padding:0 5px;background:#f5f2ed;border-radius:50%;font-size:10px;color:#6a584b;
+}
+html body .vm-cp17-favorites-filter.is-active .vm-cp17-favorites-number{background:#fff7ed}
+html body .vm-cp17-detail-actions{display:flex;align-items:stretch;gap:10px;margin:16px 0}
+html body .vm-cp17-detail-actions .product-action{flex:1;min-width:0}
+html body .vm-cp17-detail-favorite{width:51px;height:51px;min-width:51px}
+html body .vm-cp17-loading{min-height:64vh;padding-top:52px;padding-bottom:75px}
+html body .vm-cp17-skeleton{
+  background:linear-gradient(110deg,#f1eae1 14%,#fffdf9 33%,#f1eae1 52%);
+  background-size:220% 100%;animation:vm-cp17-shimmer 1.5s ease-in-out infinite;
+  border-radius:16px;
+}
+html body .vm-cp17-skeleton-card{
+  background:white;border:1px solid #ece8e2;border-radius:24px;padding:14px;min-width:0;
+}
+html body .vm-cp17-title{height:37px;width:min(370px,75%);margin-bottom:16px}
+html body .vm-cp17-lead{height:16px;width:min(460px,90%);margin-bottom:36px}
+html body .vm-cp17-filter{height:63px;width:100%;margin-bottom:24px;border-radius:24px}
+html body .vm-cp17-skeleton-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+html body .vm-cp17-image{aspect-ratio:1;height:auto;width:100%;border-radius:20px}
+html body .vm-cp17-line{height:15px;width:86%;margin:15px 0 11px}
+html body .vm-cp17-price{height:18px;width:48%;margin:0 0 13px}
+html body .vm-cp17-detail-grid{display:grid;grid-template-columns:minmax(0,45%) minmax(0,1fr);gap:28px;padding:0 5%;max-width:1500px;margin:auto}
+html body .vm-cp17-detail-image{aspect-ratio:1;width:100%;height:auto;border-radius:29px}
+html body .vm-cp17-detail-copy{padding:30px}
+html body .vm-cp17-detail-copy .vm-cp17-line{width:100%}
+html body .vm-cp17-detail-copy .vm-cp17-button{width:100%;height:52px;margin-top:28px;border-radius:999px}
+@keyframes vm-cp17-shimmer{to{background-position-x:-220%}}
+@media(max-width:1100px){html body .vm-cp17-skeleton-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:767px){
+  html body .vm-cp17-card-favorite{width:35px;height:35px;min-width:35px;top:8px;right:8px}
+  html body .vm-cp17-result-actions{width:100%;justify-content:flex-start}
+  html body .vm-cp17-favorites-filter{min-height:42px}
+  html body .vm-cp17-skeleton-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+  html body .vm-cp17-skeleton-card{padding:8px;border-radius:18px}
+  html body .vm-cp17-loading{padding:28px 14px 85px}
+  html body .vm-cp17-detail-grid{display:grid;grid-template-columns:1fr;gap:15px;padding:0}
+  html body .vm-cp17-detail-image{border-radius:24px}
+  html body .vm-cp17-detail-copy{padding:20px}
+}
+@media(prefers-reduced-motion:reduce){
+  html body .vm-cp17-skeleton{animation:none;background:#f1eae1}
+  html body .vm-favorite-button{transition:none}
+}
