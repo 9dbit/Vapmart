@@ -48,7 +48,7 @@ for (const product of catalog.data.items) {
 assert.equal(webCatalog.status,200);
 assert.equal(webCatalog.data?.items?.length,catalog.data.items.length);
 let storefront=home;
-for(let attempt=0;attempt<36&&!storefront.text.includes('data-vapmart-theme="member-cp22"');attempt++){
+for(let attempt=0;attempt<36&&!(storefront.text.includes('data-vapmart-theme="member-cp22"')&&storefront.text.includes('data-vapmart-ui="cp22"'));attempt++){
   console.log('waiting for Vapmart CP22 ISO member card release',attempt+1);
   await sleep(8000);
   storefront=await request(WEB+'/');
