@@ -114,7 +114,7 @@ try{
  assert.equal(await mode(),'dark','dark theme must paint before hydration on refresh');
  const headerBg=await page.locator('.vm-modern-header').evaluate(el=>getComputedStyle(el).backgroundColor);
  assert.equal(headerBg,'rgb(19, 19, 23)','sticky header turns solid graphite');
- assert.ok(await page.locator('.legacy-logo img').evaluate(el=>el.complete&&el.naturalWidth>0),'authentic logo still loads');
+ assert.ok(await page.locator('.legacy-logo .vm24-logo-dark').evaluate(el=>el.complete&&el.naturalWidth>0),'authentic logo still loads');
  const newLogo=await page.locator('.legacy-logo').boundingBox();
  assert.ok(firstLogo&&newLogo&&Math.abs(firstLogo.x-newLogo.x)<2,'logo stays fixed between member and catalog');
  await page.goto(BASE+'/keranjang-2',{waitUntil:'networkidle',timeout:45000});
