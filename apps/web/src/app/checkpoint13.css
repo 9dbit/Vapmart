@@ -1,0 +1,22 @@
+/* Checkpoint 13: accessible storefront search, no changes to archived branding. */
+html body .legacy-product-wrapper .vm-search-combobox{position:relative;flex:1 1 210px;min-width:0}
+html body .legacy-product-wrapper .vm-search-combobox .search{width:100%;max-width:none;min-width:0;height:44px;padding-right:38px}
+html body .vm-search-clear{position:absolute;right:8px;top:5px;width:34px;height:34px;border:0;border-radius:50%;background:#473355;color:#f3e9ff;font-size:21px;display:grid;place-items:center}
+html body .vm-search-clear:hover{background:#7650aa}
+html body .vm-search-suggestions{position:absolute;z-index:48;top:calc(100% + 8px);left:0;right:0;list-style:none;margin:0;padding:7px;border:1px solid #a178c66e;border-radius:19px;background:#201b29;box-shadow:0 17px 40px #0009;max-height:320px;overflow:auto}
+html body .vm-search-suggestions li{margin:0;padding:0}
+html body .vm-search-suggestions button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:5px;width:100%;min-height:52px;padding:10px 12px;border:0;border-radius:13px;background:transparent;color:#f6eeff;font-size:12px;line-height:1.35;cursor:pointer}
+html body .vm-search-suggestions button small{font-size:10px;color:#baa8d0}
+html body .vm-search-suggestions button:hover,html body .vm-search-suggestions [aria-selected=true] button{background:#683da0}
+html body .vm-results-row{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;margin:19px 0}
+html body .vm-results-row .results-meta{margin:0;color:#c5b8d0}
+html body .vm-reset-filters{font-size:12px;font-weight:600;color:#f4e9ff;background:#5b338b;border:1px solid #ad88dc6b;border-radius:999px;min-height:40px;padding:9px 16px;cursor:pointer}
+html body .vm-reset-filters:hover{background:#8050b8}
+html body .vm-empty-reset{display:inline-flex;align-items:center;justify-content:center;margin:22px auto 0}
+html body .vm-empty-home{display:block;width:max-content;margin:15px auto 0;color:#e4d4ff;text-decoration:underline;text-underline-offset:4px;font-size:12px}
+html body .legacy-product-wrapper .empty-collection{background:#201c28;border:1px solid #745a8a65;padding:70px 20px}
+html body .legacy-product-wrapper .empty-collection h3{color:#f7edff}
+html body .legacy-product-wrapper .empty-collection p{color:#c0b5c9}
+html body .legacy-product-wrapper .empty-illustration{color:#b486f0}
+@media(max-width:767px){html body .legacy-product-wrapper .vm-search-combobox{flex:1 1 100%}html body .vm-search-suggestions{max-height:240px}html body .legacy-product-wrapper .shop-controls{gap:8px}}
+@media(prefers-reduced-motion:reduce){html body .vm-search-suggestions{scroll-behavior:auto}}

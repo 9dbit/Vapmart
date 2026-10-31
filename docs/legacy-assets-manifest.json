@@ -1,0 +1,339 @@
+[
+  {
+    "path": "apps/web/public/legacy/banners/mobile-01.png",
+    "source": "wp-content/uploads/2025/07/1-1024x448.png",
+    "bytes": 225690,
+    "sha256": "5e26a8cf3715c8eaad4adcde5e56e84469cdff0419235a03269c61cec6c11402"
+  },
+  {
+    "path": "apps/web/public/legacy/banners/mobile-02.png",
+    "source": "wp-content/uploads/2025/07/2-7-1024x448.png",
+    "bytes": 230555,
+    "sha256": "0b82522a7251f45f3668f2cb8abae401afe53756e1b30daf2c18fa8d8d405a26"
+  },
+  {
+    "path": "apps/web/public/legacy/banners/mobile-03.png",
+    "source": "wp-content/uploads/2025/07/1600-x-700-1024x448.png",
+    "bytes": 258801,
+    "sha256": "fcfa667d13da6434bf3fc4d569c41e4137cc85985d5ff244636c6f78139b1397"
+  },
+  {
+    "path": "apps/web/public/legacy/banners/desktop-01.png",
+    "source": "wp-content/uploads/2025/07/1-1-1024x320.png",
+    "bytes": 168547,
+    "sha256": "68b0ba3e739290de4e6ebd14d0d45ea32e8511ea492c5d401a033ed7bdd590c6"
+  },
+  {
+    "path": "apps/web/public/legacy/banners/desktop-02.png",
+    "source": "wp-content/uploads/2025/07/2-8-1024x320.png",
+    "bytes": 168259,
+    "sha256": "c789ad1e85891862217735c235b25ec6ab1b632e2491bb383953d47815c8e5ec"
+  },
+  {
+    "path": "apps/web/public/legacy/banners/desktop-03.png",
+    "source": "wp-content/uploads/2025/05/1600-x-500-1024x320.png",
+    "bytes": 180577,
+    "sha256": "1c4f50bac49fbc8927f694032d08408ff3353c74d279ffa9625936a6ff887b1e"
+  },
+  {
+    "path": "apps/web/public/legacy/banners/benefits-cta.png",
+    "source": "wp-content/uploads/2025/02/CTA.png",
+    "bytes": 38827,
+    "sha256": "f4b833b30713c9869621f69d121eb82bab5eaba639ac9b6e5345a945078040b4"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/brand.png",
+    "source": "wp-content/uploads/2025/07/Asset-11-5-1.png",
+    "bytes": 109088,
+    "sha256": "0adcfe1b70cef637e94e660c5361bd2cda411bb342062dbd048db8845ca59d5c"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/pod.png",
+    "source": "wp-content/uploads/2025/07/Asset-11-2-2.png",
+    "bytes": 124023,
+    "sha256": "53b34c0248b12d32c376928aebd0fb02807a9184be1eddbff7851eb2197960f8"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/mod.png",
+    "source": "wp-content/uploads/2025/07/Asset-11-1-3.png",
+    "bytes": 319187,
+    "sha256": "8e5ee76e46d1ed288bcacb427e8eaa03cc193a3728a34b94ba4bc82e07a011b4"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/cartridge.png",
+    "source": "wp-content/uploads/2025/07/5-5.png",
+    "bytes": 251451,
+    "sha256": "b076ccbed7348c9fa835edd105bd37dad6539e074e7a5d655406969220d898f5"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/liquid.png",
+    "source": "wp-content/uploads/2025/07/Asset-11-3-1.png",
+    "bytes": 295661,
+    "sha256": "7c50d33b5814b80ea8aaacf84b8735d275a2b965d12a24811a066de5a4d9a648"
+  },
+  {
+    "path": "apps/web/public/legacy/brands/brand-01.png",
+    "source": "wp-content/uploads/2025/07/3-4.png",
+    "bytes": 7452,
+    "sha256": "cb19caeb23ef915f11dd9da32c140b9c8432a1f5f7caa9b81c90f942a07b4c78"
+  },
+  {
+    "path": "apps/web/public/legacy/brands/brand-02.png",
+    "source": "wp-content/uploads/2025/07/2-4.png",
+    "bytes": 13176,
+    "sha256": "db3e19ba162a5f5052590571f2e0826b6959bda624a8b74074199fbf1657fd75"
+  },
+  {
+    "path": "apps/web/public/legacy/brands/brand-03.png",
+    "source": "wp-content/uploads/2025/07/Brand-Partner-1.png",
+    "bytes": 18814,
+    "sha256": "a4d1ee50b51cff9290148892c0e93ea53bd0eec4a60cf5af4a7a01674954d754"
+  },
+  {
+    "path": "apps/web/public/legacy/brands/brand-04.png",
+    "source": "wp-content/uploads/2025/04/Brand-Partner-7.png",
+    "bytes": 24690,
+    "sha256": "44e9842660f2fee80629b90988ed6bf76f15201e202a6a5c26c2bb7921b9eac4"
+  },
+  {
+    "path": "apps/web/public/legacy/brands/brand-05.png",
+    "source": "wp-content/uploads/2025/03/Joiway.png",
+    "bytes": 21763,
+    "sha256": "50355b66c4aafc0a870b9096179c4e055b048e4862ed6ea06588e78ad3d0f42e"
+  },
+  {
+    "path": "apps/web/public/legacy/brands/brand-06.png",
+    "source": "wp-content/uploads/2025/08/Brand-Partner-2.png",
+    "bytes": 10377,
+    "sha256": "b955b4bd7fffb333c99352c1360dfa83cfbd07e0266ba1853bedf37966e53682"
+  },
+  {
+    "path": "apps/web/public/legacy/brands/brand-07.png",
+    "source": "wp-content/uploads/2025/10/avatar_nobg_white.png",
+    "bytes": 32244,
+    "sha256": "fedcbf007810e2472c1bdc6400c100d8e925f39c2b4bf63e680c1faab92bcb10"
+  },
+  {
+    "path": "apps/web/public/legacy/brands/brand-08.png",
+    "source": "wp-content/uploads/2025/11/logo-v2-nobg.png",
+    "bytes": 6436,
+    "sha256": "6dbd67c7ec924d5a2a50da4549f948c850f5442430e36f9c13d1ee06057a21f1"
+  },
+  {
+    "path": "apps/web/public/legacy/brands/brand-09.png",
+    "source": "wp-content/uploads/2025/07/Brand-Logo.png",
+    "bytes": 295432,
+    "sha256": "078a232a7e4914fa0487ded93b3ad18feeb8a9fbd9570ecb61bfc759932ea686"
+  },
+  {
+    "path": "apps/web/public/legacy/brands/brand-10.png",
+    "source": "wp-content/uploads/2025/05/Brand-Partner-no-bg.png",
+    "bytes": 50250,
+    "sha256": "4f9440f6432084a99cad096d1ff951b8a8fd595b19d4f46110daea54c7e25365"
+  },
+  {
+    "path": "apps/web/public/legacy/brands/brand-11.png",
+    "source": "wp-content/uploads/2025/02/7.png",
+    "bytes": 18550,
+    "sha256": "f7cb692bcfb5ca92896a569dadb1f9861e2f0b6ee0c61a67d1427b88d6ee4c39"
+  },
+  {
+    "path": "apps/web/public/legacy/brands/brand-12.png",
+    "source": "wp-content/uploads/2025/02/1.png",
+    "bytes": 21548,
+    "sha256": "3c2c5dcc852f476fe092b916e31a5382d3bb17720397571b7cd910f87dee0ddc"
+  },
+  {
+    "path": "apps/web/public/legacy/products/archived-01.png",
+    "source": "wp-content/uploads/2025/04/BUDGET-APPROVED-10-300x300.png",
+    "bytes": 35163,
+    "sha256": "1ead0076198b159edc9c01d009234404951d08d95f8f67b026aef5e5426bce63"
+  },
+  {
+    "path": "apps/web/public/legacy/products/archived-02.png",
+    "source": "wp-content/uploads/2025/04/BUDGET-APPROVED-9-300x300.png",
+    "bytes": 37629,
+    "sha256": "a0c9e2e533da77ec8f3ced869f0228dd66b6a765e4240033afd403fead8425b5"
+  },
+  {
+    "path": "apps/web/public/legacy/products/archived-03.png",
+    "source": "wp-content/uploads/2025/04/BUDGET-APPROVED-11-300x300.png",
+    "bytes": 38200,
+    "sha256": "4e5493c64bc7336c45c233cd4342477b8af635eaa050a7a61f641152de3eb655"
+  },
+  {
+    "path": "apps/web/public/legacy/products/archived-04.jpg",
+    "source": "wp-content/uploads/2025/06/MP-Uranus-Free-Liquid-1000px_2-300x300.jpg",
+    "bytes": 47201,
+    "sha256": "5ad78083f9825f8f787a931233c0ba127dae929c86393ced86c7811800639c62"
+  },
+  {
+    "path": "apps/web/public/legacy/products/archived-05.png",
+    "source": "wp-content/uploads/2025/04/BUDGET-APPROVED-12-300x300.png",
+    "bytes": 35827,
+    "sha256": "acf3d472085c3d28072632672cf50271ff0ccba286c924f9ace6e4c41890ed8c"
+  },
+  {
+    "path": "apps/web/public/legacy/products/archived-06.png",
+    "source": "wp-content/uploads/2025/04/BUDGET-APPROVED-13-300x300.png",
+    "bytes": 36599,
+    "sha256": "986613af719eb347a8b1ca6e18de7bf25aec7afa271febb34166af00eac52727"
+  },
+  {
+    "path": "apps/web/public/legacy/products/archived-07.jpg",
+    "source": "wp-content/uploads/2025/07/MP-Venus-1000px-300x300.jpg",
+    "bytes": 49539,
+    "sha256": "d35a190f5deb5550bc08dae13b68ec43eca5dff4361d22716b3368eb10bea98f"
+  },
+  {
+    "path": "apps/web/public/legacy/products/archived-08.png",
+    "source": "wp-content/uploads/2025/07/BUDGET-APPROVED-14-300x300.png",
+    "bytes": 51257,
+    "sha256": "ead5107f81ce76d077fc902e1a67f74fec98c6e3029066952083d26cccb53ab8"
+  },
+  {
+    "path": "apps/web/public/legacy/products/archived-10.webp",
+    "source": "wp-content/uploads/2025/07/XLIM_Go_Bundling_Oxpassion_black-300x300.webp",
+    "bytes": 10504,
+    "sha256": "782bd3dfa0740c12f2b10ddafb40b5ec77ead9ec9193738c992d67dac511c877"
+  },
+  {
+    "path": "apps/web/public/legacy/products/archived-11.png",
+    "source": "wp-content/uploads/2025/07/Asset-11-1-300x300.png",
+    "bytes": 52055,
+    "sha256": "3ab6cc081d01864597a605339c7f66237a9a508592538a874c984520fff78c0a"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-01.png",
+    "source": "wp-content/uploads/2024/12/vape-mart-2-300x169.png",
+    "bytes": 44195,
+    "sha256": "7141d2d7179a6cb324b4543fafb3224d62015e103a1f0bfb4dc410f69b88103f"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-02.png",
+    "source": "wp-content/uploads/2025/04/vape-mart-54-300x169.png",
+    "bytes": 69182,
+    "sha256": "af4b210679bdadd98b7d9396cc0048ef9cfa20a711646f88ebd21e9541e6401c"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-03.png",
+    "source": "wp-content/uploads/2024/12/vape-mart-6-300x169.png",
+    "bytes": 50324,
+    "sha256": "2d3f1cdb63e9146a3d534f859ccbc81db9580ebfefc16a892f769132bee6fbb6"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-04.png",
+    "source": "wp-content/uploads/2025/04/vape-mart-61-300x169.png",
+    "bytes": 38832,
+    "sha256": "a0faa5e53f12efa322b1784827bc1308bf004f8f7f491e8b3a4b516f5d403e82"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-05.png",
+    "source": "wp-content/uploads/2024/12/vape-mart-12-300x169.png",
+    "bytes": 68870,
+    "sha256": "f4cea4712e06f3fca9d509c00293c4724fe90bbc86a964c1e5063c37760e573d"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-06.png",
+    "source": "wp-content/uploads/2025/01/vape-mart-15-300x169.png",
+    "bytes": 106861,
+    "sha256": "188bc61ee0a1078812869374a5d0a49e3adc6fa5a35224d21ecb4e2a4699e961"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-07.png",
+    "source": "wp-content/uploads/2025/01/vape-mart-17-300x169.png",
+    "bytes": 82195,
+    "sha256": "b402cc7d9c7e882b977e3790ae053054d91238059c53b5422c53a0c8ec86e853"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-08.png",
+    "source": "wp-content/uploads/2025/02/vape-mart-35-300x169.png",
+    "bytes": 65095,
+    "sha256": "13ab39510de821e721611a5735bc60dafae2467f374d04007a5e6f91874dc196"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-09.png",
+    "source": "wp-content/uploads/2025/03/vape-mart-39-300x169.png",
+    "bytes": 31506,
+    "sha256": "f2cb6d48373963e1cd23730192a8880e4797e1381f77134ff2f9e49789a84f03"
+  },
+  {
+    "path": "apps/web/public/legacy/news/news-10.png",
+    "source": "wp-content/uploads/2025/03/vape-mart-50-300x169.png",
+    "bytes": 90992,
+    "sha256": "1871479a9b7996145b9f6ce1965f8c503782154af886cd1b8cd55d58cd9b556e"
+  },
+  {
+    "path": "apps/web/public/legacy/products/archived-00.png",
+    "source": "wp-content/uploads/2025/04/mission-300x300.png",
+    "bytes": 26626,
+    "sha256": "67e048f20e6604c7d1e9f3e1c0269db3ccf7c1be628942c641b6781074eb632e"
+  },
+  {
+    "path": "apps/web/public/legacy/products/archived-09.jpg",
+    "source": "wp-content/uploads/2025/05/MP-Photo-Product-Uranus-Cartridge-Main-300x300.jpg",
+    "bytes": 38319,
+    "sha256": "611a93b4a4865f68ce46a37e3949f047b160d2f663840a0d1a421c7af2f86411"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/pod-06.jpeg",
+    "source": "wp-content/uploads/2025/04/WhatsApp-Image-2025-05-27-at-19.05.41-300x300.jpeg",
+    "bytes": 18975,
+    "sha256": "7a57553c929c3f47a19cd3526e9592e56dde12a39639361dcef7bd730a063623"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/pod-07.jpeg",
+    "source": "wp-content/uploads/2025/04/WhatsApp-Image-2025-05-27-at-15.51.09-300x300.jpeg",
+    "bytes": 21979,
+    "sha256": "5284311df2b0f291d558f74fb07595adf30181368c6cacbecd09eb0070e7bb9a"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/pod-08.jpg",
+    "source": "wp-content/uploads/2025/07/MP-S2Pro-Device-Only-240x300.jpg",
+    "bytes": 37802,
+    "sha256": "0a32fd225d4a1eab473c37cb5392ac83d5b9f106cef68b42abee49ea9f74b1b4"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/pod-09.png",
+    "source": "wp-content/uploads/2025/05/BUDGET-APPROVED-300x300.png",
+    "bytes": 39011,
+    "sha256": "35e3a7b641a3af34cb9946cfd8c279b894ffa55c6d8c3230c59e6a536a4205af"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/pod-10.png",
+    "source": "wp-content/uploads/2025/05/BUDGET-APPROVED-1-300x300.png",
+    "bytes": 46980,
+    "sha256": "a53d03e07ad4ab78ed43f1b1eabfb3bc927b9a502b4c056b6706d9659f20f31c"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/pod-11.png",
+    "source": "wp-content/uploads/2025/05/BUDGET-APPROVED-3-300x300.png",
+    "bytes": 49861,
+    "sha256": "090943f550429dda8a73646c985a82845faae1e987c2d994174482992f70de44"
+  },
+  {
+    "path": "apps/web/public/legacy/categories/pod-12.png",
+    "source": "wp-content/uploads/2025/05/BUDGET-APPROVED-2-300x300.png",
+    "bytes": 42822,
+    "sha256": "c115244e4408dcf8053c50eb048257bdfa805bf32fa95d4d0b33eef11e87340a"
+  },
+  {
+    "path": "apps/web/public/legacy/products/mission-main.png",
+    "source": "wp-content/uploads/2025/04/mission-600x600.png",
+    "bytes": 76864,
+    "sha256": "5160a48b9965fe35ef2dfc2d2d5565ae54f1bf7786a7f276513526f4a105a731"
+  },
+  {
+    "path": "apps/web/public/legacy/products/mission-gallery-02.png",
+    "source": "wp-content/uploads/2025/06/7-1.png",
+    "bytes": 180061,
+    "sha256": "a684861f716fd0894fbdd1ddeac5fa378d274dfc45b3243ed47ac295070e256e",
+    "transformation": "Downsampled 5000x5000 source to 600x600 PNG; original kept only in private WordPress backup"
+  },
+  {
+    "path": "apps/web/public/legacy/brands/brand-into-detail.png",
+    "source": "wp-content/uploads/2025/04/Brand-Partner-6-100x100.png",
+    "bytes": 3004,
+    "sha256": "ee5023716b8f904affef65d8252af54d742e60b28f568b3b1eb0fcf7b606a52f"
+  }
+]

@@ -1,0 +1,84 @@
+import Link from 'next/link';
+import {notFound} from 'next/navigation';
+import type {Metadata} from 'next';
+import {getProduct} from '@/lib/api';
+import {formatIDR} from '@/lib/types';
+import {AddToCart} from '@/components/add-to-cart';
+import {FavoriteButton} from '@/components/favorite-button';
+import {ArchiveCard} from '@/components/archive-card';
+import {ArchiveGallery} from '@/components/archive-gallery';
+import {archiveBySlug,archiveCategories,categoryArchiveItems,featuredArchiveItems,type ArchiveItem} from '@/lib/archive-catalog';
+
+export const dynamic='force-dynamic';
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
+ const {slug}=await params;
+ const archived=archiveBySlug.get(slug);
+ if(archived)return {title:archived.name,description:'Arsip referensi visual Vapmart. Bukan katalog aktif atau penawaran pembelian.',robots:{index:false,follow:false}};
+ const product=await getProduct(slug);
+ return {title:product?.name||'Produk tidak ditemukan',robots:{index:false,follow:false}};
+}
+
+function ArchivedProductView({item}:{item:ArchiveItem}){
+ const images=item.slug==='into-mission-replacement-pods'
+  ?['/legacy/products/mission-main.png','/legacy/products/mission-gallery-02.png']
+  :[item.image];
+ const others=(item.category==='pod'?categoryArchiveItems('pod'):featuredArchiveItems)
+  .filter(p=>p.slug!==item.slug).slice(0,6);
+ const category=archiveCategories[item.category];
+ return <main className="vm-detail-page vm-archive-detail">
+  <div className="vm-detail-main">
+   <ArchiveGallery images={images} title={item.name}/>
+   <section className="vm-detail-content">
+    <nav className="vm-detail-breadcrumb" aria-label="Breadcrumb"><Link href="/">Vapmart</Link><span>/</span>
+      <Link href={'/product-category/'+category.slug}>{category.label}</Link><span>/</span><span>Arsip</span></nav>
+    <h1>{item.name}</h1>
+    <div className="vm-detail-price">{item.originalPrice&&<del>{item.originalPrice}</del>} <strong>{item.price}</strong></div>
+    <span className="vm-detail-archive-label">HARGA HISTORIS · TIDAK UNTUK TRANSAKSI</span>
+    {item.slug==='into-mission-replacement-pods'&&<div className="vm-detail-variations">
+      <h2>Ukuran</h2><div className="vm-variation-values"><span>0.6Ω</span><span>0.9Ω</span></div>
+    </div>}
+    <div className="vm-detail-disabled-actions">
+      <button type="button" disabled title="Produk arsip tidak tersedia untuk pembelian">Tambah</button>
+      <button type="button" disabled title="Checkout produk arsip dinonaktifkan">Beli Sekarang</button>
+    </div>
+    <div className="vm-detail-description"><h2>Deskripsi</h2>
+      <p>Produk ini merupakan dokumentasi katalog Vapmart existing. Foto, nama, kategori, dan harga berasal dari arsip WordPress.</p>
+      <details><summary>Baca Selengkapnya</summary><p>Informasi stok, variasi aktif, harga terbaru, dan kelayakan jual belum diverifikasi. Halaman arsip ini tidak menerima pemesanan ataupun pembayaran.</p></details>
+    </div>
+    <div className="vm-detail-partner"><div className="vm-detail-partner-icon">{item.brand==="Into"?<img src="/legacy/brands/brand-into-detail.png" alt="Into" width={100} height={100}/>:item.brand.slice(0,1)}</div>
+      <div className="vm-detail-partner-content"><strong>{item.brand}</strong>
+        <Link href="/brand-partner">Lihat Brand Partner</Link></div></div>
+   </section>
+  </div>
+  <section className="vm-detail-recommendations">
+    <h2 className="vm-lined-heading"><span>Dari Arsip Vapmart</span></h2>
+    <div className="vm-reference-grid">{others.map(p=><ArchiveCard key={p.slug} item={p}/>)}</div>
+  </section>
+  <p className="vm-detail-bottom-note">Seluruh item di halaman ini merupakan referensi tampilan, bukan produk aktif. <Link href="/catalog">Katalog pengujian</Link></p>
+ </main>;
+}
+export default async function ProductPage({params}:{params:Promise<{slug:string}>}){
+ const {slug}=await params;
+ const archived=archiveBySlug.get(slug);
+ if(archived)return <ArchivedProductView item={archived}/>;
+ const product=await getProduct(slug);
+ if(!product)notFound();
+ return <main className="vm-detail-page vm-demo-detail">
+   <div className="vm-detail-main">
+    {(product.image_url||product.gallery_urls?.length)?<ArchiveGallery images={[product.image_url,...(product.gallery_urls||[])].filter((image):image is string=>Boolean(image))} title={product.name}/>:<div className="vm-detail-gallery">
+      <div className="vm-detail-hero-image vm-cp17-demo-placeholder" role="img" aria-label={`Placeholder gambar untuk ${product.name}`}>
+        <div className="vm-cp17-demo-placeholder-inner" aria-hidden="true"><span>✦</span><strong>VAPMART OBJECTS</strong><small>Preview Collection</small></div>
+      </div>
+    </div>}
+    <section className="vm-detail-content">
+      <nav className="vm-detail-breadcrumb" aria-label="Breadcrumb"><Link href="/">Vapmart</Link><span>/</span><Link href="/catalog">Katalog DEMO</Link></nav>
+      <h1>{product.name}</h1>{product.brand_name&&<p className="vm-cp17-brand-name">Brand: {product.brand_name}</p>}<div className="vm-detail-price"><strong>{formatIDR(product.price_idr)}</strong></div>
+      <span className="vm-detail-archive-label">KATALOG VAPMART · PEMBAYARAN BELUM AKTIF</span>
+      <div className="vm-detail-description"><h2>Deskripsi</h2><p>{product.description||'Produk contoh untuk pengujian katalog.'}</p></div>
+      <div className="vm-demo-stock">{product.stock_qty>0?'Stok pengujian: '+product.stock_qty:'Stok habis'}</div>
+      <div className="vm-cp17-detail-actions"><AddToCart product={product}/><FavoriteButton id={product.id} name={product.name} className="vm-cp17-detail-favorite"/></div>
+      <p className="vm-detail-bottom-note">Checkout dapat meninjau harga dan menyimpan draft pesanan. Pembayaran menunggu integrasi gateway resmi.</p>
+    </section>
+   </div>
+ </main>;
+}

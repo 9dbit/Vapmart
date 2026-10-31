@@ -1,0 +1,43 @@
+name: Coin wallet ledger integration
+on:
+  push:
+    branches: [feat/ecommerce-foundation-20261029]
+  workflow_dispatch:
+
+jobs:
+  ledger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: vapmart_test
+          POSTGRES_PASSWORD: disposable_test_password
+          POSTGRES_DB: vapmart_ledger_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vapmart_test -d vapmart_ledger_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    defaults:
+      run:
+        working-directory: apps/api
+    env:
+      DATABASE_URL: postgres://vapmart_test:disposable_test_password@127.0.0.1:5432/vapmart_ledger_test
+      SEED_DEMO_CATALOG: "false"
+      DIGITAL_COMMERCE_ENABLED: "false"
+      PAYMENT_MODE: disabled
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Migrate disposable DB only
+        run: npm run migrate
+      - name: Test idempotency and paid vs failed Coin grants
+        run: npx tsx --test test/integration/coin-ledger.ts

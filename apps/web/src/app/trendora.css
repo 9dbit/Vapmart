@@ -1,0 +1,1003 @@
+/* Vapmart Checkpoint 16: Trendora-inspired airy editorial storefront.
+ * Original Vapmart logo, banner images and category thumbnails stay intact.
+ * This is a final-stage visual layer over the legacy audit CSS; no commerce gate changes.
+ */
+:root {
+  --vm16-page:#f4f3ef;
+  --vm16-white:#ffffff;
+  --vm16-tint:#f6efff;
+  --vm16-soft:#f9f7f3;
+  --vm16-accent:#8618ed;
+  --vm16-accent-strong:#780bdf;
+  --vm16-cocoa:#2a2828;
+  --vm16-muted:#727378;
+  --vm16-hair:#e9e6df;
+  --vm16-shadow:0 12px 36px rgba(68,46,23,.055);
+  --vm16-radius:25px;
+  --vm12-bg:var(--vm16-page);
+  --vm12-surface:var(--vm16-white);
+  --vm12-strong:var(--vm16-cocoa);
+  --vm12-text:#49494a;
+  --vm12-sub:var(--vm16-muted);
+}
+html{color-scheme:light}
+html body {
+  background:var(--vm16-page);
+  color:var(--vm16-cocoa);
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+html body button,html body input,html body select,html body textarea {
+  font-family:inherit;
+}
+html body a,html body button{transition-timing-function:cubic-bezier(.22,.8,.24,1)}
+html body a:focus-visible,html body button:focus-visible,
+html body input:focus-visible,html body select:focus-visible,
+html body summary:focus-visible{outline:2px solid #7f23d4;outline-offset:3px}
+html body .main-container{max-width:1500px}
+html body .vm-modern-header{
+  height:79px;background:rgba(255,255,255,.93);border-bottom:1px solid rgba(35,29,26,.06);
+  box-shadow:0 5px 22px rgba(36,32,26,.028);backdrop-filter:blur(23px);
+  -webkit-backdrop-filter:blur(23px);
+}
+html body .vm-modern-header .vm-header-main{height:79px;min-height:79px}
+html body .vm-modern-header .legacy-logo img{filter:brightness(0);opacity:.93}
+html body .vm-desktop-links {
+  border:1px solid var(--vm16-hair);
+  background:#f7f6f2;
+  box-shadow:none;
+}
+html body .vm-desktop-links a{color:#626367;font-weight:600}
+html body .vm-desktop-links a:hover{background:#fff;color:#1e1e1f}
+html body .vm-desktop-links a.is-active{
+  background:var(--vm16-accent);color:#241b13;box-shadow:0 4px 10px rgba(188,118,43,.12);
+}
+html body .vm-header-pill-search{
+  border:1px solid var(--vm16-hair);background:#f6f6f3;color:#57585b;
+}
+html body .vm-header-pill-search:focus-within{border-color:#eda866;box-shadow:0 0 0 3px #8618ed35}
+html body .vm-header-pill-search input{color:var(--vm16-cocoa)}
+html body .vm-header-pill-search input::placeholder{color:#919194}
+html body .vm-header-pill-search button{
+  background:var(--vm16-accent);color:#33241b;font-weight:700;
+}
+html body .vm-header-pill-search button:hover{background:#9a30ed}
+html body .vm-modern-header .vm-reference-cart{
+  border:1px solid var(--vm16-hair);background:#f6f5f1;color:#29292c;box-shadow:none;
+}
+html body .vm-modern-header .vm-reference-cart:hover{background:#fff0d8;border-color:#efbd86}
+html body .vm-modern-header .vm-reference-cart .cart-count{
+  background:var(--vm16-accent-strong);color:#231913;border-color:white;
+}
+html body .vm-modern-header .vm-reference-login{
+  color:#2d221b;background:var(--vm16-accent);border:1px solid #f3b36e;
+  box-shadow:0 6px 16px #e7a86120;
+}
+html body .vm-modern-header .vm-reference-login:hover{filter:none;background:#9a30ed}
+html body .vm-modern-header.vm-subpage .vm-subpage-back {
+  background:white;border:1px solid var(--vm16-hair);color:#353537;
+}
+/* Mobile-first merchandising sequence: welcome/search > banner > category icons > products. */
+html body .vm-trendora-home{
+  padding-top:0;background:var(--vm16-page);color:var(--vm16-cocoa);overflow-x:clip;
+}
+html body .vm-home-intro{padding-top:32px;padding-bottom:12px}
+html body .vm-home-intro-row{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:18px;
+}
+html body .vm-trendora-eyebrow{
+  display:block;font-size:10px;font-weight:750;line-height:1.4;
+  letter-spacing:.16em;color:#7f25c5;text-transform:uppercase;
+}
+html body .vm-trendora-spark{display:inline-block;font-size:15px;margin-right:4px;color:#9629e7}
+html body .vm-home-intro h1{
+  font-size:clamp(28px,3.1vw,47px);letter-spacing:-.058em;line-height:1.1;
+  font-weight:720;margin:11px 0 8px;color:#252525;
+}
+html body .vm-home-subtitle{font-size:13px;color:#838180;line-height:1.6;margin:0}
+html body .vm-home-discover {
+  white-space:nowrap;border:1px solid #dedbd3;background:white;border-radius:999px;
+  display:inline-flex;align-items:center;gap:24px;padding:12px 18px;
+  font-size:12px;font-weight:650;color:#292a2c;box-shadow:0 5px 14px #2c241109;
+}
+html body .vm-home-discover:hover{background:var(--vm16-tint);border-color:#ecbe8d}
+html body .vm-home-discover span{font-size:17px}
+html body .vm-home-quicksearch{
+  margin-top:22px;display:flex;align-items:center;gap:12px;
+  border:1px solid #e7e7e5;border-radius:999px;background:#fff;padding:5px 6px 5px 16px;
+  min-height:53px;max-width:660px;box-shadow:0 8px 24px #443a2610;
+}
+html body .vm-home-quicksearch svg{height:21px;width:21px;flex:none;color:#7b7b7c}
+html body .vm-home-quicksearch input{
+  border:0;outline:0;min-width:0;flex:1;line-height:1.3;
+  font-size:13px;color:#302f2d;background:transparent;
+}
+html body .vm-home-quicksearch input::placeholder{color:#a5a4a2}
+html body .vm-home-quicksearch button{
+  background:#2c2c2e;color:white;border:0;border-radius:999px;
+  min-height:41px;padding:0 18px;display:flex;gap:10px;align-items:center;
+  justify-content:center;font-size:12px;font-weight:650;
+}
+html body .vm-home-quicksearch button:hover{background:#4e4237}
+html body .vm-trendora-hero.vm-hero-stage{
+  padding:15px 0 2px;
+  background:radial-gradient(ellipse at 8% 0%,#ffd3a226,transparent 38%);
+}
+html body .vm-hero-stage .vm-carousel-shell {
+  background:#f9d3ab;border:5px solid #fff;border-radius:32px;
+  box-shadow:0 17px 44px rgba(65,40,23,.14);
+}
+html body .vm-hero-stage .vm-original-banner{width:90%;max-width:1460px}
+html body .vm-parallax-glow{opacity:.3;filter:blur(26px)}
+html body .vm-glow-left{background:radial-gradient(circle,#a96dff53 0,#ffdab015 45%,transparent 74%)}
+html body .vm-glow-right{background:radial-gradient(circle,#f8b86b43 0,#fee9c516 52%,transparent 75%)}
+html body .vm-hero-stage .vm-carousel-arrow{
+  background:#ffffffdf;border:1px solid #ffffffad;color:#37322f;
+  box-shadow:0 7px 20px #4433212d;
+}
+html body .vm-hero-stage .vm-carousel-arrow:hover{background:#e8d2ff}
+html body .vm-carousel-dots{
+  background:#ffffffdb;border:1px solid #f2e7d9;
+  backdrop-filter:blur(15px);box-shadow:0 4px 14px #2218091e;
+}
+html body .vm-carousel-dots button span{background:#bcb4ad}
+html body .vm-carousel-dots button.is-active span{background:#901ee8}
+html body .vm-carousel-pause{
+  color:#343332;background:#ffffffe0;border:1px solid #ffffffd0;
+}
+html body .vm-carousel-pause:hover{background:#ffd5a9}
+/* Category thumbnails use original Vapmart image assets; never substitute emoji or fashion icons. */
+html body .vm-trendora-categories{margin-top:30px;margin-bottom:35px}
+html body .vm-trendora-section-heading{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px;
+}
+html body .vm-trendora-section-heading h2{
+  margin:5px 0 0;font-weight:730;letter-spacing:-.045em;
+  font-size:clamp(22px,2.1vw,29px);color:#252527;line-height:1.22;
+}
+html body .vm-trendora-see-all {
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  color:#5a5262;font-size:12px;font-weight:650;white-space:nowrap;
+  padding:10px 14px;background:white;border:1px solid #e8e5e0;border-radius:999px;
+}
+html body .vm-trendora-see-all:hover{background:#ffe7c9;border-color:#eab581;color:#302720}
+html body .vm-trendora-see-all span{font-size:15px}
+html body .vm-trendora-category-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+html body .vm-trendora-category {
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-width:0;padding:18px 8px 16px;gap:10px;
+  border:1px solid #edeae5;background:white;color:#313134;
+  border-radius:25px;box-shadow:var(--vm16-shadow);
+  transition:transform .22s,border-color .22s,background .22s;
+}
+html body .vm-trendora-category:hover{
+  background:#fffaf3;border-color:#f1c89a;transform:translateY(-4px);
+}
+html body .vm-trendora-category-image{
+  display:grid;place-items:center;width:min(110px,80%);aspect-ratio:1;border-radius:23px;
+  background:#f7f5f1;overflow:hidden;
+}
+html body .vm-trendora-category-image img{
+  display:block;width:100%;height:100%;object-fit:contain;
+}
+html body .vm-trendora-category-title {
+  display:block;font-size:13px;font-weight:650;line-height:1.3;
+  white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;
+}
+html body .vm-reference-home .vm-reference-products,
+html body .vm-reference-home .vm-active-products,
+html body .vm-reference-home .vm-ref-brands,
+html body .vm-reference-home .vm-ref-news {padding-left:5%;padding-right:5%}
+html body .vm-trendora-home .vm-trendora-featured{padding-top:0;margin-top:2px;margin-bottom:30px}
+html body .vm-trendora-home .vm-ref-section-head{margin-bottom:19px}
+html body .vm-trendora-home .vm-ref-section-head h2,
+html body .vm-trendora-home .vm-ref-brands h2{margin:5px 0 0;font-size:clamp(22px,2.1vw,29px);color:#252527}
+html body .vm-reference-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+html body .vm-reference-card{
+  background:#fff;color:#2a2928;border:1px solid #eeece7;border-radius:24px;
+  box-shadow:var(--vm16-shadow);
+  transition:transform .24s,border-color .24s,box-shadow .24s;
+}
+html body .vm-reference-card:hover{
+  transform:translateY(-5px);border-color:#edbe8b;
+  box-shadow:0 17px 38px #7b604a21;
+}
+html body .vm-archive-image {
+  background:#f6f5f1;border-radius:22px 22px 14px 14px;
+}
+html body .vm-archive-image:after{
+  content:"↗";position:absolute;right:11px;top:11px;
+  width:31px;height:31px;background:#fffffff0;color:#343232;
+  border-radius:50%;font-size:17px;display:grid;place-items:center;
+  box-shadow:0 4px 12px #36230f20;
+}
+html body .vm-archive-chip{
+  background:#ffffffed;color:#b26b37;border:1px solid #e9cfb5;
+  font-size:9px;font-weight:750;backdrop-filter:blur(8px);
+}
+html body .vm-reference-card .vm-reference-copy{padding:14px 15px 17px;min-height:112px;gap:9px}
+html body .vm-reference-card h3{
+  color:#333235;font-size:13px;font-weight:640;line-height:1.52;
+  -webkit-line-clamp:2;
+}
+html body .vm-reference-price{color:#8424cd;font-size:12px;font-weight:740;gap:7px}
+html body .vm-reference-price del{color:#a4a2a0;font-size:11px;font-weight:450}
+html body .vm-reference-disclaimer{
+  color:#84817e;font-size:11px;line-height:1.8;margin-top:14px;
+}
+html body .vm-reference-disclaimer a{color:#8126c7}
+html body .vm-trendora-member{
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  background:#e5ceff;color:#342315;border-radius:32px;padding:30px 40px;
+  overflow:hidden;position:relative;margin-top:33px;margin-bottom:35px;
+  box-shadow:0 12px 28px #e9a75a19;
+}
+html body .vm-trendora-member-copy{position:relative;z-index:2}
+html body .vm-trendora-member .vm-trendora-eyebrow{color:#775039}
+html body .vm-trendora-member h2{
+  margin:10px 0;font-size:clamp(24px,3vw,40px);font-weight:720;
+  letter-spacing:-.055em;line-height:1.12;color:#292726;
+}
+html body .vm-trendora-member p{margin:0 0 19px;font-size:13px;line-height:1.55;color:#674936}
+html body .vm-trendora-member-link{
+  display:inline-flex;align-items:center;gap:20px;padding:12px 18px;background:#272629;
+  color:white;font-weight:650;font-size:12px;border-radius:999px;
+}
+html body .vm-trendora-member-link:hover{background:#554032}
+html body .vm-trendora-member-mark{
+  font-family:Georgia,serif;font-size:clamp(92px,15vw,210px);font-weight:900;line-height:.7;
+  color:#ffefd4;letter-spacing:-.1em;user-select:none;transform:rotate(-11deg);margin-right:8%;
+}
+html body .vm-trendora-member-mark span{font-family:inherit;font-size:42px;color:#9f4fee}
+html body .vm-trendora-brands{margin-top:38px;margin-bottom:38px}
+html body .vm-trendora-brands .vm-brand-logos{gap:12px;padding:3px 1px 12px;scroll-snap-type:x mandatory}
+html body .vm-trendora-brands .vm-brand-logo {
+  background:white;border:1px solid #eae7df;border-radius:22px;
+  height:103px;min-height:103px;flex-basis:143px;
+  box-shadow:var(--vm16-shadow);scroll-snap-align:start;
+}
+html body .vm-trendora-brands .vm-brand-logo:hover{
+  background:#fff8ef;border-color:#ecbf91;transform:translateY(-3px);
+}
+html body .vm-trendora-brands .vm-brand-logo img{max-height:78px;max-width:90%}
+html body .vm-trendora-news{margin-top:30px;margin-bottom:35px}
+html body .vm-trendora-news .vm-reference-news-grid{
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;
+}
+html body .vm-reference-news-card{
+  border-radius:22px;border:1px solid #eeebe6;background:white;
+  box-shadow:var(--vm16-shadow);color:#292929;overflow:hidden;
+}
+html body .vm-reference-news-card:hover{border-color:#e9b780;transform:translateY(-3px)}
+html body .vm-reference-news-card img{border-radius:20px 20px 12px 12px;object-fit:cover}
+html body .vm-reference-news-card>div{color:#343333;font-size:12px;line-height:1.55;font-weight:590}
+html body .vm-archive-end-note{color:#999690;font-size:11px;margin:22px auto 32px}
+/* Detail, category, account and cart follow the same light rounded surfaces. */
+html body .vm-category-page,html body .vm-detail-page,html body .vm-brand-page,
+html body .vm-account-page,html body .vm-member-page,html body .vm-cart-page{
+  background:var(--vm16-page);color:var(--vm16-cocoa);
+}
+html body .vm-category-page .vm-lined-heading,html body .vm-detail-recommendations .vm-lined-heading{
+  color:#2a292b;font-size:clamp(20px,2vw,28px);
+}
+html body .vm-category-page .vm-reference-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+html body .vm-category-empty{background:white;border:1px solid var(--vm16-hair);color:#343334}
+html body .vm-detail-page{padding-top:33px}
+html body .vm-detail-main{grid-template-columns:minmax(0,45%) minmax(0,1fr);gap:27px}
+html body .vm-detail-hero-image{
+  background:#fff2de;border:5px solid white;border-radius:31px;
+  box-shadow:0 12px 34px #7053351b;
+}
+html body .vm-detail-thumb{border:2px solid white;background:white;border-radius:18px}
+html body .vm-detail-thumb.is-active{border-color:#eda566}
+html body .vm-detail-content{
+  color:#2e2e30;background:#fff;border:1px solid #eee9e1;
+  border-radius:29px;padding:30px 32px;box-shadow:var(--vm16-shadow);
+}
+html body .vm-detail-content h1{color:#262528;font-size:clamp(23px,2.4vw,34px);font-weight:730}
+html body .vm-detail-price strong{color:#8424cd}
+html body .vm-detail-price del{color:#a6a4a2}
+html body .vm-detail-archive-label{
+  background:#f0e5ff;color:#7d25c5;border:1px solid #efd5b6;border-radius:999px;
+  padding:7px 11px;letter-spacing:.05em;
+}
+html body .vm-detail-variations h2,html body .vm-detail-description h2{color:#343232}
+html body .vm-detail-description p,html body .vm-detail-description details p{color:#85817e}
+html body .vm-detail-description summary{color:#8425ce}
+html body .vm-detail-variations .vm-variation-values span{
+  color:#413d3a;background:#f6f5f1;border:1px solid #e9e6e0;
+  border-radius:999px;min-width:55px;text-align:center;
+}
+html body .vm-detail-disabled-actions button {
+  color:#a47350;background:#f9ede0;border-color:#ecd0b1;opacity:.75;
+}
+html body .vm-detail-disabled-actions button+button{
+  color:#6d563e;background:#e5cbff;border-color:#f5c58e;opacity:.75;
+}
+html body .vm-detail-partner{
+  background:#fcfaf6;border:1px solid var(--vm16-hair);border-radius:23px;padding:15px;
+}
+html body .vm-detail-partner-content strong{color:#333}
+html body .vm-detail-partner-content a{
+  width:auto;padding:11px 18px;background:#8f23ed;color:#362719;border-radius:999px;
+}
+html body .vm-detail-bottom-note,html body .vm-category-bottom{color:#8a8481}
+html body .vm-detail-bottom-note a{color:#8425ce}
+html body .vm-demo-detail .product-action{
+  color:#2e251d;background:#8618ed;border-color:#f3ac64;
+}
+html body .vm-demo-stock{color:#6a7365}
+html body .vm-category-page .vm-category-bottom{color:#86817b}
+html body .vm-brand-page .vm-partner-logos .vm-brand-logo{
+  background:white;border:1px solid var(--vm16-hair);color:#333;
+}
+html body .vm-brand-page .vm-partner-logos .vm-brand-logo span{color:#6f6b68}
+html body .vm-brand-page .vm-secondary-link{color:#ad6339}
+html body .vm-account-card,html body .vm-cart-summary{
+  color:#29282a;background:white;border:1px solid #ece8e1;
+  box-shadow:var(--vm16-shadow);
+}
+html body .vm-account-logo img{filter:brightness(0)}
+html body .vm-account-tabs{background:#f7f5f1;border:1px solid #eeeae2}
+html body .vm-account-tabs span{color:#777575}
+html body .vm-account-tabs span.is-active{background:#a135ec;color:#2e231a;box-shadow:none}
+html body .vm-account-card h1,html body .vm-cart-title h1{color:#242324}
+html body .vm-account-card>p{color:#81807e}
+html body .vm-account-form-preview label{color:#4e4c4b}
+html body .vm-account-form-preview input{background:#f6f5f1;border-color:#e6e1da;color:#444}
+html body .vm-account-form-preview button{background:#8618ed;color:#3b2c21}
+html body .vm-account-links a{color:#7b23c6}
+html body .vm-member-tiles section{color:#2c2b2b;background:white;border:1px solid #eae6de}
+html body .vm-member-actions a{color:#3c2b1f;background:#8f23ed;border-color:#f4bd7f}
+html body .vm-cart-title{border-color:#e6e2db}
+html body .vm-cart-title span{color:#777}
+html body .vm-cart-empty{background:#fff;border-color:#eae6de;color:#2b2928}
+html body .vm-cart-empty-icon{color:#8d2bd7}
+html body .vm-cart-empty p{color:#797879}
+html body .vm-cart-primary{background:#8618ed;color:#35291f}
+html body .vm-cart-item{border-color:#e9e5df}
+html body .vm-cart-item-info h2{color:#313030}
+html body .vm-cart-item-info p{color:#8e8780}
+html body .vm-cart-qty{border-color:#e8e4dc;background:#f8f7f2}
+html body .vm-cart-qty button{background:#f0eae2;color:#39302a}
+html body .vm-cart-remove,html body .vm-cart-continue{color:#8425ce}
+html body .vm-cart-summary-row{color:#6e6967}
+html body .vm-cart-summary-total{border-color:#e9e2d8}
+html body .vm-cart-checkout{background:#8618ed;color:#463122}
+html body .vm-cart-summary>p{color:#87827d}
+html body .vm-catalog-page .vm-catalog-intro h1{color:#292828}
+html body .vm-catalog-intro p{color:#8b8783}
+html body .legacy-product-wrapper .shop-toolbar {
+  background:white;border:1px solid #eae6df;border-radius:23px;
+}
+html body .legacy-product-wrapper .category{background:#f6f5f1;color:#77706a;border:1px solid #eeece7}
+html body .legacy-product-wrapper .category.active{
+  color:#31251c;background:#8618ed;border-color:#f0b579;
+}
+html body .legacy-product-wrapper .shop-controls input,
+html body .legacy-product-wrapper .shop-controls select{
+  background:#faf9f6;color:#3c3b3a;border:1px solid #e8e4de;
+}
+html body .legacy-product-wrapper .shop-controls input::placeholder{color:#96918c}
+html body .legacy-product-wrapper .product-card{background:white;border:1px solid #ece8e1;box-shadow:var(--vm16-shadow)}
+html body .legacy-product-wrapper .product-description{background:white}
+html body .legacy-product-wrapper .product-copy h3,
+html body .legacy-product-wrapper .product-copy strong{color:#2f2e2e}
+html body .legacy-product-wrapper .product-copy .eyebrow{color:#7f25c5}
+html body .legacy-product-wrapper .add-circle{background:#8618ed;border-color:#f2ae6f;color:#37291c}
+html body .legacy-product-wrapper .add-circle:hover:not(:disabled){background:#a54cf2}
+html body .legacy-product-wrapper .vm-search-combobox .search{background:#faf9f6;color:#333}
+html body .vm-search-clear{background:#f4e9df;color:#5b4634}
+html body .vm-search-clear:hover{background:#f2d2ad}
+html body .vm-search-suggestions{background:white;border-color:#e9e1d8;box-shadow:0 17px 36px #59443125}
+html body .vm-search-suggestions button{color:#2d2c2c}
+html body .vm-search-suggestions button small{color:#77716b}
+html body .vm-search-suggestions button:hover,html body .vm-search-suggestions [aria-selected=true] button{background:#f0e6fb}
+html body .vm-results-row .results-meta{color:#817a72}
+html body .vm-reset-filters{background:#ffce97;border-color:#efbf8b;color:#392c22}
+html body .vm-reset-filters:hover{background:#9a30ed}
+html body .legacy-product-wrapper .empty-collection{background:#fff;border-color:#ece8e1}
+html body .legacy-product-wrapper .empty-collection h3{color:#2d2b2a}
+html body .legacy-product-wrapper .empty-collection p{color:#85807b}
+html body .legacy-product-wrapper .empty-illustration{color:#af74e8}
+html body .vm-empty-home{color:#7e23c6}
+/* Keep the test-cart drawer in front of the sticky nav with light Trendora styling. */
+html body .cart-drawer{background:white;color:#302e2c;border-left:1px solid #e9e3db}
+html body .cart-drawer .drawer-head{border-color:#e9e5df}
+html body .cart-drawer .drawer-head h2,html body .cart-drawer .cart-row-info strong{color:#302e2c}
+html body .cart-drawer .cart-row-info>span{color:#746e68}
+html body .cart-drawer .quantity{border-color:#ebe5db;background:#f9f7f3}
+html body .cart-drawer .quantity button{color:#302820}
+html body .cart-drawer .drawer-foot{border-color:#e9e5df}
+html body .cart-drawer .vm-view-cart-link{background:#efe3fc;color:#503522}
+html body .cart-drawer .button.checkout-disabled{background:#8f23ed;color:#493320}
+html body .cart-drawer .fine-print{color:#88817a}
+html body .cart-drawer .close-btn{background:#f3f0ec;color:#34302b}
+html body .cart-drawer .close-btn:hover{background:#ffdbaf}
+html body .cart-empty{color:#353334}
+html body .cart-empty p{color:#87827d}
+html body .cart-drawer .drawer-shade{background:#241b14a8}
+/* Footer uses same warm light canvas and a dark rendering of original white logo. */
+html body .vm-reference-footer {
+  color:#333131;background:#f0eee9;border-top:1px solid #e8e4de;
+  padding-top:49px;
+}
+html body .vm-reference-footer h3{color:#363334;font-size:13px}
+html body .vm-reference-footer .vm-footer-intro p,
+html body .vm-reference-footer .vm-footer-links p,
+html body .vm-reference-footer .vm-footer-links a{color:#78716c}
+html body .vm-reference-footer .vm-footer-links a:hover{color:#ac6337}
+html body .vm-reference-footer .vm-footer-intro>img,
+html body .vm-reference-footer .vm-footer-powered img{filter:brightness(0);opacity:.9}
+html body .vm-reference-footer .vm-footer-social span{color:#403127;background:#8f23ed}
+html body .vm-reference-footer .vm-support-box{background:white;border:1px solid #e5ddd3;color:#342d29}
+html body .vm-reference-footer .vm-footer-support-title strong{background:#8f23ed;color:#473122}
+html body .vm-reference-footer .vm-support-box strong{color:#302d2b}
+html body .vm-reference-footer .vm-support-box small{color:#8b817a}
+html body .vm-reference-footer .vm-footer-powered{color:#837b72}
+/* Tablet: preserve full search and neat product/card spacing. */
+@media(max-width:1100px) and (min-width:768px) {
+  html body .vm-trendora-category-grid{gap:10px}
+  html body .vm-trendora-category{padding:13px 6px}
+  html body .vm-reference-grid,html body .vm-category-page .vm-reference-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  html body .vm-trendora-news .vm-reference-news-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:767px) {
+  html body{padding-bottom:100px}
+  html body .vm-modern-header{height:66px;background:#ffffffed}
+  html body .vm-modern-header .vm-header-main{height:66px;min-height:66px;padding:0 16px}
+  html body .vm-modern-header .vm-search-disclosure summary{
+    color:#34302e;background:#f8f7f3;border:1px solid #ebe6dc;
+  }
+  html body .vm-modern-header .vm-search-disclosure form{
+    color:#333;background:white;border:1px solid #e9ded3;box-shadow:0 14px 35px #53463827;
+  }
+  html body .vm-modern-header .vm-search-disclosure form input{background:#f9f8f4;color:#333}
+  html body .vm-modern-header .vm-search-disclosure form button{background:#8618ed;color:#403126}
+  html body .vm-modern-header.vm-subpage .vm-subpage-back{
+    background:#f9f7f1;color:#38312c;border-color:#eee4d9;
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav{
+    left:12px;right:12px;bottom:max(11px,env(safe-area-inset-bottom));
+    height:69px;background:#ffffffed;border:1px solid #f0ece6;
+    color:#55504b;box-shadow:0 13px 30px #5e4f3627,inset 0 1px #fff;
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a,
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav button{
+    color:#797773;height:55px;font-weight:600;background:transparent;
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a.is-active{
+    background:#e8d2ff;color:#3d2b20;box-shadow:0 4px 12px #a27c5325;
+  }
+  html body .vm-mobile-cart-count{background:#972ee5;color:#291e13}
+  html body .vm-home-intro{padding:18px 16px 6px}
+  html body .vm-home-intro-row{display:block}
+  html body .vm-home-intro h1{font-size:27px;margin:7px 0 5px;letter-spacing:-.053em}
+  html body .vm-home-subtitle{font-size:11px;line-height:1.5}
+  html body .vm-home-discover{display:none}
+  html body .vm-trendora-eyebrow{font-size:9px;letter-spacing:.115em}
+  html body .vm-home-quicksearch{margin-top:13px;height:48px;min-height:48px;padding:4px 4px 4px 13px;gap:8px}
+  html body .vm-home-quicksearch svg{width:18px;height:18px}
+  html body .vm-home-quicksearch input{font-size:11px}
+  html body .vm-home-quicksearch button{min-height:38px;padding:0 13px;font-size:11px}
+  html body .vm-trendora-hero.vm-hero-stage{padding:12px 0 0}
+  html body .vm-hero-stage .vm-original-banner{width:calc(100% - 28px);margin:0 14px}
+  html body .vm-hero-stage .vm-carousel-shell{
+    border:3px solid white;border-radius:25px;aspect-ratio:1024/448;
+    box-shadow:0 9px 23px #64513c20;
+  }
+  html body .vm-hero-stage .vm-carousel-arrow{width:30px;height:30px}
+  html body .vm-carousel-dots{bottom:7px}
+  html body .vm-trendora-categories{padding:0 14px;margin:19px auto 23px}
+  html body .vm-trendora-section-heading{margin-bottom:12px;gap:7px}
+  html body .vm-trendora-section-heading h2{font-size:20px;margin-top:2px}
+  html body .vm-trendora-see-all{font-size:10px;padding:8px 10px;gap:5px}
+  html body .vm-trendora-category-grid{gap:6px}
+  html body .vm-trendora-category{padding:9px 2px 10px;gap:6px;min-height:91px;border-radius:16px}
+  html body .vm-trendora-category-image{width:min(54px,84%);border-radius:13px;background:#faf8f4}
+  html body .vm-trendora-category-title{font-size:10px;font-weight:650}
+  html body .vm-reference-home .vm-reference-products,
+  html body .vm-reference-home .vm-active-products,
+  html body .vm-reference-home .vm-ref-brands,
+  html body .vm-reference-home .vm-ref-news{padding-left:14px;padding-right:14px}
+  html body .vm-trendora-home .vm-ref-section-head h2,
+  html body .vm-trendora-home .vm-ref-brands h2{font-size:20px}
+  html body .vm-reference-grid,html body .vm-category-page .vm-reference-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;
+  }
+  html body .vm-reference-card{border-radius:19px}
+  html body .vm-archive-image{border-radius:17px 17px 10px 10px}
+  html body .vm-archive-image:after{width:25px;height:25px;right:7px;top:7px;font-size:14px}
+  html body .vm-archive-chip{font-size:8px;top:7px;left:7px;padding:4px 7px}
+  html body .vm-reference-card .vm-reference-copy{padding:11px 11px 13px;min-height:98px;gap:7px}
+  html body .vm-reference-card h3{color:#34312f;font-size:11px;line-height:1.4}
+  html body .vm-reference-price{font-size:11px}
+  html body .vm-reference-disclaimer{font-size:10px;line-height:1.6}
+  html body .vm-trendora-member{
+    padding:25px 22px;margin:25px 14px;border-radius:25px;min-height:185px;
+  }
+  html body .vm-trendora-member h2{font-size:24px;max-width:225px}
+  html body .vm-trendora-member p{font-size:11px;max-width:230px}
+  html body .vm-trendora-member-mark{position:absolute;right:-17px;bottom:8px;font-size:96px;opacity:.45}
+  html body .vm-trendora-member-mark span{font-size:20px}
+  html body .vm-trendora-brands{margin-top:27px;margin-bottom:31px}
+  html body .vm-trendora-brands .vm-brand-logo{flex-basis:102px;height:88px;min-height:88px;border-radius:17px}
+  html body .vm-trendora-news .vm-reference-news-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  html body .vm-reference-news-card{border-radius:18px}
+  html body .vm-reference-news-card>div{color:#373330;font-size:11px}
+  html body .vm-archive-end-note{font-size:10px}
+  html body .vm-detail-page{padding:14px 0 30px}
+  html body .vm-detail-main{display:flex;flex-direction:column;gap:12px}
+  html body .vm-detail-gallery{width:100%}
+  html body .vm-detail-hero-image{background:#fff0da;border-radius:25px;margin:0 14px;width:calc(100% - 28px)}
+  html body .vm-detail-content{
+    width:calc(100% - 28px);margin:0 14px;padding:21px 17px;border-radius:25px;
+  }
+  html body .vm-detail-content h1{font-size:21px;border:0;padding-bottom:0;line-height:1.35}
+  html body .vm-detail-price{font-size:20px}
+  html body .vm-detail-recommendations .vm-reference-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  html body .vm-category-page{padding:22px 14px}
+  html body .vm-category-page .vm-lined-heading{font-size:19px;padding:0 0 12px}
+  html body .vm-reference-footer{padding-top:35px}
+  html body .vm-reference-footer .vm-reference-footer-grid{padding-left:16px;padding-right:16px}
+  html body .vm-catalog-page{padding:22px 14px}
+  html body .vm-cart-page{padding:22px 14px}
+  html body .cart-drawer{border-radius:25px 25px 0 0}
+}
+@media(max-width:360px){
+  html body .vm-trendora-category{min-height:84px}
+  html body .vm-trendora-category-title{font-size:9px}
+  html body .vm-home-intro h1{font-size:25px}
+}
+@media(prefers-reduced-motion:reduce){
+  html body .vm-trendora-category,
+  html body .vm-reference-card,
+  html body .vm-reference-news-card,
+  html body .vm-trendora-see-all{transition:none!important;transform:none!important}
+}
+
+/* Header inner container inherited a black legacy backdrop from reference.css. */
+html body .vm-modern-header .vm-header-main{background:transparent!important;color:var(--vm16-cocoa)}
+
+/* Catalog section heading and demo image placeholders must inherit the light palette. */
+html body .legacy-product-wrapper .section-heading h2{color:#2c2928}
+html body .legacy-product-wrapper .section-heading>p{color:#807c78}
+html body .legacy-product-wrapper .product-art,
+html body .legacy-product-wrapper .product-art-1,
+html body .legacy-product-wrapper .product-art-2,
+html body .legacy-product-wrapper .product-art-3{background:#f5ebff}
+html body .legacy-product-wrapper .product-placeholder{color:#855fac}
+html body .legacy-product-wrapper .placeholder-spark{color:#a968e9;text-shadow:none;opacity:.88}
+html body .legacy-product-wrapper .product-index{color:#9e7b60}
+
+html body .vm-catalog-intro .vm-trendora-eyebrow{margin-bottom:9px}
+html body .vm-catalog-intro h1{margin:0 0 10px;letter-spacing:-.06em;color:#2a2928}
+html body .vm-catalog-preview{display:inline-flex;align-items:center;margin-top:10px;padding:7px 11px;border-radius:999px;background:#f0e4ff;border:1px solid #f2d6b8;color:#7c25bd;font-size:10px;font-weight:690}
+
+/* CP17: shared favorites, merchandising controls and route skeletons.
+ * This extends the existing Trendora design layer instead of adding another CSS cascade file.
+ */
+html body .legacy-product-wrapper .product-card{position:relative;isolation:isolate}
+html body .vm-favorite-button{
+  width:44px;height:44px;min-width:44px;display:inline-grid;place-items:center;
+  flex-shrink:0;border:1px solid #ebe3d9;border-radius:50%;
+  background:#fffffff0;color:#524f4a;cursor:pointer;
+  box-shadow:0 5px 15px #38291b16;transition:transform .18s,color .18s,background .18s;
+}
+html body .vm-favorite-button:hover{background:#e8d5ff;transform:translateY(-2px)}
+html body .vm-favorite-button.is-saved{
+  background:#ede0ff;color:#8d21d2;border-color:#f4c18e;
+}
+html body .vm-favorite-button svg{width:20px;height:20px}
+html body .vm-cp17-card-favorite{
+  position:absolute;top:12px;right:12px;z-index:3;
+  width:44px;height:44px;min-width:44px;
+}
+html body .legacy-product-wrapper .product-card .soldout-tag{left:12px;right:auto;top:12px;border-radius:999px}
+html body .vm-cp17-result-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+html body .vm-cp17-favorites-filter{
+  min-height:44px;display:inline-flex;align-items:center;gap:8px;
+  border-radius:999px;padding:9px 14px;border:1px solid #e9e4dc;
+  background:white;color:#69635c;font-size:12px;font-weight:690;
+}
+html body .vm-cp17-favorites-filter:hover{background:#fff5e9}
+html body .vm-cp17-favorites-filter.is-active{
+  background:#ffd09b;color:#3d2b20;border-color:#efb879;
+}
+html body .vm-cp17-favorites-filter>span:first-child{font-size:19px;line-height:.8}
+html body .vm-cp17-favorites-number{
+  display:grid;place-items:center;min-width:20px;height:20px;
+  padding:0 5px;background:#f5f2ed;border-radius:50%;font-size:10px;color:#6a584b;
+}
+html body .vm-cp17-favorites-filter.is-active .vm-cp17-favorites-number{background:#fff7ed}
+html body .vm-cp17-detail-actions{display:flex;align-items:stretch;gap:10px;margin:16px 0}
+html body .vm-cp17-detail-actions .product-action{flex:1;min-width:0}
+html body .vm-cp17-detail-favorite{width:51px;height:51px;min-width:51px}
+html body .vm-cp17-loading{min-height:64vh;padding-top:52px;padding-bottom:75px}
+html body .vm-cp17-skeleton{
+  background:linear-gradient(110deg,#f1eae1 14%,#fffdf9 33%,#f1eae1 52%);
+  background-size:220% 100%;animation:vm-cp17-shimmer 1.5s ease-in-out infinite;
+  border-radius:16px;
+}
+html body .vm-cp17-skeleton-card{
+  background:white;border:1px solid #ece8e2;border-radius:24px;padding:14px;min-width:0;
+}
+html body .vm-cp17-title{height:37px;width:min(370px,75%);margin-bottom:16px}
+html body .vm-cp17-lead{height:16px;width:min(460px,90%);margin-bottom:36px}
+html body .vm-cp17-filter{height:63px;width:100%;margin-bottom:24px;border-radius:24px}
+html body .vm-cp17-skeleton-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+html body .vm-cp17-image{aspect-ratio:1;height:auto;width:100%;border-radius:20px}
+html body .vm-cp17-line{height:15px;width:86%;margin:15px 0 11px}
+html body .vm-cp17-price{height:18px;width:48%;margin:0 0 13px}
+html body .vm-cp17-detail-grid{display:grid;grid-template-columns:minmax(0,45%) minmax(0,1fr);gap:28px;padding:0 5%;max-width:1500px;margin:auto}
+html body .vm-cp17-detail-image{aspect-ratio:1;width:100%;height:auto;border-radius:29px}
+html body .vm-cp17-detail-copy{padding:30px}
+html body .vm-cp17-detail-copy .vm-cp17-line{width:100%}
+html body .vm-cp17-detail-copy .vm-cp17-button{width:100%;height:52px;margin-top:28px;border-radius:999px}
+@keyframes vm-cp17-shimmer{to{background-position-x:-220%}}
+@media(max-width:1100px){html body .vm-cp17-skeleton-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:767px){
+  html body .vm-cp17-card-favorite{width:44px;height:44px;min-width:44px;top:8px;right:8px}
+  html body .vm-cp17-result-actions{width:100%;justify-content:flex-start}
+  html body .vm-cp17-favorites-filter{min-height:44px}
+  html body .vm-cp17-skeleton-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+  html body .vm-cp17-skeleton-card{padding:8px;border-radius:18px}
+  html body .vm-cp17-loading{padding:28px 14px 85px}
+  html body .vm-cp17-detail-grid{display:grid;grid-template-columns:1fr;gap:15px;padding:0}
+  html body .vm-cp17-detail-image{border-radius:24px}
+  html body .vm-cp17-detail-copy{padding:20px}
+}
+@media(prefers-reduced-motion:reduce){
+  html body .vm-cp17-skeleton{animation:none;background:#f1eae1}
+  html body .vm-favorite-button{transition:none}
+}
+
+/* Keep demo product detail and catalog thumbnail placeholders consistent. */
+html body .vm-demo-detail .vm-cp17-demo-placeholder{
+  display:grid;place-items:center;min-height:280px;background:#f0e6fb;border:5px solid white;
+}
+html body .vm-cp17-demo-placeholder-inner{display:flex;align-items:center;flex-direction:column;gap:15px;color:#99755a;text-align:center}
+html body .vm-cp17-demo-placeholder-inner>span{font-size:clamp(88px,13vw,145px);line-height:1;color:#a765e9}
+html body .vm-cp17-demo-placeholder-inner>strong{font-size:13px;letter-spacing:.28em}
+html body .vm-cp17-demo-placeholder-inner>small{font-size:11px;color:#ac8e77;letter-spacing:.08em}
+
+/* CP18: Actual supplied identity, purple brand palette, hero-first layout. */
+:root {
+ --vm-brand-purple:#8310e8; --vm-brand-purple-dark:#6500bc;
+ --vm-brand-purple-soft:#f1e6ff; --vm16-accent:#8618ed;
+ --vm16-accent-strong:#7500d3; --vm16-tint:#f5eeff;
+}
+html body .vm-modern-header .legacy-logo{width:clamp(154px,15vw,205px);flex:0 0 auto;}
+html body .vm-modern-header .legacy-logo img{
+  width:100%;max-width:205px;height:auto;filter:none!important;opacity:1;object-fit:contain;
+}
+html body .vm-reference-footer .vm-footer-intro>img,
+html body .vm-reference-footer .vm-footer-powered img{filter:none!important;opacity:1;object-fit:contain}
+html body .vm-reference-footer .vm-footer-intro>img{width:188px;height:auto}
+html body .vm-reference-footer .vm-footer-powered img{width:115px;height:auto}
+html body .vm-trendora-home .vm-trendora-hero.vm-hero-stage{
+  padding-top:clamp(10px,2vw,20px);
+  background:radial-gradient(ellipse at 20% 10%,#a34ae81b,transparent 42%);
+}
+html body .vm-trendora-home .vm-trendora-categories{margin-top:24px}
+html body .vm-desktop-links a.is-active,
+html body .legacy-mobile-nav.vm-modern-mobile-nav a.is-active,
+html body .legacy-product-wrapper .category.active{background:#ead4ff;color:#542081}
+html body .vm-modern-header .vm-reference-login,
+html body .vm-header-pill-search button,
+html body .legacy-product-wrapper .add-circle,
+html body .vm-trendora-member-link,
+html body .vm-cart-primary{background:#8416ea;color:white;border-color:#8416ea}
+html body .vm-trendora-member{background:#e9d6ff}
+html body .vm-trendora-member h2{color:#211c29}
+html body .vm-trendora-member p{color:#66547a}
+html body .vm-trendora-member-mark{color:#b779f4}
+html body .vm-trendora-see-all:hover,
+html body .vm-trendora-category:hover{background:#f7f0ff;border-color:#d5b2f6}
+html body .vm-favorite-button.is-saved{color:#7910d6;background:#f1e5ff;border-color:#d7b9f1}
+html body .vm-cp17-favorites-filter.is-active{color:#5f1a9c;background:#e9d3ff;border-color:#c999f4}
+html body .vm-catalog-preview{background:#f2e8ff;border-color:#ddc5fa;color:#7322ad}
+html body .vm-hero-stage .vm-carousel-dots button.is-active span{background:#8921dc}
+html body .vm-hero-stage .vm-carousel-arrow:hover{background:#e9d5fc;color:#6020a1}
+html body .vm-reference-price{color:#7318c2}
+html body .vm-reference-footer .vm-footer-social span{background:#e5ceff;color:#5b178e}
+html body .vm-detail-price strong{color:#7417c9}
+html body .vm-demo-detail .vm-cp17-demo-placeholder{background:#eee1ff}
+html body .legacy-product-wrapper .product-art{background:#f0e7fb}
+@media(max-width:767px){
+ html body .vm-modern-header .legacy-logo{width:147px;flex:0 0 auto}
+ html body .vm-modern-header .legacy-logo img{width:147px;height:auto;max-width:147px;filter:none!important}
+ html body .vm-trendora-hero.vm-hero-stage{padding-top:10px}
+ html body .vm-trendora-categories{margin-top:18px}
+}
+
+/* === CP19: full-bleed mobile hero, authentic partner logos, liquid glass nav ===
+   Preserves original Vapmart banner artwork and read-only commerce gates. */
+:root{
+  --vm19-purple:#8310e8;
+  --vm19-deep:#6800c3;
+  --vm19-lilac:#ede0ff;
+  --vm19-edge:rgba(255,255,255,.84);
+}
+/* True source logo on dark inset; most WordPress partner wordmarks are white.
+   Do not invert, filter, replace or distort any original partner asset. */
+html body .vm-trendora-brands .vm-brand-rail{position:relative;padding-bottom:52px;min-width:0}
+html body .vm-trendora-brands .vm-brand-rail .vm-brand-logos{
+  display:flex;flex-wrap:nowrap;gap:13px;align-items:stretch;
+  overflow-x:auto;overscroll-behavior-inline:contain;
+  scroll-snap-type:x mandatory;scroll-padding-inline:2px;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;padding:4px 2px 10px;
+}
+html body .vm-trendora-brands .vm-brand-rail .vm-brand-logos::-webkit-scrollbar{display:none}
+html body .vm-trendora-brands .vm-brand-rail .vm-brand-card{
+  box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-start;
+  align-items:stretch;gap:8px;flex:0 0 161px;width:161px;min-width:0;
+  height:137px;min-height:137px;padding:8px;border:1px solid #e8e1ef;
+  background:#fff;border-radius:23px;
+  box-shadow:0 7px 26px #442a6910;
+  scroll-snap-align:start;overflow:hidden;
+}
+html body .vm-brand-card .vm-brand-stage{
+  display:flex;align-items:center;justify-content:center;
+  box-sizing:border-box;position:relative;min-width:0;flex:1 1 auto;
+  background:#18131f;border:1px solid #2e243a;border-radius:16px;overflow:hidden;
+}
+html body .vm-brand-card .vm-brand-stage img{
+  width:90%!important;height:87%!important;max-width:90%!important;
+  max-height:87%!important;object-fit:contain!important;
+  display:block;filter:none!important;mix-blend-mode:normal;
+}
+html body .vm-brand-card .vm-brand-name{
+  display:block;flex:0 0 auto;color:#45404a!important;
+  font-size:11px!important;font-weight:700;line-height:1.25;
+  text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+html body .vm-brand-rail .vm-brand-card:hover{
+  transform:translateY(-3px);background:#fbf8ff;
+  border-color:#c6a4f5;box-shadow:0 12px 28px #6f35a41a;
+}
+html body .vm-brand-controls{position:absolute;right:0;bottom:0;display:flex;gap:9px}
+html body .vm-brand-controls button{
+  width:44px;height:44px;display:grid;place-items:center;
+  background:#fff;color:#6620ad;border:1px solid #ddcdf2;
+  border-radius:50%;font-size:27px;line-height:1;
+  box-shadow:0 4px 14px #4a2b6912;cursor:pointer;
+}
+html body .vm-brand-controls button:hover:not(:disabled){background:#ead8ff;border-color:#a975e3}
+html body .vm-brand-controls button:disabled{opacity:.4;cursor:default;box-shadow:none}
+/* Brand directory is a separate scannable grid rather than repeated generic chips. */
+html body .vm-brand-page.vm-partner-page .vm-partner-intro{max-width:760px}
+html body .vm-brand-page.vm-partner-page .vm-partner-intro .vm-trendora-eyebrow{margin:14px 0 8px}
+html body .vm-brand-page.vm-partner-page .vm-partner-intro h1{
+  margin:0 0 9px;font-size:clamp(25px,3vw,36px);
+  letter-spacing:-.05em;color:#27232d;
+}
+html body .vm-brand-page.vm-partner-page .vm-partner-intro p{
+  margin:0;color:#7a7482;font-size:13px;line-height:1.75;
+}
+html body .vm-brand-page.vm-partner-page .vm-partner-logos{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:16px;margin:25px 0 43px;
+}
+html body .vm-brand-page.vm-partner-page .vm-partner-logos .vm-partner-card{
+  box-sizing:border-box;display:flex;align-items:stretch;justify-content:flex-start;
+  flex-direction:column;gap:10px;min-width:0;min-height:155px;
+  height:auto;padding:10px;border-radius:24px;
+  background:white;border:1px solid #eae4ef;
+  box-shadow:0 9px 28px #4527680c;scroll-margin-top:96px;
+}
+html body .vm-brand-page.vm-partner-page .vm-partner-logos .vm-brand-stage{height:110px;flex:1 1 110px}
+html body .vm-brand-page.vm-partner-page .vm-partner-logos .vm-brand-name{font-size:12px!important;color:#453d4f!important}
+html body .vm-brand-page.vm-partner-page .vm-partner-card:target{
+  border-color:#a46bef;box-shadow:0 0 0 3px #b886f02c,0 9px 28px #45276815;
+}
+html body .vm-brand-page.vm-partner-page .vm-lined-heading{color:#292630}
+/* Shared navigation, filter, form, modal and cart visual feedback. */
+html body .vm-desktop-links a,
+html body .vm-trendora-category,
+html body .vm-trendora-see-all,
+html body .vm-brand-controls button,
+html body .vm-member-actions a,
+html body .vm-account-tabs span,
+html body .vm-reference-cart,
+html body .vm-header-pill-search button{
+  transition:background .24s ease,color .24s ease,border-color .24s ease,
+             transform .24s cubic-bezier(.22,1,.36,1),box-shadow .24s ease;
+}
+html body .vm-desktop-links a.is-active{
+  background:var(--vm19-purple);color:#fff;
+  box-shadow:0 4px 12px #7316ca37;
+}
+html body .vm-desktop-links a:hover:not(.is-active){background:#f0e5ff;color:#6819b1}
+html body .vm-desktop-links a:active,
+html body .vm-trendora-category:active,
+html body .vm-trendora-see-all:active,
+html body .vm-brand-controls button:active:not(:disabled){transform:scale(.97)}
+html body .vm-trendora-category:focus-visible,
+html body .vm-brand-card:focus-visible,
+html body .vm-modern-header a:focus-visible,
+html body .vm-brand-controls button:focus-visible,
+html body .vm-modern-mobile-nav a:focus-visible{
+  outline:2px solid #8b21e1;outline-offset:3px;
+}
+html body .vm-modern-header .vm-search-disclosure[open] summary{
+  border-color:#a768e8;background:#f0e5ff;color:#6a1bb8;
+}
+html body .vm-modern-header .vm-search-disclosure form{
+  z-index:65;box-shadow:0 16px 35px #36214c28;
+}
+html body .vm-modern-header .vm-reference-cart:focus-visible{outline:2px solid #8310e8;outline-offset:3px}
+html body .vm-modern-header .vm-reference-cart .cart-count{
+  background:#8310e8;color:white;border-color:white;
+}
+html body .legacy-product-wrapper .category:hover:not(.active),
+html body .legacy-product-wrapper .vm-reset-filters:hover,
+html body .vm-cp17-favorites-filter:hover:not(.is-active){
+  background:#f2e8ff;border-color:#ca9ef1;color:#5f198f;
+}
+html body .legacy-product-wrapper .category.active,
+html body .vm-cp17-favorites-filter.is-active{
+  color:#fff;background:var(--vm19-purple);border-color:var(--vm19-purple);
+}
+html body .vm-cp17-favorites-filter.is-active .vm-cp17-favorites-number{color:#6b23b6}
+html body .vm-member-actions a:hover,
+html body .vm-account-links a:hover,
+html body .vm-cart-continue:hover{filter:brightness(.93)}
+html body .vm-view-cart-link:hover{background:#e8d4ff}
+html body .cart-drawer{z-index:120}
+html body .drawer-shell{z-index:115}
+/* Liquid glass navigation: frosted optical depth and one sliding, solid-purple active pill. */
+@media(max-width:1100px){
+  html body .vm-modern-header .vm-search-disclosure summary{cursor:pointer}
+}
+@media(max-width:1024px) and (min-width:768px){
+  html body .vm-brand-page.vm-partner-page .vm-partner-logos{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:767px){
+  html body{padding-bottom:calc(102px + env(safe-area-inset-bottom))}
+  /* Flush the carousel artwork to both screen edges. No card margin/radius/frame. */
+  html body .vm-trendora-home .vm-trendora-hero.vm-hero-stage{
+    width:100%;max-width:none;margin:0;padding:0!important;border:0;background:none;
+    border-radius:0;box-shadow:none;
+  }
+  html body .vm-trendora-home .vm-trendora-hero .vm-original-banner{
+    box-sizing:border-box;width:100%!important;max-width:none!important;
+    margin:0!important;padding:0!important;border:0!important;border-radius:0!important;
+  }
+  html body .vm-trendora-home .vm-trendora-hero .vm-carousel-shell{
+    box-sizing:border-box;width:100%;max-width:none;
+    aspect-ratio:1024/448;height:auto;
+    border:0!important;border-radius:0!important;
+    margin:0!important;box-shadow:none!important;outline:0;
+  }
+  html body .vm-trendora-home .vm-trendora-hero .vm-carousel-slide,
+  html body .vm-trendora-home .vm-trendora-hero .vm-carousel-track{border-radius:0}
+  html body .vm-trendora-home .vm-trendora-hero .vm-carousel-slide img{
+    display:block;width:100%;height:100%;object-fit:cover;
+  }
+  html body .vm-trendora-home .vm-trendora-hero .vm-carousel-arrow{
+    width:44px;height:44px;font-size:29px;
+    background:#fffdf6db;color:#44215c;border-color:#ffffffbd;
+    backdrop-filter:blur(12px) saturate(160%);
+    -webkit-backdrop-filter:blur(12px) saturate(160%);
+  }
+  html body .vm-trendora-home .vm-trendora-hero .vm-carousel-previous{left:8px}
+  html body .vm-trendora-home .vm-trendora-hero .vm-carousel-next{right:8px}
+  html body .vm-trendora-home .vm-trendora-hero .vm-carousel-pause{
+    bottom:9px;right:10px;width:36px;height:36px;
+  }
+  html body .vm-trendora-home .vm-trendora-categories{margin-top:20px}
+  /* Keep the logo and tap controls readable even on a 360px screen. */
+  html body .vm-modern-header .vm-header-main{gap:8px}
+  html body .vm-modern-header .vm-search-disclosure summary,
+  html body .vm-modern-header .vm-reference-cart{min-width:44px;width:44px;height:44px}
+  html body .vm-modern-header.vm-subpage .vm-subpage-back{width:40px;height:40px;min-width:40px}
+  /* Single glass plate. Never put a second active fill behind the sliding pill. */
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav{
+    --vm-liquid-padding:7px;
+    display:flex;align-items:center;justify-content:stretch;gap:0;
+    box-sizing:border-box;isolation:isolate;overflow:hidden;
+    position:fixed;left:12px;right:12px;bottom:max(10px,env(safe-area-inset-bottom));
+    width:auto;height:75px;min-height:75px;padding:var(--vm-liquid-padding);
+    border:1px solid rgba(255,255,255,.8);
+    border-radius:999px;
+    background:rgba(245,240,254,.60);
+    color:#5a5365;
+    backdrop-filter:blur(27px) saturate(185%) brightness(1.08);
+    -webkit-backdrop-filter:blur(27px) saturate(185%) brightness(1.08);
+    box-shadow:0 16px 34px #3823572a,inset 0 2px 2px #ffffffdb,
+               inset 0 -1px 5px #8970af20,0 0 0 1px #7e56a318;
+    z-index:42;
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav::before{
+    content:"";position:absolute;inset:1px 9px auto;height:48%;
+    border-radius:999px;pointer-events:none;z-index:0;
+    background:linear-gradient(180deg,rgba(255,255,255,.62),rgba(255,255,255,0));
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav .vm-liquid-active-pill{
+    position:absolute;z-index:1;pointer-events:none;
+    left:var(--vm-liquid-padding);top:7px;bottom:7px;
+    width:calc(20% - 2.8px);
+    height:auto;border-radius:999px;
+    background:#8310e8;
+    border:1px solid #a75bff85;
+    box-shadow:0 7px 19px #6628bb40,inset 0 1px 2px #ffffff55,
+               inset 0 -3px 6px #46007f4a;
+    transform:translate3d(var(--vm-active-offset,0%),0,0);
+    transition:transform 560ms cubic-bezier(.16,1,.3,1),
+               box-shadow 400ms ease;
+    will-change:transform;
+  }
+  html body .vm-liquid-active-pill::before{
+    content:"";position:absolute;left:13%;right:13%;top:4px;height:41%;
+    border-radius:99px 99px 50% 50%;
+    background:linear-gradient(to bottom,#ffffff38,transparent);
+    filter:blur(1px);
+  }
+  html body .vm-liquid-active-pill::after{
+    content:"";position:absolute;left:15%;right:15%;bottom:5px;height:2px;
+    border-radius:20px;background:#dcb5ff70;filter:blur(2px);
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a{
+    z-index:2;position:relative;flex:1 1 0;min-width:0;
+    height:59px;min-height:59px;box-sizing:border-box;
+    padding:5px 1px;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:3px;white-space:nowrap;
+    color:#645b6d;background:transparent!important;border:0;
+    border-radius:999px;box-shadow:none!important;
+    font-weight:550;line-height:1.16;
+    transition:color 320ms ease,transform 440ms cubic-bezier(.16,1,.3,1);
+    -webkit-tap-highlight-color:transparent;
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a.is-active{
+    color:#fff!important;background:transparent!important;
+    box-shadow:none!important;font-weight:750;
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a:active{
+    transform:scale(.95);
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a svg{
+    width:21px;height:21px;flex:none;
+    transition:transform 480ms cubic-bezier(.2,.92,.2,1);
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a.is-active svg{
+    transform:translateY(-1px) scale(1.08);
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a>span{
+    color:inherit!important;font-size:10px!important;
+    line-height:1.15!important;font-weight:inherit;letter-spacing:-.012em;
+  }
+  html body .vm-mobile-cart-count{
+    z-index:3;top:0;right:6px;border:1px solid white;
+    background:#7900d3;color:white;
+  }
+  /* All five menus, including Cart, are real destinations. */
+  html body .vm-trendora-brands .vm-brand-rail .vm-brand-card{
+    flex-basis:139px;width:139px;height:130px;min-height:130px;padding:7px;border-radius:19px;
+  }
+  html body .vm-brand-card .vm-brand-stage{border-radius:13px}
+  html body .vm-trendora-brands .vm-brand-rail{padding-bottom:51px}
+  html body .vm-brand-page.vm-partner-page .vm-partner-logos{
+    grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;
+  }
+  html body .vm-brand-page.vm-partner-page .vm-partner-logos .vm-partner-card{
+    min-height:142px;padding:8px;border-radius:19px;
+  }
+  html body .vm-brand-page.vm-partner-page .vm-partner-logos .vm-brand-stage{height:103px;flex-basis:103px}
+}
+@supports not ((backdrop-filter:blur(8px)) or (-webkit-backdrop-filter:blur(8px))){
+  @media(max-width:767px){
+    html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav{
+      background:rgba(250,246,255,.96);
+    }
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav .vm-liquid-active-pill,
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a,
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a svg,
+  html body .vm-brand-card,html body .vm-brand-controls button{
+    transition:none!important;animation:none!important;
+  }
+  html body .vm-brand-rail .vm-brand-logos{scroll-behavior:auto!important}
+}

@@ -1,0 +1,102 @@
+/* Vapmart CP24 - official logo, two colorways, zero opaque logo plates.
+   The source PNG is palette-recolored without changing its original alpha.
+   Keep the original purple symbol and white checkmark in both modes. */
+html body .vm24-brand-logo{
+  position:relative;
+  display:block;
+  width:100%;
+  max-width:100%;
+  height:auto;
+  aspect-ratio:400 / 79;
+  overflow:visible;
+  flex-shrink:0;
+  background:transparent!important;
+  box-shadow:none!important;
+  border:0!important;
+  border-radius:0!important;
+  padding:0!important;
+}
+html body .vm24-brand-logo > .vm24-logo-light,
+html body .vm24-brand-logo > .vm24-logo-dark{
+  position:absolute;
+  inset:0;
+  box-sizing:border-box;
+  display:block;
+  width:100%!important;
+  max-width:100%!important;
+  height:100%!important;
+  padding:0!important;
+  margin:0!important;
+  object-fit:contain;
+  filter:none!important;
+  opacity:1!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+}
+/* Strong enough to beat older direct image selectors inside the header. */
+html body .vm24-brand-logo > .vm24-logo-light{display:block!important}
+html body .vm24-brand-logo > .vm24-logo-dark{display:none!important}
+html[data-vapmart-color-mode="dark"] body .vm24-brand-logo > .vm24-logo-light{display:none!important}
+html[data-vapmart-color-mode="dark"] body .vm24-brand-logo > .vm24-logo-dark{display:block!important}
+
+/* Remove the CP23 white block around header logo, retain position and width.
+   Header uses the existing fixed desktop/mobile logo slot. */
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .legacy-logo{
+  background:transparent!important;
+  border:0!important;
+  padding:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+html body .vm-modern-header .legacy-logo > .vm24-brand-logo{
+  width:100%;
+  max-width:100%;
+}
+html body .vm-modern-header .legacy-logo .vm24-brand-logo > img{
+  width:100%!important;
+  max-width:100%!important;
+  height:100%!important;
+  filter:none!important;
+  opacity:1!important;
+}
+
+/* Restore footer sizing from the original <img> elements, and keep both
+   variants transparent. Applies to the primary footer and Powered by logo. */
+html body .vm-reference-footer .vm-footer-intro > .vm24-brand-logo{
+  display:block;
+  width:188px;
+  max-width:100%;
+  height:auto;
+  margin:2px 0 10px;
+}
+html body .vm-reference-footer .vm-footer-powered > .vm24-brand-logo{
+  display:block;
+  width:115px;
+  max-width:100%;
+  height:auto;
+  margin:0;
+}
+html[data-vapmart-color-mode="dark"] body .vm-reference-footer .vm-footer-intro > .vm24-brand-logo,
+html[data-vapmart-color-mode="dark"] body .vm-reference-footer .vm-footer-powered > .vm24-brand-logo{
+  background:transparent!important;
+  border:0!important;
+  padding:0!important;
+  box-shadow:none!important;
+  border-radius:0!important;
+}
+html body .vm-reference-footer .vm24-brand-logo > img{
+  background:transparent!important;
+  border:0!important;
+  padding:0!important;
+  filter:none!important;
+  opacity:1!important;
+}
+
+/* No layout shift: both images have identical 400:79 intrinsic dimensions.
+   The system theme is already resolved by CP23's pre-hydration script. */
+@media(max-width:767px){
+  html body .vm-modern-header .legacy-logo > .vm24-brand-logo{width:100%}
+  html body .vm-reference-footer .vm-footer-intro > .vm24-brand-logo{width:188px}
+  html body .vm-reference-footer .vm-footer-powered > .vm24-brand-logo{width:115px}
+}
