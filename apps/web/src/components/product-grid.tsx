@@ -12,10 +12,10 @@ function ProductCard({product,index}:{product:Product;index:number}){
   return <article className="product-card"><Link href={`/product/${product.slug}`} className={`product-art product-art-${index%4}`} aria-label={`Lihat ${product.name}`}>
     {product.image_url?<img src={product.image_url} alt={product.name} loading="lazy" decoding="async" />:<div className="product-placeholder"><span className="placeholder-spark">✦</span><span>VAPMART OBJECTS</span></div>}
     <span className="product-index">VM / {String(index+1).padStart(2,'0')}</span>{soldOut&&<span className="soldout-tag">Stok habis</span>}
-  </Link><FavoriteButton id={product.id} name={product.name} className="vm-cp17-card-favorite"/><div className="product-description"><div className="product-copy"><p className="eyebrow">{product.category}{product.sku?` · SKU ${product.sku}`:''}</p><Link href={`/product/${product.slug}`}><h3>{product.name}</h3></Link><strong>{formatIDR(product.price_idr)}</strong></div><button type="button" disabled={soldOut} onClick={()=>add(product)} className="add-circle" aria-label={`Tambahkan ${product.name} ke keranjang`}>+</button></div></article>;
+  </Link><FavoriteButton id={product.id} name={product.name} className="vm-cp17-card-favorite"/><div className="product-description"><div className="product-copy"><p className="eyebrow">{product.brand_name?product.brand_name+' · ':''}{product.category}{product.sku?` · SKU ${product.sku}`:''}</p><Link href={`/product/${product.slug}`}><h3>{product.name}</h3></Link><strong>{formatIDR(product.price_idr)}</strong></div><button type="button" disabled={soldOut} onClick={()=>add(product)} className="add-circle" aria-label={`Tambahkan ${product.name} ke keranjang`}>+</button></div></article>;
 }
 const normalize=(value:string)=>value.toLocaleLowerCase('id-ID').trim();
-const match=(p:Product,query:string)=>normalize([p.name,p.sku??'',p.description,p.category].join(' ')).includes(query);
+const match=(p:Product,query:string)=>normalize([p.name,p.sku??'',p.brand_name??'',p.description,p.category].join(' ')).includes(query);
 export function ProductGrid({products,initialCategory='all',initialTerm=''}:{products:Product[];initialCategory?:string;initialTerm?:string}){
   const [category,setCategory]=useState(initialCategory);
   const [term,setTerm]=useState(initialTerm);
@@ -43,7 +43,7 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
     if(event.key==='ArrowUp'){event.preventDefault();setShowSuggestions(true);setActiveSuggestion(n=>(n-1+suggestions.length)%suggestions.length);}
     if(event.key==='Enter'&&showSuggestions&&activeSuggestion>=0){event.preventDefault();pick(suggestions[activeSuggestion]!);}
   };
-  return <section className="shop-section" id="shop"><div className="section-heading"><div><p className="eyebrow">KATALOG PENGUJIAN</p><h2>Produk Pilihan</h2></div><p>Cari produk, gunakan filter kategori, dan simpan favorit. Checkout belum tersedia.</p></div>
+  return <section className="shop-section" id="shop"><div className="section-heading"><div><p className="eyebrow">KATALOG PENGUJIAN</p><h2>Produk Pilihan</h2></div><p>Cari produk, gunakan filter kategori, dan simpan favorit. Checkout dapat menyimpan draft. Pembayaran belum aktif.</p></div>
     <div className="shop-toolbar"><div className="category-scroller" role="group" aria-label="Filter kategori">{categories.map(c=><button type="button" key={c.value} className={category===c.value?'category active':'category'} onClick={()=>{setCategory(c.value);setShowSuggestions(false)}} aria-pressed={category===c.value}>{c.label}</button>)}</div>
       <div className="shop-controls">
         <div className="vm-search-combobox">

@@ -2,8 +2,10 @@
 import Link from 'next/link';
 import {useEffect,useRef,useState} from 'react';
 import {brandPartners} from '@/lib/merchandising';
+import type {ActiveBrand} from '@/lib/api';
 
-export function BrandRail(){
+export function BrandRail({brands=[]}:{brands?:ActiveBrand[]}){
+  const partners=brands.length>0?brands.map(b=>({slug:b.slug,name:b.name,image:b.logo_url||''})):brandPartners;
   const railRef=useRef<HTMLDivElement>(null);
   const [canPrev,setCanPrev]=useState(false);
   const [canNext,setCanNext]=useState(false);
@@ -30,11 +32,11 @@ export function BrandRail(){
   };
   return <div className="vm-brand-rail">
     <div ref={railRef} className="vm-brand-logos" role="group" aria-label="Logo Brand Partner Vapmart">
-      {brandPartners.map(brand=><Link href={'/brand-partner#brand-'+brand.slug}
+      {partners.map(brand=><Link href={'/brand-partner#brand-'+brand.slug}
         className="vm-brand-logo vm-brand-card" key={brand.slug}
         aria-label={'Lihat logo '+brand.name+' di Brand Partner'}>
         <span className="vm-brand-stage">
-          <img src={brand.image} alt={'Logo '+brand.name} width={400} height={400} loading="lazy" decoding="async"/>
+          {brand.image?<img src={brand.image} alt={'Logo '+brand.name} width={400} height={400} loading="lazy" decoding="async"/>:<span style={{fontWeight:800,fontSize:28,color:'#7f2dc4'}}>{brand.name.slice(0,2).toUpperCase()}</span>}
         </span>
         <span className="vm-brand-name">{brand.name}</span>
       </Link>)}
