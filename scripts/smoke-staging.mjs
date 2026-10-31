@@ -124,9 +124,15 @@ for(const [key,response] of Object.entries({adminBrandsAnon,adminOrdersAnon,webA
 assert.equal(invalidQuote.status,400,'empty cart cannot be quoted');
 const quoteProduct=catalog.data.items.find(product=>product.stock_qty>0);
 if(quoteProduct){
- const serverQuote=await request(API+'/v1/checkout/quote',{method:'POST',
-   headers:{'content-type':'application/json'},body:JSON.stringify({items:[{productId:quoteProduct.id,quantity:1}]})});
- assert.equal(serverQuote.status,200);
+ let serverQuote;
+ for(let attempt=1;attempt<=36;attempt++){
+   serverQuote=await request(API+'/v1/checkout/quote',{method:'POST',
+     headers:{'content-type':'application/json'},body:JSON.stringify({items:[{productId:quoteProduct.id,quantity:1}]})});
+   if(serverQuote.status===200)break;
+   console.log('Waiting for CP26 quote HTTP 200 API rollout',attempt,serverQuote.status);
+   if(attempt<36)await sleep(SLEEP_MS);
+ }
+ assert.equal(serverQuote.status,200,'server quote must return HTTP 200 after the new API deploy');
  assert.equal(serverQuote.data?.subtotalIdr,quoteProduct.price_idr,'unit price must come from server-side catalog');
  assert.equal(serverQuote.data?.paymentEnabled,false,'quote may not enable payment');
  assert.equal(serverQuote.data?.items?.[0]?.stockQty,quoteProduct.stock_qty);
