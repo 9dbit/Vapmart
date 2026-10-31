@@ -8,6 +8,9 @@ export interface Product {
   id: string;
   slug: string;
   sku: string | null;
+  brand_id: string | null;
+  brand_name?: string | null;
+  gallery_urls: string[];
   name: string;
   description: string;
   category: Category;
@@ -28,7 +31,7 @@ function asObject(body: unknown): Payload {
 
 export function cleanProduct(body: unknown, partial = false): Partial<Product> {
   const input = asObject(body);
-  const allowed = ['slug', 'sku', 'name', 'description', 'category', 'price_idr', 'stock_qty', 'image_url', 'is_active'];
+  const allowed = ['slug', 'sku', 'name', 'description', 'category', 'price_idr', 'stock_qty', 'image_url', 'is_active', 'brand_id', 'gallery_urls'];
   if (Object.keys(input).some(k => !allowed.includes(k))) {
     throw new BadRequestException('Unknown product field');
   }
@@ -84,6 +87,20 @@ export function cleanProduct(body: unknown, partial = false): Partial<Product> {
       out.image_url = url;
     }
   }
+  if ('brand_id' in input) {
+    if(input.brand_id===null)out.brand_id=null;
+    else if(typeof input.brand_id!=='string'||!/^[0-9a-f-]{36}$/i.test(input.brand_id))
+      throw new BadRequestException('Invalid brand ID');
+    else out.brand_id=input.brand_id;
+  }
+  if ('gallery_urls' in input) {
+    if(!Array.isArray(input.gallery_urls)||input.gallery_urls.length>8||
+      input.gallery_urls.some(u=>typeof u!=='string'||u.length>600||!/^https:\/\//i.test(u)))
+      throw new BadRequestException('Invalid image gallery (maximum 8 HTTPS photos)');
+    if(new Set(input.gallery_urls).size!==input.gallery_urls.length)
+      throw new BadRequestException('Duplicate gallery image');
+    out.gallery_urls=input.gallery_urls;
+  }
   if ('is_active' in input) {
     if (typeof input.is_active !== 'boolean') throw new BadRequestException('Invalid is_active');
     out.is_active = input.is_active;
@@ -103,7 +120,7 @@ export class ProductsService {
     // A new installation has no invented products or unsafe placeholder orders.
     if (!this.db.configured) return [];
     const result = await this.db.query<Product>(
-      'SELECT id, sku, slug, name, description, category, price_idr::integer AS price_idr, stock_qty, image_url, is_active FROM product.products WHERE is_active = true ORDER BY created_at DESC LIMIT 48'
+      'SELECT p.id, p.sku, p.slug, p.brand_id, b.name AS brand_name, p.gallery_urls, p.name, p.description, p.category, p.price_idr::integer AS price_idr, p.stock_qty, p.image_url, p.is_active FROM product.products p LEFT JOIN product.brands b ON p.brand_id=b.id WHERE p.is_active = true ORDER BY p.created_at DESC LIMIT 48'
     );
     return result.rows;
   }
@@ -111,7 +128,7 @@ export class ProductsService {
   async bySlug(slug: string): Promise<Product> {
     if (!this.db.configured) throw new NotFoundException('Product not found');
     const result = await this.db.query<Product>(
-      'SELECT id, sku, slug, name, description, category, price_idr::integer AS price_idr, stock_qty, image_url, is_active FROM product.products WHERE slug = $1 AND is_active = true',
+      'SELECT p.id, p.sku, p.slug, p.brand_id, b.name AS brand_name, p.gallery_urls, p.name, p.description, p.category, p.price_idr::integer AS price_idr, p.stock_qty, p.image_url, p.is_active FROM product.products p LEFT JOIN product.brands b ON p.brand_id=b.id WHERE p.slug = $1 AND p.is_active = true',
       [slug]
     );
     if (!result.rows[0]) throw new NotFoundException('Product not found');
@@ -120,7 +137,7 @@ export class ProductsService {
 
   async listAdmin(): Promise<Product[]> {
     const result = await this.db.query<Product>(
-      'SELECT id, sku, slug, name, description, category, price_idr::integer AS price_idr, stock_qty, image_url, is_active FROM product.products ORDER BY updated_at DESC LIMIT 150'
+      'SELECT p.id, p.sku, p.slug, p.brand_id, b.name AS brand_name, p.gallery_urls, p.name, p.description, p.category, p.price_idr::integer AS price_idr, p.stock_qty, p.image_url, p.is_active FROM product.products p LEFT JOIN product.brands b ON p.brand_id=b.id ORDER BY p.updated_at DESC LIMIT 150'
     );
     return result.rows;
   }
@@ -129,7 +146,7 @@ export class ProductsService {
     const product = cleanProduct(body);
     const columns = Object.keys(product);
     const result = await this.db.query<Product>(
-      `INSERT INTO product.products (${columns.join(', ')}) VALUES (${columns.map((_, index) => '$' + (index + 1)).join(', ')}) RETURNING id, sku, slug, name, description, category, price_idr::integer AS price_idr, stock_qty, image_url, is_active`,
+      `INSERT INTO product.products (${columns.join(', ')}) VALUES (${columns.map((_, index) => '$' + (index + 1)).join(', ')}) RETURNING id, sku, slug, brand_id, gallery_urls, name, description, category, price_idr::integer AS price_idr, stock_qty, image_url, is_active`,
       columns.map(key => (product as Record<string, unknown>)[key])
     );
     return result.rows[0];
@@ -141,7 +158,7 @@ export class ProductsService {
     const columns = Object.keys(product);
     if (!columns.length) throw new BadRequestException('No changes supplied');
     const result = await this.db.query<Product>(
-      `UPDATE product.products SET ${columns.map((key, index) => key + ' = $' + (index + 1)).join(', ')}, updated_at = now() WHERE id = $${columns.length + 1} RETURNING id, sku, slug, name, description, category, price_idr::integer AS price_idr, stock_qty, image_url, is_active`,
+      `UPDATE product.products SET ${columns.map((key, index) => key + ' = $' + (index + 1)).join(', ')}, updated_at = now() WHERE id = $${columns.length + 1} RETURNING id, sku, slug, brand_id, gallery_urls, name, description, category, price_idr::integer AS price_idr, stock_qty, image_url, is_active`,
       [...columns.map(key => (product as Record<string, unknown>)[key]), id]
     );
     if (!result.rows[0]) throw new NotFoundException('Product not found');
