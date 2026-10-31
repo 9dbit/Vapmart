@@ -1,7 +1,7 @@
 name: Foundation checks
 on:
   push:
-    branches: [main, feat/ecommerce-foundation-20261029]
+    branches: [main, feat/ecommerce-foundation-20261029, feat/admin-checkout-workflow-20261031]
   pull_request:
     branches: [main]
 jobs:
