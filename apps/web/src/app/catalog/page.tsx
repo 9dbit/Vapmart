@@ -15,7 +15,7 @@ export default async function CatalogPage({searchParams}:{searchParams:Promise<{
       <span className="vm-trendora-eyebrow">DISCOVER VAPMART</span>
       <h1>Explore the catalog.</h1>
       <p>Jelajahi pilihan produk, cari berdasarkan nama atau SKU, lalu saring menurut kategori.</p>
-      <span className="vm-catalog-preview">Preview staging · Checkout belum tersedia</span>
+      <span className="vm-catalog-preview">Checkout tersedia untuk meninjau pesanan · Gateway pembayaran belum aktif</span>
     </div>
     <ProductGrid products={products} initialTerm={q} initialCategory={allowed.includes(category)?category:'all'}/>
   </main>;

@@ -52,7 +52,7 @@ export function CustomerAuthPanel(){
      <h1>Selamat datang kembali.</h1>
      <p>{auth.user.email}</p>
      <div className="vm21-auth-actions">
-       <Link href={safeNext} className="vm21-primary">Buka Member Card <span aria-hidden="true">↗</span></Link>
+       <Link href={safeNext} className="vm21-primary">{safeNext.startsWith('/checkout')?'Lanjut ke checkout':'Buka Member Card'} <span aria-hidden="true">↗</span></Link>
        <button type="button" className="vm21-secondary" onClick={()=>auth.signOut().catch(e=>setError(e.message))}>Keluar dari akun</button>
      </div>
      {error&&<p role="alert" className="vm21-form-error">{error}</p>}

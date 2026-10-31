@@ -26,15 +26,15 @@ export function SiteHeader(){
   const customer=useCustomerAuth();
   const pathname=usePathname();
   const searchRef=useRef<HTMLDetailsElement>(null);
-  const isSubpage=/^\/(product\/|product-category\/|catalog|brand-partner|keranjang-2|login|akun|member-2|asset-review)/.test(pathname);
+  const isSubpage=/^\/(product\/|product-category\/|catalog|brand-partner|keranjang-2|checkout|pesanan|login|akun|member-2|asset-review)/.test(pathname);
   const categoryName:Record<string,string>={pod:'Pod',mod:'Mod',cartridge:'Cartridge','e-juice':'Liquid'};
   const segment=pathname.split('/')[2]||'';
-  const caption=pathname.startsWith('/product-category/')?(categoryName[segment]||'Kategori'):pathname.startsWith('/product/')?'Detail Produk':pathname==='/catalog'?'Katalog':pathname==='/keranjang-2'?'Keranjang':pathname==='/brand-partner'?'Brand Partner':pathname==='/member-2'?'Member':pathname==='/login'||pathname==='/akun'?'Akun':'';
+  const caption=pathname.startsWith('/product-category/')?(categoryName[segment]||'Kategori'):pathname.startsWith('/product/')?'Detail Produk':pathname==='/catalog'?'Katalog':pathname==='/keranjang-2'?'Keranjang':pathname==='/checkout'?'Checkout':pathname.startsWith('/pesanan/')?'Pesanan':pathname==='/brand-partner'?'Brand Partner':pathname==='/member-2'?'Member':pathname==='/login'||pathname==='/akun'?'Akun':'';
   // Keep the brand anchored in the same header position across every route.
   // Back is a dedicated control below the sticky header, never inserted before the logo.
   const backHref=pathname.startsWith('/product/')||pathname.startsWith('/product-category/')?'/catalog':
     pathname==='/login'||pathname==='/akun'?'/member-2':
-    pathname==='/keranjang-2'?'/catalog':'/';
+    pathname==='/checkout'?'/keranjang-2':pathname.startsWith('/pesanan/')?'/catalog':pathname==='/keranjang-2'?'/catalog':'/';
   const routeIndex=pathname==='/'
     ? 0
     : pathname==='/catalog'||pathname.startsWith('/product/')||pathname.startsWith('/product-category/')||pathname==='/asset-review'
@@ -43,7 +43,7 @@ export function SiteHeader(){
         ? 2
         : pathname==='/member-2'||pathname==='/login'||pathname==='/akun'
           ? 3
-          : pathname==='/keranjang-2'
+          : pathname==='/keranjang-2'||pathname==='/checkout'||pathname.startsWith('/pesanan/')
             ? 4
             : 0;
   const activeIndex=open?4:routeIndex;

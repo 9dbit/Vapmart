@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import {getProducts} from '@/lib/api';
+import {getProducts,getBrands} from '@/lib/api';
 import {HeroCarousel} from '@/components/hero-carousel';
 import {ParallaxAmbient} from '@/components/parallax-ambient';
 import {ProductGrid} from '@/components/product-grid';
@@ -12,7 +12,7 @@ import {BrandRail} from '@/components/brand-rail';
 export const dynamic='force-dynamic';
 
 export default async function Home(){
-  const products=await getProducts();
+  const [products,brands]=await Promise.all([getProducts(),getBrands()]);
   const verifiedProducts=products.filter(p=>!p.slug.startsWith('demo-'));
   return <main className="legacy-home vm-reference-home vm-trendora-home" id="home" data-vapmart-ui="cp22">
     <div className="vm-hero-stage vm-trendora-hero">
@@ -63,7 +63,7 @@ export default async function Home(){
         <div><span className="vm-trendora-eyebrow">EXPLORE THE NAMES</span><h2>Brand Partner</h2></div>
         <Link href="/brand-partner" className="vm-trendora-see-all">Lihat semua <span aria-hidden="true">↗</span></Link>
       </div>
-      <BrandRail />
+      <BrandRail brands={brands}/>
     </section>
 
     <section className="main-container vm-ref-news vm-trendora-news" id="news">

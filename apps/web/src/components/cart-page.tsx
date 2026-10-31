@@ -14,6 +14,7 @@ function EmptyCartImage(){
 export function CartPageContent(){
  const {items,count,subtotal,setQuantity,remove}=useCart();
  const digitalOnly=items.length===1&&items[0].quantity===1&&isDigitalProduct(items[0].product);
+ const physicalOnly=items.length>0&&items.every(x=>!isDigitalProduct(x.product));
  return <div className="vm21-cart-page-content">
    <div className="vm21-cart-page-heading">
      <div><span className="vm21-eyebrow">YOUR VAPMART BAG</span><h1>Keranjang <span>{count}</span></h1>
@@ -55,8 +56,8 @@ export function CartPageContent(){
         <div><span>Subtotal</span><strong>{formatIDR(subtotal)}</strong></div>
         <div className="vm21-cart-total"><span>Total</span><strong>{formatIDR(subtotal)}</strong></div>
         {digitalOnly?<DigitalCheckoutAction items={items} subtotal={subtotal}/>:
-        <button className="vm21-primary" disabled type="button">Checkout produk belum tersedia</button>}
-        <p>Preview staging. Tidak ada pembayaran, pengiriman, atau pemotongan saldo tanpa proses transaksi yang terverifikasi.</p>
+        physicalOnly?<Link className="vm21-primary" href="/checkout">Lanjut ke checkout ↗</Link>:<button className="vm21-primary" disabled type="button">Pisahkan produk digital dari barang fisik</button>}
+        <p>Harga dan stok akan diperiksa ulang di checkout. Pembayaran tetap nonaktif hingga payment gateway dihubungkan dan diverifikasi.</p>
       </aside>
     </div>}
  </div>;

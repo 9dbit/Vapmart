@@ -1,9 +1,11 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import type {NestExpressApplication} from '@nestjs/platform-express';
 import { AppModule } from './module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true, rawBody: true });
+  app.useBodyParser('json',{limit:'3mb'});
   app.enableCors({
     origin: process.env.WEB_ORIGIN ? process.env.WEB_ORIGIN.split(',').map(s => s.trim()) : false,
     methods: ['GET', 'POST', 'PATCH'],

@@ -2,6 +2,9 @@ export interface Product {
   id: string;
   slug: string;
   sku?: string | null;
+  brand_id?: string | null;
+  brand_name?: string | null;
+  gallery_urls?: string[];
   name: string;
   description: string;
   category: 'home' | 'lifestyle' | 'decor' | 'accessories' | 'electronics' | 'other';

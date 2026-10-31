@@ -1,5 +1,8 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, ServiceUnavailableException, UseGuards } from '@nestjs/common';
-import { AdminGuard } from './auth';
+import { Body, Controller, Get, Header, HttpCode, Param, Patch, Post, Req, ServiceUnavailableException, StreamableFile, UseGuards } from '@nestjs/common';
+import { AdminGuard,CustomerGuard,type Principal } from './auth';
+import {BrandsService} from './brands';
+import {MediaService} from './media';
+import {CheckoutService} from './checkout';
 import { DatabaseService } from './database';
 import { ProductsService } from './products';
 
@@ -35,7 +38,7 @@ export class CatalogController {
 @Controller('v1/admin')
 @UseGuards(AdminGuard)
 export class AdminController {
-  constructor(private readonly products: ProductsService) {}
+  constructor(private readonly products: ProductsService, private readonly brands:BrandsService, private readonly media:MediaService, private readonly checkout:CheckoutService) {}
   @Get('status')
   status() { return { admin: true }; }
   @Get('products')
@@ -44,6 +47,50 @@ export class AdminController {
   async create(@Body() body: unknown) { return this.products.create(body); }
   @Patch('products/:id')
   async update(@Param('id') id: string, @Body() body: unknown) { return this.products.update(id, body); }
+  @Get('brands')
+  listBrands(){return this.brands.list();}
+  @Post('brands')
+  addBrand(@Body() body:unknown){return this.brands.create(body);}
+  @Patch('brands/:id')
+  editBrand(@Param('id') id:string,@Body() body:unknown){return this.brands.update(id,body);}
+  @Post('media')
+  uploadMedia(@Req() req:{user:Principal},@Body() body:unknown){return this.media.upload(req.user,body);}
+  @Get('orders')
+  listOrders(){return this.checkout.adminOrders();}
+}
+@Controller('v1/brands')
+export class BrandsController{
+ constructor(private readonly brands:BrandsService){}
+ @Get()
+ list(){return this.brands.publicList();}
+}
+@Controller('v1/media')
+export class MediaController{
+ constructor(private readonly media:MediaService){}
+ @Get(':id')
+ @Header('Cache-Control','public, max-age=86400, immutable')
+ @Header('X-Content-Type-Options','nosniff')
+ async byId(@Param('id') id:string){
+  const item=await this.media.get(id);
+  return new StreamableFile(item.content,{type:item.mime_type});
+ }
+}
+@Controller('v1/checkout')
+export class CheckoutController{
+ constructor(private readonly checkout:CheckoutService){}
+ @Get('config')
+ config(){return this.checkout.config();}
+ @Post('quote')
+ quote(@Body() body:unknown){return this.checkout.quote(body);}
+ @Post('orders')
+ @UseGuards(CustomerGuard)
+ createDraft(@Req() req:{user:Principal},@Body() body:unknown){return this.checkout.createDraft(req.user,body);}
+ @Get('orders/:id')
+ @UseGuards(CustomerGuard)
+ order(@Req() req:{user:Principal},@Param('id') id:string){return this.checkout.getOrder(req.user,id);}
+ @Post('orders/:id/payment-session')
+ @UseGuards(CustomerGuard)
+ paymentSession(){return this.checkout.paymentSession();}
 }
 
 @Controller('v1/orders')
