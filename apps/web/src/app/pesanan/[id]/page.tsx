@@ -39,3 +39,4 @@ export default function OrderPage(){
     <Link className="vco26-secondary" href="/catalog">Kembali ke katalog ↗</Link>
    </section>:<section className="vco26-card">Detail belum tersedia.</section>}
  </main>;
+}
