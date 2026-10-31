@@ -277,3 +277,4 @@ export default function AdminPage(){
   </>}
   {message&&<p className="vma26-message" role="status">{message}</p>}
  </main>;
+}
