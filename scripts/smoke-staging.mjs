@@ -63,7 +63,7 @@ assert.equal(unauthorized.status,401,'Admin status must reject anonymous users')
 assert.equal(adminProductsAnon.status,401,'Admin product inventory must reject anonymous users');
 assert.equal(webAdminProductsAnon.status,401,'Admin web proxy must reject anonymous users');
 assert.equal(adminPage.status,200,'Admin entry screen should render');
-assert.match(adminPage.text,/Authentication not configured|Administrator sign in|Memeriksa sesi|Memvalidasi akses admin|Admin Studio/);
+assert.match(adminPage.text,/VAPMART \/ COMMERCE CONTROL|Memvalidasi akses admin|Administrator sign in/);
 assert.equal(checkout.status,503,'Checkout must remain disabled');
 const [packs,memberAnon,digitalAnon,login,memberPage,cartPage]=await Promise.all([
   request(API+'/v1/coin-packs'),
