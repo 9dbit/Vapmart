@@ -81,6 +81,7 @@ export class CheckoutController{
  @Get('config')
  config(){return this.checkout.config();}
  @Post('quote')
+ @HttpCode(200)
  quote(@Body() body:unknown){return this.checkout.quote(body);}
  @Post('orders')
  @UseGuards(CustomerGuard)
