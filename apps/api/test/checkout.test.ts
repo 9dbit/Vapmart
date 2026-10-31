@@ -26,7 +26,7 @@ test('validate checkout without allowing payment state injection',()=>{
  assert.throws(()=>parseDraftOrder({...form,postalCode:'100'}),/Kode pos/);
 });
 test('image upload rejects falsified content and markup',()=>{
- assert.throws(()=>parseImageUpload({filename:'p.svg',mimeType:'image/svg+xml',base64:Buffer.from('<svg></svg>').toString('base64')}),/Hanya JPEG/);
+ assert.throws(()=>parseImageUpload({filename:'p.svg',mimeType:'image/svg+xml',base64:Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"></svg>').toString('base64')}),/Hanya JPEG/);
  assert.throws(()=>parseImageUpload({filename:'p.png',mimeType:'image/png',base64:'not_base64'}),/Data gambar/);
 });
 test('product supports brand references and gallery with strict URLs',()=>{
