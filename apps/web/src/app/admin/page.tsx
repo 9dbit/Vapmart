@@ -6,14 +6,15 @@ import {useCustomerAuth} from '@/lib/customer-auth';
 import {formatIDR,type Product} from '@/lib/types';
 import {BrandAccessManager} from '@/components/brand-access-manager';
 import {ShippingPanel} from '@/components/shipping-panel';
-import {InventoryLedger} from '@/components/inventory-ledger';
+import {WarehouseOps} from '@/components/warehouse-ops';
+import {FulfillmentPanel} from '@/components/fulfillment-panel';
 import '../admin-v26.css';
 
 type Brand={id:string;name:string;slug:string;description:string;logo_url:string|null;is_active:boolean};
 type Order={id:string;status:string;payment_status:string;contact_name:string;contact_email:string;city:string;province:string;total_idr:string;payment_method:string;created_at:string};
 type ProductDraft={name:string;slug:string;sku:string;description:string;category:string;price_idr:string;stock_qty:string;weight_grams:string;length_cm:string;width_cm:string;height_cm:string;brand_id:string;image_url:string;gallery_urls:string[];is_active:boolean};
 type BrandDraft={name:string;slug:string;description:string;logo_url:string;is_active:boolean};
-type Tab='overview'|'products'|'inventory'|'brands'|'orders'|'shipping';
+type Tab='overview'|'products'|'warehouses'|'brands'|'orders'|'fulfillment'|'shipping';
 const categories=['home','lifestyle','decor','accessories','electronics','other'];
 const blankProduct:ProductDraft={name:'',slug:'',sku:'',description:'',category:'lifestyle',price_idr:'',stock_qty:'0',weight_grams:'',length_cm:'',width_cm:'',height_cm:'',brand_id:'',image_url:'',gallery_urls:[],is_active:false};
 const blankBrand:BrandDraft={name:'',slug:'',description:'',logo_url:'',is_active:true};
@@ -112,7 +113,7 @@ export default function AdminPage(){
   try{
    await send(editingProduct?'/api/admin/products/'+editingProduct:'/api/admin/products',editingProduct?'PATCH':'POST',{
     name:productDraft.name,slug:productDraft.slug,sku:productDraft.sku||null,description:productDraft.description,
-    category:productDraft.category,price_idr:price,...(editingProduct?{}:{stock_qty:stock}),weight_grams:productDraft.weight_grams?Number(productDraft.weight_grams):null,length_cm:productDraft.length_cm?Number(productDraft.length_cm):null,width_cm:productDraft.width_cm?Number(productDraft.width_cm):null,height_cm:productDraft.height_cm?Number(productDraft.height_cm):null,brand_id:productDraft.brand_id||null,
+    category:productDraft.category,price_idr:price,...(editingProduct?{}:{stock_qty:0}),weight_grams:productDraft.weight_grams?Number(productDraft.weight_grams):null,length_cm:productDraft.length_cm?Number(productDraft.length_cm):null,width_cm:productDraft.width_cm?Number(productDraft.width_cm):null,height_cm:productDraft.height_cm?Number(productDraft.height_cm):null,brand_id:productDraft.brand_id||null,
     image_url:productDraft.image_url||null,gallery_urls:productDraft.gallery_urls,is_active:editingProduct?productDraft.is_active:false
    });
    await refreshData();setMessage(editingProduct?'Produk diperbarui.':'Draft produk ditambahkan.');
@@ -186,9 +187,10 @@ export default function AdminPage(){
    <nav className="vma26-tabs" aria-label="Menu dashboard">
     <Pill active={tab==='overview'} onClick={()=>setTab('overview')}>Ringkasan</Pill>
     <Pill active={tab==='products'} onClick={()=>setTab('products')}>Produk &amp; SKU</Pill>
-    <Pill active={tab==='inventory'} onClick={()=>setTab('inventory')}>Inventory Ledger</Pill>
+    <Pill active={tab==='warehouses'} onClick={()=>setTab('warehouses')}>Gudang &amp; Stok</Pill>
     <Pill active={tab==='brands'} onClick={()=>setTab('brands')}>Brands</Pill>
     <Pill active={tab==='orders'} onClick={()=>setTab('orders')}>Pesanan</Pill>
+    <Pill active={tab==='fulfillment'} onClick={()=>setTab('fulfillment')}>Fulfillment</Pill>
     <Pill active={tab==='shipping'} onClick={()=>setTab('shipping')}>Pengiriman</Pill>
    </nav>
    {tab==='overview'&&<div className="vma26-overview">
@@ -220,7 +222,7 @@ export default function AdminPage(){
       <div className="vma26-cols"><label>SKU unik<input placeholder="HOME-001" maxLength={64} value={productDraft.sku} onChange={e=>setP('sku',e.target.value.toUpperCase())}/></label><label>Kategori<select value={productDraft.category} onChange={e=>setP('category',e.target.value)}>{categories.map(c=><option key={c} value={c}>{c}</option>)}</select></label></div>
       <label>Brand<select value={productDraft.brand_id} onChange={e=>setP('brand_id',e.target.value)}><option value="">Tanpa brand</option>{brands.map(b=><option key={b.id} value={b.id}>{b.name}{b.is_active?'':' (nonaktif)'}</option>)}</select></label>
       <label>Deskripsi<textarea maxLength={3000} rows={4} value={productDraft.description} onChange={e=>setP('description',e.target.value)}/></label>
-      <div className="vma26-cols"><label>Harga (IDR)<input type="number" min="0" max="2000000000" required step="1" value={productDraft.price_idr} onChange={e=>setP('price_idr',e.target.value)}/></label><label>{editingProduct?'Stok (kelola lewat Inventory Ledger)':'Stok awal'}<input type="number" min="0" max="2000000000" required step="1" value={productDraft.stock_qty} disabled={Boolean(editingProduct)} onChange={e=>setP('stock_qty',e.target.value)}/></label></div>
+      <div className="vma26-cols"><label>Harga (IDR)<input type="number" min="0" max="2000000000" required step="1" value={productDraft.price_idr} onChange={e=>setP('price_idr',e.target.value)}/></label><label>Stok (dikelola di Gudang &amp; Stok)<input type="number" value={editingProduct?productDraft.stock_qty:'0'} disabled readOnly/></label></div>
       <div className="vma26-cols"><label>Berat produk (gram)<input type="number" min="1" max="1000000" step="1" placeholder="Wajib untuk tarif kurir" value={productDraft.weight_grams} onChange={e=>setP('weight_grams',e.target.value)}/></label><label>Panjang (cm)<input type="number" min="1" max="1000" step="1" value={productDraft.length_cm} onChange={e=>setP('length_cm',e.target.value)}/></label></div>
       <div className="vma26-cols"><label>Lebar (cm)<input type="number" min="1" max="1000" step="1" value={productDraft.width_cm} onChange={e=>setP('width_cm',e.target.value)}/></label><label>Tinggi (cm)<input type="number" min="1" max="1000" step="1" value={productDraft.height_cm} onChange={e=>setP('height_cm',e.target.value)}/></label></div>
       <label>Foto utama (URL HTTPS)<input type="url" value={productDraft.image_url} placeholder="https://..." onChange={e=>setP('image_url',e.target.value)}/></label>
@@ -259,7 +261,8 @@ export default function AdminPage(){
       {editingBrand&&<button type="button" className="vma26-btn-light" onClick={newBrand}>Batal edit</button>}
     </form>
    </div><BrandAccessManager brands={brands} token={auth.accessToken}/></>}
-   {tab==='inventory'&&<InventoryLedger token={auth.accessToken} products={products} onUpdated={refreshData}/>}
+   {tab==='warehouses'&&<WarehouseOps token={auth.accessToken} products={products} onUpdated={refreshData}/>}
+   {tab==='fulfillment'&&<FulfillmentPanel token={auth.accessToken} orders={orders}/>}
    {tab==='shipping'&&<ShippingPanel token={auth.accessToken} products={products}/>}
    {tab==='orders'&&<section className="vma26-panel vma26-orders">
     <div className="vma26-section-head"><div><p className="vma26-eyebrow">ORDER MANAGEMENT</p><h2>Pesanan <span>{orders.length}</span></h2><p>Hanya pesanan draft terverifikasi. Status lunas tidak bisa diubah manual dari dashboard.</p></div><button className="vma26-btn-light" type="button" onClick={()=>{setBusy(true);refreshData().catch(e=>setMessage(String(e))).finally(()=>setBusy(false));}}>↻ Refresh</button></div>
