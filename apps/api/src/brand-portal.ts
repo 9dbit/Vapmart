@@ -30,8 +30,8 @@ export class BrandPortalService{
  }
  private async paidSales(brandId:string){
   const r=await this.db.query<{paid_orders:string;units_sold:string;gross_item_sales_idr:string}>(
-   `SELECT count(DISTINCT o.id)::text AS paid_orders,coalesce(sum(oi.quantity),0)::text AS units_sold,
-     coalesce(sum(oi.quantity*oi.unit_price_idr),0)::text AS gross_item_sales_idr
+   `SELECT count(DISTINCT o.id)::text AS paid_orders,coalesce(sum(CASE WHEN o.id IS NOT NULL THEN oi.quantity ELSE 0 END),0)::text AS units_sold,
+     coalesce(sum(CASE WHEN o.id IS NOT NULL THEN oi.quantity*oi.unit_price_idr ELSE 0 END),0)::text AS gross_item_sales_idr
      FROM product.order_items oi JOIN product.orders o ON o.id=oi.order_id
      JOIN product.products p ON p.id=oi.product_id
      WHERE p.brand_id=$1 AND o.payment_status='paid' AND o.payment_provider IS NOT NULL
