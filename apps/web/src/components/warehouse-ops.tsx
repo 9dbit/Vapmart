@@ -91,7 +91,7 @@ export function WarehouseOps({token,products,onUpdated}:{token:string|null;produ
     {loading?<p>Memuat gudang...</p>:data.warehouses.map(w=><div className="vm-ops-location" key={w.id}>
      <div><strong>{w.code} · {w.name}</strong><small>{w.is_system_hold?'Saldo historis belum diverifikasi':(w.city||'Lokasi belum lengkap')+' · '+(w.postal_code||'Kode pos belum ada')}</small></div>
      <span className={'vm-ops-status'+(w.is_dispatch_enabled?' active':'')}>{w.is_system_hold?'HOLD':w.is_dispatch_enabled?'Dispatch ON':'Dispatch OFF'}</span>
-     {!w.is_system_hold&&<button type="button" className="vm-ops-secondary" onClick={()=>{setEditId(w.id);setEditData({name:w.name,address:w.address_line||'',city:w.city||'',province:w.province||'',postalCode:w.postal_code||''});}} disabled={busy}>Edit alamat</button><button type="button" className="vm-ops-secondary" disabled={busy} onClick={()=>toggle(w)}>{w.is_dispatch_enabled?'Nonaktifkan':'Aktifkan'}</button>}
+     {!w.is_system_hold&&<><button type="button" className="vm-ops-secondary" onClick={()=>{setEditId(w.id);setEditData({name:w.name,address:w.address_line||'',city:w.city||'',province:w.province||'',postalCode:w.postal_code||''});}} disabled={busy}>Edit alamat</button><button type="button" className="vm-ops-secondary" disabled={busy} onClick={()=>toggle(w)}>{w.is_dispatch_enabled?'Nonaktifkan':'Aktifkan'}</button></>}
     </div>)}
     {editId&&<form className="vm-ops-form" onSubmit={e=>{e.preventDefault();change('Alamat gudang',async()=>{
       await req('/api/admin/warehouses/'+editId,'PATCH',{...editData,postalCode:editData.postalCode||null});
