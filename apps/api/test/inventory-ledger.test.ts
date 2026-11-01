@@ -8,4 +8,5 @@ test('stock adjustment requires documented movement and idempotency',()=>{
  assert.deepEqual(parseStockAdjustment(good),good);
  for(const b of [{...good,delta:0},{...good,delta:-100001},{...good,reason:'paid'},{...good,stockAfter:99999},
   {...good,notes:'ok'},{...good,idempotencyKey:'not-uuid'}])assert.throws(()=>parseStockAdjustment(b));
+ assert.throws(()=>parseStockAdjustment({...good,reason:'stock_receipt',delta:-1}));
 });
