@@ -3,7 +3,7 @@ import {useEffect,useState,type FormEvent} from 'react';
 import {useRouter} from 'next/navigation';
 import Link from 'next/link';
 import {useCustomerAuth} from '@/lib/customer-auth';
-import '../brand-portal.css';
+import '../../brand-portal.css';
 export default function BrandLoginPage(){
  const auth=useCustomerAuth(),router=useRouter();
  const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
