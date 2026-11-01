@@ -1,3 +1,12 @@
+/* Isolate internal Control Panel shell even if storefront navigation is rendered during SSR. */
+body:has(main.vma26-root) .legacy-header,
+body:has(main.vma26-root) .legacy-mobile-nav,
+body:has(main.vma26-root) .vm-reference-mobile-nav,
+body:has(main.vma26-root) .vm-modern-mobile-nav,
+body:has(main.vma26-root) .legacy-footer,
+body:has(main.vma26-root) .vm-reference-footer,
+body:has(main.vma26-root) .vm22-backbar { display: none !important; }
+body:has(main.vma26-root) { padding-bottom: 0 !important; }
 /* Vapmart Admin Studio CP26. Dedicated selectors override legacy green staging styles. */
 .vma26-root{max-width:1430px;padding-top:34px;padding-bottom:95px;color:#26202d;min-height:65vh}
 .vma26-root button,.vma26-root input,.vma26-root textarea,.vma26-root select{font:inherit}
