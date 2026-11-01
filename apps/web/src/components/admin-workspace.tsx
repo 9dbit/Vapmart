@@ -38,6 +38,7 @@ export function AdminWorkspace({active,onNavigate,onLogout,email,children}:{
  useEffect(()=>setOpen(false),[active]);
  const navigate=(s:AdminSection)=>{setOpen(false);onNavigate(s);};
  return <div className="vma27-workspace">
+  <a className="vma27-skip-link" href="#admin-main">Langsung ke konten</a>
   {open&&<button type="button" className="vma27-nav-backdrop" aria-label="Tutup navigasi lewat overlay" onClick={()=>setOpen(false)}/>}
   <aside className={'vma27-sidebar'+(open?' is-open':'')} aria-label="Navigasi administrator">
    <div className="vma27-sidebar-brand">

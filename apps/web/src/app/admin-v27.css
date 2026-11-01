@@ -182,3 +182,19 @@ html[data-vapmart-color-mode=dark] .vma27-access-form>input,html[data-vapmart-co
 .vma27-access-page.vma26-root .vma27-access-card .vma27-password-wrap>input{padding-right:95px}
 
 @media(prefers-reduced-motion:reduce){.vma27-sidebar,.vma27-loading-ring{transition:none;animation:none}}
+
+
+.vma27-skip-link{position:fixed;top:-70px;left:16px;z-index:100;background:#8428d6;border-radius:12px;padding:12px 17px;color:#fff;font-weight:800;font-size:14px}
+.vma27-skip-link:focus{top:12px}
+.vma27-start-guide{margin-top:19px}
+.vma27-start-guide>p:not(.vma26-eyebrow){margin:7px 0 18px}
+.vma27-guide-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}
+.vma27-guide-steps>button{display:grid;gap:9px;text-align:left;align-content:start;border:1px solid #e8dcef;background:#faf7fc;border-radius:17px;min-height:142px;padding:17px}
+.vma27-guide-steps>button:hover{background:#f4e9fc;border-color:#d7b7f1}
+.vma27-guide-steps>button>span{color:#8a2ed3;font-size:12px;font-weight:850}
+.vma27-guide-steps>button>strong{font-size:15px;color:#46304d}
+.vma27-guide-steps>button>small{font-size:12px;color:#82728b;line-height:1.55}
+html[data-vapmart-color-mode=dark] .vma27-guide-steps>button{background:#2d2534;border-color:#53405f}
+html[data-vapmart-color-mode=dark] .vma27-guide-steps>button>strong{color:#efdef8}
+@media(max-width:1450px){.vma27-guide-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.vma27-guide-steps{grid-template-columns:1fr}.vma27-guide-steps>button{min-height:90px}}

@@ -238,7 +238,7 @@ export default function AdminPage(){
    {tab==='overview'&&<div className="vma26-overview">
     <section className="vma26-panel"><p className="vma26-eyebrow">QUICK ACTIONS</p><h2>Kelola toko lebih cepat.</h2>
      <p>Publikasikan produk non-nikotin setelah harga, stok, foto, dan SKU terverifikasi. Semua perubahan tercatat di PostgreSQL.</p>
-     <div className="vma26-quick-actions"><button className="vma26-btn-dark" type="button" onClick={newProduct}>+ Tambah produk</button><button className="vma26-btn-light" type="button" onClick={newBrand}>+ Tambah brand</button><button className="vma26-btn-light" type="button" onClick={()=>setTab('orders')}>Lihat pesanan</button></div>
+     <div className="vma26-quick-actions"><button className="vma26-btn-dark" type="button" onClick={newProduct}>+ Tambah produk</button><button className="vma26-btn-light" type="button" onClick={newBrand}>+ Tambah brand</button><button className="vma26-btn-light" type="button" onClick={()=>navigate('media')}>Lihat Media Library</button><button className="vma26-btn-light" type="button" onClick={()=>navigate('orders')}>Lihat pesanan</button></div>
     </section>
     <section className="vma26-panel vma26-gateway"><p className="vma26-eyebrow">PAYMENT STATUS</p><h2>Gateway belum terhubung</h2><p>QRIS, Virtual Account, dan e-wallet tersedia sebagai preferensi checkout. Pesanan baru disimpan sebagai draft dan tidak memicu transaksi.</p>
      <div className="vma26-gate-row"><span>Cart & checkout review</span><strong>Siap di kode</strong></div>
@@ -246,6 +246,16 @@ export default function AdminPage(){
      <div className="vma26-gate-row"><span>Pembayaran langsung</span><strong>Nonaktif</strong></div>
     </section>
    </div>}
+   {tab==='overview'&&products.length===0&&<section className="vma26-panel vma27-start-guide" aria-label="Panduan memulai">
+    <p className="vma26-eyebrow">GET STARTED</p><h2>Mulai mengelola toko dengan aman.</h2>
+    <p>Belum ada SKU aktif di katalog. Lengkapi data dan inventori yang sudah diverifikasi sebelum mempublikasikan produk.</p>
+    <div className="vma27-guide-steps">
+     <button type="button" onClick={()=>navigate('brands')}><span>01</span><strong>Daftarkan brand</strong><small>Tentukan identitas dan hak akses mitra</small></button>
+     <button type="button" onClick={()=>navigate('media')}><span>02</span><strong>Periksa aset</strong><small>Gunakan Media Library untuk foto dan logo</small></button>
+     <button type="button" onClick={newProduct}><span>03</span><strong>Lengkapi SKU</strong><small>Tambahkan harga, foto dan detail produk</small></button>
+     <button type="button" onClick={()=>navigate('warehouses')}><span>04</span><strong>Verifikasi stok</strong><small>Catat penerimaan melalui gudang fisik</small></button>
+    </div>
+   </section>}
    {tab==='products'&&<div className="vma26-layout">
     <section className="vma26-panel">
      <div className="vma26-section-head"><div><p className="vma26-eyebrow">CATALOG MANAGER</p><h2>Produk <span>{filtered.length}</span></h2></div><button className="vma26-btn-dark" type="button" onClick={newProduct}>+ Produk baru</button></div>
