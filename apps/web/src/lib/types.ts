@@ -10,6 +10,10 @@ export interface Product {
   category: 'home' | 'lifestyle' | 'decor' | 'accessories' | 'electronics' | 'other';
   price_idr: number;
   stock_qty: number;
+  weight_grams?: number|null;
+  length_cm?: number|null;
+  width_cm?: number|null;
+  height_cm?: number|null;
   image_url: string | null;
   is_active: boolean;
 }
