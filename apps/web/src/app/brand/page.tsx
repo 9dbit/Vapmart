@@ -9,7 +9,7 @@ type Summary={brandId:string;role:string;inventory:{products:number;published:nu
 type BrandProduct={id:string;sku:string|null;name:string;price_idr:string;stock_qty:number;is_active:boolean;weight_grams:number|null};
 type Sale={product_id:string;sku:string|null;name:string;units_sold:string;gross_item_sales_idr:string};
 type Location={code:string;warehouse_name:string;city:string;product_id:string;sku:string|null;product_name:string;on_hand:number;reserved:number;available:number;is_dispatch_enabled:boolean};
-type Fulfillment={id:string;order_id:string;state:string;warehouse_code:string;units:number;created_at:string};
+type Fulfillment={id:string;order_id:string;state:string;warehouse_code:string;units:number;created_at:string;carrier_state:string|null;provider_status:string|null;tracking_number:string|null};
 const rupiah=(v:string|number)=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(v)||0);
 export default function BrandPortalPage(){
  const auth=useCustomerAuth(),router=useRouter();
@@ -87,8 +87,8 @@ export default function BrandPortalPage(){
           <textarea value={activityNote} onChange={e=>setActivityNote(e.target.value)} rows={2} minLength={6} maxLength={300}
            placeholder="Nama petugas / referensi picking dan packing" style={{padding:12,borderRadius:12,border:'1px solid #e7dded'}}/>
         </label>}
-        <table><thead><tr><th>Order ID</th><th>Gudang</th><th>Qty</th><th>Status internal</th><th>Proses</th></tr></thead>
-         <tbody>{fulfillments.map(p=><tr key={p.id}><td>{p.order_id.slice(0,8)}</td><td>{p.warehouse_code}</td><td>{p.units}</td><td>{p.state.replaceAll('_',' ')}</td>
+        <table><thead><tr><th>Order ID</th><th>Gudang</th><th>Qty</th><th>Status internal</th><th>Kurir / AWB</th><th>Proses</th></tr></thead>
+         <tbody>{fulfillments.map(p=><tr key={p.id}><td>{p.order_id.slice(0,8)}</td><td>{p.warehouse_code}</td><td>{p.units}</td><td>{p.state.replaceAll('_',' ')}</td><td>{p.provider_status||p.carrier_state||'Tidak dipesan'}<small style={{display:'block'}}>{p.tracking_number||'Resi belum tersedia'}</small></td>
          <td>{mayProcess&&nextStatus[p.state]?
           <button type="button" disabled={activityBusy||activityNote.trim().length<6} onClick={()=>progressBatch(p)}
            style={{border:0,padding:'9px 12px',borderRadius:99,background:'#8526d0',color:'#fff',cursor:'pointer'}}>
