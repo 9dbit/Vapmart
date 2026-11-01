@@ -1,28 +1,28 @@
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
 import type {Metadata} from 'next';
-import {getProduct} from '@/lib/api';
+import {getProduct,getArchivedProducts,type ArchivedCatalogProduct} from '@/lib/api';
 import {formatIDR} from '@/lib/types';
 import {AddToCart} from '@/components/add-to-cart';
 import {FavoriteButton} from '@/components/favorite-button';
 import {ArchiveCard} from '@/components/archive-card';
 import {ArchiveGallery} from '@/components/archive-gallery';
-import {archiveBySlug,archiveCategories,categoryArchiveItems,featuredArchiveItems,type ArchiveItem} from '@/lib/archive-catalog';
+import {archiveCategories} from '@/lib/archive-catalog';
 
 export const dynamic='force-dynamic';
 export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
  const {slug}=await params;
- const archived=archiveBySlug.get(slug);
+ const archived=(await getArchivedProducts()).find(item=>item.slug===slug);
  if(archived)return {title:archived.name,description:'Arsip referensi visual Vapmart. Bukan katalog aktif atau penawaran pembelian.',robots:{index:false,follow:false}};
  const product=await getProduct(slug);
  return {title:product?.name||'Produk tidak ditemukan',robots:{index:false,follow:false}};
 }
 
-function ArchivedProductView({item}:{item:ArchiveItem}){
+function ArchivedProductView({item,archive}:{item:ArchivedCatalogProduct;archive:ArchivedCatalogProduct[]}){
  const images=item.slug==='into-mission-replacement-pods'
   ?['/legacy/products/mission-main.png','/legacy/products/mission-gallery-02.png']
   :[item.image];
- const others=(item.category==='pod'?categoryArchiveItems('pod'):featuredArchiveItems)
+ const others=(item.category==='pod'?archive.filter(x=>x.category==='pod'):archive.filter(x=>x.source==='homepage-20260316'))
   .filter(p=>p.slug!==item.slug).slice(0,6);
  const category=archiveCategories[item.category];
  return <main className="vm-detail-page vm-archive-detail">
@@ -59,8 +59,9 @@ function ArchivedProductView({item}:{item:ArchiveItem}){
 }
 export default async function ProductPage({params}:{params:Promise<{slug:string}>}){
  const {slug}=await params;
- const archived=archiveBySlug.get(slug);
- if(archived)return <ArchivedProductView item={archived}/>;
+ const archive=await getArchivedProducts();
+ const archived=archive.find(item=>item.slug===slug);
+ if(archived)return <ArchivedProductView item={archived} archive={archive}/>;
  const product=await getProduct(slug);
  if(!product)notFound();
  return <main className="vm-detail-page vm-demo-detail">
