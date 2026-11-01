@@ -8,13 +8,14 @@ import {BrandAccessManager} from '@/components/brand-access-manager';
 import {ShippingPanel} from '@/components/shipping-panel';
 import {WarehouseOps} from '@/components/warehouse-ops';
 import {FulfillmentPanel} from '@/components/fulfillment-panel';
+import {CourierOpsPanel} from '@/components/courier-ops-panel';
 import '../admin-v26.css';
 
 type Brand={id:string;name:string;slug:string;description:string;logo_url:string|null;is_active:boolean};
 type Order={id:string;status:string;payment_status:string;contact_name:string;contact_email:string;city:string;province:string;total_idr:string;payment_method:string;created_at:string};
 type ProductDraft={name:string;slug:string;sku:string;description:string;category:string;price_idr:string;stock_qty:string;weight_grams:string;length_cm:string;width_cm:string;height_cm:string;brand_id:string;image_url:string;gallery_urls:string[];is_active:boolean};
 type BrandDraft={name:string;slug:string;description:string;logo_url:string;is_active:boolean};
-type Tab='overview'|'products'|'warehouses'|'brands'|'orders'|'fulfillment'|'shipping';
+type Tab='overview'|'products'|'warehouses'|'brands'|'orders'|'fulfillment'|'courier'|'shipping';
 const categories=['home','lifestyle','decor','accessories','electronics','other'];
 const blankProduct:ProductDraft={name:'',slug:'',sku:'',description:'',category:'lifestyle',price_idr:'',stock_qty:'0',weight_grams:'',length_cm:'',width_cm:'',height_cm:'',brand_id:'',image_url:'',gallery_urls:[],is_active:false};
 const blankBrand:BrandDraft={name:'',slug:'',description:'',logo_url:'',is_active:true};
@@ -191,6 +192,7 @@ export default function AdminPage(){
     <Pill active={tab==='brands'} onClick={()=>setTab('brands')}>Brands</Pill>
     <Pill active={tab==='orders'} onClick={()=>setTab('orders')}>Pesanan</Pill>
     <Pill active={tab==='fulfillment'} onClick={()=>setTab('fulfillment')}>Fulfillment</Pill>
+    <Pill active={tab==='courier'} onClick={()=>setTab('courier')}>Courier Ops</Pill>
     <Pill active={tab==='shipping'} onClick={()=>setTab('shipping')}>Pengiriman</Pill>
    </nav>
    {tab==='overview'&&<div className="vma26-overview">
@@ -263,6 +265,7 @@ export default function AdminPage(){
    </div><BrandAccessManager brands={brands} token={auth.accessToken}/></>}
    {tab==='warehouses'&&<WarehouseOps token={auth.accessToken} products={products} onUpdated={refreshData}/>}
    {tab==='fulfillment'&&<FulfillmentPanel token={auth.accessToken} orders={orders}/>}
+   {tab==='courier'&&<CourierOpsPanel token={auth.accessToken}/>}
    {tab==='shipping'&&<ShippingPanel token={auth.accessToken} products={products}/>}
    {tab==='orders'&&<section className="vma26-panel vma26-orders">
     <div className="vma26-section-head"><div><p className="vma26-eyebrow">ORDER MANAGEMENT</p><h2>Pesanan <span>{orders.length}</span></h2><p>Hanya pesanan draft terverifikasi. Status lunas tidak bisa diubah manual dari dashboard.</p></div><button className="vma26-btn-light" type="button" onClick={()=>{setBusy(true);refreshData().catch(e=>setMessage(String(e))).finally(()=>setBusy(false));}}>↻ Refresh</button></div>
