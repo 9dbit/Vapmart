@@ -75,6 +75,16 @@ const adminEntry=await request(WEB+'/admin');
 assert.equal(adminEntry.status,200,'single admin entry must be accessible');
 assert.ok(adminEntry.text.includes('vma27-access-page'),'anonymous /admin must render sign-in, not reveal a dashboard');
 assert.equal(adminEntry.text.includes('vma27-side-link'),false,'anonymous admin must not receive navigation data');
+
+const [liveAdmin,liveLegacy]=await Promise.all([
+ request('https://vapmart.id/admin'),request('https://vapmart.id/admin/login')
+]);
+assert.equal(liveAdmin.status,200,'custom domain canonical admin must work');
+assert.equal(liveLegacy.status,200,'custom domain old login redirect must work');
+assert.equal(new URL(liveLegacy.url).pathname,'/admin','custom domain legacy login must resolve to canonical URL');
+assert.ok(liveAdmin.text.includes('vma27-access-page')&&liveAdmin.text.includes('SECURE ADMIN ACCESS'),
+ 'custom domain anonymous admin page must show unified login');
+assert.equal(liveAdmin.text.includes('vma27-side-link'),false,'custom domain admin navigation must not leak anonymously');
 assert.equal(legacyCategory.status,200,'legacy category should redirect to working catalog');
 assert.ok(legacyCategory.url.includes('/catalog'));
 for(const cfg of [shipping.data,webShipping.data]){
