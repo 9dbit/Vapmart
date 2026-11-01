@@ -74,6 +74,8 @@ export class BrandPortalService{
   return this.db.transaction(async client=>{
    const brand=await client.query('SELECT 1 FROM product.brands WHERE id=$1',[brandId]);
    if(!brand.rows[0])throw new NotFoundException('Brand tidak ditemukan');
+   const existing=await client.query('SELECT 1 FROM product.brand_memberships WHERE brand_id=$1 AND user_id=$2 FOR UPDATE',[brandId,body.userId]);
+   if(!existing.rows[0])throw new ForbiddenException('Gunakan undangan email terverifikasi untuk anggota baru');
    const r=await client.query(
     'INSERT INTO product.brand_memberships(brand_id,user_id,role,is_active,added_by) VALUES($1,$2,$3,$4,$5) ON CONFLICT(brand_id,user_id) DO UPDATE SET role=excluded.role,is_active=excluded.is_active,updated_at=now() RETURNING brand_id,user_id,role,is_active',
     [brandId,body.userId,body.role,body.isActive,actor.id]);
