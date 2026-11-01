@@ -107,3 +107,12 @@ Every protected API also has a Next.js route proxy on vapmart.id.
 Payment gateway signed callbacks/reconciliation + per-warehouse rate quoting and explicit, budgeted sandbox booking orchestration. Provider-created AWB and labels can only be activated after account entitlement, configuration, legal/commercial review and owner consent.
 
 Safety: No changes to Pentagon, Tradevice, unrelated Supabase projects, Hostinger DNS, MX records, email or payment secrets.
+
+## Final CP36 deployment and QA verification (2026-11-02)
+- Railway staging environment: `vapmart-api` **SUCCESS**, `vapmart-web` **SUCCESS**, Postgres **SUCCESS**.
+- The API predeploy migration log lists `013_courier_orchestration.sql` among applied/checksummed migrations, and the subsequent `applied:[]` run confirms no outstanding migrations at that point.
+- GitHub Actions latest code checkpoint `4476dda74919f8aaca27de6f0cd76c8d341b4cdb`: **PASS** for Foundation checks (API & Web build/test), browser UI smoke, theme QA, staging smoke, security audit, Coin wallet ledger integration and CP35+CP36 PostgreSQL integration.
+- Live public custom-domain checks: anonymous `GET /api/admin/courier/config`, `GET /api/admin/courier/batches`, `GET /api/admin/courier-returns`, `GET /api/customer-returns` all **401**; unsigned `POST /api/webhooks/biteship` **401**.
+- Live `GET /api/shipping/config` returned `rateLookupEnabled=false`, `bookingEnabled=false`, `paymentEnabled=false`.
+- CP36 disposable PostgreSQL integration **PASS** for exact-once courier handover, delayed price reconciliation, official AWB, owner-only returns and idempotent restock. No actual live Biteship calls, shipping labels, pickup bookings, provider refunds or customer notifications were sent.
+- **Remaining acceptance gate:** authorized real warehouse and brand operators, real SKU/addresses, a reviewed Biteship sandbox credential/budget, configurable webhook secret on API and Biteship dashboard, and validated per-warehouse pricing. Do not claim live courier connectivity before those are separately tested and explicitly approved.
