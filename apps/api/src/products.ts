@@ -130,7 +130,7 @@ export class ProductsService {
     // A new installation has no invented products or unsafe placeholder orders.
     if (!this.db.configured) return [];
     const result = await this.db.query<Product>(
-      'SELECT p.id, p.sku, p.slug, p.brand_id, b.name AS brand_name, p.gallery_urls, p.name, p.description, p.category, p.price_idr::integer AS price_idr, p.stock_qty, p.weight_grams,p.length_cm,p.width_cm,p.height_cm,p.image_url,p.is_active FROM product.products p LEFT JOIN product.brands b ON p.brand_id=b.id WHERE p.is_active = true AND p.slug NOT LIKE 'demo-%' ORDER BY p.created_at DESC LIMIT 48'
+      'SELECT p.id, p.sku, p.slug, p.brand_id, b.name AS brand_name, p.gallery_urls, p.name, p.description, p.category, p.price_idr::integer AS price_idr, p.stock_qty, p.weight_grams,p.length_cm,p.width_cm,p.height_cm,p.image_url,p.is_active FROM product.products p LEFT JOIN product.brands b ON p.brand_id=b.id WHERE p.is_active = true AND p.slug NOT LIKE \'demo-%\' ORDER BY p.created_at DESC LIMIT 48'
     );
     return result.rows;
   }
@@ -138,7 +138,7 @@ export class ProductsService {
   async bySlug(slug: string): Promise<Product> {
     if (!this.db.configured) throw new NotFoundException('Product not found');
     const result = await this.db.query<Product>(
-      'SELECT p.id, p.sku, p.slug, p.brand_id, b.name AS brand_name, p.gallery_urls, p.name, p.description, p.category, p.price_idr::integer AS price_idr, p.stock_qty, p.weight_grams,p.length_cm,p.width_cm,p.height_cm,p.image_url,p.is_active FROM product.products p LEFT JOIN product.brands b ON p.brand_id=b.id WHERE p.slug = $1 AND p.is_active = true AND p.slug NOT LIKE 'demo-%'',
+      'SELECT p.id, p.sku, p.slug, p.brand_id, b.name AS brand_name, p.gallery_urls, p.name, p.description, p.category, p.price_idr::integer AS price_idr, p.stock_qty, p.weight_grams,p.length_cm,p.width_cm,p.height_cm,p.image_url,p.is_active FROM product.products p LEFT JOIN product.brands b ON p.brand_id=b.id WHERE p.slug = $1 AND p.is_active = true AND p.slug NOT LIKE \'demo-%\'',
       [slug]
     );
     if (!result.rows[0]) throw new NotFoundException('Product not found');
