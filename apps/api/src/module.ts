@@ -1,3 +1,4 @@
+import {MediaLibraryService,MediaLibraryController} from './media-library';
 import { Module } from '@nestjs/common';
 import { AdminGuard, CustomerGuard, SupabaseAuthService } from './auth';
 import {CoinPacksController,MemberController,DigitalOrderController,SandboxWebhookController} from './customer-controllers';
@@ -27,7 +28,7 @@ import {CourierReturnService} from './courier-returns';
 import {CourierAdminController,BiteshipWebhookController,CourierReturnAdminController,CourierReturnCustomerController,CourierTrackingCustomerController} from './courier-controllers';
 
 @Module({
-  controllers: [HealthController, CatalogController, AdminController, OrdersController, BrandsController, MediaController, CheckoutController, CoinPacksController,MemberController,DigitalOrderController,SandboxWebhookController,BrandPortalController,BrandAccessAdminController,ShippingController,CourierAdminController,BiteshipWebhookController,CourierReturnAdminController,CourierReturnCustomerController,CourierTrackingCustomerController,InventoryController,WarehouseController,FulfillmentAdminController,CustomerFulfillmentController,AdminBrandInvitationsController,AcceptBrandInvitationController],
-  providers: [DatabaseService, ProductsService, BrandsService, MediaService, CheckoutService, SupabaseAuthService, AdminGuard, CustomerGuard,MemberCommerceService,SandboxPaymentsService,BrandPortalService,ShippingService,CourierManifestService,CourierEventService,CourierReturnService,InventoryService,WarehouseService,FulfillmentService,BrandInvitationsService],
+  controllers: [MediaLibraryController,HealthController, CatalogController, AdminController, OrdersController, BrandsController, MediaController, CheckoutController, CoinPacksController,MemberController,DigitalOrderController,SandboxWebhookController,BrandPortalController,BrandAccessAdminController,ShippingController,CourierAdminController,BiteshipWebhookController,CourierReturnAdminController,CourierReturnCustomerController,CourierTrackingCustomerController,InventoryController,WarehouseController,FulfillmentAdminController,CustomerFulfillmentController,AdminBrandInvitationsController,AcceptBrandInvitationController],
+  providers: [MediaLibraryService,DatabaseService, ProductsService, BrandsService, MediaService, CheckoutService, SupabaseAuthService, AdminGuard, CustomerGuard,MemberCommerceService,SandboxPaymentsService,BrandPortalService,ShippingService,CourierManifestService,CourierEventService,CourierReturnService,InventoryService,WarehouseService,FulfillmentService,BrandInvitationsService],
 })
 export class AppModule {}

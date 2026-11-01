@@ -1,0 +1,40 @@
+name: Private Media Library Integration
+on:
+  push:
+    branches: [feat/ecommerce-foundation-20261029]
+  workflow_dispatch:
+jobs:
+  private-media:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: media_test
+          POSTGRES_PASSWORD: disposable_ci_only
+          POSTGRES_DB: private_media_test
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U media_test -d private_media_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    defaults:
+      run:
+        working-directory: apps/api
+    env:
+      DATABASE_URL: postgres://media_test:disposable_ci_only@127.0.0.1:5432/private_media_test
+      CHECKOUT_ENABLED: "false"
+      DIGITAL_COMMERCE_ENABLED: "false"
+      SHIPPING_RATE_LOOKUP_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: npm run migrate
+      - run: npm run migrate
+      - run: npx tsx --test test/integration/private-media-library.ts

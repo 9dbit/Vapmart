@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "build": "tsc -p tsconfig.json && cp sql/*.sql dist/",
+    "build": "tsc -p tsconfig.json && cp sql/*.sql dist/ && cp -R resources dist/",
     "start": "node dist/main.js",
     "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",

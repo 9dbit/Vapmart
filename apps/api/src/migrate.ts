@@ -2,8 +2,9 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {Pool, type PoolClient} from 'pg';
+import {seedMediaLibrary} from './media-library-seed';
 
-const filenames=['001_initial.sql','002_catalog_sku.sql','003_membership_wallet.sql','004_promotions_gamification.sql','005_admin_checkout.sql','006_unified_catalog.sql','007_decommission_demo.sql','008_brand_shipping_foundation.sql','009_inventory_ledger.sql','010_brand_invitations.sql','011_shipping_quote_snapshots.sql','012_warehouse_fulfillment.sql','013_courier_orchestration.sql'] as const;
+const filenames=['001_initial.sql','002_catalog_sku.sql','003_membership_wallet.sql','004_promotions_gamification.sql','005_admin_checkout.sql','006_unified_catalog.sql','007_decommission_demo.sql','008_brand_shipping_foundation.sql','009_inventory_ledger.sql','010_brand_invitations.sql','011_shipping_quote_snapshots.sql','012_warehouse_fulfillment.sql','013_courier_orchestration.sql','014_private_media_library.sql'] as const;
 
 async function main(): Promise<void> {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required for migration');
@@ -32,9 +33,10 @@ async function main(): Promise<void> {
       "SELECT to_regclass('product.products') IS NOT NULL AS has_products, to_regclass('public.staff_roles') IS NOT NULL AS has_roles"
     );
     if(!check.rows[0]?.has_products || !check.rows[0]?.has_roles) throw new Error('Migration validation failed');
+    const mediaLibrary=await seedMediaLibrary(client,join(__dirname,'resources'));
     const seeded=0; // CP33: no synthetic product seeding in any environment.
     await client.query('COMMIT');
-    console.log('VAPMART_DATABASE_READY',JSON.stringify({migrations:filenames,applied,seeded_demo_products:seeded}));
+    console.log('VAPMART_DATABASE_READY',JSON.stringify({migrations:filenames,applied,seeded_demo_products:seeded,mediaLibrary}));
   } catch(error) {
     await client.query('ROLLBACK');
     throw error;
