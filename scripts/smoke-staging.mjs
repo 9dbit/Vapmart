@@ -60,7 +60,12 @@ for(const [label,response] of Object.entries({adminAnon,brandAnon,brandWebAnon,a
 assert.equal(legacyAPI.status,404,'public legacy archive endpoint should be removed');
 assert.equal(brandLogin.status,200);
 assert.equal(adminLogin.status,200);
-assert.match(adminLogin.text,/Control Panel/);
+assert.ok(new URL(adminLogin.url).pathname==='/admin','legacy /admin/login must redirect to the single /admin entry');
+assert.ok(adminLogin.text.includes('vma27-access-page')&&adminLogin.text.includes('SECURE ADMIN ACCESS'),'legacy login redirects to the unified branded login');
+const adminEntry=await request(WEB+'/admin');
+assert.equal(adminEntry.status,200,'single admin entry must be accessible');
+assert.ok(adminEntry.text.includes('vma27-access-page'),'anonymous /admin must render sign-in, not reveal a dashboard');
+assert.equal(adminEntry.text.includes('vma27-side-link'),false,'anonymous admin must not receive navigation data');
 assert.equal(legacyCategory.status,200,'legacy category should redirect to working catalog');
 assert.ok(legacyCategory.url.includes('/catalog'));
 for(const cfg of [shipping.data,webShipping.data]){
@@ -146,4 +151,4 @@ const unsignedApi=await request(API+'/v1/webhooks/biteship',{method:'POST',heade
 assert.ok([401,503].includes(unsignedApi.status),'API webhook must never accept unsigned callbacks');
 const draft=await request(API+'/v1/orders',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
 assert.equal(draft.status,503,'no live checkout');
-console.log('VAPMART_STOREFRONT_RESTORED_SMOKE_SUCCESS',{activeProducts:products.data.items.length,brands:brands.data.items.length,provider:'biteship',booking:'off',payment:'off'});
+console.log('VAPMART_UNIFIED_ADMIN_STOREFRONT_SMOKE_SUCCESS',{activeProducts:products.data.items.length,brands:brands.data.items.length,provider:'biteship',booking:'off',payment:'off'});
