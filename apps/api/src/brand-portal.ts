@@ -28,6 +28,11 @@ export class BrandPortalService{
   if(!r.rows[0])throw new ForbiddenException('Akses brand tidak tersedia');
   return r.rows[0].role as string;
  }
+ async assertCanManageFulfillment(user:Principal,brandId:string){
+  const role=await this.grant(user,brandId);
+  if(role!=='owner'&&role!=='manager')throw new ForbiddenException('Hanya Owner atau Manager yang dapat memperbarui proses fulfillment');
+  return {brandId,role};
+ }
  private async paidSales(brandId:string){
   const r=await this.db.query<{paid_orders:string;units_sold:string;gross_item_sales_idr:string}>(
    `SELECT count(DISTINCT o.id)::text AS paid_orders,coalesce(sum(CASE WHEN o.id IS NOT NULL THEN oi.quantity ELSE 0 END),0)::text AS units_sold,

@@ -114,12 +114,13 @@ export class FulfillmentService {
    return {orderId,batches:[...batches.values()],replayed:false,courierBookingEnabled:false,paymentEnabled:false};
   });
  }
- async transition(actor:Principal,batchId:string,body:unknown){
-  if(!actor.emailVerified)throw new ForbiddenException('Verified administrator required');
+ async transition(actor:Principal,batchId:string,body:unknown,authorizedBrandId?:string){
+  if(!actor.emailVerified)throw new ForbiddenException('Verified operator required');
+  if(authorizedBrandId)requireUuid(authorizedBrandId,'brand');
   requireUuid(batchId,'batch');const change=parseFulfillmentStatus(body);
   return this.db.transaction(async client=>{
    const r=await client.query<{id:string;state:string;status:string;payment_status:string;payment_provider:string|null;payment_reference:string|null}>(
-    'SELECT f.id,f.state,o.status,o.payment_status,o.payment_provider,o.payment_reference FROM product.fulfillment_batches f JOIN product.orders o ON o.id=f.order_id WHERE f.id=$1 FOR UPDATE OF f',[batchId]);
+    'SELECT f.id,f.state,o.status,o.payment_status,o.payment_provider,o.payment_reference FROM product.fulfillment_batches f JOIN product.orders o ON o.id=f.order_id WHERE f.id=$1 AND ($2::uuid IS NULL OR f.brand_id=$2::uuid) FOR UPDATE OF f',[batchId,authorizedBrandId||null]);
    const b=r.rows[0];if(!b)throw new NotFoundException('Fulfillment batch not found');
    if(!paidOrderVerified(b))throw new ConflictException('Order is no longer paid and active; processing is blocked');
    if(b.state===change.state)return {id:b.id,state:b.state,replayed:true,carrierBookingEnabled:false};
