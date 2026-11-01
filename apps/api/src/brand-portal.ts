@@ -78,9 +78,9 @@ export class BrandPortalService{
  async fulfillment(user:Principal,brandId:string){
   await this.grant(user,brandId);
   const r=await this.db.query(
-   "SELECT f.id,f.order_id,f.state,w.code AS warehouse_code,f.created_at,(SELECT coalesce(sum(l.quantity),0)::integer FROM product.fulfillment_lines l WHERE l.batch_id=f.id) AS units FROM product.fulfillment_batches f JOIN product.warehouses w ON w.id=f.warehouse_id WHERE f.brand_id=$1 ORDER BY f.created_at DESC LIMIT 100",
+   "SELECT f.id,f.order_id,f.state,w.code AS warehouse_code,f.created_at,s.state AS carrier_state,s.provider_status,s.tracking_number,(SELECT coalesce(sum(l.quantity),0)::integer FROM product.fulfillment_lines l WHERE l.batch_id=f.id) AS units FROM product.fulfillment_batches f JOIN product.warehouses w ON w.id=f.warehouse_id LEFT JOIN product.shipments s ON s.fulfillment_batch_id=f.id WHERE f.brand_id=$1 ORDER BY f.created_at DESC LIMIT 100",
    [brandId]);
-  return {brandId,items:r.rows,readOnly:true,customerDataExcluded:true,courierBookingEnabled:false};
+  return {brandId,items:r.rows,readOnly:true,customerDataExcluded:true,courierBookingEnabled:false,providerTrackingIsReadOnly:true};
  }
  async members(brandId:string){
   if(!uuidPattern.test(brandId))throw new BadRequestException('ID brand tidak valid');
