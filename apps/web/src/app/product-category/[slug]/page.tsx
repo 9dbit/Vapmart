@@ -2,7 +2,8 @@ import Link from 'next/link';
 import {notFound} from 'next/navigation';
 import type {Metadata} from 'next';
 import {ArchiveCard} from '@/components/archive-card';
-import {archiveCategories,categoryArchiveItems,isArchiveCategory} from '@/lib/archive-catalog';
+import {archiveCategories,isArchiveCategory} from '@/lib/archive-catalog';
+import {getArchivedProducts} from '@/lib/api';
 
 export const dynamic='force-dynamic';
 export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
@@ -13,7 +14,7 @@ export default async function CategoryPage({params}:{params:Promise<{slug:string
  const {slug}=await params;
  if(!isArchiveCategory(slug))notFound();
  const category=archiveCategories[slug];
- const items=categoryArchiveItems(slug);
+ const items=(await getArchivedProducts()).filter(item=>item.category===slug);
  return <main className="vm-category-page" data-legacy-category={slug}>
    <h1 className="vm-lined-heading"><span>Rekomendasi {category.label} Untuk Kamu</span></h1>
    {items.length>0?
