@@ -50,7 +50,11 @@ export class CourierEventService{
     // Provider price corrections MUST NOT alter customer order total, payment ledger or wallet.
     reconcilePrice=true;
    }else{
-    if(evt.waybill){
+    // Official waybill changes come through order.waybill_id. A stale status event
+    // cannot overwrite a newer waybill number after the package advanced.
+    if(evt.waybill&&(evt.event==='order.waybill_id'||
+       (!shipment.tracking_number&&
+        (evt.status===null||(courierRanks[evt.status]||0)>=shipment.status_rank)))){
      await client.query('UPDATE product.shipments SET tracking_number=$2,updated_at=now() WHERE id=$1',
       [shipment.id,evt.waybill]);
      applied=true;
