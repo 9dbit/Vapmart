@@ -4,6 +4,7 @@ import type {Principal} from './auth';
 import {paidOrderVerified} from './fulfillment';
 import {requireUuid} from './warehouses';
 import {parseManifestRequest} from './courier-protocol';
+import {buildBiteshipOrderPayload} from './courier-adapter';
 
 type BatchRow={
  id:string;order_id:string;brand_id:string;warehouse_id:string;state:string;
@@ -87,13 +88,31 @@ export class CourierManifestService{
   ]);
   const row=b.rows[0];if(!row)throw new NotFoundException('Fulfillment batch not found');
   const weight=goods.rows.reduce((a,g)=>a+(g.weight_grams||0)*g.quantity,0);
+  const blockers=manifestBlockers(row,goods.rows,count.rows[0]?.n||0,quote.rows[0]||null);
+  let providerPayloadReady=false;
+  if(blockers.length===1&&blockers[0]==='EXTERNAL_BOOKING_DISABLED'){
+   try{
+    // Validate the documented request body with server data, but NEVER POST it to Biteship.
+    buildBiteshipOrderPayload({
+      referenceId:'vapmart-'+batchId,
+      origin:{contactName:row.origin_contact_name||'',contactPhone:row.origin_contact_phone||'',
+       address:row.origin_address,postalCode:row.origin_postal_code||''},
+      destination:{contactName:row.contact_name||'',contactPhone:row.contact_phone||'',
+       address:row.address_line||'',postalCode:row.postal_code||''},
+      courierCompany:row.shipping_courier_code||'',courierType:row.shipping_service_code||'',
+      items:goods.rows.map(g=>({name:g.name,valueIdr:Number(g.price_idr),quantity:g.quantity,
+       weightGrams:g.weight_grams||0,lengthCm:g.length_cm||0,widthCm:g.width_cm||0,heightCm:g.height_cm||0}))
+    });
+    providerPayloadReady=true;
+   }catch{blockers.unshift('PROVIDER_PAYLOAD_INVALID');}
+  }
   return {batchId,orderId:row.order_id,brandId:row.brand_id,state:row.state,
    origin:{warehouse:row.warehouse_name,city:row.origin_city,postalCode:row.origin_postal_code},
    destination:{city:row.city,province:row.province,postalCode:row.postal_code},
    courier:{code:row.shipping_courier_code,service:row.shipping_service_code},
    weightGrams:weight,items:goods.rows.map(g=>({sku:g.sku,name:g.name,quantity:g.quantity,
     weightGrams:g.weight_grams,dimensionsCm:[g.length_cm,g.width_cm,g.height_cm]})),
-   manifest:m.rows[0]||null,bookingBlockers:manifestBlockers(row,goods.rows,count.rows[0]?.n||0,quote.rows[0]||null),
+   manifest:m.rows[0]||null,bookingBlockers:blockers,providerPayloadReady,
    bookingEnabled:false,providerCallPerformed:false};
  }
  async prepare(actor:Principal,batchId:string,raw:unknown){
