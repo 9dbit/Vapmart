@@ -7,11 +7,14 @@ async function request(url,options={}){
  return {status:r.status,text,data,url:r.url};
 }
 let ready=false;
-for(let i=1;i<=42;i++){
+for(let i=1;i<=70;i++){
  try{
-  const [api,web,shipping]=await Promise.all([request(API+'/ready'),request(WEB+'/'),request(WEB+'/api/shipping/config')]);
-  if(api.status===200&&api.data?.database==='ready'&&web.status===200&&web.text.includes('vm-commerce-home')&&shipping.status===200){ready=true;break;}
-  console.log('Waiting for CP33 web/API',i,api.status,web.status,shipping.status);
+  const [api,web,shipping,brandState]=await Promise.all([
+   request(API+'/ready'),request(WEB+'/'),request(WEB+'/api/shipping/config'),
+   request(WEB+'/api/brand-portal/25f397b8-564f-46f4-971e-bc1d333ac1d0/fulfillment/25f397b8-564f-46f4-971e-bc1d333ac1d0/state',{method:'POST',headers:{'content-type':'application/json'},body:'{}'})
+  ]);
+  if(api.status===200&&api.data?.database==='ready'&&web.status===200&&web.text.includes('vm-commerce-home')&&shipping.status===200&&brandState.status===401){ready=true;break;}
+  console.log('Waiting for CP35 web/API and brand-scoped state route',i,api.status,web.status,shipping.status);
  }catch(e){console.log('CP33 retry',i,String(e).slice(0,180));}
  await sleep(7000);
 }
