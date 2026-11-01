@@ -173,4 +173,12 @@ html[data-vapmart-color-mode=dark] .vma27-storefront-link,html[data-vapmart-colo
 html[data-vapmart-color-mode=dark] .vma27-page-heading p:not(.vma26-eyebrow),html[data-vapmart-color-mode=dark] .vma27-access-intro>p,html[data-vapmart-color-mode=dark] .vma27-access-subtitle{color:#c2b3cb}
 html[data-vapmart-color-mode=dark] .vma27-access-form>label{color:#e6dced}
 html[data-vapmart-color-mode=dark] .vma27-access-form>input,html[data-vapmart-color-mode=dark] .vma27-password-wrap input{background:#2c2534;border-color:#564663;color:#fbf4ff}
+
+/* Old Control Panel CSS had a more specific 13px input rule. Override it for login readability. */
+.vma27-access-page.vma26-root .vma27-access-card .vma27-access-form>input:not([type=checkbox]),
+.vma27-access-page.vma26-root .vma27-access-card .vma27-password-wrap>input:not([type=checkbox]){
+ font-size:16px;min-height:50px;padding:12px 15px;line-height:1.4;
+}
+.vma27-access-page.vma26-root .vma27-access-card .vma27-password-wrap>input{padding-right:95px}
+
 @media(prefers-reduced-motion:reduce){.vma27-sidebar,.vma27-loading-ring{transition:none;animation:none}}
