@@ -103,3 +103,12 @@ Next.js API bridges exist for all endpoints. Return `401` without authorization.
 - Test live with two authorized partner users and a verified test carrier account before production commerce activation.
 
 Safety: no changes to Pentagon, Tradevice, DNS, email, Supabase organizations, or payment gateway secrets.
+
+## Final release verification
+- Railway environment: `vapmart-web` **SUCCESS**, `vapmart-api` **SUCCESS**, `Postgres` **SUCCESS**.
+- API predeploy migration log confirms `012_warehouse_fulfillment.sql` in the migration ledger and reports no pending migrations.
+- GitHub Actions: Foundation API and Web builds **PASS**, Catalog Audit **PASS**, Theme Browser QA **PASS**, UI Smoke **PASS**, Staging Smoke **PASS**, Security Audit **PASS**, Coin Ledger Integration **PASS** and the disposable PostgreSQL Warehouse & Fulfillment Integration **PASS**. The last integration specifically checked viewer denial, owner/manager authorization and inability to mutate a different brand's batch.
+- Verified on the custom domain: `GET https://vapmart.id/api/admin/warehouses` returned HTTP **401** to an anonymous user; anonymous `POST /api/brand-portal/:brandId/fulfillment/:batchId/state` also returned HTTP **401**.
+- Verified `GET https://vapmart.id/api/shipping/config`: `rateLookupEnabled=false`, `bookingEnabled=false`, `paymentEnabled=false`.
+- No live operator/user token was used to mutate Vapmart data. Real warehouse receipt and fulfillment processing by actual partner users remain a **separate production acceptance test**. The paid-order fixtures existed exclusively on disposable CI PostgreSQL, not Railway.
+- Checkout, payment gateway, real courier booking, AWB and third-party courier tracking remain OFF.
