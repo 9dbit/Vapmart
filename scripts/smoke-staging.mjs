@@ -85,6 +85,8 @@ const privateEndpoints=[
  [API+'/v1/admin/fulfillment/batches/'+sample+'/timeline','GET'],
  [API+'/v1/brand-portal/'+sample+'/warehouses','GET'],
  [WEB+'/api/brand-portal/'+sample+'/fulfillment','GET'],
+ [API+'/v1/brand-portal/'+sample+'/fulfillment/'+sample+'/state','POST'],
+ [WEB+'/api/brand-portal/'+sample+'/fulfillment/'+sample+'/state','POST'],
  [API+'/v1/customer-fulfillment/orders/'+sample+'/tracking','GET'],
  [WEB+'/api/customer-fulfillment/orders/'+sample+'/tracking','GET']
 ];
