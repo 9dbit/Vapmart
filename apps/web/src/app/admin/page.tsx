@@ -4,14 +4,13 @@ import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {formatIDR,type Product} from '@/lib/types';
-import type {ArchivedCatalogProduct} from '@/lib/api';
 import '../admin-v26.css';
 
 type Brand={id:string;name:string;slug:string;description:string;logo_url:string|null;is_active:boolean};
 type Order={id:string;status:string;payment_status:string;contact_name:string;contact_email:string;city:string;province:string;total_idr:string;payment_method:string;created_at:string};
 type ProductDraft={name:string;slug:string;sku:string;description:string;category:string;price_idr:string;stock_qty:string;brand_id:string;image_url:string;gallery_urls:string[];is_active:boolean};
 type BrandDraft={name:string;slug:string;description:string;logo_url:string;is_active:boolean};
-type Tab='overview'|'products'|'archive'|'brands'|'orders';
+type Tab='overview'|'products'|'brands'|'orders';
 const categories=['home','lifestyle','decor','accessories','electronics','other'];
 const blankProduct:ProductDraft={name:'',slug:'',sku:'',description:'',category:'lifestyle',price_idr:'',stock_qty:'0',brand_id:'',image_url:'',gallery_urls:[],is_active:false};
 const blankBrand:BrandDraft={name:'',slug:'',description:'',logo_url:'',is_active:true};
@@ -31,11 +30,9 @@ export default function AdminPage(){
  const [message,setMessage]=useState('');
  const [tab,setTab]=useState<Tab>('overview');
  const [products,setProducts]=useState<Product[]>([]);
- const [archive,setArchive]=useState<ArchivedCatalogProduct[]>([]);
  const [brands,setBrands]=useState<Brand[]>([]);
  const [orders,setOrders]=useState<Order[]>([]);
  const [search,setSearch]=useState('');
- const [archiveSearch,setArchiveSearch]=useState('');
  const [statusFilter,setStatusFilter]=useState('all');
  const [editingProduct,setEditingProduct]=useState<string|null>(null);
  const [editingBrand,setEditingBrand]=useState<string|null>(null);
@@ -48,14 +45,13 @@ export default function AdminPage(){
  }
  async function refreshData(){
   if(!auth.accessToken)return;
-  const paths=['/api/admin/products','/api/admin/brands','/api/admin/orders','/api/archive'];
+  const paths=['/api/admin/products','/api/admin/brands','/api/admin/orders'];
   const responses=await Promise.all(paths.map(path=>authorizedFetch(path)));
   const data=await Promise.all(responses.map(r=>r.json()));
   for(let i=0;i<responses.length;i++)if(!responses[i].ok)throw new Error('Gagal memuat '+paths[i]+': '+statusError(responses[i],data[i]));
   setProducts(Array.isArray(data[0].items)?data[0].items:[]);
   setBrands(Array.isArray(data[1].items)?data[1].items:[]);
   setOrders(Array.isArray(data[2].items)?data[2].items:[]);
-  setArchive(Array.isArray(data[3].items)?data[3].items:[]);
  }
  useEffect(()=>{
   if(auth.loading)return;
@@ -66,13 +62,13 @@ export default function AdminPage(){
    try{
     const response=await fetch('/api/admin/status',{headers:{authorization:'Bearer '+auth.accessToken},cache:'no-store'});
     if(!response.ok){if(active){setAuthorized(false);setAccessDenied(response.status===403);if(response.status===401||response.status===403)router.replace('/admin/login');}return;}
-    const results=await Promise.all(['/api/admin/products','/api/admin/brands','/api/admin/orders','/api/archive'].map(path=>
+    const results=await Promise.all(['/api/admin/products','/api/admin/brands','/api/admin/orders'].map(path=>
       fetch(path,{headers:{authorization:'Bearer '+auth.accessToken},cache:'no-store'})));
     const data=await Promise.all(results.map(r=>r.json()));
     if(!active)return;
     setAuthorized(true);setAccessDenied(false);
     if(results.every(r=>r.ok)){
-     setProducts(data[0].items||[]);setBrands(data[1].items||[]);setOrders(data[2].items||[]);setArchive(data[3].items||[]);
+     setProducts(data[0].items||[]);setBrands(data[1].items||[]);setOrders(data[2].items||[])
     }else setMessage('Admin terverifikasi, tetapi beberapa data belum tersedia. Periksa migrasi database.');
    }catch{if(active)setMessage('Tidak dapat menghubungi API admin.');}
    finally{if(active)setChecking(false);}
@@ -86,7 +82,6 @@ export default function AdminPage(){
   const status=statusFilter==='all'||(statusFilter==='active'&&p.is_active)||(statusFilter==='draft'&&!p.is_active)||(statusFilter==='low'&&p.stock_qty<=5);
   return match&&status;
  }),[products,search,statusFilter]);
- const filteredArchive=archive.filter(p=>[p.name,p.slug,p.brand,p.category].some(v=>v.toLowerCase().includes(archiveSearch.trim().toLowerCase())));
  const published=products.filter(p=>p.is_active).length;
  const lowStock=products.filter(p=>p.stock_qty<=5).length;
  const pending=orders.filter(o=>o.payment_status==='not_initiated').length;
@@ -183,13 +178,11 @@ export default function AdminPage(){
     <div><span>Produk tayang</span><strong>{published}</strong><small>Terlihat di storefront</small></div>
     <div><span>Stok ≤ 5</span><strong>{lowStock}</strong><small>Butuh pemeriksaan</small></div>
     <div><span>Brand</span><strong>{brands.length}</strong><small>Aktif {brands.filter(b=>b.is_active).length}</small></div>
-    <div><span>Arsip frontend</span><strong>{archive.length}</strong><small>Referensi, tidak untuk checkout</small></div>
     <div><span>Draft pesanan</span><strong>{pending}</strong><small>Belum dibayar</small></div>
    </div>
    <nav className="vma26-tabs" aria-label="Menu dashboard">
     <Pill active={tab==='overview'} onClick={()=>setTab('overview')}>Ringkasan</Pill>
     <Pill active={tab==='products'} onClick={()=>setTab('products')}>Produk &amp; SKU</Pill>
-    <Pill active={tab==='archive'} onClick={()=>setTab('archive')}>Katalog Arsip ({archive.length})</Pill>
     <Pill active={tab==='brands'} onClick={()=>setTab('brands')}>Brands</Pill>
     <Pill active={tab==='orders'} onClick={()=>setTab('orders')}>Pesanan</Pill>
    </nav>
@@ -237,26 +230,6 @@ export default function AdminPage(){
       {editingProduct&&<button className="vma26-btn-light" type="button" onClick={newProduct}>Batal edit</button>}
     </form>
    </div>}
-   {tab==='archive'&&<section className="vma26-panel">
-      <div className="vma26-section-head"><div><p className="vma26-eyebrow">LEGACY STOREFRONT INVENTORY</p><h2>Katalog Arsip <span>{filteredArchive.length} / {archive.length}</span></h2>
-        <p>Seluruh referensi produk dari snapshot frontend WordPress ditampilkan di sini sebagai aset historis, bukan stok aktif. Harga, SKU, dan ketersediaan perlu diverifikasi sebelum produk pengganti dapat dimasukkan ke katalog baru.</p></div></div>
-      <div className="vma26-filter"><input aria-label="Cari katalog arsip" placeholder="Cari nama, brand, kategori, slug..." value={archiveSearch} onChange={e=>setArchiveSearch(e.target.value)}/><Link href="/asset-review" className="vma26-btn-light">Asset Review ↗</Link></div>
-      <div className="vma26-archive-grid">
-        {filteredArchive.map(item=><article className="vma26-archive-card" key={item.slug}>
-         <div className="vma26-archive-visual"><img src={item.image} alt={item.name} loading="lazy"/></div>
-         <div className="vma26-archive-body">
-          <span className="vma26-eyebrow">{item.brand} / {item.category}</span>
-          <strong>{item.name}</strong>
-          <small>{item.price} <span>· Harga historis</span></small>
-          <small>SKU: belum diverifikasi</small>
-          <span className="vma26-state">Arsip · Tidak dijual</span>
-          <Link href={'/product/'+item.slug} className="vma26-archive-link">Lihat referensi di frontend ↗</Link>
-         </div>
-        </article>)}
-      </div>
-      {!filteredArchive.length&&<p className="vma26-muted">Tidak ada arsip yang cocok dengan pencarian.</p>}
-      <p className="vma26-muted">Arsip ini diambil dari aset frontend yang sama dengan halaman publik. Tidak terhubung ke pembayaran, perubahan stok, atau fitur publish; hanya produk baru yang memenuhi aturan katalog yang dapat dijual.</p>
-    </section>}
    {tab==='brands'&&<div className="vma26-layout">
     <section className="vma26-panel">
       <div className="vma26-section-head"><div><p className="vma26-eyebrow">BRAND DIRECTORY</p><h2>Brands <span>{brands.length}</span></h2></div><button type="button" className="vma26-btn-dark" onClick={newBrand}>+ Brand baru</button></div>

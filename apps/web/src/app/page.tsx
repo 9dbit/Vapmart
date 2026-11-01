@@ -1,83 +1,27 @@
 import Link from 'next/link';
-import {getProducts,getBrands,getArchivedProducts} from '@/lib/api';
-import {HeroCarousel} from '@/components/hero-carousel';
-import {ParallaxAmbient} from '@/components/parallax-ambient';
+import {getProducts,getBrands} from '@/lib/api';
 import {ProductGrid} from '@/components/product-grid';
-import {archivedNews} from '@/lib/archived-reference';
-
-import {ArchiveCard} from '@/components/archive-card';
-import {homepageCategoryTiles} from '@/lib/merchandising';
 import {BrandRail} from '@/components/brand-rail';
-
+import './commerce-home.css';
 export const dynamic='force-dynamic';
-
+const groups=[{label:'Home',id:'home'},{label:'Lifestyle',id:'lifestyle'},{label:'Decor',id:'decor'},{label:'Accessories',id:'accessories'},{label:'Electronics',id:'electronics'}] as const;
 export default async function Home(){
-  const [products,brands,archived]=await Promise.all([getProducts(),getBrands(),getArchivedProducts()]);
-  const verifiedProducts=products.filter(p=>!p.slug.startsWith('demo-'));
-  return <main className="legacy-home vm-reference-home vm-trendora-home" id="home" data-vapmart-ui="cp22">
-    <div className="vm-hero-stage vm-trendora-hero">
-      <ParallaxAmbient />
-      <HeroCarousel />
-    </div>
-
-    <section className="main-container vm-trendora-categories" id="categories">
-      <div className="vm-trendora-section-heading">
-        <div><span className="vm-trendora-eyebrow">EXPLORE MORE</span><h2>Kategori</h2></div>
-        <Link href="/catalog" className="vm-trendora-see-all">Lihat semua <span aria-hidden="true">↗</span></Link>
-      </div>
-      <div className="vm-trendora-category-grid">
-        {homepageCategoryTiles.map(item=><Link href={item.href} key={item.name} className="vm-trendora-category" aria-label={'Lihat kategori '+item.name}>
-          <span className="vm-trendora-category-image"><img src={item.image} width={1080} height={1080} alt="" loading="eager"/></span>
-          <span className="vm-trendora-category-title">{item.name}</span>
-        </Link>)}
-      </div>
-    </section>
-
-    {verifiedProducts.length>0?
-      <div className="main-container vm-active-products vm-trendora-featured">
-        <ProductGrid products={verifiedProducts}/>
-      </div>
-    :<section className="main-container vm-reference-products vm-trendora-featured" id="shop" aria-label="Referensi koleksi Vapmart">
-      <div className="vm-trendora-section-heading vm-ref-section-head">
-        <div><span className="vm-trendora-eyebrow">HANDPICKED FOR YOU</span><h2>Featured Products</h2></div>
-        <Link href="/catalog" className="vm-trendora-see-all">Lihat katalog <span aria-hidden="true">↗</span></Link>
-      </div>
-      <div className="vm-reference-grid">
-        {archived.filter(item=>item.source==='homepage-20260316').map(item=><ArchiveCard item={item} key={item.slug}/>)}
-      </div>
-      <p className="vm-reference-disclaimer">Produk pada galeri ini adalah arsip visual. Harga ditampilkan sebagai referensi historis dan tidak menerima transaksi. <Link href="/catalog">Buka katalog ↗</Link></p>
-    </section>}
-
-    <section className="main-container vm-trendora-member" id="promo">
-      <div className="vm-trendora-member-copy">
-        <span className="vm-trendora-eyebrow">THE VAPMART CLUB</span>
-        <h2>A little more, just for you.</h2>
-        <p>Temukan akun, koleksi, dan fitur member dalam satu tempat.</p>
-        <Link id="member" href="/member-2" className="vm-trendora-member-link">Explore member <span aria-hidden="true">↗</span></Link>
-      </div>
-      <div className="vm-trendora-member-mark" aria-hidden="true">V<span>✳</span></div>
-    </section>
-
-    <section className="main-container vm-ref-brands vm-trendora-brands" id="brand">
-      <div className="vm-trendora-section-heading vm-section-line">
-        <div><span className="vm-trendora-eyebrow">EXPLORE THE NAMES</span><h2>Brand Partner</h2></div>
-        <Link href="/brand-partner" className="vm-trendora-see-all">Lihat semua <span aria-hidden="true">↗</span></Link>
-      </div>
-      <BrandRail brands={brands}/>
-    </section>
-
-    <section className="main-container vm-ref-news vm-trendora-news" id="news">
-      <div className="vm-trendora-section-heading">
-        <div><span className="vm-trendora-eyebrow">THE JOURNAL</span><h2>Inspirasi & News</h2></div>
-        <Link href="/#news" className="vm-trendora-see-all">Explore stories <span aria-hidden="true">↗</span></Link>
-      </div>
-      <div className="vm-reference-news-grid">
-        {archivedNews.map(article=><article className="vm-reference-news-card" key={article.image}>
-          <img src={article.image} alt="" width="300" height="169" loading="lazy"/>
-          <div>{article.title}</div>
-        </article>)}
-      </div>
-    </section>
-    <p className="main-container vm-archive-end-note">Preview desain Vapmart. Konten arsip ditampilkan untuk peninjauan visual, bukan penawaran aktif.</p>
-  </main>;
+ const [products,brands]=await Promise.all([getProducts(),getBrands()]);
+ const published=products.filter(p=>p.is_active&&!p.slug.startsWith('demo-'));
+ return <main className="vm-commerce-home" id="home">
+  <section className="main-container vm-commerce-hero">
+   <div><span className="vm-commerce-eyebrow">VAPMART / CURATED MARKETPLACE</span>
+    <h1>Discover better.<br/><em>Every day.</em></h1>
+    <p>Pilihan produk baru yang dikurasi Vapmart. Jelajahi katalog dan temukan brand favorit dalam satu tempat.</p>
+    <div className="vm-commerce-hero-actions"><Link href="/catalog" className="vm-commerce-primary">Explore catalog ↗</Link><Link href="/brand-partner" className="vm-commerce-secondary">Our brands</Link></div>
+   </div><div className="vm-commerce-hero-art" aria-hidden="true"><span className="vm-commerce-orb"/><strong>v</strong><span className="vm-commerce-stamp">VAPMART®<br/>NEW COLLECTION</span></div>
+  </section>
+  <section className="main-container vm-commerce-categories">
+   <div className="vm-commerce-section-head"><div><span className="vm-commerce-eyebrow">SHOP BY CATEGORY</span><h2>Explore categories.</h2></div><Link href="/catalog">Lihat semua ↗</Link></div>
+   <div className="vm-commerce-categories-row">{groups.map((x,i)=><Link href={'/catalog?category='+x.id} className="vm-commerce-category" key={x.id}><small>{String(i+1).padStart(2,'0')}</small><strong>{x.label}</strong><span>↗</span></Link>)}</div>
+  </section>
+  {published.length>0?<section className="main-container vm-commerce-products"><ProductGrid products={published}/></section>:<section className="main-container vm-commerce-empty" id="shop"><span className="vm-commerce-eyebrow">COMING SOON</span><h2>Koleksi baru sedang disiapkan.</h2><p>Produk akan tampil setelah brand, stok, harga, dan foto disetujui oleh tim Vapmart. Tidak ada produk contoh atau arsip di etalase ini.</p><Link href="/brand-partner" className="vm-commerce-primary">Lihat brand ↗</Link></section>}
+  {brands.length>0&&<section className="main-container vm-commerce-brand"><div className="vm-commerce-section-head"><div><span className="vm-commerce-eyebrow">OUR PARTNERS</span><h2>Brand Partner.</h2></div><Link href="/brand-partner">Explore brands ↗</Link></div><BrandRail brands={brands}/></section>}
+  <section className="main-container vm-commerce-member"><span className="vm-commerce-eyebrow">THE VAPMART CLUB</span><h2>Made for members.</h2><p>Akses akun, favorit dan benefit dalam satu ruang.</p><Link href="/member-2">Explore membership ↗</Link></section>
+ </main>;
 }

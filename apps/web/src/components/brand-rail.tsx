@@ -1,11 +1,10 @@
 'use client';
 import Link from 'next/link';
 import {useEffect,useRef,useState} from 'react';
-import {brandPartners} from '@/lib/merchandising';
 import type {ActiveBrand} from '@/lib/api';
 
 export function BrandRail({brands=[]}:{brands?:ActiveBrand[]}){
-  const partners=brands.length>0?brands.map(b=>({slug:b.slug,name:b.name,image:b.logo_url||''})):brandPartners;
+  const partners=brands.map(b=>({slug:b.slug,name:b.name,image:b.logo_url||''}));
   const railRef=useRef<HTMLDivElement>(null);
   const [canPrev,setCanPrev]=useState(false);
   const [canNext,setCanNext]=useState(false);

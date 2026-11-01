@@ -35,13 +35,6 @@ export class CatalogController {
   async bySlug(@Param('slug') slug: string) { return this.products.bySlug(slug); }
 }
 
-@Controller('v1/archive')
-export class ArchiveController {
- constructor(private readonly products:ProductsService){}
- @Get()
- async list(){return {items:await this.products.listArchive(),readOnly:true,paymentEnabled:false};}
-}
-
 @Controller('v1/admin')
 @UseGuards(AdminGuard)
 export class AdminController {
