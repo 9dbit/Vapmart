@@ -4,6 +4,7 @@ import {CartProvider} from '@/lib/cart';
 import {CustomerAuthProvider} from '@/lib/customer-auth';
 import {WishlistProvider} from '@/lib/wishlist';
 import {SiteHeader} from '@/components/site-header';
+import {StorefrontChrome} from '@/components/storefront-chrome';
 import {ThemeProvider} from '@/lib/theme';
 import {BrandLogo} from '@/components/brand-logo';
 import './globals.css';
@@ -32,8 +33,8 @@ export const metadata:Metadata={
  robots:{index:false,follow:false},
 };
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="id" suppressHydrationWarning><head><meta name="theme-color" content="#ffffff"/><script id="vapmart-theme-init" dangerouslySetInnerHTML={{__html:initialThemeScript}}/></head><body data-vapmart-theme="member-cp22" data-vapmart-theme-options="cp23"><ThemeProvider><CustomerAuthProvider><CartProvider><WishlistProvider><SiteHeader/>{children}
-    <footer className="legacy-footer vm-reference-footer">
+  return <html lang="id" suppressHydrationWarning><head><meta name="theme-color" content="#ffffff"/><script id="vapmart-theme-init" dangerouslySetInnerHTML={{__html:initialThemeScript}}/></head><body data-vapmart-theme="member-cp22" data-vapmart-theme-options="cp23"><ThemeProvider><CustomerAuthProvider><CartProvider><WishlistProvider><StorefrontChrome><SiteHeader/></StorefrontChrome>{children}
+    <StorefrontChrome><footer className="legacy-footer vm-reference-footer">
       <div className="main-container vm-reference-footer-grid">
         <div className="vm-footer-intro"><BrandLogo variant="footer"/>
           <p>Platform Vapmart sedang diperbarui. Konten produk lama ditampilkan sebagai referensi visual staging, bukan penawaran aktif.</p>
@@ -56,6 +57,6 @@ export default function RootLayout({children}:{children:React.ReactNode}){
         </div>
       </div>
       <div className="main-container vm-footer-powered">Powered by <BrandLogo variant="powered"/></div>
-    </footer>
+    </footer></StorefrontChrome>
   </WishlistProvider></CartProvider></CustomerAuthProvider></ThemeProvider></body></html>;
 }
