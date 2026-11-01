@@ -34,6 +34,10 @@ try{
  await page.locator('.vm-brand-portal-root').waitFor();
  assert.equal(await page.locator('.legacy-header').count(),0,'brand login must be separate from customer storefront');
  assert.equal(await page.locator('.legacy-footer').count(),0,'brand login must hide storefront footer');
+ await page.goto(BASE+'/brand/accept',{waitUntil:'domcontentloaded',timeout:30000});
+ await page.locator('.vm-brand-portal-root').waitFor();
+ assert.equal(await page.locator('.legacy-header').count(),0,'brand invitation page must have isolated shell');
+ assert.ok(await page.getByText('Join your', {exact:false}).first().isVisible(),'brand invite acceptance entry renders');
  await page.goto(BASE+'/admin/login',{waitUntil:'domcontentloaded',timeout:30000});
  await page.locator('.vma26-root').waitFor();
  assert.equal(await page.locator('.legacy-header').count(),0,'admin login must hide customer header');
@@ -57,5 +61,5 @@ try{
  await page.goto(BASE+'/brand/login',{waitUntil:'domcontentloaded',timeout:30000});
  const brandMobile=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,innerWidth:window.innerWidth}));
  assert.ok(brandMobile.scrollWidth<=brandMobile.innerWidth+3,'brand login mobile overflow');
- console.log('VAPMART_CP33_UI_SMOKE_SUCCESS',{mobile,brandMobile,legacy:'hidden',booking:false});
+ console.log('VAPMART_CP34_UI_SMOKE_SUCCESS',{mobile,brandMobile,legacy:'hidden',booking:false});
 }finally{await browser.close();}
