@@ -76,20 +76,20 @@ export async function refreshProductAvailability(client:PoolClient,ids:string[])
     WHERE id=$1`,[id]);
  }
 }
-async function ensureBalance(client:PoolClient,warehouseId:string,productId:string):Promise<Balance>{
+export async function ensureBalance(client:PoolClient,warehouseId:string,productId:string):Promise<Balance>{
  await client.query('INSERT INTO product.warehouse_stock(warehouse_id,product_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[warehouseId,productId]);
  const row=await client.query<Balance>('SELECT warehouse_id,product_id,on_hand,reserved FROM product.warehouse_stock WHERE warehouse_id=$1 AND product_id=$2 FOR UPDATE',[warehouseId,productId]);
  return row.rows[0];
 }
-async function writeEvent(client:PoolClient,x:{row:Balance;deltaHand:number;deltaReserved:number;reason:string;notes:string;actor:string;key?:string|null}){
+export async function writeEvent(client:PoolClient,x:{row:Balance;deltaHand:number;deltaReserved:number;reason:string;notes:string;actor:string;key?:string|null;batchId?:string|null}){
  const afterHand=x.row.on_hand+x.deltaHand,afterReserved=x.row.reserved+x.deltaReserved;
  if(!Number.isSafeInteger(afterHand)||!Number.isSafeInteger(afterReserved)||afterHand<0||afterReserved<0||afterReserved>afterHand||afterHand>2147483647)
   throw new ConflictException('Warehouse balance insufficient or exceeded');
  await client.query('UPDATE product.warehouse_stock SET on_hand=$3,reserved=$4,updated_at=now() WHERE warehouse_id=$1 AND product_id=$2',
    [x.row.warehouse_id,x.row.product_id,afterHand,afterReserved]);
  const event=await client.query(
-  'INSERT INTO product.warehouse_stock_events(warehouse_id,product_id,delta_on_hand,delta_reserved,on_hand_before,on_hand_after,reserved_before,reserved_after,reason,notes,actor_id,movement_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id,warehouse_id,product_id,delta_on_hand,delta_reserved,on_hand_before,on_hand_after,reserved_before,reserved_after,reason,notes,created_at',
-  [x.row.warehouse_id,x.row.product_id,x.deltaHand,x.deltaReserved,x.row.on_hand,afterHand,x.row.reserved,afterReserved,x.reason,x.notes,x.actor,x.key||null]);
+  'INSERT INTO product.warehouse_stock_events(warehouse_id,product_id,delta_on_hand,delta_reserved,on_hand_before,on_hand_after,reserved_before,reserved_after,reason,notes,actor_id,movement_key,batch_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id,warehouse_id,product_id,delta_on_hand,delta_reserved,on_hand_before,on_hand_after,reserved_before,reserved_after,reason,notes,created_at',
+  [x.row.warehouse_id,x.row.product_id,x.deltaHand,x.deltaReserved,x.row.on_hand,afterHand,x.row.reserved,afterReserved,x.reason,x.notes,x.actor,x.key||null,x.batchId||null]);
  return event.rows[0];
 }
 @Injectable()

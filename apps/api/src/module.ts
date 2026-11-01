@@ -10,6 +10,10 @@ import {BrandsService} from './brands';
 import {MediaService} from './media';
 import {CheckoutService} from './checkout';
 import {InventoryService} from './inventory';
+import {WarehouseService} from './warehouses';
+import {WarehouseController} from './warehouse-controller';
+import {FulfillmentService} from './fulfillment';
+import {FulfillmentAdminController,CustomerFulfillmentController} from './fulfillment-controller';
 import {BrandInvitationsService} from './brand-invitations';
 import {AdminBrandInvitationsController,AcceptBrandInvitationController} from './brand-invitations-controller';
 import {InventoryController} from './inventory-controller';
@@ -19,7 +23,7 @@ import {ShippingService} from './shipping';
 import {ShippingController} from './shipping-controller';
 
 @Module({
-  controllers: [HealthController, CatalogController, AdminController, OrdersController, BrandsController, MediaController, CheckoutController, CoinPacksController,MemberController,DigitalOrderController,SandboxWebhookController,BrandPortalController,BrandAccessAdminController,ShippingController,InventoryController,AdminBrandInvitationsController,AcceptBrandInvitationController],
-  providers: [DatabaseService, ProductsService, BrandsService, MediaService, CheckoutService, SupabaseAuthService, AdminGuard, CustomerGuard,MemberCommerceService,SandboxPaymentsService,BrandPortalService,ShippingService,InventoryService,BrandInvitationsService],
+  controllers: [HealthController, CatalogController, AdminController, OrdersController, BrandsController, MediaController, CheckoutController, CoinPacksController,MemberController,DigitalOrderController,SandboxWebhookController,BrandPortalController,BrandAccessAdminController,ShippingController,InventoryController,WarehouseController,FulfillmentAdminController,CustomerFulfillmentController,AdminBrandInvitationsController,AcceptBrandInvitationController],
+  providers: [DatabaseService, ProductsService, BrandsService, MediaService, CheckoutService, SupabaseAuthService, AdminGuard, CustomerGuard,MemberCommerceService,SandboxPaymentsService,BrandPortalService,ShippingService,InventoryService,WarehouseService,FulfillmentService,BrandInvitationsService],
 })
 export class AppModule {}

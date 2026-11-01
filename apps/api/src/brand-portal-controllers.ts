@@ -8,6 +8,8 @@ export class BrandPortalController {
  @Get('me') me(@Req() req:{user:Principal}){return this.portal.myBrands(req.user);}
  @Get(':brandId/overview') overview(@Req() req:{user:Principal},@Param('brandId') id:string){return this.portal.overview(req.user,id);}
  @Get(':brandId/products') products(@Req() req:{user:Principal},@Param('brandId') id:string){return this.portal.products(req.user,id);}
+ @Get(':brandId/warehouses') warehouseStock(@Req() req:{user:Principal},@Param('brandId') id:string){return this.portal.warehouseStock(req.user,id);}
+ @Get(':brandId/fulfillment') fulfillment(@Req() req:{user:Principal},@Param('brandId') id:string){return this.portal.fulfillment(req.user,id);}
  @Get(':brandId/sales') sales(@Req() req:{user:Principal},@Param('brandId') id:string){return this.portal.sales(req.user,id);}
 }
 @Controller('v1/admin/brand-access')

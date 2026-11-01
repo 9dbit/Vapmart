@@ -155,6 +155,7 @@ export class ProductsService {
 
   async create(body: unknown, actor:Principal): Promise<Product> {
     const product=cleanProduct(body);
+    if(product.stock_qty!==0)throw new BadRequestException('Stok awal harus 0. Catat stok di Warehouse Ledger dan pilih gudang fisik.');
     const columns=Object.keys(product);
     const placeholders=columns.map((_,index)=>'$'+(index+1)).join(', ');
     const sql='INSERT INTO product.products ('+columns.join(', ')+') VALUES ('+placeholders+') RETURNING id,sku,slug,brand_id,gallery_urls,name,description,category,price_idr::integer AS price_idr,stock_qty,weight_grams,length_cm,width_cm,height_cm,image_url,is_active';

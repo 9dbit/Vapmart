@@ -5,7 +5,7 @@ import type {Principal} from './auth';
 import {shippingFingerprint} from './shipping-fingerprint';
 
 type BasketItem={productId:string;quantity:number};
-type PricedItem={productId:string;sku:string|null;name:string;unitPriceIdr:number;quantity:number;lineTotalIdr:number;stockQty:number};
+type PricedItem={productId:string;brandId:string|null;sku:string|null;name:string;unitPriceIdr:number;quantity:number;lineTotalIdr:number;stockQty:number};
 type Quote={items:PricedItem[];subtotalIdr:number;shippingFeeIdr:number|null;totalIdr:number|null;currency:'IDR';shippingEstimate:boolean;paymentEnabled:false;paymentMethods:string[]};
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const PAYMENT_METHODS=['qris','virtual_account','ewallet'] as const;
@@ -33,7 +33,7 @@ function shippingAmount():number|null {
  const amount=Number(raw);
  return Number.isSafeInteger(amount)&&amount>=0&&amount<=10000000?amount:null;
 }
-export function priceBasket(items:BasketItem[],rows:Array<{id:string;sku:string|null;name:string;price_idr:string|number;stock_qty:number;is_active:boolean}>):Quote{
+export function priceBasket(items:BasketItem[],rows:Array<{id:string;sku:string|null;brand_id?:string|null;name:string;price_idr:string|number;stock_qty:number;is_active:boolean}>):Quote{
  const byId=new Map(rows.map(row=>[row.id,row]));
  const priced=items.map(item=>{
    const product=byId.get(item.productId);
@@ -41,7 +41,7 @@ export function priceBasket(items:BasketItem[],rows:Array<{id:string;sku:string|
    if(product.stock_qty<item.quantity)throw new ConflictException('Stok tidak mencukupi untuk '+product.name);
    const unitPriceIdr=Number(product.price_idr);
    if(!Number.isSafeInteger(unitPriceIdr)||unitPriceIdr<0)throw new ServiceUnavailableException('Harga produk belum valid');
-   return {productId:item.productId,sku:product.sku,name:product.name,unitPriceIdr,quantity:item.quantity,lineTotalIdr:unitPriceIdr*item.quantity,stockQty:product.stock_qty};
+   return {productId:item.productId,brandId:product.brand_id||null,sku:product.sku,name:product.name,unitPriceIdr,quantity:item.quantity,lineTotalIdr:unitPriceIdr*item.quantity,stockQty:product.stock_qty};
  });
  const subtotalIdr=priced.reduce((sum,item)=>sum+item.lineTotalIdr,0);
  const shippingFeeIdr=shippingAmount();
@@ -81,7 +81,7 @@ export class CheckoutService{
  constructor(private readonly db:DatabaseService){}
  config(){return {paymentEnabled:false,providerConnected:false,methods:PAYMENT_METHODS,shippingFeeIdr:shippingAmount(),shippingMode:process.env.SHIPPING_RATE_LOOKUP_ENABLED==='true'?'sandbox_select':'fixed_estimate',ordersMode:'draft_only'};}
  private async quoted(items:BasketItem[],query:(sql:string,params:unknown[])=>Promise<{rows:any[]}>):Promise<Quote>{
-   const rows=await query('SELECT id,sku,name,price_idr,stock_qty,is_active FROM product.products WHERE id=ANY($1::uuid[])',[items.map(x=>x.productId)]);
+   const rows=await query('SELECT id,sku,brand_id,name,price_idr,stock_qty,is_active FROM product.products WHERE id=ANY($1::uuid[])',[items.map(x=>x.productId)]);
    return priceBasket(items,rows.rows);
  }
  quote(raw:unknown){
@@ -140,8 +140,8 @@ export class CheckoutService{
       await client.query('UPDATE product.shipping_rate_quotes SET applied_order_id=$2 WHERE id=$1 AND applied_order_id IS NULL',[details.shippingQuoteId,order.rows[0].id]);
      }
      for(const item of quote.items){
-       await client.query('INSERT INTO product.order_items(order_id,product_id,quantity,unit_price_idr,product_name,sku) VALUES($1,$2,$3,$4,$5,$6)',
-         [order.rows[0].id,item.productId,item.quantity,item.unitPriceIdr,item.name,item.sku]);
+       await client.query('INSERT INTO product.order_items(order_id,product_id,quantity,unit_price_idr,product_name,sku,brand_id) VALUES($1,$2,$3,$4,$5,$6,$7)',
+         [order.rows[0].id,item.productId,item.quantity,item.unitPriceIdr,item.name,item.sku,item.brandId]);
      }
      return {id:order.rows[0].id,status:order.rows[0].status,paymentStatus:order.rows[0].payment_status,paymentEnabled:false,totalIdr:draftTotal};
    });

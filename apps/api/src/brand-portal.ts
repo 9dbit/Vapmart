@@ -53,8 +53,8 @@ export class BrandPortalService{
  async sales(user:Principal,brandId:string){
   await this.grant(user,brandId);
   const r=await this.db.query(
-   `SELECT p.id AS product_id,p.sku,p.name,coalesce(sum(oi.quantity),0)::text AS units_sold,
-     coalesce(sum(oi.quantity*oi.unit_price_idr),0)::text AS gross_item_sales_idr
+   `SELECT p.id AS product_id,p.sku,p.name,coalesce(sum(CASE WHEN o.id IS NOT NULL THEN oi.quantity ELSE 0 END),0)::text AS units_sold,
+     coalesce(sum(CASE WHEN o.id IS NOT NULL THEN oi.quantity*oi.unit_price_idr ELSE 0 END),0)::text AS gross_item_sales_idr
      FROM product.products p
      LEFT JOIN product.order_items oi ON oi.product_id=p.id
      LEFT JOIN product.orders o ON o.id=oi.order_id AND o.payment_status='paid'
@@ -62,6 +62,20 @@ export class BrandPortalService{
      WHERE p.brand_id=$1 AND p.slug NOT LIKE 'demo-%'
      GROUP BY p.id,p.sku,p.name ORDER BY p.name LIMIT 500`,[brandId]);
   return {brandId,items:r.rows,scope:'brand_only',salesBasis:'verified_paid_item_gross',settlementAvailable:false};
+ }
+ async warehouseStock(user:Principal,brandId:string){
+  await this.grant(user,brandId);
+  const r=await this.db.query(
+   "SELECT w.code,w.name AS warehouse_name,w.city,p.id AS product_id,p.sku,p.name AS product_name,s.on_hand,s.reserved,(s.on_hand-s.reserved) AS available,w.is_dispatch_enabled FROM product.warehouse_stock s JOIN product.products p ON p.id=s.product_id JOIN product.warehouses w ON w.id=s.warehouse_id WHERE p.brand_id=$1 AND NOT w.is_system_hold AND p.slug NOT LIKE 'demo-%' ORDER BY p.name,w.code LIMIT 500",
+   [brandId]);
+  return {brandId,items:r.rows,readOnly:true,customerDataExcluded:true};
+ }
+ async fulfillment(user:Principal,brandId:string){
+  await this.grant(user,brandId);
+  const r=await this.db.query(
+   "SELECT f.id,f.order_id,f.state,w.code AS warehouse_code,f.created_at,(SELECT coalesce(sum(l.quantity),0)::integer FROM product.fulfillment_lines l WHERE l.batch_id=f.id) AS units FROM product.fulfillment_batches f JOIN product.warehouses w ON w.id=f.warehouse_id WHERE f.brand_id=$1 ORDER BY f.created_at DESC LIMIT 100",
+   [brandId]);
+  return {brandId,items:r.rows,readOnly:true,customerDataExcluded:true,courierBookingEnabled:false};
  }
  async members(brandId:string){
   if(!uuidPattern.test(brandId))throw new BadRequestException('ID brand tidak valid');
