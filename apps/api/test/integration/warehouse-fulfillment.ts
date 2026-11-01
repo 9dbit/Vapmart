@@ -78,6 +78,9 @@ test('CP35: atomic multiwarehouse stock, paid-only reservation, scoped batches a
   const visible=await portal.warehouseStock(partner,bA.id);
   assert.ok(visible.items.length>0);assert.ok(visible.items.every((x:any)=>x.product_id===a.id));
   await assert.rejects(()=>portal.warehouseStock(partner,bB.id),/Akses brand/);
+  await assert.rejects(()=>portal.assertCanManageFulfillment(partner,bA.id),/Owner atau Manager/);
+  await db.query("UPDATE product.brand_memberships SET role='manager' WHERE brand_id=$1 AND user_id=$2",[bA.id,partner.id]);
+  assert.equal((await portal.assertCanManageFulfillment(partner,bA.id)).role,'manager');
   const partnerBatches=await portal.fulfillment(partner,bA.id);
   assert.equal(partnerBatches.items.length,2);
   assert.ok(partnerBatches.items.every((x:any)=>!('contact_email' in x)&&!('address_line' in x)));
@@ -87,6 +90,9 @@ test('CP35: atomic multiwarehouse stock, paid-only reservation, scoped batches a
   const batchA=prepared.batches.find((x:any)=>x.brandId===bA.id);
   assert.ok(batchA);
   await assert.rejects(()=>fulfill.transition(admin,batchA!.id,{state:'packed',notes:'Skip picking invalid'}),/Invalid fulfillment/);
+  const foreignBatch=prepared.batches.find((x:any)=>x.brandId===bB.id);
+  await assert.rejects(()=>fulfill.transition(partner,foreignBatch!.id,{state:'picking',notes:'Cross brand forbidden'},bA.id),/not found/);
+  await fulfill.transition(partner,batchA!.id,{state:'picking',notes:'Brand manager picked actual order'},bA.id);
   await fulfill.transition(admin,batchA!.id,{state:'picking',notes:'Picking list checked by warehouse operator'});
   await fulfill.transition(admin,batchA!.id,{state:'packed',notes:'Packing checklist completed'});
   await fulfill.transition(admin,batchA!.id,{state:'ready_for_carrier',notes:'Waiting for authorized courier booking'});
