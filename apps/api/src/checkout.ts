@@ -120,7 +120,9 @@ export class CheckoutService{
        [items.map(i=>i.productId)]);
       const byId=new Map(live.rows.map(p=>[p.id,p]));
       const signature=shippingFingerprint(items.map(i=>{
-       const p=byId.get(i.productId);return {productId:i.productId,quantity:i.quantity,unitPriceIdr:Number(p?.price_idr),weightGrams:p?.weight_grams||0};
+       const p=byId.get(i.productId);
+       if(!p||!p.weight_grams||!Number.isSafeInteger(Number(p.price_idr)))throw new ConflictException('Harga atau berat produk tidak tersedia, mohon cek ongkir ulang');
+       return {productId:i.productId,quantity:i.quantity,unitPriceIdr:Number(p.price_idr),weightGrams:p.weight_grams};
       }));
       if(signature!==stored.cart_fingerprint)throw new ConflictException('Harga, berat, atau isi keranjang berubah; mohon cek ongkir ulang');
       shippingFee=Number(stored.amount_idr);
