@@ -30,7 +30,13 @@ try{
  assert.equal(await page.locator('.vm-reference-card').count(),0,'brand page must not display archived products');
  await page.goto(BASE+'/catalog',{waitUntil:'domcontentloaded',timeout:30000});
  assert.equal(await page.locator('.product-card').filter({hasText:'DEMO'}).count(),0,'seed demo products must not appear in public catalog');
- assert.equal(await page.locator('.vm-restored-catalog-reference .vm-restored-reference-card').count(),19,'read-only gallery preserves all 19 historic product references');
+ await page.locator('.vm-restored-catalog-reference .vm-restored-reference-card').first().waitFor();
+ await page.waitForTimeout(350);
+ const archiveCards=page.locator('.vm-restored-catalog-reference .vm-restored-reference-card');
+ const archiveSources=await archiveCards.locator('img').evaluateAll(images=>images.map(i=>i.getAttribute('src')||''));
+ const archiveUnique=[...new Set(archiveSources)];
+ console.log('STOREFRONT_ARCHIVE_DIAGNOSTIC',{cards:await archiveCards.count(),images:archiveSources.length,uniqueImages:archiveUnique.length});
+ assert.equal(archiveUnique.length,19,'read-only gallery preserves 19 distinct historic product images');
  await page.goto(BASE+'/product-category/pod',{waitUntil:'domcontentloaded',timeout:30000});
  await page.waitForURL(/\/catalog(?:\?|$)/,{timeout:15000});
  await page.goto(BASE+'/asset-review',{waitUntil:'domcontentloaded',timeout:30000});
