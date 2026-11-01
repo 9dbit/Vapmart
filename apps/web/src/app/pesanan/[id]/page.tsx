@@ -5,7 +5,7 @@ import {useParams} from 'next/navigation';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {formatIDR} from '@/lib/types';
 import '../../checkout-v26.css';
-type Order={id:string;status:string;payment_status:string;payment_method:string;subtotal_idr:string;shipping_fee_idr:string;total_idr:string;contact_name:string;city:string;province:string;created_at:string};
+type Order={id:string;status:string;payment_status:string;payment_method:string;subtotal_idr:string;shipping_fee_idr:string;total_idr:string;shipping_provider:string|null;shipping_courier_code:string|null;shipping_service_code:string|null;contact_name:string;city:string;province:string;created_at:string};
 type Line={product_id:string;product_name:string;sku:string|null;quantity:number;unit_price_idr:string};
 export default function OrderPage(){
  const auth=useCustomerAuth();const params=useParams<{id:string}>();
@@ -32,7 +32,7 @@ export default function OrderPage(){
     <p>Pesanan tersimpan sebagai draft. Pembayaran tidak tersedia sampai payment gateway diintegrasikan. Jangan melakukan transfer berdasarkan halaman ini.</p>
     <div className="vco26-order-grid"><div><span>Penerima</span><strong>{detail.order.contact_name}</strong></div><div><span>Pengiriman</span><strong>{detail.order.city}, {detail.order.province}</strong></div><div><span>Preferensi pembayaran</span><strong>{paymentNames[detail.order.payment_method]||detail.order.payment_method}</strong></div><div><span>Status pembayaran</span><strong>{detail.order.payment_status==='not_initiated'?'Belum dimulai':detail.order.payment_status}</strong></div></div>
     <h2>Barang</h2>{detail.items.map(x=><div className="vco26-receipt-row" key={x.product_id}><span>{x.product_name} · {x.quantity} pcs</span><strong>{formatIDR(Number(x.unit_price_idr)*x.quantity)}</strong></div>)}
-    <div className="vco26-receipt-row"><span>Ongkos kirim (estimasi)</span><strong>{formatIDR(Number(detail.order.shipping_fee_idr))}</strong></div>
+    <div className="vco26-receipt-row"><span>{detail.order.shipping_courier_code?('Ongkir '+detail.order.shipping_courier_code.toUpperCase()+' · '+detail.order.shipping_service_code+' (sandbox)'):'Ongkos kirim (estimasi)'}</span><strong>{formatIDR(Number(detail.order.shipping_fee_idr))}</strong></div>
     <div className="vco26-receipt-row vco26-total"><span>Total estimasi</span><strong>{formatIDR(Number(detail.order.total_idr))}</strong></div>
     <button className="vco26-button" type="button" disabled>Bayar sekarang · Gateway belum aktif</button>
     <p className="vco26-footnote">Status lunas hanya bisa diberikan oleh backend setelah notifikasi payment gateway diverifikasi.</p>
