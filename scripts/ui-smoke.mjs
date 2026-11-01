@@ -229,7 +229,7 @@ try{
   assert.equal(await page.getByRole('dialog',{name:/Keranjang/}).count(),0,'closing cart drawer must dismiss modal');
   await page.goto(BASE+'/keranjang-2',{waitUntil:'networkidle',timeout:45000});
   assert.equal(await page.locator('.vm21-cart-product').count(),1,'DEMO cart should persist across routes');
-  assert.ok(await page.getByRole('button',{name:'Checkout produk belum tersedia'}).isDisabled());
+  assert.ok(await page.getByRole('link',{name:/Lanjut ke checkout/}).isVisible(),'physical cart links to checkout review while payment remains off');
   const beforeQty=await page.locator('.vm21-cart-product .vm21-drawer-qty span').first().innerText();
   await page.locator('.vm21-cart-product .vm21-drawer-qty button').last().click();
   assert.equal(Number(await page.locator('.vm21-cart-product .vm21-drawer-qty span').first().innerText()),Number(beforeQty)+1,'Cart quantity should increment');
