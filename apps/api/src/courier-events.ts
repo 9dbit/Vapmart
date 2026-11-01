@@ -84,7 +84,7 @@ export class CourierEventService{
        needsReview=true;
       }else{
        await client.query('UPDATE product.shipments SET state=$2,provider_status=$3,status_rank=$4,updated_at=now() WHERE id=$1',
-        [shipment.id,courierState(evt.status),Math.max(shipment.status_rank,decision.rank),evt.status]);
+        [shipment.id,courierState(evt.status),evt.status,Math.max(shipment.status_rank,decision.rank)]);
        applied=true;
       }
      }
