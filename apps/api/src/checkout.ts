@@ -158,7 +158,7 @@ export class CheckoutService{
  }
  async adminOrders(){
    const rows=await this.db.query(
-     'SELECT id,status,payment_status,contact_name,contact_email,city,province,shipping_provider,shipping_courier_code,shipping_service_code,subtotal_idr::text,shipping_fee_idr::text,total_idr::text,payment_method,created_at FROM product.orders WHERE idempotency_key IS NOT NULL ORDER BY created_at DESC LIMIT 100');
+     'SELECT id,status,payment_status,(payment_provider IS NOT NULL AND payment_reference IS NOT NULL) AS payment_verified,contact_name,contact_email,city,province,shipping_provider,shipping_courier_code,shipping_service_code,subtotal_idr::text,shipping_fee_idr::text,total_idr::text,payment_method,created_at FROM product.orders WHERE idempotency_key IS NOT NULL ORDER BY created_at DESC LIMIT 100');
    return {items:rows.rows,paymentEnabled:false};
  }
  paymentSession(){
