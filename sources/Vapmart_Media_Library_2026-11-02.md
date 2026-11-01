@@ -29,3 +29,19 @@ Local API build, unit tests and Next.js production build; disposable PostgreSQL 
 
 ## Limit
 This restores internal asset access, not the previous public storefront. The source contains vape marketing; it is retained privately for preservation and review and is not republished. No nicotine-content claim is inferred from device photos.
+
+## Verified deployment results
+Code commit: `aef321e69edae12635decd02c6ca67ad7e6c8887`.
+
+- Local tested Git tree exactly matched the published Git tree `e6e06d3a93bea3b27b597672c4e71c26e0aaa374`.
+- Local API build and 49 unit tests passed; Next.js production build passed.
+- GitHub Foundation checks run `41347633669`: API build/tests, web production build and catalog audit PASS.
+- GitHub Private Media Library Integration run `41347633773`: disposable PostgreSQL migration twice, all 59 byte-for-byte comparisons, private metadata editing audit, idempotent import, and no sellable product seeding PASS.
+- Railway API deployment `e3a39da8-02d4-4d7f-81d2-868ed2b1ca1b` SUCCESS. Its pre-deploy log confirmed migration 014 applied and `mediaLibrary={verifiedOriginals:59,inserted:59,storedBytes:4534238,visibility:'internal'}` after COMMIT.
+- Railway web deployment `df6cd8c9-3286-4565-836b-9206640902ed` SUCCESS; PostgreSQL remained SUCCESS.
+- Live `https://vapmart.id/admin/media` returned HTTP 200.
+- Anonymous requests to `/api/admin/media-library` and `/api/admin/media-library/:id/content` returned HTTP 401. The backend equivalents returned HTTP 401 as well.
+- Live shipping config kept rate lookup, booking and payment false; checkout provider remained disconnected and draft-only.
+- No real user password/token was collected or used. Interactive visual acceptance under the owner's logged-in admin account was not performed.
+
+All 59 files are stored in the private library, not merely referenced by their public URLs. Existing public source files were not deleted or relocated; this release does not claim that earlier public URLs are now private. Only the new library's API and editor are administrator-restricted.
