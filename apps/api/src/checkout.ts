@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {BadRequestException,ConflictException,ForbiddenException,Injectable,NotFoundException,ServiceUnavailableException} from '@nestjs/common';
 import {DatabaseService} from './database';
 import type {Principal} from './auth';
+import {shippingFingerprint} from './shipping-fingerprint';
 
 type BasketItem={productId:string;quantity:number};
 type PricedItem={productId:string;sku:string|null;name:string;unitPriceIdr:number;quantity:number;lineTotalIdr:number;stockQty:number};
@@ -47,7 +48,7 @@ export function priceBasket(items:BasketItem[],rows:Array<{id:string;sku:string|
  return {items:priced,subtotalIdr,shippingFeeIdr,totalIdr:shippingFeeIdr===null?null:subtotalIdr+shippingFeeIdr,
   currency:'IDR',shippingEstimate:true,paymentEnabled:false,paymentMethods:[...PAYMENT_METHODS]};
 }
-type Address={name:string;phone:string;address:string;city:string;province:string;postalCode:string;paymentMethod:typeof PAYMENT_METHODS[number];idempotencyKey:string};
+type Address={name:string;phone:string;address:string;city:string;province:string;postalCode:string;paymentMethod:typeof PAYMENT_METHODS[number];idempotencyKey:string;shippingQuoteId:string|null};
 function addressString(raw:unknown,label:string,min:number,max:number):string{
  if(typeof raw!=='string'||raw.trim().length<min||raw.trim().length>max)throw new BadRequestException(label+' wajib diisi dengan benar');
  return raw.trim();
@@ -55,7 +56,7 @@ function addressString(raw:unknown,label:string,min:number,max:number):string{
 export function parseDraftOrder(raw:unknown){
  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new BadRequestException('Data checkout tidak valid');
  const data=raw as Record<string,unknown>;
- if(Object.keys(data).some(k=>!['items','name','phone','address','city','province','postalCode','paymentMethod','idempotencyKey'].includes(k)))
+ if(Object.keys(data).some(k=>!['items','name','phone','address','city','province','postalCode','paymentMethod','idempotencyKey','shippingQuoteId'].includes(k)))
    throw new BadRequestException('Kolom checkout tidak dikenali');
  const items=parseBasket({items:data.items});
  const name=addressString(data.name,'Nama penerima',2,100);
@@ -70,13 +71,15 @@ export function parseDraftOrder(raw:unknown){
    throw new BadRequestException('Metode pembayaran tidak tersedia');
  if(typeof data.idempotencyKey!=='string'||!uuid.test(data.idempotencyKey))
    throw new BadRequestException('Kunci checkout tidak valid');
- const details:Address={name,phone,address,city,province,postalCode,paymentMethod:data.paymentMethod as Address['paymentMethod'],idempotencyKey:data.idempotencyKey};
+ if(data.shippingQuoteId!==undefined&&data.shippingQuoteId!==null&&(typeof data.shippingQuoteId!=='string'||!uuid.test(data.shippingQuoteId)))
+   throw new BadRequestException('Shipping quote ID tidak valid');
+ const details:Address={name,phone,address,city,province,postalCode,paymentMethod:data.paymentMethod as Address['paymentMethod'],idempotencyKey:data.idempotencyKey,shippingQuoteId:typeof data.shippingQuoteId==='string'?data.shippingQuoteId:null};
  return {items,details};
 }
 @Injectable()
 export class CheckoutService{
  constructor(private readonly db:DatabaseService){}
- config(){return {paymentEnabled:false,providerConnected:false,methods:PAYMENT_METHODS,shippingFeeIdr:shippingAmount(),ordersMode:'draft_only'};}
+ config(){return {paymentEnabled:false,providerConnected:false,methods:PAYMENT_METHODS,shippingFeeIdr:shippingAmount(),shippingMode:process.env.SHIPPING_RATE_LOOKUP_ENABLED==='true'?'sandbox_select':'fixed_estimate',ordersMode:'draft_only'};}
  private async quoted(items:BasketItem[],query:(sql:string,params:unknown[])=>Promise<{rows:any[]}>):Promise<Quote>{
    const rows=await query('SELECT id,sku,name,price_idr,stock_qty,is_active FROM product.products WHERE id=ANY($1::uuid[])',[items.map(x=>x.productId)]);
    return priceBasket(items,rows.rows);
@@ -102,21 +105,49 @@ export class CheckoutService{
        [user.id]);
      if(Number(recent.rows[0]?.total||0)>=5)throw new ConflictException('Batas lima draft per hari tercapai');
      const quote=await this.quoted(items,(sql,params)=>client.query(sql,params));
-     if(quote.totalIdr===null||quote.shippingFeeIdr===null)throw new ServiceUnavailableException({code:'SHIPPING_QUOTE_NOT_CONFIGURED'});
+     let shippingFee=quote.shippingFeeIdr;
+     let service:{provider:string;courier_code:string;service_code:string}|null=null;
+     if(details.shippingQuoteId){
+      const r=await client.query<{cart_fingerprint:string;destination_postal_code:string;origin_postal_code:string;provider:string;courier_code:string;service_code:string;amount_idr:string;expires_at:string;applied_order_id:string|null}>(
+       'SELECT cart_fingerprint,destination_postal_code,origin_postal_code,provider,courier_code,service_code,amount_idr::text,expires_at,applied_order_id FROM product.shipping_rate_quotes WHERE id=$1 AND customer_user_id=$2 FOR UPDATE',
+       [details.shippingQuoteId,user.id]);
+      const stored=r.rows[0];
+      if(!stored||stored.applied_order_id||Date.parse(stored.expires_at)<=Date.now()||
+        stored.destination_postal_code!==details.postalCode||stored.origin_postal_code!==process.env.SHIPPING_ORIGIN_POSTAL_CODE||
+        stored.provider!=='biteship_test')throw new ConflictException('Pilihan ongkir habis masa berlaku, silakan cek ulang');
+      const live=await client.query<{id:string;price_idr:string;weight_grams:number|null}>(
+       'SELECT id,price_idr::text,weight_grams FROM product.products WHERE id=ANY($1::uuid[])',
+       [items.map(i=>i.productId)]);
+      const byId=new Map(live.rows.map(p=>[p.id,p]));
+      const signature=shippingFingerprint(items.map(i=>{
+       const p=byId.get(i.productId);return {productId:i.productId,quantity:i.quantity,unitPriceIdr:Number(p?.price_idr),weightGrams:p?.weight_grams||0};
+      }));
+      if(signature!==stored.cart_fingerprint)throw new ConflictException('Harga, berat, atau isi keranjang berubah; mohon cek ongkir ulang');
+      shippingFee=Number(stored.amount_idr);
+      service={provider:stored.provider,courier_code:stored.courier_code,service_code:stored.service_code};
+     }else if(process.env.SHIPPING_RATE_LOOKUP_ENABLED==='true'){
+      throw new ConflictException('Pilih jasa kurir sebelum menyimpan draft');
+     }
+     if(shippingFee===null||!Number.isSafeInteger(shippingFee)||shippingFee<0)
+      throw new ServiceUnavailableException({code:'SHIPPING_QUOTE_NOT_CONFIGURED'});
+     const draftTotal=quote.subtotalIdr+shippingFee;
      const order=await client.query<{id:string;status:string;payment_status:string}>(
-       "INSERT INTO product.orders(customer_user_id,status,currency,total_idr,subtotal_idr,shipping_fee_idr,idempotency_key,request_hash,contact_name,contact_email,contact_phone,address_line,city,province,postal_code,shipping_method,payment_method,payment_status,expires_at) VALUES ($1,'draft','IDR',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'standard',$14,'not_initiated',now()+interval '24 hours') RETURNING id,status,payment_status",
-       [user.id,quote.totalIdr,quote.subtotalIdr,quote.shippingFeeIdr,details.idempotencyKey,hash,details.name,user.email,details.phone,details.address,details.city,details.province,details.postalCode,details.paymentMethod]);
+       "INSERT INTO product.orders(customer_user_id,status,currency,total_idr,subtotal_idr,shipping_fee_idr,idempotency_key,request_hash,contact_name,contact_email,contact_phone,address_line,city,province,postal_code,shipping_method,payment_method,payment_status,expires_at,shipping_quote_id,shipping_provider,shipping_courier_code,shipping_service_code) VALUES ($1,'draft','IDR',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'standard',$14,'not_initiated',now()+interval '24 hours',$15,$16,$17,$18) RETURNING id,status,payment_status",
+       [user.id,draftTotal,quote.subtotalIdr,shippingFee,details.idempotencyKey,hash,details.name,user.email,details.phone,details.address,details.city,details.province,details.postalCode,details.paymentMethod,details.shippingQuoteId,service?.provider||null,service?.courier_code||null,service?.service_code||null]);
+     if(details.shippingQuoteId){
+      await client.query('UPDATE product.shipping_rate_quotes SET applied_order_id=$2 WHERE id=$1 AND applied_order_id IS NULL',[details.shippingQuoteId,order.rows[0].id]);
+     }
      for(const item of quote.items){
        await client.query('INSERT INTO product.order_items(order_id,product_id,quantity,unit_price_idr,product_name,sku) VALUES($1,$2,$3,$4,$5,$6)',
          [order.rows[0].id,item.productId,item.quantity,item.unitPriceIdr,item.name,item.sku]);
      }
-     return {id:order.rows[0].id,status:order.rows[0].status,paymentStatus:order.rows[0].payment_status,paymentEnabled:false,totalIdr:quote.totalIdr};
+     return {id:order.rows[0].id,status:order.rows[0].status,paymentStatus:order.rows[0].payment_status,paymentEnabled:false,totalIdr:draftTotal};
    });
  }
  async getOrder(user:Principal,id:string){
    if(!uuid.test(id))throw new BadRequestException('ID pesanan tidak valid');
    const order=await this.db.query(
-     'SELECT id,status,payment_status,payment_method,subtotal_idr::text,shipping_fee_idr::text,total_idr::text,contact_name,city,province,created_at,expires_at FROM product.orders WHERE id=$1 AND customer_user_id=$2',
+     'SELECT id,status,payment_status,payment_method,shipping_provider,shipping_courier_code,shipping_service_code,subtotal_idr::text,shipping_fee_idr::text,total_idr::text,contact_name,city,province,created_at,expires_at FROM product.orders WHERE id=$1 AND customer_user_id=$2',
      [id,user.id]);
    if(!order.rows[0])throw new NotFoundException('Pesanan tidak ditemukan');
    const lines=await this.db.query(
@@ -125,7 +156,7 @@ export class CheckoutService{
  }
  async adminOrders(){
    const rows=await this.db.query(
-     'SELECT id,status,payment_status,contact_name,contact_email,city,province,subtotal_idr::text,shipping_fee_idr::text,total_idr::text,payment_method,created_at FROM product.orders WHERE idempotency_key IS NOT NULL ORDER BY created_at DESC LIMIT 100');
+     'SELECT id,status,payment_status,contact_name,contact_email,city,province,shipping_provider,shipping_courier_code,shipping_service_code,subtotal_idr::text,shipping_fee_idr::text,total_idr::text,payment_method,created_at FROM product.orders WHERE idempotency_key IS NOT NULL ORDER BY created_at DESC LIMIT 100');
    return {items:rows.rows,paymentEnabled:false};
  }
  paymentSession(){

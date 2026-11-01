@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {Pool, type PoolClient} from 'pg';
 
-const filenames=['001_initial.sql','002_catalog_sku.sql','003_membership_wallet.sql','004_promotions_gamification.sql','005_admin_checkout.sql','006_unified_catalog.sql','007_decommission_demo.sql','008_brand_shipping_foundation.sql','009_inventory_ledger.sql','010_brand_invitations.sql'] as const;
+const filenames=['001_initial.sql','002_catalog_sku.sql','003_membership_wallet.sql','004_promotions_gamification.sql','005_admin_checkout.sql','006_unified_catalog.sql','007_decommission_demo.sql','008_brand_shipping_foundation.sql','009_inventory_ledger.sql','010_brand_invitations.sql','011_shipping_quote_snapshots.sql'] as const;
 
 async function main(): Promise<void> {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required for migration');

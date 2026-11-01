@@ -2,6 +2,7 @@ import {BadRequestException,ConflictException,ForbiddenException,Injectable,Serv
 import {DatabaseService} from './database';
 import type {Principal} from './auth';
 import {parseBasket} from './checkout';
+import {shippingFingerprint} from './shipping-fingerprint';
 
 type ShippingRequest={items:{productId:string;quantity:number}[];destinationPostalCode:string};
 export function parseShippingRequest(raw:unknown):ShippingRequest{
@@ -30,7 +31,8 @@ export function normalizeCourierRates(raw:unknown):CourierRate[]{
 @Injectable()
 export class ShippingService{
  constructor(private readonly db:DatabaseService){}
- config(){return {provider:'biteship',rateLookupEnabled:process.env.SHIPPING_RATE_LOOKUP_ENABLED==='true'&&Boolean(process.env.BITESHIP_API_KEY),bookingEnabled:false,paymentEnabled:false,rateType:'provisional_only'};}
+ config(){const key=process.env.BITESHIP_API_KEY||'',origin=process.env.SHIPPING_ORIGIN_POSTAL_CODE||'';
+  return {provider:'biteship',rateLookupEnabled:process.env.SHIPPING_RATE_LOOKUP_ENABLED==='true'&&key.startsWith('biteship_test.')&&/^[0-9]{5}$/.test(origin),bookingEnabled:false,paymentEnabled:false,rateType:'provisional_only',ttlMinutes:15};}
  async rates(user:Principal,body:unknown){
   if(!user.emailVerified)throw new ForbiddenException('Verifikasi email diperlukan untuk cek ongkir');
   const {items,destinationPostalCode}=parseShippingRequest(body);
@@ -40,6 +42,7 @@ export class ShippingService{
   const list=await this.db.query<{id:string;slug:string;name:string;price_idr:string|number;stock_qty:number;is_active:boolean;weight_grams:number|null;length_cm:number|null;width_cm:number|null;height_cm:number|null}>(
     'SELECT id,slug,name,price_idr,stock_qty,is_active,weight_grams,length_cm,width_cm,height_cm FROM product.products WHERE id=ANY($1::uuid[])',[items.map(i=>i.productId)]);
   const byId=new Map(list.rows.map(p=>[p.id,p]));
+  const fingerprintItems:Array<{productId:string;quantity:number;unitPriceIdr:number;weightGrams:number}>=[];
   const goods=items.map(i=>{
    const p=byId.get(i.productId);
    if(!p||!p.is_active||p.slug.startsWith('demo-')||p.stock_qty<i.quantity)throw new ConflictException('Stok atau produk tidak tersedia');
@@ -47,6 +50,7 @@ export class ShippingService{
     throw new ConflictException('Berat produk belum dilengkapi');
    const value=Number(p.price_idr);
    if(!Number.isSafeInteger(value)||value<0)throw new ConflictException('Harga produk belum valid');
+   fingerprintItems.push({productId:i.productId,quantity:i.quantity,unitPriceIdr:value,weightGrams:p.weight_grams});
    return {name:p.name,value,weight:p.weight_grams,quantity:i.quantity,
      ...(p.length_cm?{length:p.length_cm}:{}),...(p.width_cm?{width:p.width_cm}:{}),...(p.height_cm?{height:p.height_cm}:{})};
   });
@@ -61,7 +65,18 @@ export class ShippingService{
    if(!response.ok)throw Error('Shipping provider rejected request');
    data=await response.json();
   }catch{throw new ServiceUnavailableException({code:'SHIPPING_PROVIDER_UNAVAILABLE'});}
-  const rates=normalizeCourierRates(data);
-  return {rates,provider:'biteship',quoteOnly:true,canBook:false,paymentEnabled:false,rateType:'provisional',destinationPostalCode};
+  const rates=normalizeCourierRates(data).slice(0,12).filter(r=>r.priceIdr<=10000000);
+  const fingerprint=shippingFingerprint(fingerprintItems);
+  const saved=await this.db.transaction(async client=>{
+   const options=[];
+   for(const r of rates){
+    const inserted=await client.query<{id:string;expires_at:string}>(
+     "INSERT INTO product.shipping_rate_quotes(customer_user_id,cart_fingerprint,origin_postal_code,destination_postal_code,provider,courier_code,service_code,courier_name,service_name,amount_idr,expires_at) VALUES ($1,$2,$3,$4,'biteship_test',$5,$6,$7,$8,$9,now()+interval '15 minutes') RETURNING id,expires_at",
+     [user.id,fingerprint,origin,destinationPostalCode,r.courierCode,r.serviceCode,r.courierName,r.serviceName,r.priceIdr]);
+    options.push({...r,quoteId:inserted.rows[0].id,expiresAt:inserted.rows[0].expires_at});
+   }
+   return options;
+  });
+  return {rates:saved,provider:'biteship',quoteOnly:true,canBook:false,paymentEnabled:false,rateType:'sandbox_snapshot',destinationPostalCode};
  }
 }
