@@ -81,7 +81,7 @@ export async function ensureBalance(client:PoolClient,warehouseId:string,product
  const row=await client.query<Balance>('SELECT warehouse_id,product_id,on_hand,reserved FROM product.warehouse_stock WHERE warehouse_id=$1 AND product_id=$2 FOR UPDATE',[warehouseId,productId]);
  return row.rows[0];
 }
-export async function writeEvent(client:PoolClient,x:{row:Balance;deltaHand:number;deltaReserved:number;reason:string;notes:string;actor:string;key?:string|null;batchId?:string|null}){
+export async function writeEvent(client:PoolClient,x:{row:Balance;deltaHand:number;deltaReserved:number;reason:string;notes:string;actor:string|null;key?:string|null;batchId?:string|null}){
  const afterHand=x.row.on_hand+x.deltaHand,afterReserved=x.row.reserved+x.deltaReserved;
  if(!Number.isSafeInteger(afterHand)||!Number.isSafeInteger(afterReserved)||afterHand<0||afterReserved<0||afterReserved>afterHand||afterHand>2147483647)
   throw new ConflictException('Warehouse balance insufficient or exceeded');
