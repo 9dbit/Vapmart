@@ -29,3 +29,12 @@ Railway web, API, and PostgreSQL services were all SUCCESS when CP32 began. CP31
 
 ## Next
 CP33: catalog import/editor, product variants, asset media, bulk CSV with validation, configurable categories, server-side pagination and single-source read model. Archives must remain read-only until separately approved for any legal merchandise migration.
+
+## Post-deployment verification (2026-11-02)
+- Railway `vapmart-web`, `vapmart-api` and PostgreSQL: all **SUCCESS**, CP32 web deployed commit `2b82dce`.
+- Live `https://vapmart.id/api/archive`: HTTP 200, **19** items, `readOnly=true`, `paymentEnabled=false`.
+- Public homepage, `/admin/login`, legacy category and legacy product detail: HTTP 200.
+- `/api/checkout/config`: HTTP 200; checkout remains payment-disabled.
+- Browser UI smoke originally failed because an old assertion expected a disabled checkout button, whereas CP26 introduced a checkout review link; patched smoke expectation.
+- Staging smoke originally failed because it looked for the retired Admin Studio title; patched to match Control Panel.
+- GitHub Actions retests queued as of this note. Do not claim PASS until their new jobs conclude.
