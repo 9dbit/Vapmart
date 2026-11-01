@@ -119,6 +119,10 @@ export class FulfillmentService {
   if(authorizedBrandId)requireUuid(authorizedBrandId,'brand');
   requireUuid(batchId,'batch');const change=parseFulfillmentStatus(body);
   return this.db.transaction(async client=>{
+   if(authorizedBrandId){
+    const access=await client.query('SELECT 1 FROM product.brand_memberships m JOIN product.brands b ON b.id=m.brand_id WHERE m.brand_id=$1 AND m.user_id=$2 AND m.is_active=true AND m.role IN (\'owner\',\'manager\') AND b.is_active=true FOR SHARE OF m',[authorizedBrandId,actor.id]);
+    if(!access.rows[0])throw new ForbiddenException('Akses memproses brand sudah dicabut atau tidak berlaku');
+   }
    const r=await client.query<{id:string;state:string;status:string;payment_status:string;payment_provider:string|null;payment_reference:string|null}>(
     'SELECT f.id,f.state,o.status,o.payment_status,o.payment_provider,o.payment_reference FROM product.fulfillment_batches f JOIN product.orders o ON o.id=f.order_id WHERE f.id=$1 AND ($2::uuid IS NULL OR f.brand_id=$2::uuid) FOR UPDATE OF f',[batchId,authorizedBrandId||null]);
    const b=r.rows[0];if(!b)throw new NotFoundException('Fulfillment batch not found');
