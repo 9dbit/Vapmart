@@ -70,6 +70,29 @@ assert.match(acceptance.text,/Join your|PARTNER INVITATION/i);
 assert.equal(shipping.data?.bookingEnabled,false);
 assert.equal(shipping.data?.paymentEnabled,false);
 assert.equal(shipping.data?.rateLookupEnabled,false,'Biteship paid rate lookup must remain disabled unless approved');
+// CP35: warehouse, fulfillment and brand location data must be inaccessible anonymously.
+const sample='25f397b8-564f-46f4-971e-bc1d333ac1d0';
+const privateEndpoints=[
+ [API+'/v1/admin/warehouses','GET'],
+ [WEB+'/api/admin/warehouses','GET'],
+ [API+'/v1/admin/warehouses/stock/adjust','POST'],
+ [WEB+'/api/admin/warehouses/stock/transfer','POST'],
+ [API+'/v1/admin/fulfillment/batches','GET'],
+ [WEB+'/api/admin/fulfillment/batches','GET'],
+ [API+'/v1/admin/fulfillment/orders/'+sample+'/plan','GET'],
+ [API+'/v1/admin/fulfillment/orders/'+sample+'/prepare','POST'],
+ [WEB+'/api/admin/fulfillment/orders/'+sample+'/prepare','POST'],
+ [API+'/v1/admin/fulfillment/batches/'+sample+'/timeline','GET'],
+ [API+'/v1/brand-portal/'+sample+'/warehouses','GET'],
+ [WEB+'/api/brand-portal/'+sample+'/fulfillment','GET'],
+ [API+'/v1/customer-fulfillment/orders/'+sample+'/tracking','GET'],
+ [WEB+'/api/customer-fulfillment/orders/'+sample+'/tracking','GET']
+];
+for(const [url,method] of privateEndpoints){
+ const response=await request(url,{method,headers:method==='POST'?{'content-type':'application/json'}:{},
+  ...(method==='POST'?{body:'{}'}:{})});
+ assert.equal(response.status,401,'CP35 private scope must reject unauthenticated '+method+' '+url);
+}
 const draft=await request(API+'/v1/orders',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
 assert.equal(draft.status,503,'no live checkout');
-console.log('VAPMART_CP34_SMOKE_SUCCESS',{activeProducts:products.data.items.length,brands:brands.data.items.length,provider:'biteship',booking:'off',payment:'off'});
+console.log('VAPMART_CP35_SMOKE_SUCCESS',{activeProducts:products.data.items.length,brands:brands.data.items.length,provider:'biteship',booking:'off',payment:'off'});
