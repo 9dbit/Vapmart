@@ -61,3 +61,13 @@ Merge confusing two-step admin links into one canonical destination. Upgrade the
 
 ## Rebuild safety
 This is a frontend UX/auth routing upgrade within the same Next.js/NestJS/PostgreSQL system. The CP36-R1 source snapshot remains available at `checkpoint/vapmart-cp36-r1-20261102`. Roll back **only** the admin UI files if required; do not revert backend migrations.
+
+## Final verified deployment and UI quality gates
+- **Application build SHA deployed to Railway Web:** `82a8940ce7d768702313bcb1b9e30a78937fc597`. Deployment ID `59b4159a-4d91-45c7-99c8-2ab81bb51d04` ended in **SUCCESS**.
+- **Latest tested feature commit (test/doc only after build):** `f1be6629fe2faad52d0458b1d73959954421ccef`. GitHub compare `82a8940...f1be6629` shows **only** `scripts/admin-ui-smoke.mjs`, `scripts/smoke-staging.mjs`, and this checkpoint MD changed. Therefore no application source changes were omitted from the successful deployed Web build.
+- Railway API `e3a39da8-02d4-4d7f-81d2-868ed2b1ca1b` **SUCCESS**, PostgreSQL `19ee1b92-92d7-42c9-a7fc-6cb676bcfa21` **SUCCESS**. No CP36 database or payment configuration change occurred.
+- All **10/10** GitHub Actions workflows on `f1be6629` **PASS**, including Foundation checks (2), Browser UI smoke, Staging smoke, Theme mode browser QA, Dependency security audit, Private Media Library Integration, Coin Ledger Integration, Warehouse/Fulfillment PostgreSQL integration, and the new Admin Control Panel responsive QA.
+- Staging smoke run `41351558400` **PASS**. Explicitly verified both Railway and `https://vapmart.id/admin` render the anonymous login, `/admin/login` resolves to `/admin`, and anonymous users cannot access the admin navigation or privileged APIs. Checkout/payment and courier booking OFF.
+- Admin Control Panel responsive QA run `41351558391` **PASS** using local browser-only mocked identity and API data; verified 9 navigation items, selected tabs/query URLs, Media Library, product form label font, 390px mobile drawer open/close, no horizontal overflow.
+- Authenticated *real* human admin acceptance remains necessary; no production admin credentials were used to sign in or mutate any customer data.
+- This checkpoint does **not** signify a new Railway deployment. Subsequent commits after the last compiled Web SHA contain only test documentation and checks.
