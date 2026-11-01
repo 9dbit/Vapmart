@@ -51,6 +51,25 @@ for(const cfg of [shipping.data,webShipping.data]){
 assert.equal(paymentConfig.status,200);
 assert.equal(paymentConfig.data?.paymentEnabled,false);
 assert.equal(paymentConfig.data?.providerConnected,false);
+// CP34: fail closed for all inventory, invitation, and brand-onboarding endpoints without bearer auth.
+const example='25f397b8-564f-46f4-971e-bc1d333ac1d0';
+const restricted=await Promise.all([
+ request(API+'/v1/admin/inventory/'+example+'/movements'),
+ request(API+'/v1/admin/inventory/adjust',{method:'POST',headers:{'content-type':'application/json'},body:'{}'}),
+ request(WEB+'/api/admin/inventory/adjust',{method:'POST',headers:{'content-type':'application/json'},body:'{}'}),
+ request(API+'/v1/admin/brand-invitations/'+example),
+ request(API+'/v1/admin/brand-invitations/'+example,{method:'POST',headers:{'content-type':'application/json'},body:'{}'}),
+ request(WEB+'/api/admin/brand-invitations/'+example),
+ request(API+'/v1/brand-invitations/accept',{method:'POST',headers:{'content-type':'application/json'},body:'{}'}),
+ request(WEB+'/api/brand-invitations/accept',{method:'POST',headers:{'content-type':'application/json'},body:'{}'})
+]);
+for(const [i,x] of restricted.entries())assert.equal(x.status,401,'CP34 private endpoint '+i+' rejects unauthenticated access');
+const acceptance=await request(WEB+'/brand/accept');
+assert.equal(acceptance.status,200,'brand accept page available');
+assert.match(acceptance.text,/Join your|PARTNER INVITATION/i);
+assert.equal(shipping.data?.bookingEnabled,false);
+assert.equal(shipping.data?.paymentEnabled,false);
+assert.equal(shipping.data?.rateLookupEnabled,false,'Biteship paid rate lookup must remain disabled unless approved');
 const draft=await request(API+'/v1/orders',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
 assert.equal(draft.status,503,'no live checkout');
-console.log('VAPMART_CP33_SMOKE_SUCCESS',{activeProducts:products.data.items.length,brands:brands.data.items.length,provider:'biteship',booking:'off',payment:'off'});
+console.log('VAPMART_CP34_SMOKE_SUCCESS',{activeProducts:products.data.items.length,brands:brands.data.items.length,provider:'biteship',booking:'off',payment:'off'});
