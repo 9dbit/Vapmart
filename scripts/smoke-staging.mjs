@@ -14,7 +14,7 @@ for(let i=1;i<=70;i++){
    request(WEB+'/api/brand-portal/25f397b8-564f-46f4-971e-bc1d333ac1d0/fulfillment/25f397b8-564f-46f4-971e-bc1d333ac1d0/state',{method:'POST',headers:{'content-type':'application/json'},body:'{}'}),
    request(WEB+'/api/admin/courier/config')
   ]);
-  if(api.status===200&&api.data?.database==='ready'&&web.status===200&&web.text.includes('vm-commerce-home')&&shipping.status===200&&brandState.status===401&&courierReady.status===401){ready=true;break;}
+  if(api.status===200&&api.data?.database==='ready'&&web.status===200&&web.text.includes('vm-storefront-restored')&&web.text.includes('vm-carousel-shell')&&web.text.includes('/legacy/banners/desktop-01.png')&&web.text.includes('vm-trendora-category-grid')&&shipping.status===200&&brandState.status===401&&courierReady.status===401){ready=true;break;}
   console.log('Waiting for CP36 web/API and Courier Ops routes',i,api.status,web.status,shipping.status);
  }catch(e){console.log('CP33 retry',i,String(e).slice(0,180));}
  await sleep(7000);
@@ -35,6 +35,10 @@ assert.equal(apiHealth.data?.checkout,'disabled');
 assert.equal(products.status,200);
 assert.ok(Array.isArray(products.data?.items));
 assert.ok(products.data.items.every(x=>x.is_active===true&&!x.slug.startsWith('demo-')),'no demo products in public catalog');
+const restoredCatalog=await request(WEB+'/catalog');
+assert.equal(restoredCatalog.status,200,'Catalog route must remain available');
+assert.ok(restoredCatalog.text.includes('archive-gallery')&&restoredCatalog.text.includes('vm-restored-reference-grid'),
+ 'Read-only historic visual gallery must remain visible even when active catalog is empty');
 assert.equal(webProducts.status,200);
 assert.equal(webProducts.data?.items?.length,products.data.items.length);
 assert.equal(brands.status,200);
@@ -130,4 +134,4 @@ const unsignedApi=await request(API+'/v1/webhooks/biteship',{method:'POST',heade
 assert.ok([401,503].includes(unsignedApi.status),'API webhook must never accept unsigned callbacks');
 const draft=await request(API+'/v1/orders',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
 assert.equal(draft.status,503,'no live checkout');
-console.log('VAPMART_CP36_SMOKE_SUCCESS',{activeProducts:products.data.items.length,brands:brands.data.items.length,provider:'biteship',booking:'off',payment:'off'});
+console.log('VAPMART_STOREFRONT_RESTORED_SMOKE_SUCCESS',{activeProducts:products.data.items.length,brands:brands.data.items.length,provider:'biteship',booking:'off',payment:'off'});
