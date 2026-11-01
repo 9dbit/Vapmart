@@ -147,7 +147,7 @@ export class ProductsService {
 
   async listAdmin(): Promise<Product[]> {
     const result = await this.db.query<Product>(
-      'SELECT p.id, p.sku, p.slug, p.brand_id, b.name AS brand_name, p.gallery_urls, p.name, p.description, p.category, p.price_idr::integer AS price_idr, p.stock_qty, p.weight_grams,p.length_cm,p.width_cm,p.height_cm,p.image_url,p.is_active FROM product.products p LEFT JOIN product.brands b ON p.brand_id=b.id ORDER BY p.updated_at DESC LIMIT 150'
+      'SELECT p.id, p.sku, p.slug, p.brand_id, b.name AS brand_name, p.gallery_urls, p.name, p.description, p.category, p.price_idr::integer AS price_idr, p.stock_qty, p.weight_grams,p.length_cm,p.width_cm,p.height_cm,p.image_url,p.is_active FROM product.products p LEFT JOIN product.brands b ON p.brand_id=b.id WHERE p.slug NOT LIKE \'demo-%\' ORDER BY p.updated_at DESC LIMIT 150'
     );
     return result.rows;
   }
