@@ -20,6 +20,18 @@ for(let i=1;i<=70;i++){
  await sleep(7000);
 }
 assert.ok(ready,'CP36 deployment required before smoke pass');
+// Confirm the real custom domain is serving the same restored design, not a stale generic homepage.
+let liveReady=false;
+for(let i=0;i<12;i++){
+ try{
+  const [home,catalog]=await Promise.all([request('https://vapmart.id/'),request('https://vapmart.id/catalog')]);
+  if(home.status===200&&home.text.includes('vm-storefront-restored')&&home.text.includes('vm-carousel-shell')&&
+     catalog.status===200&&catalog.text.includes('archive-gallery')){liveReady=true;break;}
+ }catch(e){console.log('Waiting for custom-domain storefront',i,String(e).slice(0,130));}
+ await sleep(6000);
+}
+assert.ok(liveReady,'vapmart.id must serve the restored layout and read-only reference catalog');
+
 const [apiHealth,products,webProducts,brands,shipping,webShipping,adminAnon,brandAnon,brandWebAnon,assignAnon,shippingAnon,ordersAnon,paymentConfig,memberAnon,legacyAPI,brandLogin,adminLogin,legacyCategory]=await Promise.all([
  request(API+'/health'),request(API+'/v1/products'),request(WEB+'/api/products'),request(API+'/v1/brands'),
  request(API+'/v1/shipping/config'),request(WEB+'/api/shipping/config'),
