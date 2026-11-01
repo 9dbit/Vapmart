@@ -4,13 +4,14 @@ import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {formatIDR,type Product} from '@/lib/types';
+import {allArchiveItems} from '@/lib/archive-catalog';
 import '../admin-v26.css';
 
 type Brand={id:string;name:string;slug:string;description:string;logo_url:string|null;is_active:boolean};
 type Order={id:string;status:string;payment_status:string;contact_name:string;contact_email:string;city:string;province:string;total_idr:string;payment_method:string;created_at:string};
 type ProductDraft={name:string;slug:string;sku:string;description:string;category:string;price_idr:string;stock_qty:string;brand_id:string;image_url:string;gallery_urls:string[];is_active:boolean};
 type BrandDraft={name:string;slug:string;description:string;logo_url:string;is_active:boolean};
-type Tab='overview'|'products'|'brands'|'orders';
+type Tab='overview'|'products'|'archive'|'brands'|'orders';
 const categories=['home','lifestyle','decor','accessories','electronics','other'];
 const blankProduct:ProductDraft={name:'',slug:'',sku:'',description:'',category:'lifestyle',price_idr:'',stock_qty:'0',brand_id:'',image_url:'',gallery_urls:[],is_active:false};
 const blankBrand:BrandDraft={name:'',slug:'',description:'',logo_url:'',is_active:true};
@@ -33,6 +34,7 @@ export default function AdminPage(){
  const [brands,setBrands]=useState<Brand[]>([]);
  const [orders,setOrders]=useState<Order[]>([]);
  const [search,setSearch]=useState('');
+ const [archiveSearch,setArchiveSearch]=useState('');
  const [statusFilter,setStatusFilter]=useState('all');
  const [editingProduct,setEditingProduct]=useState<string|null>(null);
  const [editingBrand,setEditingBrand]=useState<string|null>(null);
@@ -82,6 +84,7 @@ export default function AdminPage(){
   const status=statusFilter==='all'||(statusFilter==='active'&&p.is_active)||(statusFilter==='draft'&&!p.is_active)||(statusFilter==='low'&&p.stock_qty<=5);
   return match&&status;
  }),[products,search,statusFilter]);
+ const filteredArchive=allArchiveItems.filter(p=>[p.name,p.slug,p.brand,p.category].some(v=>v.toLowerCase().includes(archiveSearch.trim().toLowerCase())));
  const published=products.filter(p=>p.is_active).length;
  const lowStock=products.filter(p=>p.stock_qty<=5).length;
  const pending=orders.filter(o=>o.payment_status==='not_initiated').length;
@@ -174,15 +177,17 @@ export default function AdminPage(){
   !authorized?<section className="vma26-panel vma26-auth"><h2>{accessDenied?'Akses administrator belum tersedia':'Memeriksa akses...'}</h2><p>Login administrator hanya tersedia melalui halaman khusus Control Panel.</p><Link href="/admin/login" className="vma26-btn-dark">Buka admin login</Link></section>:
   <>
    <div className="vma26-kpis">
-    <div><span>Total produk</span><strong>{products.length}</strong><small>Semua SKU katalog</small></div>
+    <div><span>Inventori database</span><strong>{products.length}</strong><small>Produk pada PostgreSQL</small></div>
     <div><span>Produk tayang</span><strong>{published}</strong><small>Terlihat di storefront</small></div>
     <div><span>Stok ≤ 5</span><strong>{lowStock}</strong><small>Butuh pemeriksaan</small></div>
     <div><span>Brand</span><strong>{brands.length}</strong><small>Aktif {brands.filter(b=>b.is_active).length}</small></div>
+    <div><span>Arsip frontend</span><strong>{allArchiveItems.length}</strong><small>Referensi, tidak untuk checkout</small></div>
     <div><span>Draft pesanan</span><strong>{pending}</strong><small>Belum dibayar</small></div>
    </div>
    <nav className="vma26-tabs" aria-label="Menu dashboard">
     <Pill active={tab==='overview'} onClick={()=>setTab('overview')}>Ringkasan</Pill>
     <Pill active={tab==='products'} onClick={()=>setTab('products')}>Produk &amp; SKU</Pill>
+    <Pill active={tab==='archive'} onClick={()=>setTab('archive')}>Katalog Arsip ({allArchiveItems.length})</Pill>
     <Pill active={tab==='brands'} onClick={()=>setTab('brands')}>Brands</Pill>
     <Pill active={tab==='orders'} onClick={()=>setTab('orders')}>Pesanan</Pill>
    </nav>
@@ -230,6 +235,26 @@ export default function AdminPage(){
       {editingProduct&&<button className="vma26-btn-light" type="button" onClick={newProduct}>Batal edit</button>}
     </form>
    </div>}
+   {tab==='archive'&&<section className="vma26-panel">
+      <div className="vma26-section-head"><div><p className="vma26-eyebrow">LEGACY STOREFRONT INVENTORY</p><h2>Katalog Arsip <span>{filteredArchive.length} / {allArchiveItems.length}</span></h2>
+        <p>Seluruh referensi produk dari snapshot frontend WordPress ditampilkan di sini sebagai aset historis, bukan stok aktif. Harga, SKU, dan ketersediaan perlu diverifikasi sebelum produk pengganti dapat dimasukkan ke katalog baru.</p></div></div>
+      <div className="vma26-filter"><input aria-label="Cari katalog arsip" placeholder="Cari nama, brand, kategori, slug..." value={archiveSearch} onChange={e=>setArchiveSearch(e.target.value)}/><Link href="/asset-review" className="vma26-btn-light">Asset Review ↗</Link></div>
+      <div className="vma26-archive-grid">
+        {filteredArchive.map(item=><article className="vma26-archive-card" key={item.slug}>
+         <div className="vma26-archive-visual"><img src={item.image} alt={item.name} loading="lazy"/></div>
+         <div className="vma26-archive-body">
+          <span className="vma26-eyebrow">{item.brand} / {item.category}</span>
+          <strong>{item.name}</strong>
+          <small>{item.price} <span>· Harga historis</span></small>
+          <small>SKU: belum diverifikasi</small>
+          <span className="vma26-state">Arsip · Tidak dijual</span>
+          <Link href={'/product/'+item.slug} className="vma26-archive-link">Lihat referensi di frontend ↗</Link>
+         </div>
+        </article>)}
+      </div>
+      {!filteredArchive.length&&<p className="vma26-muted">Tidak ada arsip yang cocok dengan pencarian.</p>}
+      <p className="vma26-muted">Arsip ini diambil dari aset frontend yang sama dengan halaman publik. Tidak terhubung ke pembayaran, perubahan stok, atau fitur publish; hanya produk baru yang memenuhi aturan katalog yang dapat dijual.</p>
+    </section>}
    {tab==='brands'&&<div className="vma26-layout">
     <section className="vma26-panel">
       <div className="vma26-section-head"><div><p className="vma26-eyebrow">BRAND DIRECTORY</p><h2>Brands <span>{brands.length}</span></h2></div><button type="button" className="vma26-btn-dark" onClick={newBrand}>+ Brand baru</button></div>
