@@ -47,6 +47,7 @@ export class AdminGuard implements CanActivate {
       [user.id, 'admin']
     );
     if (!result.rows.length) throw new ForbiddenException('Admin role required');
+    if(!user.emailVerified)throw new ForbiddenException('Verified admin email required');
     request.user = user;
     return true;
   }

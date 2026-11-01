@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {Pool, type PoolClient} from 'pg';
 
-const filenames=['001_initial.sql','002_catalog_sku.sql','003_membership_wallet.sql','004_promotions_gamification.sql','005_admin_checkout.sql','006_unified_catalog.sql','007_decommission_demo.sql'] as const;
+const filenames=['001_initial.sql','002_catalog_sku.sql','003_membership_wallet.sql','004_promotions_gamification.sql','005_admin_checkout.sql','006_unified_catalog.sql','007_decommission_demo.sql','008_brand_shipping_foundation.sql'] as const;
 
 async function seedDemoCatalog(client: PoolClient): Promise<number> {
   if (process.env.SEED_DEMO_CATALOG !== 'true') return 0;
