@@ -14,6 +14,7 @@ export function parseStockAdjustment(raw:unknown):StockAdjustment{
  typeof b.reason!=='string'||!reasons.includes(b.reason as StockAdjustment['reason']) ||
  typeof b.notes!=='string'||b.notes.trim().length<6||b.notes.length>300)
   throw new BadRequestException('Perubahan stok wajib memiliki ID, delta, alasan, catatan dan kunci unik yang valid');
+ if((b.reason==='stock_receipt'||b.reason==='return')&&Number(b.delta)<0)throw new BadRequestException('Penerimaan dan retur harus menambah stok');
  return {productId:b.productId,delta:Number(b.delta),reason:b.reason as StockAdjustment['reason'],notes:b.notes.trim(),idempotencyKey:b.idempotencyKey};
 }
 @Injectable()
