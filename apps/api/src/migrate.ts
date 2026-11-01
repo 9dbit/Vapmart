@@ -5,30 +5,6 @@ import {Pool, type PoolClient} from 'pg';
 
 const filenames=['001_initial.sql','002_catalog_sku.sql','003_membership_wallet.sql','004_promotions_gamification.sql','005_admin_checkout.sql','006_unified_catalog.sql','007_decommission_demo.sql','008_brand_shipping_foundation.sql'] as const;
 
-async function seedDemoCatalog(client: PoolClient): Promise<number> {
-  if (process.env.SEED_DEMO_CATALOG !== 'true') return 0;
-  if (process.env.RAILWAY_ENVIRONMENT_NAME !== 'staging') {
-    throw new Error('Demo catalog can only be seeded in the Railway staging environment');
-  }
-  const res = await client.query<{count:number}>('SELECT COUNT(*)::int AS count FROM product.products');
-  if (res.rows[0].count !== 0) return 0;
-  const entries = [
-    ['demo-modular-desk-organizer','DEMO · Modular Desk Organizer','Produk ilustrasi untuk pengujian staging saja. Bukan penawaran komersial.','home',149000,12],
-    ['demo-ceramic-accent-vase','DEMO · Ceramic Accent Vase','Produk ilustrasi untuk pengujian staging saja. Bukan penawaran komersial.','decor',219000,6],
-    ['demo-canvas-utility-pouch','DEMO · Canvas Utility Pouch','Produk ilustrasi untuk pengujian staging saja. Bukan penawaran komersial.','accessories',99000,18],
-    ['demo-portable-desk-light','DEMO · Portable Desk Light','Produk ilustrasi untuk pengujian staging saja. Bukan penawaran komersial.','electronics',349000,4],
-  ] as const;
-  let count=0;
-  for(const row of entries) {
-    const result=await client.query(
-      "INSERT INTO product.products (slug,name,description,category,price_idr,stock_qty,is_active) VALUES ($1,$2,$3,$4,$5,$6,true) ON CONFLICT (slug) DO NOTHING",
-      [...row]
-    );
-    count+=result.rowCount ?? 0;
-  }
-  return count;
-}
-
 async function main(): Promise<void> {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required for migration');
   const applied:string[]=[];
@@ -56,7 +32,7 @@ async function main(): Promise<void> {
       "SELECT to_regclass('product.products') IS NOT NULL AS has_products, to_regclass('public.staff_roles') IS NOT NULL AS has_roles"
     );
     if(!check.rows[0]?.has_products || !check.rows[0]?.has_roles) throw new Error('Migration validation failed');
-    const seeded=await seedDemoCatalog(client);
+    const seeded=0; // CP33: no synthetic product seeding in any environment.
     await client.query('COMMIT');
     console.log('VAPMART_DATABASE_READY',JSON.stringify({migrations:filenames,applied,seeded_demo_products:seeded}));
   } catch(error) {
