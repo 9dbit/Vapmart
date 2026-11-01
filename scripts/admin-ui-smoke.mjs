@@ -26,7 +26,7 @@ try{
   try{
    await page.goto(BASE+'/admin',{waitUntil:'domcontentloaded',timeout:20000});
    await page.waitForTimeout(350);
-   if(await page.locator('.vma27-sidebar').count()===1){ready=true;break;}
+   if(await page.locator('.vma27-sidebar').count()===1&&await page.locator('.vma27-skip-link').count()===1){ready=true;break;}
   }catch(e){console.log('Waiting for admin UI mock route',attempt,String(e).slice(0,100));}
   await sleep(6000);
  }
@@ -59,7 +59,7 @@ try{
  const menuButton=page.getByRole('button',{name:'Buka navigasi'});
  await menuButton.click();
  assert.ok(await page.locator('.vma27-sidebar.is-open').isVisible());
- await page.getByRole('button',{name:'Tutup menu'}).click();
+ await page.locator('.vma27-close-nav').click();
  assert.equal(await page.locator('.vma27-sidebar.is-open').count(),0);
  console.log('VAPMART_ADMIN_WORKSPACE_UI_QA_PASS',{sections:9,media:true,labels:font,mobile});
 }finally{await context.close();await browser.close();}
