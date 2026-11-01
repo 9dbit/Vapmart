@@ -118,8 +118,10 @@ export class FulfillmentService {
   if(!actor.emailVerified)throw new ForbiddenException('Verified administrator required');
   requireUuid(batchId,'batch');const change=parseFulfillmentStatus(body);
   return this.db.transaction(async client=>{
-   const r=await client.query<{id:string;state:string}>('SELECT id,state FROM product.fulfillment_batches WHERE id=$1 FOR UPDATE',[batchId]);
+   const r=await client.query<{id:string;state:string;status:string;payment_status:string;payment_provider:string|null;payment_reference:string|null}>(
+    'SELECT f.id,f.state,o.status,o.payment_status,o.payment_provider,o.payment_reference FROM product.fulfillment_batches f JOIN product.orders o ON o.id=f.order_id WHERE f.id=$1 FOR UPDATE OF f',[batchId]);
    const b=r.rows[0];if(!b)throw new NotFoundException('Fulfillment batch not found');
+   if(!paidOrderVerified(b))throw new ConflictException('Order is no longer paid and active; processing is blocked');
    if(b.state===change.state)return {id:b.id,state:b.state,replayed:true,carrierBookingEnabled:false};
    if(nextStates[b.state]!==change.state)throw new ConflictException('Invalid fulfillment transition');
    await client.query('UPDATE product.fulfillment_batches SET state=$2,updated_at=now() WHERE id=$1',[batchId,change.state]);
