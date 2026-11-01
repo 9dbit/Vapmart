@@ -4,7 +4,7 @@ import Link from 'next/link';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import '../app/admin-v27.css';
 
-export type AdminAccessPhase='checking'|'logged-out'|'denied'|'error'|'unconfigured';
+export type AdminAccessPhase='checking'|'logged-out'|'denied'|'expired'|'error'|'unconfigured';
 export function AdminAccess({phase,onRetry}:{phase:AdminAccessPhase;onRetry:()=>void}){
  const auth=useCustomerAuth();
  const [email,setEmail]=useState('');
@@ -59,7 +59,7 @@ export function AdminAccess({phase,onRetry}:{phase:AdminAccessPhase;onRetry:()=>
       <span className="vma27-access-label">Akun aktif</span>
       <strong className="vma27-account-email">{auth.user.email||'Akun terautentikasi'}</strong>
       <div role={phase==='denied'?'alert':'status'} className="vma27-access-alert">
-       {phase==='denied'?'Akun ini belum memiliki izin administrator. Hubungi pengelola Vapmart atau gunakan akun admin yang diotorisasi.':
+       {phase==='denied'?'Akun ini belum memiliki izin administrator. Hubungi pengelola Vapmart atau gunakan akun admin yang diotorisasi.':phase==='expired'?'Sesi sudah berakhir atau tidak valid. Silakan masuk dengan akun admin lagi.':
         'Koneksi pemeriksaan admin belum tersedia. Data administrasi tetap terkunci.'}
       </div>
       {phase==='error'&&<button type="button" className="vma27-primary-button" onClick={onRetry}>Coba verifikasi lagi</button>}

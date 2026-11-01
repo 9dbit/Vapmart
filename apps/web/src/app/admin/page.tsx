@@ -9,7 +9,7 @@ import {ShippingPanel} from '@/components/shipping-panel';
 import {WarehouseOps} from '@/components/warehouse-ops';
 import {FulfillmentPanel} from '@/components/fulfillment-panel';
 import {CourierOpsPanel} from '@/components/courier-ops-panel';
-import {AdminAccess} from '@/components/admin-access';
+import {AdminAccess,type AdminAccessPhase} from '@/components/admin-access';
 import {AdminWorkspace,adminTitles,adminDescriptions,type AdminSection} from '@/components/admin-workspace';
 import '../admin-v26.css';
 
@@ -216,7 +216,7 @@ export default function AdminPage(){
  }
 
  const showDashboard=authorized&&auth.configured&&!!auth.accessToken&&verifiedToken===auth.accessToken;
- const accessPhase=(!auth.configured?'unconfigured':auth.loading||checking?'checking':!auth.accessToken?'logged-out':accessDenied?'denied':sessionExpired?'expired':'error') as const;
+ const accessPhase:AdminAccessPhase=!auth.configured?'unconfigured':auth.loading||checking?'checking':!auth.accessToken?'logged-out':accessDenied?'denied':sessionExpired?'expired':'error';
  return !showDashboard?
   <AdminAccess phase={accessPhase} onRetry={()=>setRetryKey(x=>x+1)}/>:
   <AdminWorkspace active={tab} email={auth.user?.email} onLogout={logout} onNavigate={navigate}>

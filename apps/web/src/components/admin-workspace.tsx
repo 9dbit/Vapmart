@@ -46,7 +46,7 @@ export function AdminWorkspace({active,onNavigate,onLogout,email,children}:{
     <button type="button" className="vma27-close-nav" aria-label="Tutup menu" onClick={()=>setOpen(false)}>×</button>
    </div>
    <div className="vma27-sidebar-section">WORKSPACE</div>
-   <nav className="vma27-side-links" aria-label="Menu Control Panel">
+   <nav id="vma27-admin-menu" className="vma27-side-links" aria-label="Menu Control Panel">
     {sections.map(({key,name,symbol})=><button type="button" key={key}
      className={'vma27-side-link'+(active===key?' is-active':'')} aria-current={active===key?'page':undefined}
      onClick={()=>navigate(key)}>
