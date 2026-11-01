@@ -49,7 +49,7 @@ Tables introduced:
 
 ### 4. Control Panel and partner/customer access
 - Admin `/admin` adds **Gudang & Stok** and **Fulfillment** tabs, responsive balance cards, per-location tables, warehouses and address maintenance, receipts/adjustments, transfer tools, order plans and internal timelines.
-- Brand partner `/brand`: read-only stock by warehouse and fulfillment batches belonging to authenticated user's explicitly assigned brand, without customer contact/address data.
+- Brand partner `/brand`: stock, sales and per-warehouse balances remain read-only and scoped to the authenticated user's assigned brand. For internal fulfillment only, assigned **owner/manager** may advance their own reserved batches through picking, packed and ready-for-carrier using an audit note. **Viewer** remains read-only. No customer contact/address data.
 - Customer order `/pesanan/:id`: internal fulfillment activity for owned orders only; courier AWB and external tracking remain explicitly unavailable.
 - All mutation endpoints require Supabase admin authorization. Brand and customer read endpoints enforce server-side ownership, not UI filtering.
 
@@ -71,6 +71,7 @@ Admin:
 Partner and customer:
 - `GET /v1/brand-portal/:brandId/warehouses`
 - `GET /v1/brand-portal/:brandId/fulfillment`
+- `POST /v1/brand-portal/:brandId/fulfillment/:batchId/state` (Owner/Manager only; checks membership inside a transaction and brand match on batch)
 - `GET /v1/customer-fulfillment/orders/:orderId/tracking`
 
 Next.js API bridges exist for all endpoints. Return `401` without authorization.
@@ -80,7 +81,7 @@ Next.js API bridges exist for all endpoints. Return `401` without authorization.
 - Existing staging smoke, browser UI smoke, theme, dependency security, coin wallet integration remain in place.
 - New **Warehouse & Fulfillment PostgreSQL Integration** workflow uses an ephemeral Postgres 16 service (`127.0.0.1`, disposable DB and password) with payment and courier rate lookup disabled. No production data or keys are used.
 - CI performs migrations twice to verify migration idempotency.
-- Integration checks physical receipt and transfer conservation, inventory cache, dispatch readiness, reservations only after fixture-verified paid order, atomic insufficient-stock rollback, prepare idempotency, warehouse deactivation guard, unauthorized brand scope, owned customer tracking, immutable event ordering, internal state progression, release after refunded cancellation, and absence of courier shipments.
+- Integration checks physical receipt and transfer conservation, inventory cache, dispatch readiness, reservations only after fixture-verified paid order, atomic insufficient-stock rollback, prepare idempotency, warehouse deactivation guard, unauthorized brand scope, viewer denial and manager-only brand-scoped state changes, owned customer tracking, immutable event ordering, internal state progression, release after refunded cancellation, and absence of courier shipments.
 - Workflow: https://github.com/9dbit/Vapmart/actions/workflows/warehouse-fulfillment-integration.yml
 - At authoring time new integration workflow and Foundation checks PASS, Railway API deployment SUCCESS; final frontend Railway verification must be checked separately before declaring full live release.
 - Real-user end-to-end warehouse receipt, shipping quote, payment confirmation, or provider shipment tracking is **not** claimed.
