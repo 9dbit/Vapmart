@@ -18,6 +18,12 @@ try{
  await page.locator('.vm-carousel-shell').waitFor();
  assert.equal(await page.locator('.vm-carousel-slide').count(),3,'restore three original hero slides');
  assert.equal(await page.locator('.vm-trendora-category-image img').count(),5,'restore all original category thumbnails');
+ await page.waitForFunction(()=>{
+   const first=document.querySelector('.vm-carousel-slide img');
+   const tiles=[...document.querySelectorAll('.vm-trendora-category-image img')];
+   return first instanceof HTMLImageElement&&first.complete&&first.naturalWidth>0
+     &&tiles.length===5&&tiles.every(i=>i instanceof HTMLImageElement&&i.complete&&i.naturalWidth>0);
+ },null,{timeout:16000});
  assert.equal(await page.locator('.vm-reference-news-card').count(),10,'restore historic editorial grid');
  assert.ok(await page.locator('.vm-restored-archived-brands .vm-brand-card').count()===12
   ||await page.locator('.vm-brand-rail .vm-brand-card').count()>0,'restore brand rail and original logo references');
@@ -68,6 +74,12 @@ try{
  assert.equal(archive.status(),404,'legacy archive API must not be publicly exposed');
  await page.setViewportSize({width:390,height:844});
  await page.goto(BASE+'/',{waitUntil:'domcontentloaded',timeout:30000});
+ await page.waitForFunction(()=>{
+   const first=document.querySelector('.vm-carousel-slide img');
+   return first instanceof HTMLImageElement&&first.complete&&first.naturalWidth>0;
+ },null,{timeout:14000});
+ const mobileBanner=await page.locator('.vm-carousel-slide img').first().evaluate(image=>(image as HTMLImageElement).currentSrc);
+ assert.ok(mobileBanner.includes('/legacy/banners/mobile-01.png'),'mobile breakpoint must load real mobile banner image');
  const mobile=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,innerWidth:window.innerWidth}));
  assert.ok(mobile.scrollWidth<=mobile.innerWidth+3,'homepage mobile overflow '+JSON.stringify(mobile));
  await page.goto(BASE+'/brand/login',{waitUntil:'domcontentloaded',timeout:30000});
