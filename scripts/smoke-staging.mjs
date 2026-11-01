@@ -9,16 +9,17 @@ async function request(url,options={}){
 let ready=false;
 for(let i=1;i<=70;i++){
  try{
-  const [api,web,shipping,brandState]=await Promise.all([
+  const [api,web,shipping,brandState,courierReady]=await Promise.all([
    request(API+'/ready'),request(WEB+'/'),request(WEB+'/api/shipping/config'),
-   request(WEB+'/api/brand-portal/25f397b8-564f-46f4-971e-bc1d333ac1d0/fulfillment/25f397b8-564f-46f4-971e-bc1d333ac1d0/state',{method:'POST',headers:{'content-type':'application/json'},body:'{}'})
+   request(WEB+'/api/brand-portal/25f397b8-564f-46f4-971e-bc1d333ac1d0/fulfillment/25f397b8-564f-46f4-971e-bc1d333ac1d0/state',{method:'POST',headers:{'content-type':'application/json'},body:'{}'}),
+   request(WEB+'/api/admin/courier/config')
   ]);
-  if(api.status===200&&api.data?.database==='ready'&&web.status===200&&web.text.includes('vm-commerce-home')&&shipping.status===200&&brandState.status===401){ready=true;break;}
-  console.log('Waiting for CP35 web/API and brand-scoped state route',i,api.status,web.status,shipping.status);
+  if(api.status===200&&api.data?.database==='ready'&&web.status===200&&web.text.includes('vm-commerce-home')&&shipping.status===200&&brandState.status===401&&courierReady.status===401){ready=true;break;}
+  console.log('Waiting for CP36 web/API and Courier Ops routes',i,api.status,web.status,shipping.status);
  }catch(e){console.log('CP33 retry',i,String(e).slice(0,180));}
  await sleep(7000);
 }
-assert.ok(ready,'CP33 deployment required before smoke pass');
+assert.ok(ready,'CP36 deployment required before smoke pass');
 const [apiHealth,products,webProducts,brands,shipping,webShipping,adminAnon,brandAnon,brandWebAnon,assignAnon,shippingAnon,ordersAnon,paymentConfig,memberAnon,legacyAPI,brandLogin,adminLogin,legacyCategory]=await Promise.all([
  request(API+'/health'),request(API+'/v1/products'),request(WEB+'/api/products'),request(API+'/v1/brands'),
  request(API+'/v1/shipping/config'),request(WEB+'/api/shipping/config'),
@@ -98,6 +99,35 @@ for(const [url,method] of privateEndpoints){
   ...(method==='POST'?{body:'{}'}:{})});
  assert.equal(response.status,401,'CP35 private scope must reject unauthenticated '+method+' '+url);
 }
+// CP36: no public manifest, return admin mutations, carrier booking or unsigned webhook.
+const cp36Private=[
+ [API+'/v1/admin/courier/config','GET'],[WEB+'/api/admin/courier/config','GET'],
+ [API+'/v1/admin/courier/batches','GET'],[WEB+'/api/admin/courier/batches','GET'],
+ [API+'/v1/admin/courier/batches/'+sample+'/preview','GET'],
+ [API+'/v1/admin/courier/batches/'+sample+'/manifest','POST'],
+ [WEB+'/api/admin/courier/batches/'+sample+'/manifest','POST'],
+ [API+'/v1/admin/courier/batches/'+sample+'/packing-slip','GET'],
+ [API+'/v1/admin/courier/batches/'+sample+'/events','GET'],
+ [API+'/v1/admin/courier/batches/'+sample+'/book','POST'],
+ [WEB+'/api/admin/courier/batches/'+sample+'/book','POST'],
+ [API+'/v1/admin/courier-returns','GET'],[WEB+'/api/admin/courier-returns','GET'],
+ [API+'/v1/admin/courier-returns/'+sample+'/review','POST'],
+ [API+'/v1/admin/courier-returns/'+sample+'/receive','POST'],
+ [API+'/v1/admin/courier-returns/'+sample+'/restock','POST'],
+ [API+'/v1/customer-returns','GET'],[WEB+'/api/customer-returns','GET'],
+ [API+'/v1/customer-returns','POST'],[WEB+'/api/customer-returns','POST'],
+ [API+'/v1/customer-courier/orders/'+sample,'GET'],
+ [WEB+'/api/customer-courier/orders/'+sample,'GET']
+];
+for(const [url,method] of cp36Private){
+ const response=await request(url,{method,headers:method==='POST'?{'content-type':'application/json'}:{},
+  ...(method==='POST'?{body:'{}'}:{})});
+ assert.equal(response.status,401,'CP36 scoped endpoint '+method+' '+url+' must require login');
+}
+const unsignedWeb=await request(WEB+'/api/webhooks/biteship',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
+assert.equal(unsignedWeb.status,401,'web Biteship relay rejects missing shared secret header');
+const unsignedApi=await request(API+'/v1/webhooks/biteship',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
+assert.ok([401,503].includes(unsignedApi.status),'API webhook must never accept unsigned callbacks');
 const draft=await request(API+'/v1/orders',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
 assert.equal(draft.status,503,'no live checkout');
-console.log('VAPMART_CP35_SMOKE_SUCCESS',{activeProducts:products.data.items.length,brands:brands.data.items.length,provider:'biteship',booking:'off',payment:'off'});
+console.log('VAPMART_CP36_SMOKE_SUCCESS',{activeProducts:products.data.items.length,brands:brands.data.items.length,provider:'biteship',booking:'off',payment:'off'});
