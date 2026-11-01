@@ -59,7 +59,8 @@ export class BrandInvitationsService {
   return {revoked:true,id:inviteId,actor:actor.id};
  }
  async accept(actor:Principal,body:unknown){
-  if(!actor.email||!actor.emailVerified)throw new ForbiddenException('Verifikasi email wajib diselesaikan');
+  const verifiedEmail=actor.email?.toLowerCase().trim();
+  if(!verifiedEmail||!actor.emailVerified)throw new ForbiddenException('Verifikasi email wajib diselesaikan');
   const token=parseAcceptInvitation(body);
   const hash=createHash('sha256').update(token).digest('hex');
   return this.db.transaction(async client=>{
@@ -68,7 +69,7 @@ export class BrandInvitationsService {
    const invite=r.rows[0];
    if(!invite||invite.accepted_at||invite.revoked_at||new Date(invite.expires_at).getTime()<=Date.now())
     throw new ForbiddenException('Undangan tidak tersedia atau sudah kedaluwarsa');
-   if(invite.email!==actor.email.toLowerCase().trim())
+   if(invite.email!==verifiedEmail)
     throw new ForbiddenException('Undangan ini untuk email lain');
    const brand=await client.query('SELECT id FROM product.brands WHERE id=$1 AND is_active=true',[invite.brand_id]);
    if(!brand.rows[0])throw new ForbiddenException('Brand sudah tidak aktif');
