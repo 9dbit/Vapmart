@@ -53,3 +53,14 @@ Product SKUs must be deliberately approved for any future publication through Co
 Audit and reconcile individual existing product records against a verified non-restricted product catalog supplied by owner. Create approved SKUs and product-media associations through Control Panel, not from historical archive prices or inferred stock.
 
 **Do not rollback the whole repository**: only the storefront was structurally regressed.
+
+## Final verified release evidence
+- **Storefront implementation:** `7750be7ff4b32d4be19bdcb61f7b6ca5a32c7459`; follow-up assertions and custom-domain checks through `af09e452f4e5fb72422cfc62fd0b4d47572b7eac`.
+- Railway `vapmart-web` latest deployment `a8579edd-0dc9-4541-be50-354c12f399a9` **SUCCESS**. Railway `vapmart-api` and PostgreSQL remain **SUCCESS**.
+- Railway custom domains `vapmart.id` and `www.vapmart.id` remain attached to `vapmart-web` port 3000.
+- GitHub Actions *Staging smoke* run `41348871687` **PASS**; verifies both staging and **https://vapmart.id/** homepage render the restored carousel and the public `/catalog` exposes the read-only reference section. Checkout and courier booking are confirmed OFF.
+- GitHub Actions *Browser UI smoke* run `41348871766` **PASS**: 3 carousel slides, all 5 original category images decoded at natural resolution, brand/image rail, 10 editorial thumbnails, 19 **unique** historic product references after hydration, and the mobile source `/legacy/banners/mobile-01.png` loads with no horizontal overflow. No archived purchase/checkout links.
+- Both Foundation checks runs, Theme mode browser QA, Dependency security audit, Coin wallet ledger, Private Media Library integration, Warehouse & Fulfillment PostgreSQL integration **PASS** on `af09e452`.
+- Active PostgreSQL public catalog at time of smoke: **0 published products, 0 active brands**. This is a real data state, not a frontend regression. The 19 visual references do **not** represent verified sellable inventory, SKU counts, stock or current prices.
+- All 59 original media files remain available in the private Control Panel library, with existing public source files unchanged.
+- No database rows for archived products or brands were inserted; no business keys, payments, stock balances, DNS or other applications were changed.
