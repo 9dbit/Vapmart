@@ -78,7 +78,7 @@ try{
    const first=document.querySelector('.vm-carousel-slide img');
    return first instanceof HTMLImageElement&&first.complete&&first.naturalWidth>0;
  },null,{timeout:14000});
- const mobileBanner=await page.locator('.vm-carousel-slide img').first().evaluate(image=>(image as HTMLImageElement).currentSrc);
+ const mobileBanner=await page.locator('.vm-carousel-slide img').first().evaluate(image=>image.currentSrc);
  assert.ok(mobileBanner.includes('/legacy/banners/mobile-01.png'),'mobile breakpoint must load real mobile banner image');
  const mobile=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,innerWidth:window.innerWidth}));
  assert.ok(mobile.scrollWidth<=mobile.innerWidth+3,'homepage mobile overflow '+JSON.stringify(mobile));
