@@ -59,8 +59,17 @@ for(const [label,response] of Object.entries({adminAnon,brandAnon,brandWebAnon,a
  assert.equal(response.status,401,label+' must deny anonymous access');
 assert.equal(legacyAPI.status,404,'public legacy archive endpoint should be removed');
 assert.equal(brandLogin.status,200);
-assert.equal(adminLogin.status,200);
-assert.ok(new URL(adminLogin.url).pathname==='/admin','legacy /admin/login must redirect to the single /admin entry');
+let canonicalAdminReady=false;
+for(let attempt=0;attempt<65;attempt++){
+ const [checkOld,checkNew]=await Promise.all([request(WEB+'/admin/login'),request(WEB+'/admin')]);
+ if(checkOld.status===200&&checkNew.status===200&&new URL(checkOld.url).pathname==='/admin'&&
+    checkNew.text.includes('vma27-access-page')){canonicalAdminReady=true;break;}
+ await sleep(6000);
+}
+assert.ok(canonicalAdminReady,'Unified /admin and legacy redirect must finish deploying before smoke assertions');
+const canonicalOld=await request(WEB+'/admin/login');
+assert.equal(canonicalOld.status,200);
+assert.ok(new URL(canonicalOld.url).pathname==='/admin','legacy /admin/login must redirect to the single /admin entry');
 assert.ok(adminLogin.text.includes('vma27-access-page')&&adminLogin.text.includes('SECURE ADMIN ACCESS'),'legacy login redirects to the unified branded login');
 const adminEntry=await request(WEB+'/admin');
 assert.equal(adminEntry.status,200,'single admin entry must be accessible');
