@@ -1,10 +1,10 @@
 import Link from 'next/link';
-import {getProducts,getBrands} from '@/lib/api';
+import {getProducts,getBrands,getArchivedProducts} from '@/lib/api';
 import {HeroCarousel} from '@/components/hero-carousel';
 import {ParallaxAmbient} from '@/components/parallax-ambient';
 import {ProductGrid} from '@/components/product-grid';
 import {archivedNews} from '@/lib/archived-reference';
-import {featuredArchiveItems} from '@/lib/archive-catalog';
+
 import {ArchiveCard} from '@/components/archive-card';
 import {homepageCategoryTiles} from '@/lib/merchandising';
 import {BrandRail} from '@/components/brand-rail';
@@ -12,7 +12,7 @@ import {BrandRail} from '@/components/brand-rail';
 export const dynamic='force-dynamic';
 
 export default async function Home(){
-  const [products,brands]=await Promise.all([getProducts(),getBrands()]);
+  const [products,brands,archived]=await Promise.all([getProducts(),getBrands(),getArchivedProducts()]);
   const verifiedProducts=products.filter(p=>!p.slug.startsWith('demo-'));
   return <main className="legacy-home vm-reference-home vm-trendora-home" id="home" data-vapmart-ui="cp22">
     <div className="vm-hero-stage vm-trendora-hero">
@@ -43,7 +43,7 @@ export default async function Home(){
         <Link href="/catalog" className="vm-trendora-see-all">Lihat katalog <span aria-hidden="true">↗</span></Link>
       </div>
       <div className="vm-reference-grid">
-        {featuredArchiveItems.map(item=><ArchiveCard item={item} key={item.slug}/>)}
+        {archived.filter(item=>item.source==='homepage-20260316').map(item=><ArchiveCard item={item} key={item.slug}/>)}
       </div>
       <p className="vm-reference-disclaimer">Produk pada galeri ini adalah arsip visual. Harga ditampilkan sebagai referensi historis dan tidak menerima transaksi. <Link href="/catalog">Buka katalog ↗</Link></p>
     </section>}
