@@ -92,7 +92,7 @@ for(let attempt=1;attempt<=36;attempt++){
   const [checkoutPage,adminStudio]=await Promise.all([request(WEB+'/checkout'),request(WEB+'/admin')]);
   cp26Ready=checkoutPage.status===200 && adminStudio.status===200 &&
     checkoutPage.text.includes('SECURE CHECKOUT PREVIEW') &&
-    adminStudio.text.includes('Studio.');
+    adminStudio.text.includes('Control Panel');
   if(cp26Ready)break;
   console.log('Waiting for CP26 checkout/admin web deployment',attempt);
   if(attempt<36)await sleep(SLEEP_MS);
