@@ -116,6 +116,13 @@ export function cleanProduct(body: unknown, partial = false): Partial<Product> {
 export class ProductsService {
   constructor(private readonly db: DatabaseService) {}
 
+  async listArchive():Promise<Array<{slug:string;name:string;brand:string;category:string;image:string;price:string;originalPrice:string|null;source:string}>> {
+    const result=await this.db.query<{slug:string;name:string;brand:string;category:string;image:string;price:string;originalPrice:string|null;source:string}>(
+      'SELECT slug,name,brand,category,image_path AS image,historical_price AS price,historical_original_price AS "originalPrice",source_snapshot AS source FROM product.legacy_archive ORDER BY imported_at,slug'
+    );
+    return result.rows;
+  }
+
   async list(): Promise<Product[]> {
     // A new installation has no invented products or unsafe placeholder orders.
     if (!this.db.configured) return [];
