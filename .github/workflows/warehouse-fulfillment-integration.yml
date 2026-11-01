@@ -43,3 +43,5 @@ jobs:
         run: npm run migrate
       - name: Execute multiwarehouse, reservation and brand isolation integration
         run: npx tsx --test test/integration/warehouse-fulfillment.ts
+      - name: Execute CP36 courier events and returns integration without outside network
+        run: npx tsx --test test/integration/courier-orchestration.ts
