@@ -21,9 +21,13 @@ import {BrandPortalService} from './brand-portal';
 import {BrandPortalController,BrandAccessAdminController} from './brand-portal-controllers';
 import {ShippingService} from './shipping';
 import {ShippingController} from './shipping-controller';
+import {CourierManifestService} from './courier-manifests';
+import {CourierEventService} from './courier-events';
+import {CourierReturnService} from './courier-returns';
+import {CourierAdminController,BiteshipWebhookController,CourierReturnAdminController,CourierReturnCustomerController,CourierTrackingCustomerController} from './courier-controllers';
 
 @Module({
-  controllers: [HealthController, CatalogController, AdminController, OrdersController, BrandsController, MediaController, CheckoutController, CoinPacksController,MemberController,DigitalOrderController,SandboxWebhookController,BrandPortalController,BrandAccessAdminController,ShippingController,InventoryController,WarehouseController,FulfillmentAdminController,CustomerFulfillmentController,AdminBrandInvitationsController,AcceptBrandInvitationController],
-  providers: [DatabaseService, ProductsService, BrandsService, MediaService, CheckoutService, SupabaseAuthService, AdminGuard, CustomerGuard,MemberCommerceService,SandboxPaymentsService,BrandPortalService,ShippingService,InventoryService,WarehouseService,FulfillmentService,BrandInvitationsService],
+  controllers: [HealthController, CatalogController, AdminController, OrdersController, BrandsController, MediaController, CheckoutController, CoinPacksController,MemberController,DigitalOrderController,SandboxWebhookController,BrandPortalController,BrandAccessAdminController,ShippingController,CourierAdminController,BiteshipWebhookController,CourierReturnAdminController,CourierReturnCustomerController,CourierTrackingCustomerController,InventoryController,WarehouseController,FulfillmentAdminController,CustomerFulfillmentController,AdminBrandInvitationsController,AcceptBrandInvitationController],
+  providers: [DatabaseService, ProductsService, BrandsService, MediaService, CheckoutService, SupabaseAuthService, AdminGuard, CustomerGuard,MemberCommerceService,SandboxPaymentsService,BrandPortalService,ShippingService,CourierManifestService,CourierEventService,CourierReturnService,InventoryService,WarehouseService,FulfillmentService,BrandInvitationsService],
 })
 export class AppModule {}
