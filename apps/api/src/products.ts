@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from './database';
+import type {Principal} from './auth';
 
 export const categories = ['home', 'lifestyle', 'decor', 'accessories', 'electronics', 'other'] as const;
 type Category = typeof categories[number];
@@ -152,14 +153,38 @@ export class ProductsService {
     return result.rows;
   }
 
-  async create(body: unknown): Promise<Product> {
+  async create(body: unknown, actor:Principal): Promise<Product> {
     const product = cleanProduct(body);
     const columns = Object.keys(product);
+    return this.db.transaction(async client=>{
+      const result=await client.query<Product>(
+        `INSERT INTO product.products (${columns.join(', ')}) VALUES (${columns.map((_, index) => '
+  }
+
+  async update(id: string, body: unknown): Promise<Product> {
+    if (!/^[a-f0-9-]{36}$/i.test(id)) throw new BadRequestException('Invalid ID');
+    if(body&&typeof body==='object'&&!Array.isArray(body)&&Object.hasOwn(body,'stock_qty'))
+      throw new BadRequestException('Gunakan Inventory Ledger untuk mengubah stok');
+    const product = cleanProduct(body, true);
+    const columns = Object.keys(product);
+    if (!columns.length) throw new BadRequestException('No changes supplied');
     const result = await this.db.query<Product>(
-      `INSERT INTO product.products (${columns.join(', ')}) VALUES (${columns.map((_, index) => '$' + (index + 1)).join(', ')}) RETURNING id, sku, slug, brand_id, gallery_urls, name, description, category, price_idr::integer AS price_idr, stock_qty, weight_grams,length_cm,width_cm,height_cm,image_url,is_active`,
-      columns.map(key => (product as Record<string, unknown>)[key])
+      `UPDATE product.products SET ${columns.map((key, index) => key + ' = $' + (index + 1)).join(', ')}, updated_at = now() WHERE id = $${columns.length + 1} RETURNING id, sku, slug, brand_id, gallery_urls, name, description, category, price_idr::integer AS price_idr, stock_qty, weight_grams,length_cm,width_cm,height_cm,image_url,is_active`,
+      [...columns.map(key => (product as Record<string, unknown>)[key]), id]
     );
+    if (!result.rows[0]) throw new NotFoundException('Product not found');
     return result.rows[0];
+  }
+}
+ + (index + 1)).join(', ')}) RETURNING id, sku, slug, brand_id, gallery_urls, name, description, category, price_idr::integer AS price_idr, stock_qty, weight_grams,length_cm,width_cm,height_cm,image_url,is_active`,
+        columns.map(key => (product as Record<string, unknown>)[key])
+      );
+      const created=result.rows[0];
+      if(created.stock_qty>0)await client.query(
+        "INSERT INTO product.inventory_events(product_id,delta_qty,reason,actor_id,stock_before,stock_after,notes) VALUES($1,$2,'opening_balance',$3,0,$2,'Initial stock entered by Vapmart administrator')",
+        [created.id,created.stock_qty,actor.id]);
+      return created;
+    });
   }
 
   async update(id: string, body: unknown): Promise<Product> {

@@ -44,7 +44,7 @@ export class AdminController {
   @Get('products')
   async listProducts() { return { items: await this.products.listAdmin() }; }
   @Post('products')
-  async create(@Body() body: unknown) { return this.products.create(body); }
+  async create(@Req() req:{user:Principal},@Body() body: unknown) { return this.products.create(body,req.user); }
   @Patch('products/:id')
   async update(@Param('id') id: string, @Body() body: unknown) { return this.products.update(id, body); }
   @Get('brands')
