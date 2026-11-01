@@ -16,6 +16,7 @@ export default function BrandPortalPage(){
  const [grants,setGrants]=useState<BrandGrant[]>([]),[selected,setSelected]=useState('');
  const [overview,setOverview]=useState<Summary|null>(null),[products,setProducts]=useState<BrandProduct[]>([]),[sales,setSales]=useState<Sale[]>([]),[locations,setLocations]=useState<Location[]>([]),[fulfillments,setFulfillments]=useState<Fulfillment[]>([]);
  const [busy,setBusy]=useState(true),[error,setError]=useState(''),[tab,setTab]=useState<'stock'|'sales'|'warehouses'|'fulfillment'>('stock');
+ const [activityNote,setActivityNote]=useState(''),[activityBusy,setActivityBusy]=useState(false),[activityMessage,setActivityMessage]=useState('');
  useEffect(()=>{
   if(auth.loading)return;
   if(!auth.accessToken){router.replace('/brand/login');setBusy(false);return;}
@@ -40,6 +41,25 @@ export default function BrandPortalPage(){
   return()=>ac.abort();
  },[selected,auth.accessToken]);
  const grant=grants.find(g=>g.id===selected);
+ const mayProcess=grant?.role==='owner'||grant?.role==='manager';
+ const nextStatus:Record<string,string>={reserved:'picking',picking:'packed',packed:'ready_for_carrier'};
+ async function progressBatch(batch:Fulfillment){
+  const next=nextStatus[batch.state];if(!mayProcess||!next||activityBusy||!auth.accessToken)return;
+  if(activityNote.trim().length<6){setActivityMessage('Catatan minimal 6 karakter diperlukan');return;}
+  setActivityBusy(true);setActivityMessage('');
+  try{
+   const r=await fetch('/api/brand-portal/'+encodeURIComponent(selected)+'/fulfillment/'+encodeURIComponent(batch.id)+'/state',{
+    method:'POST',headers:{authorization:'Bearer '+auth.accessToken,'content-type':'application/json'},
+    body:JSON.stringify({state:next,notes:activityNote.trim()})});
+   const data=await r.json();if(!r.ok)throw new Error(data?.message||'Tidak dapat memproses batch');
+   const refresh=await fetch('/api/brand-portal/'+encodeURIComponent(selected)+'/fulfillment',{headers:{authorization:'Bearer '+auth.accessToken},cache:'no-store'});
+   if(!refresh.ok)throw Error('Status diperbarui tetapi penyegaran gagal');
+   const updated=await refresh.json();setFulfillments(updated.items||[]);
+   setActivityNote('');setActivityMessage('Status picking/packing brand diperbarui. Booking kurir tetap OFF.');
+  }catch(e){setActivityMessage(e instanceof Error?e.message:'Operasi tidak tersedia');}
+  finally{setActivityBusy(false);}
+ }
+
  return <main className="vm-brand-portal-root"><div className="vm-brand-dashboard">
   <header className="vm-brand-dashboard-header"><div><span className="vm-brand-eyebrow">VAPMART / PARTNER ACCESS</span><h1>Brand Portal.</h1><p>Stock visibility and verified paid sales, scoped to your brand.</p></div>
    <div className="vm-brand-dashboard-actions"><Link href="/">Lihat Vapmart ↗</Link><button type="button" onClick={()=>auth.signOut().then(()=>router.replace('/brand/login'))}>Keluar</button></div>
@@ -62,7 +82,20 @@ export default function BrandPortalPage(){
        {tab==='stock'&&<table><thead><tr><th>SKU</th><th>Produk</th><th>Available</th><th>Status</th></tr></thead><tbody>{products.map(p=><tr key={p.id}><td>{p.sku||'—'}</td><td>{p.name}</td><td>{p.stock_qty}</td><td>{p.is_active?'Published':'Draft'}</td></tr>)}</tbody></table>}
        {tab==='sales'&&<table><thead><tr><th>SKU</th><th>Produk</th><th>Unit lunas</th><th>Gross sales</th></tr></thead><tbody>{sales.map(p=><tr key={p.product_id}><td>{p.sku||'—'}</td><td>{p.name}</td><td>{p.units_sold}</td><td>{rupiah(p.gross_item_sales_idr)}</td></tr>)}</tbody></table>}
        {tab==='warehouses'&&<table><thead><tr><th>SKU / Produk</th><th>Gudang</th><th>On-hand</th><th>Reserved</th><th>Available</th></tr></thead><tbody>{locations.map((p,i)=><tr key={p.product_id+p.code+i}><td>{p.sku||'—'} · {p.product_name}</td><td>{p.code} · {p.city||'—'}</td><td>{p.on_hand}</td><td>{p.reserved}</td><td>{p.available}</td></tr>)}</tbody></table>}
-       {tab==='fulfillment'&&<table><thead><tr><th>Order ID</th><th>Gudang</th><th>Qty</th><th>Status internal</th></tr></thead><tbody>{fulfillments.map(p=><tr key={p.id}><td>{p.order_id.slice(0,8)}</td><td>{p.warehouse_code}</td><td>{p.units}</td><td>{p.state.replaceAll('_',' ')}</td></tr>)}</tbody></table>}
+       {tab==='fulfillment'&&<div>
+        {mayProcess&&<label style={{display:'grid',gap:7,marginBottom:16,fontSize:12}}>Catatan proses gudang
+          <textarea value={activityNote} onChange={e=>setActivityNote(e.target.value)} rows={2} minLength={6} maxLength={300}
+           placeholder="Nama petugas / referensi picking dan packing" style={{padding:12,borderRadius:12,border:'1px solid #e7dded'}}/>
+        </label>}
+        <table><thead><tr><th>Order ID</th><th>Gudang</th><th>Qty</th><th>Status internal</th><th>Proses</th></tr></thead>
+         <tbody>{fulfillments.map(p=><tr key={p.id}><td>{p.order_id.slice(0,8)}</td><td>{p.warehouse_code}</td><td>{p.units}</td><td>{p.state.replaceAll('_',' ')}</td>
+         <td>{mayProcess&&nextStatus[p.state]?
+          <button type="button" disabled={activityBusy||activityNote.trim().length<6} onClick={()=>progressBatch(p)}
+           style={{border:0,padding:'9px 12px',borderRadius:99,background:'#8526d0',color:'#fff',cursor:'pointer'}}>
+           Set {nextStatus[p.state].replaceAll('_',' ')}
+          </button>:<span>{mayProcess?'Menunggu kurir':'Read-only'}</span>}</td></tr>)}</tbody>
+        </table>{activityMessage&&<p role="status">{activityMessage}</p>}
+       </div>}
        {(tab==='stock'?products.length:tab==='sales'?sales.length:tab==='warehouses'?locations.length:fulfillments.length)===0&&<p>Belum ada data untuk brand ini.</p>}
       </div>
      </section>
