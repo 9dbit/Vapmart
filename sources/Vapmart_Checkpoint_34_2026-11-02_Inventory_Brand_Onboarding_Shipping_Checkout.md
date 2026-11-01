@@ -61,3 +61,13 @@ CP33 removed the WordPress legacy catalog from the operational UI, established b
 - https://vapmart.id/brand/accept (requires invite fragment)
 - https://vapmart.id/checkout
 - https://github.com/9dbit/Vapmart/actions
+
+## Deployment verification update
+- Railway Vapmart environment: `vapmart-api` **SUCCESS** (deployment `7ace275a-c461-4d65-93b0-1f25b12dedd8`), `vapmart-web` **SUCCESS** (`88f99605-3a75-4939-9527-710af555874d`), Postgres **SUCCESS**.
+- API migration log confirmed scripts `009_inventory_ledger.sql`, `010_brand_invitations.sql`, `011_shipping_quote_snapshots.sql` are present in the deployed migration ledger. Subsequent predeploy reported `applied:[]`, meaning no pending migrations at that time.
+- GitHub Actions workflow runs on commit `c4429d3db061a2712eee447f133aa90e54d5634d`: **PASS** for Foundation checks (API/Web/Catalog audit), Browser UI smoke, Staging smoke, Theme mode browser QA, Coin wallet ledger integration and Dependency security audit.
+- Live `https://vapmart.id/api/shipping/config`: HTTP 200, `rateLookupEnabled=false`, `bookingEnabled=false`, `paymentEnabled=false`.
+- Live unauthenticated `POST /api/admin/inventory/adjust`, `POST /api/brand-invitations/accept`, `POST /api/shipping/rates` and `GET /api/admin/brand-invitations/:brandId`: **HTTP 401**.
+- Live `/brand/login`, `/brand/accept`, and `/admin/login`: HTTP 200.
+- **Limit:** No approved brand accounts or sandbox Biteship key were provided. Never describe invitation acceptance with a real partner, stock adjustment by a real operator, or provider-returned rates as E2E PASS until independently tested.
+- No payment or booking actions were performed, and no provider key was set.
