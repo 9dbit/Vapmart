@@ -9,27 +9,32 @@ import {ShippingPanel} from '@/components/shipping-panel';
 import {WarehouseOps} from '@/components/warehouse-ops';
 import {FulfillmentPanel} from '@/components/fulfillment-panel';
 import {CourierOpsPanel} from '@/components/courier-ops-panel';
+import {AdminAccess} from '@/components/admin-access';
+import {AdminWorkspace,adminTitles,adminDescriptions,type AdminSection} from '@/components/admin-workspace';
 import '../admin-v26.css';
 
 type Brand={id:string;name:string;slug:string;description:string;logo_url:string|null;is_active:boolean};
 type Order={id:string;status:string;payment_status:string;contact_name:string;contact_email:string;city:string;province:string;total_idr:string;payment_method:string;created_at:string};
 type ProductDraft={name:string;slug:string;sku:string;description:string;category:string;price_idr:string;stock_qty:string;weight_grams:string;length_cm:string;width_cm:string;height_cm:string;brand_id:string;image_url:string;gallery_urls:string[];is_active:boolean};
 type BrandDraft={name:string;slug:string;description:string;logo_url:string;is_active:boolean};
-type Tab='overview'|'products'|'warehouses'|'brands'|'orders'|'fulfillment'|'courier'|'shipping';
+type Tab=Exclude<AdminSection,'media'>;
+const allowedTabs:ReadonlyArray<Tab>=['overview','products','warehouses','brands','orders','fulfillment','courier','shipping'];
 const categories=['home','lifestyle','decor','accessories','electronics','other'];
 const blankProduct:ProductDraft={name:'',slug:'',sku:'',description:'',category:'lifestyle',price_idr:'',stock_qty:'0',weight_grams:'',length_cm:'',width_cm:'',height_cm:'',brand_id:'',image_url:'',gallery_urls:[],is_active:false};
 const blankBrand:BrandDraft={name:'',slug:'',description:'',logo_url:'',is_active:true};
 const slugify=(text:string)=>text.toLowerCase().normalize('NFKD').replace(/[^a-z0-9 -]/g,'').trim().replace(/\s+/g,'-').replace(/-+/g,'-');
 function labelDate(date:string){const d=new Date(date);return Number.isNaN(d.valueOf())?'-':d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 function statusError(response:Response,payload:unknown){const data=(payload||{}) as {message?:string|string[];code?:string};return typeof data.message==='string'?data.message:Array.isArray(data.message)?data.message.join(', '):data.code||'HTTP '+response.status;}
-function Pill({active,children,onClick}:{active:boolean;children:React.ReactNode;onClick:()=>void}){return <button type="button" className={'vma26-pill'+(active?' active':'')} onClick={onClick}>{children}</button>;}
 
 export default function AdminPage(){
  const auth=useCustomerAuth();
  const router=useRouter();
  const [checking,setChecking]=useState(true);
  const [authorized,setAuthorized]=useState(false);
+ const [verifiedToken,setVerifiedToken]=useState<string|null>(null);
+ const [retryKey,setRetryKey]=useState(0);
  const [accessDenied,setAccessDenied]=useState(false);
+ const [sessionExpired,setSessionExpired]=useState(false);
  const [busy,setBusy]=useState(false);
  const [uploading,setUploading]=useState(false);
  const [message,setMessage]=useState('');
@@ -60,27 +65,67 @@ export default function AdminPage(){
  }
  useEffect(()=>{
   if(auth.loading)return;
-  if(!auth.accessToken){setAuthorized(false);setAccessDenied(false);setChecking(false);router.replace('/admin/login');return;}
-  let active=true;
-  setChecking(true);
+  if(!auth.accessToken){
+   setVerifiedToken(null);setAuthorized(false);setAccessDenied(false);setSessionExpired(false);setChecking(false);
+   return;
+  }
+  let alive=true;
+  setChecking(true);setAuthorized(false);setVerifiedToken(null);setAccessDenied(false);setSessionExpired(false);
   (async()=>{
    try{
     const response=await fetch('/api/admin/status',{headers:{authorization:'Bearer '+auth.accessToken},cache:'no-store'});
-    if(!response.ok){if(active){setAuthorized(false);setAccessDenied(response.status===403);if(response.status===401||response.status===403)router.replace('/admin/login');}return;}
-    const results=await Promise.all(['/api/admin/products','/api/admin/brands','/api/admin/orders'].map(path=>
-      fetch(path,{headers:{authorization:'Bearer '+auth.accessToken},cache:'no-store'})));
-    const data=await Promise.all(results.map(r=>r.json()));
-    if(!active)return;
-    setAuthorized(true);setAccessDenied(false);
+    if(!alive)return;
+    if(!response.ok){
+     setAccessDenied(response.status===403);
+     setSessionExpired(response.status===401);
+     setAuthorized(false);setVerifiedToken(null);
+     return;
+    }
+    const results=await Promise.all(['/api/admin/products','/api/admin/brands','/api/admin/orders'].map(url=>
+     fetch(url,{headers:{authorization:'Bearer '+auth.accessToken},cache:'no-store'})));
+    if(!alive)return;
+    if(results.some(r=>r.status===401||r.status===403)){
+     setAccessDenied(results.some(r=>r.status===403));
+     setSessionExpired(results.some(r=>r.status===401));setAuthorized(false);return;
+    }
+    const data=await Promise.all(results.map(async r=>{
+     try{return await r.json();}catch{return {};}
+    }));
+    if(!alive)return;
+    setAuthorized(true);setVerifiedToken(auth.accessToken);setAccessDenied(false);setSessionExpired(false);
     if(results.every(r=>r.ok)){
-     setProducts(data[0].items||[]);setBrands(data[1].items||[]);setOrders(data[2].items||[])
-    }else setMessage('Admin terverifikasi, tetapi beberapa data belum tersedia. Periksa migrasi database.');
-   }catch{if(active)setMessage('Tidak dapat menghubungi API admin.');}
-   finally{if(active)setChecking(false);}
+     setProducts(Array.isArray(data[0].items)?data[0].items:[]);
+     setBrands(Array.isArray(data[1].items)?data[1].items:[]);
+     setOrders(Array.isArray(data[2].items)?data[2].items:[]);
+     setMessage('');
+    }else setMessage('Akses admin terverifikasi, tetapi beberapa data belum berhasil dimuat. Gunakan Refresh atau periksa koneksi API.');
+   }catch{
+    if(alive){setAuthorized(false);setVerifiedToken(null);}
+   }finally{
+    if(alive)setChecking(false);
+   }
   })();
-  return()=>{active=false;};
- },[auth.accessToken,auth.loading,router]);
- async function logout(){await auth.signOut();setAuthorized(false);setProducts([]);setBrands([]);setOrders([]);router.replace('/admin/login');}
+  return()=>{alive=false;};
+ },[auth.accessToken,auth.loading,retryKey]);
+ useEffect(()=>{
+  const sync=()=>{
+   const requested=new URLSearchParams(window.location.search).get('tab');
+   const section=allowedTabs.find(x=>x===requested);
+   setTab(section||'overview');
+  };
+  sync();
+  window.addEventListener('popstate',sync);
+  return()=>window.removeEventListener('popstate',sync);
+ },[]);
+ function navigate(section:AdminSection){
+  if(section==='media'){router.push('/admin/media');return;}
+  setTab(section);
+  const url=section==='overview'?'/admin':'/admin?tab='+encodeURIComponent(section);
+  if(window.location.pathname==='/admin'&&window.location.pathname+window.location.search!==url)
+   window.history.pushState(null,'',url);
+  window.scrollTo({top:0,behavior:'smooth'});
+ }
+ async function logout(){try{await auth.signOut();setAuthorized(false);setVerifiedToken(null);setProducts([]);setBrands([]);setOrders([]);setMessage('');}catch{setMessage('Tidak dapat keluar dari sesi, coba kembali.');}}
  const filtered=useMemo(()=>products.filter(p=>{
   const q=search.trim().toLowerCase();
   const match=!q||[p.name,p.sku||'',p.slug,p.brand_name||''].some(x=>x.toLowerCase().includes(q));
@@ -93,14 +138,14 @@ export default function AdminPage(){
  const editingProductRecord=products.find(p=>p.id===editingProduct);
  function setP<K extends keyof ProductDraft>(key:K,value:ProductDraft[K]){setProductDraft(p=>({...p,[key]:value}));}
  function setB<K extends keyof BrandDraft>(key:K,value:BrandDraft[K]){setBrandDraft(b=>({...b,[key]:value}));}
- function newProduct(){setEditingProduct(null);setProductDraft({...blankProduct,gallery_urls:[]});setTab('products');setMessage('');}
+ function newProduct(){setEditingProduct(null);setProductDraft({...blankProduct,gallery_urls:[]});navigate('products');setMessage('');}
  function editProduct(p:Product){
   setEditingProduct(p.id);setProductDraft({name:p.name,slug:p.slug,sku:p.sku||'',description:p.description,
    category:p.category,price_idr:String(p.price_idr),stock_qty:String(p.stock_qty),weight_grams:p.weight_grams?String(p.weight_grams):'',length_cm:p.length_cm?String(p.length_cm):'',width_cm:p.width_cm?String(p.width_cm):'',height_cm:p.height_cm?String(p.height_cm):'',brand_id:p.brand_id||'',image_url:p.image_url||'',
-   gallery_urls:[...(p.gallery_urls||[])],is_active:p.is_active});setTab('products');window.scrollTo({top:350,behavior:'smooth'});
+   gallery_urls:[...(p.gallery_urls||[])],is_active:p.is_active});navigate('products');window.requestAnimationFrame(()=>document.querySelector('.vma26-editor')?.scrollIntoView({behavior:'smooth',block:'start'}));
  }
- function newBrand(){setEditingBrand(null);setBrandDraft({...blankBrand});setTab('brands');setMessage('');}
- function editBrand(b:Brand){setEditingBrand(b.id);setBrandDraft({name:b.name,slug:b.slug,description:b.description,logo_url:b.logo_url||'',is_active:b.is_active});setTab('brands');}
+ function newBrand(){setEditingBrand(null);setBrandDraft({...blankBrand});navigate('brands');setMessage('');}
+ function editBrand(b:Brand){setEditingBrand(b.id);setBrandDraft({name:b.name,slug:b.slug,description:b.description,logo_url:b.logo_url||'',is_active:b.is_active});navigate('brands');}
  async function send(path:string,method:'POST'|'PATCH',payload:Record<string,unknown>){
   const response=await authorizedFetch(path,{method,headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
   const data=await response.json();
@@ -123,6 +168,7 @@ export default function AdminPage(){
   finally{setBusy(false);}
  }
  async function publish(p:Product){
+  if(!window.confirm(p.is_active?'Sembunyikan produk ini dari storefront?':'Publikasikan produk ini? Pastikan foto, SKU, berat, dan stok sudah terverifikasi.'))return;
   setBusy(true);setMessage('');
   try{await send('/api/admin/products/'+p.id,'PATCH',{is_active:!p.is_active});await refreshData();setMessage('Status publikasi produk diperbarui.');}
   catch(error){setMessage(error instanceof Error?error.message:'Publikasi gagal');}finally{setBusy(false);}
@@ -140,6 +186,7 @@ export default function AdminPage(){
   finally{setBusy(false);}
  }
  async function toggleBrand(brand:Brand){
+  if(!window.confirm(brand.is_active?'Nonaktifkan brand ini? Akses dan katalog brand dapat terdampak.':'Aktifkan kembali brand ini?'))return;
   setBusy(true);setMessage('');
   try{await send('/api/admin/brands/'+brand.id,'PATCH',{is_active:!brand.is_active});await refreshData();setMessage('Status brand diperbarui.');}
   catch(error){setMessage(error instanceof Error?error.message:'Gagal mengubah brand');}finally{setBusy(false);}
@@ -168,16 +215,18 @@ export default function AdminPage(){
   finally{setUploading(false);}
  }
 
- return <main className="vma26-root main-container">
-  <header className="vma26-hero">
-   <div><p className="vma26-eyebrow">VAPMART / CONTROL PANEL</p><h1>Vapmart <span>Control Panel.</span></h1>
-   <p>Brand, SKU, katalog, galeri foto, dan pesanan dalam satu dashboard. Akses khusus administrator.</p></div>
-   <div className="vma26-hero-actions"><Link href="/" className="vma26-btn-light">↗ Lihat storefront</Link>{authorized&&<button className="vma26-btn-dark" onClick={logout} type="button">Keluar</button>}</div>
-  </header>
-  {!auth.configured?<section className="vma26-panel vma26-auth"><h2>Autentikasi belum dihubungkan</h2><p>Hubungkan Supabase Auth khusus Vapmart dan tetapkan staff role admin. Dashboard tetap terkunci untuk melindungi produk, akun, dan pesanan.</p></section>:
-  checking?<section className="vma26-panel vma26-auth"><h2>Memvalidasi akses admin...</h2></section>:
-  !authorized?<section className="vma26-panel vma26-auth"><h2>{accessDenied?'Akses administrator belum tersedia':'Memeriksa akses...'}</h2><p>Login administrator hanya tersedia melalui halaman khusus Control Panel.</p><Link href="/admin/login" className="vma26-btn-dark">Buka admin login</Link></section>:
-  <>
+ const showDashboard=authorized&&auth.configured&&!!auth.accessToken&&verifiedToken===auth.accessToken;
+ const accessPhase=(!auth.configured?'unconfigured':auth.loading||checking?'checking':!auth.accessToken?'logged-out':accessDenied?'denied':sessionExpired?'expired':'error') as const;
+ return !showDashboard?
+  <AdminAccess phase={accessPhase} onRetry={()=>setRetryKey(x=>x+1)}/>:
+  <AdminWorkspace active={tab} email={auth.user?.email} onLogout={logout} onNavigate={navigate}>
+   <header className="vma27-page-heading">
+    <div><p className="vma26-eyebrow">VAPMART / OPERATIONS CENTER</p>
+     <h1>{adminTitles[tab]}</h1>
+     <p>{adminDescriptions[tab]}</p>
+    </div>
+    <Link href="/" className="vma27-heading-action">↗ Lihat website</Link>
+   </header>
    <div className="vma26-kpis">
     <div><span>Inventori database</span><strong>{products.length}</strong><small>Produk pada PostgreSQL</small></div>
     <div><span>Produk tayang</span><strong>{published}</strong><small>Terlihat di storefront</small></div>
@@ -185,16 +234,7 @@ export default function AdminPage(){
     <div><span>Brand</span><strong>{brands.length}</strong><small>Aktif {brands.filter(b=>b.is_active).length}</small></div>
     <div><span>Draft pesanan</span><strong>{pending}</strong><small>Belum dibayar</small></div>
    </div>
-   <nav className="vma26-tabs" aria-label="Menu dashboard">
-    <Pill active={tab==='overview'} onClick={()=>setTab('overview')}>Ringkasan</Pill>
-    <Pill active={tab==='products'} onClick={()=>setTab('products')}>Produk &amp; SKU</Pill>
-    <Pill active={tab==='warehouses'} onClick={()=>setTab('warehouses')}>Gudang &amp; Stok</Pill>
-    <Pill active={tab==='brands'} onClick={()=>setTab('brands')}>Brands</Pill>
-    <Pill active={tab==='orders'} onClick={()=>setTab('orders')}>Pesanan</Pill>
-    <Pill active={tab==='fulfillment'} onClick={()=>setTab('fulfillment')}>Fulfillment</Pill>
-    <Pill active={tab==='courier'} onClick={()=>setTab('courier')}>Courier Ops</Pill>
-    <Pill active={tab==='shipping'} onClick={()=>setTab('shipping')}>Pengiriman</Pill>
-   </nav>
+
    {tab==='overview'&&<div className="vma26-overview">
     <section className="vma26-panel"><p className="vma26-eyebrow">QUICK ACTIONS</p><h2>Kelola toko lebih cepat.</h2>
      <p>Publikasikan produk non-nikotin setelah harga, stok, foto, dan SKU terverifikasi. Semua perubahan tercatat di PostgreSQL.</p>
@@ -274,7 +314,7 @@ export default function AdminPage(){
     </table>{orders.length===0&&<p className="vma26-muted">Belum ada draft pesanan.</p>}</div>
     <p className="vma26-muted">Pembayaran akan terhubung setelah provider, webhook, serta rekonsiliasi berhasil melewati QA. Saat ini tombol bayar tetap nonaktif.</p>
    </section>}
-  </>}
-  {message&&<p className="vma26-message" role="status">{message}</p>}
- </main>;
+
+   {message&&<p className="vma26-message" role="status" aria-live="polite">{message}</p>}
+  </AdminWorkspace>;
 }
