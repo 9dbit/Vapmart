@@ -2,7 +2,7 @@
 import {useEffect,useState} from 'react';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import Link from 'next/link';
-import '../brand-portal.css';
+import '../../brand-portal.css';
 export default function BrandAcceptPage(){
  const auth=useCustomerAuth();
  const [token,setToken]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[success,setSuccess]=useState(false);
