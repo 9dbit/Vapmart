@@ -70,7 +70,7 @@ assert.ok(canonicalAdminReady,'Unified /admin and legacy redirect must finish de
 const canonicalOld=await request(WEB+'/admin/login');
 assert.equal(canonicalOld.status,200);
 assert.ok(new URL(canonicalOld.url).pathname==='/admin','legacy /admin/login must redirect to the single /admin entry');
-assert.ok(adminLogin.text.includes('vma27-access-page')&&adminLogin.text.includes('SECURE ADMIN ACCESS'),'legacy login redirects to the unified branded login');
+assert.ok(canonicalOld.text.includes('vma27-access-page')&&canonicalOld.text.includes('SECURE ADMIN ACCESS'),'legacy login redirects to the unified branded login');
 const adminEntry=await request(WEB+'/admin');
 assert.equal(adminEntry.status,200,'single admin entry must be accessible');
 assert.ok(adminEntry.text.includes('vma27-access-page'),'anonymous /admin must render sign-in, not reveal a dashboard');
