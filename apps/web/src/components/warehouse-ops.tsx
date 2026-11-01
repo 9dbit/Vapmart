@@ -2,16 +2,16 @@
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import type {Product} from '@/lib/types';
 import '../app/warehouse-ops.css';
-type Warehouse={id:string;code:string;name:string;city:string;province:string;address_line:string;postal_code:string|null;is_active:boolean;is_dispatch_enabled:boolean;is_system_hold:boolean};
+type Warehouse={id:string;code:string;name:string;city:string;province:string;address_line:string;postal_code:string|null;contact_name:string|null;contact_phone:string|null;is_active:boolean;is_dispatch_enabled:boolean;is_system_hold:boolean};
 type Stock={warehouse_id:string;product_id:string;sku:string|null;product_name:string;brand_name:string|null;on_hand:number;reserved:number;available:number;is_dispatch_enabled:boolean;is_system_hold:boolean};
 type Event={id:string;delta_on_hand:number;delta_reserved:number;on_hand_before:number;on_hand_after:number;reserved_before:number;reserved_after:number;reason:string;notes:string;created_at:string};
 type Data={warehouses:Warehouse[];stock:Stock[]};
-const initial={code:'',name:'',address:'',city:'',province:'',postalCode:''};
+const initial={code:'',name:'',address:'',city:'',province:'',postalCode:'',contactName:'',contactPhone:''};
 const showError=(v:unknown)=>v instanceof Error?v.message:'Tidak dapat menyimpan perubahan';
 export function WarehouseOps({token,products,onUpdated}:{token:string|null;products:Product[];onUpdated:()=>Promise<void>}){
  const [data,setData]=useState<Data>({warehouses:[],stock:[]}),[creating,setCreating]=useState(initial);
  const [warehouseId,setWarehouseId]=useState(''),[productId,setProductId]=useState('');
- const [editId,setEditId]=useState(''),[editData,setEditData]=useState({name:'',address:'',city:'',province:'',postalCode:''});
+ const [editId,setEditId]=useState(''),[editData,setEditData]=useState({name:'',address:'',city:'',province:'',postalCode:'',contactName:'',contactPhone:''});
  const [qty,setQty]=useState('1'),[direction,setDirection]=useState<'in'|'out'>('in'),[reason,setReason]=useState('receipt'),[notes,setNotes]=useState('');
  const [source,setSource]=useState(''),[destination,setDestination]=useState(''),[transferQty,setTransferQty]=useState('1'),[transferNotes,setTransferNotes]=useState('');
  const [events,setEvents]=useState<Event[]>([]),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false),[message,setMessage]=useState('');
@@ -91,7 +91,7 @@ export function WarehouseOps({token,products,onUpdated}:{token:string|null;produ
     {loading?<p>Memuat gudang...</p>:data.warehouses.map(w=><div className="vm-ops-location" key={w.id}>
      <div><strong>{w.code} · {w.name}</strong><small>{w.is_system_hold?'Saldo historis belum diverifikasi':(w.city||'Lokasi belum lengkap')+' · '+(w.postal_code||'Kode pos belum ada')}</small></div>
      <span className={'vm-ops-status'+(w.is_dispatch_enabled?' active':'')}>{w.is_system_hold?'HOLD':w.is_dispatch_enabled?'Dispatch ON':'Dispatch OFF'}</span>
-     {!w.is_system_hold&&<><button type="button" className="vm-ops-secondary" onClick={()=>{setEditId(w.id);setEditData({name:w.name,address:w.address_line||'',city:w.city||'',province:w.province||'',postalCode:w.postal_code||''});}} disabled={busy}>Edit alamat</button><button type="button" className="vm-ops-secondary" disabled={busy} onClick={()=>toggle(w)}>{w.is_dispatch_enabled?'Nonaktifkan':'Aktifkan'}</button></>}
+     {!w.is_system_hold&&<><button type="button" className="vm-ops-secondary" onClick={()=>{setEditId(w.id);setEditData({name:w.name,address:w.address_line||'',city:w.city||'',province:w.province||'',postalCode:w.postal_code||'',contactName:w.contact_name||'',contactPhone:w.contact_phone||''});}} disabled={busy}>Edit alamat</button><button type="button" className="vm-ops-secondary" disabled={busy} onClick={()=>toggle(w)}>{w.is_dispatch_enabled?'Nonaktifkan':'Aktifkan'}</button></>}
     </div>)}
     {editId&&<form className="vm-ops-form" onSubmit={e=>{e.preventDefault();change('Alamat gudang',async()=>{
       await req('/api/admin/warehouses/'+editId,'PATCH',{...editData,postalCode:editData.postalCode||null});
@@ -102,6 +102,8 @@ export function WarehouseOps({token,products,onUpdated}:{token:string|null;produ
        <label>Alamat<input maxLength={300} value={editData.address} onChange={e=>setEditData(x=>({...x,address:e.target.value}))}/></label>
        <label>Kota<input maxLength={100} value={editData.city} onChange={e=>setEditData(x=>({...x,city:e.target.value}))}/></label>
        <label>Provinsi<input maxLength={100} value={editData.province} onChange={e=>setEditData(x=>({...x,province:e.target.value}))}/></label>
+       <label>Kontak pickup<input maxLength={100} value={editData.contactName} onChange={e=>setEditData(x=>({...x,contactName:e.target.value}))}/></label>
+       <label>Telepon pickup<input maxLength={22} value={editData.contactPhone} onChange={e=>setEditData(x=>({...x,contactPhone:e.target.value}))}/></label>
        <label>Kode pos<input inputMode="numeric" pattern="[0-9]{5}" maxLength={5} value={editData.postalCode} onChange={e=>setEditData(x=>({...x,postalCode:e.target.value}))}/></label>
       </div>
       <div className="vm-fulfillment-actions"><button className="vm-ops-primary" type="submit" disabled={busy}>Simpan alamat</button><button className="vm-ops-secondary" type="button" onClick={()=>setEditId('')}>Batal</button></div>
@@ -115,6 +117,8 @@ export function WarehouseOps({token,products,onUpdated}:{token:string|null;produ
     <label>Alamat operasional<input maxLength={300} placeholder="Jalan, nomor, kawasan" value={creating.address} onChange={e=>setCreating(x=>({...x,address:e.target.value}))}/></label>
     <label>Kota<input maxLength={100} value={creating.city} onChange={e=>setCreating(x=>({...x,city:e.target.value}))}/></label>
     <label>Provinsi<input maxLength={100} value={creating.province} onChange={e=>setCreating(x=>({...x,province:e.target.value}))}/></label>
+    <label>Kontak pickup<input maxLength={100} value={creating.contactName} onChange={e=>setCreating(x=>({...x,contactName:e.target.value}))}/></label>
+    <label>Telepon pickup<input maxLength={22} value={creating.contactPhone} onChange={e=>setCreating(x=>({...x,contactPhone:e.target.value}))}/></label>
     <label>Kode pos<input inputMode="numeric" maxLength={5} pattern="[0-9]{5}" value={creating.postalCode} onChange={e=>setCreating(x=>({...x,postalCode:e.target.value}))}/></label>
     </div>
     <p className="vm-ops-hint">Gudang baru selalu berstatus Dispatch OFF. Aktifkan setelah alamat dan stok siap.</p>

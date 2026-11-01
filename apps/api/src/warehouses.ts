@@ -15,17 +15,19 @@ function object(input:unknown,allowed:string[]):Record<string,unknown>{
  return data;
 }
 export function parseWarehouse(raw:unknown){
- const x=object(raw,['code','name','address','city','province','postalCode']);
+ const x=object(raw,['code','name','address','city','province','postalCode','contactName','contactPhone']);
  const code=String(x.code||'').trim().toUpperCase(),name=String(x.name||'').trim();
  const address=String(x.address||'').trim(),city=String(x.city||'').trim(),province=String(x.province||'').trim();
  const postalCode=x.postalCode===undefined||x.postalCode===''?null:x.postalCode;
+ const contactName=String(x.contactName||'').trim(),contactPhone=String(x.contactPhone||'').trim();
+ if(contactName.length>100||contactPhone.length>22||(contactPhone.length>0&&!/^\+?[0-9 ()-]{9,22}$/.test(contactPhone)))throw new BadRequestException('Invalid contact details');
  if(!/^[A-Z0-9][A-Z0-9-]{1,23}$/.test(code)||name.length<2||name.length>100||address.length>300||city.length>100||province.length>100||
   (postalCode!==null&&(typeof postalCode!=='string'||!/^[0-9]{5}$/.test(postalCode))))
   throw new BadRequestException('Invalid warehouse code, name or postal address');
- return {code,name,address,city,province,postalCode};
+ return {code,name,address,city,province,postalCode,contactName,contactPhone};
 }
 export function parseWarehousePatch(raw:unknown){
- const x=object(raw,['name','address','city','province','postalCode','isActive','dispatchEnabled']);
+ const x=object(raw,['name','address','city','province','postalCode','contactName','contactPhone','isActive','dispatchEnabled']);
  if(!Object.keys(x).length)throw new BadRequestException('No warehouse changes');
  const out:Record<string,unknown>={};
  for(const field of ['name','address','city','province'] as const)if(field in x){
@@ -36,6 +38,11 @@ export function parseWarehousePatch(raw:unknown){
  if('postalCode' in x){
   if(x.postalCode!==null&&(typeof x.postalCode!=='string'||!/^[0-9]{5}$/.test(x.postalCode)))throw new BadRequestException('Invalid postal code');
   out.postalCode=x.postalCode;
+ }
+ for(const field of ['contactName','contactPhone'] as const)if(field in x){
+  if(typeof x[field]!=='string'||x[field].trim().length> (field==='contactName'?100:22)||
+   (field==='contactPhone'&&x[field].trim().length>0&&!/^\+?[0-9 ()-]{9,22}$/.test(x[field].trim())))throw new BadRequestException('Invalid pickup contact');
+  out[field]=x[field].trim();
  }
  for(const field of ['isActive','dispatchEnabled'] as const)if(field in x){
   if(typeof x[field]!=='boolean')throw new BadRequestException('Invalid '+field);
@@ -97,7 +104,7 @@ export class WarehouseService{
  constructor(private readonly db:DatabaseService){}
  async list(){
   const [warehouses,stock]=await Promise.all([
-   this.db.query('SELECT id,code,name,city,province,address_line,postal_code,is_active,is_dispatch_enabled,is_system_hold,created_at FROM product.warehouses ORDER BY is_system_hold,code'),
+   this.db.query('SELECT id,code,name,city,province,address_line,postal_code,contact_name,contact_phone,is_active,is_dispatch_enabled,is_system_hold,created_at FROM product.warehouses ORDER BY is_system_hold,code'),
    this.db.query(`SELECT s.warehouse_id,s.product_id,p.sku,p.name AS product_name,p.brand_id,b.name AS brand_name,
     s.on_hand,s.reserved,(s.on_hand-s.reserved) AS available,w.is_dispatch_enabled,w.is_system_hold
     FROM product.warehouse_stock s JOIN product.products p ON p.id=s.product_id
@@ -110,8 +117,8 @@ export class WarehouseService{
   if(!actor.emailVerified)throw new ForbiddenException('Verified admin required');
   const d=parseWarehouse(body);
   const r=await this.db.query(
-   "INSERT INTO product.warehouses(code,name,address_line,city,province,postal_code,is_active,is_dispatch_enabled) VALUES($1,$2,$3,$4,$5,$6,true,false) RETURNING id,code,name,city,province,postal_code,is_dispatch_enabled",
-   [d.code,d.name,d.address,d.city,d.province,d.postalCode]);
+   "INSERT INTO product.warehouses(code,name,address_line,city,province,postal_code,contact_name,contact_phone,is_active,is_dispatch_enabled) VALUES($1,$2,$3,$4,$5,$6,$7,$8,true,false) RETURNING id,code,name,city,province,postal_code,contact_name,contact_phone,is_dispatch_enabled",
+   [d.code,d.name,d.address,d.city,d.province,d.postalCode,d.contactName||null,d.contactPhone||null]);
   return {warehouse:r.rows[0],dispatchReady:false};
  }
  async update(actor:Principal,id:string,body:unknown){
@@ -120,8 +127,8 @@ export class WarehouseService{
   const input=parseWarehousePatch(body);
   return this.db.transaction(async client=>{
    await inventoryLock(client);
-   const r=await client.query<{id:string;is_system_hold:boolean;name:string;address_line:string;city:string;province:string;postal_code:string|null;is_active:boolean;is_dispatch_enabled:boolean}>(
-    'SELECT id,name,address_line,city,province,postal_code,is_active,is_dispatch_enabled,is_system_hold FROM product.warehouses WHERE id=$1 FOR UPDATE',[id]);
+   const r=await client.query<{id:string;is_system_hold:boolean;name:string;address_line:string;city:string;province:string;postal_code:string|null;is_active:boolean;is_dispatch_enabled:boolean;contact_name:string|null;contact_phone:string|null}>(
+    'SELECT id,name,address_line,city,province,postal_code,is_active,is_dispatch_enabled,is_system_hold,contact_name,contact_phone FROM product.warehouses WHERE id=$1 FOR UPDATE',[id]);
    const w=r.rows[0];if(!w)throw new NotFoundException('Warehouse not found');
    if(w.is_system_hold)throw new ForbiddenException('System hold is permanently non-dispatchable');
    const name=input.name===undefined?w.name:String(input.name);
@@ -129,6 +136,8 @@ export class WarehouseService{
    const city=input.city===undefined?w.city:String(input.city);
    const province=input.province===undefined?w.province:String(input.province);
    const postcode=input.postalCode===undefined?w.postal_code:input.postalCode;
+   const contactName=input.contactName===undefined?w.contact_name:String(input.contactName)||null;
+   const contactPhone=input.contactPhone===undefined?w.contact_phone:String(input.contactPhone)||null;
    const active=input.isActive===undefined?w.is_active:Boolean(input.isActive);
    const dispatch=input.dispatchEnabled===undefined?w.is_dispatch_enabled:Boolean(input.dispatchEnabled);
    if(dispatch&&(!active||typeof postcode!=='string'||!/^[0-9]{5}$/.test(postcode)||city.length<2||province.length<2||address.length<8))
@@ -138,8 +147,8 @@ export class WarehouseService{
     if(Number(reservations.rows[0]?.count||0)>0)throw new ConflictException('Release all fulfillment reservations before disabling this warehouse');
    }
    const updated=await client.query(
-    'UPDATE product.warehouses SET name=$2,address_line=$3,city=$4,province=$5,postal_code=$6,is_active=$7,is_dispatch_enabled=$8,updated_at=now() WHERE id=$1 RETURNING id,code,name,city,province,postal_code,is_active,is_dispatch_enabled',
-    [id,name,address,city,province,postcode,active,dispatch]);
+    'UPDATE product.warehouses SET name=$2,address_line=$3,city=$4,province=$5,postal_code=$6,is_active=$7,is_dispatch_enabled=$8,contact_name=$9,contact_phone=$10,updated_at=now() WHERE id=$1 RETURNING id,code,name,city,province,postal_code,is_active,is_dispatch_enabled,contact_name,contact_phone',
+    [id,name,address,city,province,postcode,active,dispatch,contactName,contactPhone]);
    const products=await client.query<{product_id:string}>('SELECT product_id FROM product.warehouse_stock WHERE warehouse_id=$1',[id]);
    await refreshProductAvailability(client,products.rows.map(x=>x.product_id));
    return {warehouse:updated.rows[0],availabilityRecalculated:products.rows.length};
