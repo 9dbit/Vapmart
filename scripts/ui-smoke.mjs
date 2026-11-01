@@ -10,21 +10,27 @@ try{
   try{
    const r=await page.goto(BASE+'/',{waitUntil:'domcontentloaded',timeout:20000});
    const login=await page.request.get(BASE+'/brand/login',{timeout:10000});
-   if(r?.status()===200&&await page.locator('.vm-commerce-home').count()===1&&login.status()===200){deployed=true;break;}
-  }catch(e){console.log('Waiting for CP33 site',i,String(e).slice(0,120));}
+   if(r?.status()===200&&await page.locator('.vm-storefront-restored').count()===1&&login.status()===200){deployed=true;break;}
+  }catch(e){console.log('Waiting for restored storefront',i,String(e).slice(0,120));}
   await sleep(7000);
  }
- assert.ok(deployed,'CP33 commerce homepage and brand login not deployed');
- await page.locator('.vm-commerce-hero').waitFor();
- assert.equal(await page.locator('.vm-commerce-category').count(),5,'five non-legacy categories');
- assert.equal(await page.locator('.vm-reference-card').count(),0,'legacy archive cards must be absent from homepage');
- assert.equal(await page.locator('.vm-archive-end-note').count(),0,'old archive disclaimer must be removed');
- assert.equal(await page.locator('.vm-reference-news-card').count(),0,'legacy news articles must not appear');
- assert.ok(await page.getByRole('link',{name:/Explore catalog/}).isVisible(),'catalog entry available');
+ assert.ok(deployed,'Restored homepage and brand login not deployed');
+ await page.locator('.vm-carousel-shell').waitFor();
+ assert.equal(await page.locator('.vm-carousel-slide').count(),3,'restore three original hero slides');
+ assert.equal(await page.locator('.vm-trendora-category-image img').count(),5,'restore all original category thumbnails');
+ assert.equal(await page.locator('.vm-reference-news-card').count(),10,'restore historic editorial grid');
+ assert.ok(await page.locator('.vm-restored-archived-brands .vm-brand-card').count()===12
+  ||await page.locator('.vm-brand-rail .vm-brand-card').count()>0,'restore brand rail and original logo references');
+ const refCards=page.locator('.vm-restored-reference-card');
+ assert.ok(await refCards.count()>0,'restore historical visual product cards when live catalog is empty');
+ assert.equal(await refCards.locator('button').count(),0,'historical cards must have no buy button');
+ assert.equal(await refCards.locator('a').count(),0,'historical cards must not link to checkout');
+ assert.ok(await page.locator('.vm-trendora-categories .vm-trendora-see-all').isVisible(),'catalog entry available');
  await page.goto(BASE+'/brand-partner',{waitUntil:'domcontentloaded',timeout:30000});
  assert.equal(await page.locator('.vm-reference-card').count(),0,'brand page must not display archived products');
  await page.goto(BASE+'/catalog',{waitUntil:'domcontentloaded',timeout:30000});
  assert.equal(await page.locator('.product-card').filter({hasText:'DEMO'}).count(),0,'seed demo products must not appear in public catalog');
+ assert.equal(await page.locator('.vm-restored-catalog-reference .vm-restored-reference-card').count(),19,'read-only gallery preserves all 19 historic product references');
  await page.goto(BASE+'/product-category/pod',{waitUntil:'domcontentloaded',timeout:30000});
  await page.waitForURL(/\/catalog(?:\?|$)/,{timeout:15000});
  await page.goto(BASE+'/asset-review',{waitUntil:'domcontentloaded',timeout:30000});
@@ -61,5 +67,5 @@ try{
  await page.goto(BASE+'/brand/login',{waitUntil:'domcontentloaded',timeout:30000});
  const brandMobile=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,innerWidth:window.innerWidth}));
  assert.ok(brandMobile.scrollWidth<=brandMobile.innerWidth+3,'brand login mobile overflow');
- console.log('VAPMART_CP34_UI_SMOKE_SUCCESS',{mobile,brandMobile,legacy:'hidden',booking:false});
+ console.log('VAPMART_STOREFRONT_LAYOUT_RESTORED_UI_SMOKE_SUCCESS',{mobile,brandMobile,banners:3,categories:5,archivePreview:'read-only',booking:false});
 }finally{await browser.close();}
