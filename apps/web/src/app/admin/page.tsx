@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useMemo,useState,type FormEvent,type ChangeEvent} from 'react';
 import Link from 'next/link';
+import {useRouter} from 'next/navigation';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {formatIDR,type Product} from '@/lib/types';
 import '../admin-v26.css';
@@ -20,8 +21,7 @@ function Pill({active,children,onClick}:{active:boolean;children:React.ReactNode
 
 export default function AdminPage(){
  const auth=useCustomerAuth();
- const [email,setEmail]=useState('');
- const [password,setPassword]=useState('');
+ const router=useRouter();
  const [checking,setChecking]=useState(true);
  const [authorized,setAuthorized]=useState(false);
  const [accessDenied,setAccessDenied]=useState(false);
@@ -55,13 +55,13 @@ export default function AdminPage(){
  }
  useEffect(()=>{
   if(auth.loading)return;
-  if(!auth.accessToken){setAuthorized(false);setAccessDenied(false);setChecking(false);return;}
+  if(!auth.accessToken){setAuthorized(false);setAccessDenied(false);setChecking(false);router.replace('/admin/login');return;}
   let active=true;
   setChecking(true);
   (async()=>{
    try{
     const response=await fetch('/api/admin/status',{headers:{authorization:'Bearer '+auth.accessToken},cache:'no-store'});
-    if(!response.ok){if(active){setAuthorized(false);setAccessDenied(response.status===403);}return;}
+    if(!response.ok){if(active){setAuthorized(false);setAccessDenied(response.status===403);if(response.status===401||response.status===403)router.replace('/admin/login');}return;}
     const results=await Promise.all(['/api/admin/products','/api/admin/brands','/api/admin/orders'].map(path=>
       fetch(path,{headers:{authorization:'Bearer '+auth.accessToken},cache:'no-store'})));
     const data=await Promise.all(results.map(r=>r.json()));
@@ -74,14 +74,8 @@ export default function AdminPage(){
    finally{if(active)setChecking(false);}
   })();
   return()=>{active=false;};
- },[auth.accessToken,auth.loading]);
- async function login(event:FormEvent<HTMLFormElement>){
-  event.preventDefault();setBusy(true);setMessage('');
-  try{await auth.signIn(email,password);setPassword('');}
-  catch(error){setMessage(error instanceof Error?error.message:'Login gagal');}
-  finally{setBusy(false);}
- }
- async function logout(){await auth.signOut();setAuthorized(false);setProducts([]);setBrands([]);setOrders([]);}
+ },[auth.accessToken,auth.loading,router]);
+ async function logout(){await auth.signOut();setAuthorized(false);setProducts([]);setBrands([]);setOrders([]);router.replace('/admin/login');}
  const filtered=useMemo(()=>products.filter(p=>{
   const q=search.trim().toLowerCase();
   const match=!q||[p.name,p.sku||'',p.slug,p.brand_name||''].some(x=>x.toLowerCase().includes(q));
@@ -171,22 +165,13 @@ export default function AdminPage(){
 
  return <main className="vma26-root main-container">
   <header className="vma26-hero">
-   <div><p className="vma26-eyebrow">VAPMART / COMMERCE CONTROL</p><h1>Admin <span>Studio.</span></h1>
+   <div><p className="vma26-eyebrow">VAPMART / CONTROL PANEL</p><h1>Vapmart <span>Control Panel.</span></h1>
    <p>Brand, SKU, katalog, galeri foto, dan pesanan dalam satu dashboard. Akses khusus administrator.</p></div>
    <div className="vma26-hero-actions"><Link href="/" className="vma26-btn-light">↗ Lihat storefront</Link>{authorized&&<button className="vma26-btn-dark" onClick={logout} type="button">Keluar</button>}</div>
   </header>
   {!auth.configured?<section className="vma26-panel vma26-auth"><h2>Autentikasi belum dihubungkan</h2><p>Hubungkan Supabase Auth khusus Vapmart dan tetapkan staff role admin. Dashboard tetap terkunci untuk melindungi produk, akun, dan pesanan.</p></section>:
   checking?<section className="vma26-panel vma26-auth"><h2>Memvalidasi akses admin...</h2></section>:
-  !authorized?<section className="vma26-panel vma26-auth">
-   <h2>{accessDenied?'Akun belum memiliki izin admin':'Masuk sebagai administrator'}</h2>
-   <p>{accessDenied?'Akun sudah masuk, tetapi role admin belum diset di database Vapmart.': 'Login dengan akun Vapmart berizin admin. Akses diverifikasi oleh API dan role database.'}</p>
-   {accessDenied?<button className="vma26-btn-dark" onClick={logout} type="button">Keluar dari akun ini</button>:
-    <form onSubmit={login} className="vma26-login">
-     <label>Email<input type="email" autoComplete="username" required value={email} onChange={e=>setEmail(e.target.value)}/></label>
-     <label>Password<input type="password" autoComplete="current-password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>
-     <button className="vma26-btn-dark" type="submit" disabled={busy}>{busy?'Memeriksa...':'Masuk dashboard ↗'}</button>
-    </form>}
-  </section>:
+  !authorized?<section className="vma26-panel vma26-auth"><h2>{accessDenied?'Akses administrator belum tersedia':'Memeriksa akses...'}</h2><p>Login administrator hanya tersedia melalui halaman khusus Control Panel.</p><Link href="/admin/login" className="vma26-btn-dark">Buka admin login</Link></section>:
   <>
    <div className="vma26-kpis">
     <div><span>Total produk</span><strong>{products.length}</strong><small>Semua SKU katalog</small></div>
