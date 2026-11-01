@@ -31,3 +31,14 @@ export async function getBrands():Promise<ActiveBrand[]>{
   return Array.isArray(result.items)?result.items:[];
  }catch{return [];}
 }
+
+export interface ArchivedCatalogProduct {slug:string;name:string;brand:string;category:'pod'|'mod'|'cartridge'|'e-juice';image:string;price:string;originalPrice?:string;source:'homepage-20260316'|'pod-category-20260414';}
+export async function getArchivedProducts():Promise<ArchivedCatalogProduct[]> {
+ if(!process.env.API_INTERNAL_URL)return [];
+ try {
+  const response=await fetch(new URL('/v1/archive',process.env.API_INTERNAL_URL),{cache:'no-store',signal:AbortSignal.timeout(8000)});
+  if(!response.ok)return [];
+  const data=await response.json() as {items?:ArchivedCatalogProduct[];readOnly?:boolean};
+  return data.readOnly===true&&Array.isArray(data.items)?data.items:[];
+ }catch{return [];}
+}
