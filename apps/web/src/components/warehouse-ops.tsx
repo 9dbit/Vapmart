@@ -11,6 +11,7 @@ const showError=(v:unknown)=>v instanceof Error?v.message:'Tidak dapat menyimpan
 export function WarehouseOps({token,products,onUpdated}:{token:string|null;products:Product[];onUpdated:()=>Promise<void>}){
  const [data,setData]=useState<Data>({warehouses:[],stock:[]}),[creating,setCreating]=useState(initial);
  const [warehouseId,setWarehouseId]=useState(''),[productId,setProductId]=useState('');
+ const [editId,setEditId]=useState(''),[editData,setEditData]=useState({name:'',address:'',city:'',province:'',postalCode:''});
  const [qty,setQty]=useState('1'),[direction,setDirection]=useState<'in'|'out'>('in'),[reason,setReason]=useState('receipt'),[notes,setNotes]=useState('');
  const [source,setSource]=useState(''),[destination,setDestination]=useState(''),[transferQty,setTransferQty]=useState('1'),[transferNotes,setTransferNotes]=useState('');
  const [events,setEvents]=useState<Event[]>([]),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false),[message,setMessage]=useState('');
@@ -90,8 +91,21 @@ export function WarehouseOps({token,products,onUpdated}:{token:string|null;produ
     {loading?<p>Memuat gudang...</p>:data.warehouses.map(w=><div className="vm-ops-location" key={w.id}>
      <div><strong>{w.code} · {w.name}</strong><small>{w.is_system_hold?'Saldo historis belum diverifikasi':(w.city||'Lokasi belum lengkap')+' · '+(w.postal_code||'Kode pos belum ada')}</small></div>
      <span className={'vm-ops-status'+(w.is_dispatch_enabled?' active':'')}>{w.is_system_hold?'HOLD':w.is_dispatch_enabled?'Dispatch ON':'Dispatch OFF'}</span>
-     {!w.is_system_hold&&<button type="button" className="vm-ops-secondary" disabled={busy} onClick={()=>toggle(w)}>{w.is_dispatch_enabled?'Nonaktifkan':'Aktifkan'}</button>}
+     {!w.is_system_hold&&<button type="button" className="vm-ops-secondary" onClick={()=>{setEditId(w.id);setEditData({name:w.name,address:w.address_line||'',city:w.city||'',province:w.province||'',postalCode:w.postal_code||''});}} disabled={busy}>Edit alamat</button><button type="button" className="vm-ops-secondary" disabled={busy} onClick={()=>toggle(w)}>{w.is_dispatch_enabled?'Nonaktifkan':'Aktifkan'}</button>}
     </div>)}
+    {editId&&<form className="vm-ops-form" onSubmit={e=>{e.preventDefault();change('Alamat gudang',async()=>{
+      await req('/api/admin/warehouses/'+editId,'PATCH',{...editData,postalCode:editData.postalCode||null});
+      setEditId('');
+    });}}>
+      <h3>Edit lokasi gudang</h3><div className="vm-ops-input-grid">
+       <label>Nama<input required minLength={2} maxLength={100} value={editData.name} onChange={e=>setEditData(x=>({...x,name:e.target.value}))}/></label>
+       <label>Alamat<input maxLength={300} value={editData.address} onChange={e=>setEditData(x=>({...x,address:e.target.value}))}/></label>
+       <label>Kota<input maxLength={100} value={editData.city} onChange={e=>setEditData(x=>({...x,city:e.target.value}))}/></label>
+       <label>Provinsi<input maxLength={100} value={editData.province} onChange={e=>setEditData(x=>({...x,province:e.target.value}))}/></label>
+       <label>Kode pos<input inputMode="numeric" pattern="[0-9]{5}" maxLength={5} value={editData.postalCode} onChange={e=>setEditData(x=>({...x,postalCode:e.target.value}))}/></label>
+      </div>
+      <div className="vm-fulfillment-actions"><button className="vm-ops-primary" type="submit" disabled={busy}>Simpan alamat</button><button className="vm-ops-secondary" type="button" onClick={()=>setEditId('')}>Batal</button></div>
+     </form>}
     <p className="vm-ops-hint">LEGACY-HOLD adalah stok lama yang belum punya lokasi nyata. Pindahkan setelah pemeriksaan fisik, jangan dipakai untuk checkout.</p>
    </section>
    <form className="vma26-panel vm-ops-form" onSubmit={create}><span className="vma26-eyebrow">NEW WAREHOUSE</span><h3>Tambah gudang</h3>
