@@ -39,6 +39,6 @@ export async function getArchivedProducts():Promise<ArchivedCatalogProduct[]> {
   const response=await fetch(new URL('/v1/archive',process.env.API_INTERNAL_URL),{cache:'no-store',signal:AbortSignal.timeout(8000)});
   if(!response.ok)return [];
   const data=await response.json() as {items?:ArchivedCatalogProduct[];readOnly?:boolean};
-  return data.readOnly===true&&Array.isArray(data.items)?data.items:[];
+  return data.readOnly===true&&Array.isArray(data.items)?data.items.map(({originalPrice,...item})=>({...item,...(originalPrice?{originalPrice}:{})})):[];
  }catch{return [];}
 }
