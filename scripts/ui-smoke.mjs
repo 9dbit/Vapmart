@@ -56,8 +56,15 @@ try{
  await page.locator('.vm-brand-portal-root').waitFor();
  assert.equal(await page.locator('.legacy-header').count(),0,'brand invitation page must have isolated shell');
  assert.ok(await page.getByText('Join your', {exact:false}).first().isVisible(),'brand invite acceptance entry renders');
- await page.goto(BASE+'/admin/login',{waitUntil:'domcontentloaded',timeout:30000});
- await page.waitForURL(url=>url.pathname==='/admin',{timeout:20000});
+ let unifiedAdminReady=false;
+ for(let attempt=0;attempt<65;attempt++){
+  try{
+   await page.goto(BASE+'/admin/login',{waitUntil:'domcontentloaded',timeout:20000});
+   if(new URL(page.url()).pathname==='/admin'&&await page.locator('.vma27-access-page').count()>0){unifiedAdminReady=true;break;}
+  }catch(e){console.log('Waiting for unified admin UI',attempt,String(e).slice(0,110));}
+  await sleep(6000);
+ }
+ assert.ok(unifiedAdminReady,'Railway must serve canonical /admin login before UI assertions');
  await page.locator('.vma27-access-page').waitFor();
  assert.equal(await page.locator('.legacy-header').count(),0,'unified admin must hide customer header');
  assert.equal(await page.locator('.legacy-footer').count(),0,'unified admin must hide customer footer');
