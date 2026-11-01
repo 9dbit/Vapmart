@@ -57,8 +57,21 @@ try{
  assert.equal(await page.locator('.legacy-header').count(),0,'brand invitation page must have isolated shell');
  assert.ok(await page.getByText('Join your', {exact:false}).first().isVisible(),'brand invite acceptance entry renders');
  await page.goto(BASE+'/admin/login',{waitUntil:'domcontentloaded',timeout:30000});
- await page.locator('.vma26-root').waitFor();
- assert.equal(await page.locator('.legacy-header').count(),0,'admin login must hide customer header');
+ await page.waitForURL(url=>url.pathname==='/admin',{timeout:20000});
+ await page.locator('.vma27-access-page').waitFor();
+ assert.equal(await page.locator('.legacy-header').count(),0,'unified admin must hide customer header');
+ assert.equal(await page.locator('.legacy-footer').count(),0,'unified admin must hide customer footer');
+ assert.equal(await page.locator('.vma27-sidebar').count(),0,'anonymous visitor must never see admin navigation');
+ assert.ok(await page.getByText('Selamat datang kembali.',{exact:false}).first().isVisible(),'admin login rendered at /admin');
+ const fields=page.locator('.vma27-access-form input');
+ if(await fields.count()===2){
+  assert.equal(await fields.nth(0).getAttribute('autocomplete'),'username');
+  assert.equal(await fields.nth(1).getAttribute('autocomplete'),'current-password');
+  assert.equal(await fields.nth(1).getAttribute('type'),'password','password hidden by default');
+  assert.ok((await fields.nth(0).evaluate(e=>parseFloat(getComputedStyle(e).fontSize)))>=16,'admin email input must be readable');
+ }
+ const deniedAdmin=await page.request.get(BASE+'/api/admin/status');
+ assert.equal(deniedAdmin.status(),401,'staff authorization requires bearer token');
  const [config,anonBrand,anonAccess,anonCourier,archive]=await Promise.all([
   page.request.get(BASE+'/api/shipping/config'),
   page.request.get(BASE+'/api/brand-portal/me'),
@@ -85,5 +98,10 @@ try{
  await page.goto(BASE+'/brand/login',{waitUntil:'domcontentloaded',timeout:30000});
  const brandMobile=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,innerWidth:window.innerWidth}));
  assert.ok(brandMobile.scrollWidth<=brandMobile.innerWidth+3,'brand login mobile overflow');
- console.log('VAPMART_STOREFRONT_LAYOUT_RESTORED_UI_SMOKE_SUCCESS',{mobile,brandMobile,banners:3,categories:5,archivePreview:'read-only',booking:false});
+ await page.goto(BASE+'/admin',{waitUntil:'domcontentloaded',timeout:30000});
+ await page.locator('.vma27-access-page').waitFor();
+ const adminMobile=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,innerWidth:window.innerWidth}));
+ assert.ok(adminMobile.scrollWidth<=adminMobile.innerWidth+3,'admin login mobile overflow '+JSON.stringify(adminMobile));
+ assert.equal(await page.locator('.vma27-sidebar').count(),0,'admin mobile nav must stay hidden for anonymous sessions');
+ console.log('VAPMART_ADMIN_UNIFIED_ACCESS_UI_SMOKE_SUCCESS',{mobile,brandMobile,adminMobile,banners:3,categories:5,archivePreview:'read-only',booking:false});
 }finally{await browser.close();}
