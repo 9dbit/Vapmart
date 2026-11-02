@@ -14,15 +14,15 @@ const summary={total:records.length,existing:records.length,managed:0,published:
 const facets={brands:[...new Set(records.map(r=>r.brand))].sort(),categories:[...new Set(records.map(r=>r.category))].sort(),snapshots:[...new Set(records.map(r=>r.source_snapshot))]};
 async function main(){
  let protectedReady=false;
- for(let i=0;i<75;i++){
+ for(let i=0;i<65;i++){
   try{
-   const [web,api]=await Promise.all([fetch(BASE+'/api/admin/product-records'),fetch(API+'/v1/admin/product-records')]);
+   const [web,api]=await Promise.all([fetch(BASE+'/api/admin/product-records',{signal:AbortSignal.timeout(12000)}),fetch(API+'/v1/admin/product-records',{signal:AbortSignal.timeout(12000)})]);
    if(web.status===401&&api.status===401){protectedReady=true;break;}
   }catch{}
   await sleep(4000);
  }
  assert.ok(protectedReady,'both admin endpoints must deploy and reject anonymous requests');
- assert.equal((await fetch(BASE+'/api/admin/product-records',{headers:{authorization:'Bearer invalid-token'}})).status,401);
+ assert.equal((await fetch(BASE+'/api/admin/product-records',{headers:{authorization:'Bearer invalid-token'},signal:AbortSignal.timeout(12000)})).status,401);
  const browser=await chromium.launch({headless:true});
  const context=await browser.newContext({viewport:{width:1440,height:1000}});
  let failNext=false;let writeRequests=0;
@@ -48,9 +48,13 @@ async function main(){
    await route.fulfill({status:200,contentType:ext==='png'?'image/png':ext==='webp'?'image/webp':'image/jpeg',body:await readFile(path)});
   });
   let rendered=false;
-  for(let i=0;i<70;i++){
-   await page.goto(BASE+'/admin?tab=products',{waitUntil:'domcontentloaded'});
-   if(await page.locator('.vpr-panel').count()){rendered=true;break;}
+  for(let i=0;i<35;i++){
+   try{
+    await page.goto(BASE+'/admin?tab=products',{waitUntil:'domcontentloaded',timeout:20000});
+    // /admin first renders a closed auth gate. Wait for session hydration and role check.
+    await page.locator('.vpr-panel').waitFor({state:'visible',timeout:6000});
+    rendered=true;break;
+   }catch(e){console.log('Waiting for product records workspace',i,String(e).slice(0,150));}
    await sleep(4000);
   }
   assert.ok(rendered,'new source-aware product list must be deployed');
