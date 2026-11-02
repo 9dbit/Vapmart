@@ -51,8 +51,7 @@ async function main(){
   for(let i=0;i<35;i++){
    try{
     await page.goto(BASE+'/admin?tab=products',{waitUntil:'domcontentloaded',timeout:20000});
-    // /admin first renders a closed auth gate. Wait for session hydration and role check.
-    await page.locator('.vpr-panel').waitFor({state:'visible',timeout:6000});
+    await page.getByRole('combobox',{name:'Filter brand produk',exact:true}).waitFor({state:'visible',timeout:6000});
     rendered=true;break;
    }catch(e){console.log('Waiting for product records workspace',i,String(e).slice(0,150));}
    await sleep(4000);
@@ -63,7 +62,11 @@ async function main(){
   assert.equal(await page.locator('.vpr-row').getByRole('button',{name:'Publish',exact:true}).count(),0);
   assert.equal(await page.locator('.vpr-row').getByRole('button',{name:'Edit',exact:true}).count(),0);
   assert.ok((await page.locator('.vma26-kpis').innerText()).includes('19 existing + 0 operasional'));
-  await page.waitForFunction(()=>{const i=document.querySelector('.vpr-row .vpr-image img');return i instanceof HTMLImageElement&&i.complete&&i.naturalWidth>0;});
+  for(const image of await page.locator('.vpr-row .vpr-image img').all()){
+   await image.scrollIntoViewIfNeeded();await image.evaluate(async img=>{await (img as HTMLImageElement).decode();});
+  }
+  assert.equal(await page.locator('.vpr-row .vpr-image img').count(),19);
+  await page.evaluate(()=>window.scrollTo(0,0));
   await mkdir('artifacts/product-records',{recursive:true});
   await page.screenshot({path:'artifacts/product-records/products-desktop.png',fullPage:true});
   const search=page.locator('.vpr-panel').getByLabel('Cari produk');
@@ -75,9 +78,9 @@ async function main(){
   assert.equal(await dialog.getByRole('button',{name:'Publish',exact:true}).count(),0);
   await page.keyboard.press('Escape');await dialog.waitFor({state:'detached'});
   await search.fill('');await page.waitForFunction(()=>document.querySelectorAll('.vpr-row').length===19);
-  await page.locator('.vpr-panel').getByLabel('Brand',{exact:true}).selectOption('SP2S');
+  await page.getByRole('combobox',{name:'Filter brand produk',exact:true}).selectOption('SP2S');
   await page.waitForFunction(()=>document.querySelectorAll('.vpr-row').length===7);
-  await page.locator('.vpr-panel').getByLabel('Brand',{exact:true}).selectOption('');
+  await page.getByRole('combobox',{name:'Filter brand produk',exact:true}).selectOption('');
   await page.waitForFunction(()=>document.querySelectorAll('.vpr-row').length===19);
   failNext=true;await page.getByRole('button',{name:'Sinkronkan ulang',exact:false}).click();
   await page.getByRole('alert').filter({hasText:'Data tidak dianggap kosong'}).waitFor();
@@ -88,7 +91,7 @@ async function main(){
   assert.ok(mobile.scroll<=mobile.width+3,'no mobile horizontal overflow '+JSON.stringify(mobile));
   await page.screenshot({path:'artifacts/product-records/products-mobile.png',fullPage:true});
   assert.equal(writeRequests,0);
-  console.log('VAPMART_PRODUCT_RECORDS_UI_PASS',JSON.stringify({sourceRecords:19,mediaLoaded:true,search:true,brandFilter:true,details:true,noPublication:true,retry:true,mobile,fixtureOnly:true}));
+  console.log('VAPMART_PRODUCT_RECORDS_UI_PASS',JSON.stringify({sourceRecords:19,mediaLoaded:19,search:true,brandFilter:true,details:true,noPublication:true,retry:true,mobile,fixtureOnly:true}));
  }finally{await context.close();await browser.close();}
 }
 main().catch(e=>{console.error(e);process.exitCode=1;});
