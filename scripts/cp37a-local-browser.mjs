@@ -13,7 +13,7 @@ const api=http.createServer((req,res)=>{
  return res.end('{"items":[]}');
 });
 await new Promise(resolve=>api.listen(4100,'127.0.0.1',resolve));
-const child=spawn('npm',['run','start','--','-p','3000'],{cwd:'apps/web',env:{...process.env,API_INTERNAL_URL:'http://127.0.0.1:4100'},stdio:['ignore','pipe','pipe']});
+const child=spawn(process.execPath,['node_modules/next/dist/bin/next','start','-p','3000'],{cwd:'apps/web',env:{...process.env,API_INTERNAL_URL:'http://127.0.0.1:4100'},detached:true,stdio:['ignore','pipe','pipe']});
 let serverLog='';child.stdout.on('data',x=>serverLog+=x);child.stderr.on('data',x=>serverLog+=x);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));let ready=false;
 for(let i=0;i<60;i++){try{const r=await fetch('http://127.0.0.1:3000/api/health');if(r.ok){ready=true;break;}}catch{}await sleep(500);}
@@ -59,5 +59,9 @@ try{
  if(page&&!page.isClosed())await page.screenshot({path:'artifacts/cp37a/failure.png',fullPage:true}).catch(()=>{});
  console.error('CP37A_LOCAL_BROWSER_FAILURE',error);throw error;
 }finally{
- if(browser)await browser.close();child.kill('SIGTERM');api.close();
+ if(browser)await browser.close();
+ if(child.pid){try{process.kill(-child.pid,'SIGTERM');}catch{child.kill('SIGTERM');}}
+ child.stdout.destroy();child.stderr.destroy();child.unref();
+ api.closeAllConnections();await new Promise(resolve=>api.close(resolve));
+ console.log('CP37A_LOCAL_SERVERS_STOPPED');
 }
