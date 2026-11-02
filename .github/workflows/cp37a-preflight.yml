@@ -1,0 +1,95 @@
+name: CP37A Pre-release Verification
+on:
+  push:
+    branches: [work/cp37a-stability-20261103]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: cp37a-candidate-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: vapmart_test
+          POSTGRES_PASSWORD: disposable_cp37a_password
+          POSTGRES_DB: vapmart_cp37a_test
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U vapmart_test -d vapmart_cp37a_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgres://vapmart_test:disposable_cp37a_password@127.0.0.1:5432/vapmart_cp37a_test
+      CHECKOUT_ENABLED: 'false'
+      DIGITAL_COMMERCE_ENABLED: 'false'
+      PAYMENT_MODE: disabled
+      SHIPPING_RATE_LOOKUP_ENABLED: 'false'
+      BITESHIP_WEBHOOK_ENABLED: 'false'
+      API_INTERNAL_URL: http://127.0.0.1:4100
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Materialize guarded patch on work branch only
+        run: python3 scripts/cp37a-prepare.py
+      - name: Install API dependencies
+        run: npm ci --no-audit --no-fund
+        working-directory: apps/api
+      - name: Build and unit-test API
+        run: npm run build && npm test
+        working-directory: apps/api
+      - name: Migrations are additive and idempotent on disposable database
+        run: npm run migrate && npm run migrate
+        working-directory: apps/api
+      - name: Data integrity and concurrency integration
+        run: npx tsx --test test/integration/cp37a-integrity.ts
+        working-directory: apps/api
+      - name: Preserve warehouse and courier invariants
+        run: |
+          npx tsx --test test/integration/warehouse-fulfillment.ts
+          npx tsx --test test/integration/courier-orchestration.ts
+        working-directory: apps/api
+      - name: Error-state and pagination reader tests
+        run: apps/api/node_modules/.bin/tsx --test scripts/cp37a-read.test.ts
+      - name: Build Web without live provider credentials
+        run: npm ci --no-audit --no-fund && npm run build
+        working-directory: apps/web
+      - name: Install browser test runner
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.56.0
+          npx playwright install chromium
+      - name: Local-only browser error/retry and layout regression
+        run: node scripts/cp37a-local-browser.mjs
+      - name: Ensure assets and protected systems were not rewritten
+        run: |
+          git diff --exit-code -- apps/web/public apps/api/resources
+          git diff --exit-code -- apps/api/src/auth.ts apps/api/src/shipping.ts apps/api/src/courier-events.ts apps/api/src/warehouses.ts apps/api/src/fulfillment.ts
+      - name: Commit verified materialized source on isolated branch
+        if: success() && github.ref == 'refs/heads/work/cp37a-stability-20261103'
+        run: |
+          if [ -n "$(git status --porcelain apps scripts .github/workflows sources)" ]; then
+            git config user.name 'Vapmart CI'
+            git config user.email 'vapmart-ci@users.noreply.github.com'
+            git add apps scripts .github/workflows sources/cp37a-source-manifest.json
+            git commit -m 'feat(cp37a): verified stability, snapshot reports, pagination and versioned audit'
+            git push origin HEAD:work/cp37a-stability-20261103
+          fi
+          printf 'CP37A_VERIFIED_SOURCE_SHA='; git rev-parse HEAD
+          printf 'CP37A_VERIFIED_TREE_SHA='; git rev-parse HEAD^{tree}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cp37a-verification
+          path: |
+            artifacts/cp37a
+            sources/cp37a-source-manifest.json
+          if-no-files-found: ignore
