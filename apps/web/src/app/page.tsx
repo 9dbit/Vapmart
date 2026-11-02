@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import {getProducts,getBrands} from '@/lib/api';
+import {getProductsResult,getBrandsResult} from '@/lib/api';
+import {DataStatus} from '@/components/data-status';
 import {HeroCarousel} from '@/components/hero-carousel';
 import {ParallaxAmbient} from '@/components/parallax-ambient';
 import {ProductGrid} from '@/components/product-grid';
@@ -13,7 +14,8 @@ import './restored-home.css';
 export const dynamic='force-dynamic';
 
 export default async function Home(){
- const [products,brands]=await Promise.all([getProducts(),getBrands()]);
+ const [productResult,brandResult]=await Promise.all([getProductsResult(),getBrandsResult()]);
+ const products=productResult.items,brands=brandResult.items;
  const active=products.filter(p=>p.is_active&&!p.slug.startsWith('demo-'));
  return <main className="legacy-home vm-reference-home vm-trendora-home vm-storefront-restored" id="home" data-vapmart-ui="restored-cp32">
    <div className="vm-hero-stage vm-trendora-hero">
@@ -37,7 +39,7 @@ export default async function Home(){
      </div>
    </section>
 
-   {active.length>0?
+   {!productResult.ok?<DataStatus kind="produk" code={productResult.error}/>:active.length>0?
      <section className="main-container vm-active-products vm-trendora-featured" aria-label="Katalog aktif">
        <ProductGrid products={active}/>
      </section>:
@@ -65,7 +67,7 @@ export default async function Home(){
        <div><span className="vm-trendora-eyebrow">EXPLORE THE NAMES</span><h2>Brand Partner</h2></div>
        <Link href="/brand-partner" className="vm-trendora-see-all">Lihat semua <span aria-hidden="true">↗</span></Link>
      </div>
-     {brands.length>0?<BrandRail brands={brands}/>:<div className="vm-brand-rail vm-restored-archived-brands">
+     {!brandResult.ok?<DataStatus kind="brand" code={brandResult.error}/>:brands.length>0?<BrandRail brands={brands}/>:<div className="vm-brand-rail vm-restored-archived-brands">
        <div className="vm-brand-logos" role="list" aria-label="Logo brand dalam arsip visual">
        {brandPartners.map(item=><div className="vm-brand-logo vm-brand-card" role="listitem" key={item.slug}>
          <span className="vm-brand-stage"><img src={item.image} width={400} height={400} loading="lazy" alt={'Logo referensi '+item.name}/></span>

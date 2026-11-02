@@ -11,7 +11,7 @@ async function proxyAdmin(request:NextRequest,method:'GET'|'POST'):Promise<NextR
     if(body.length>25000)return NextResponse.json({error:'Payload too large'},{status:413});
   }
   try {
-    const response=await fetch(new URL('/v1/admin/products',process.env.API_INTERNAL_URL),{
+    const response=await fetch(new URL('/v1/admin/products'+request.nextUrl.search,process.env.API_INTERNAL_URL),{
       method,
       headers:{authorization:auth,...(method==='POST'?{'content-type':'application/json'}:{})},
       ...(body===undefined?{}:{body}),

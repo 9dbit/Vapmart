@@ -1,0 +1,130 @@
+{
+  "checkpoint": "CP37-A",
+  "date": "2026-11-03",
+  "files": {
+    "apps/api/sql/015_cp37a_integrity.sql": {
+      "before": null,
+      "after": "0113daa0bd61d935cc6d3a2ef7cd20632d607ccca97f0846f32ad7f90ecf2309"
+    },
+    "apps/api/src/migrate.ts": {
+      "before": "c1ad3ee87b430bbe39f1d2ee8034683b275049043ad9c91f1f923cf3f76a8c53",
+      "after": "bb62dcb7add003005f9993cc850d2b999162475a489f76c67ed8a78db357ea45"
+    },
+    "apps/api/src/data-integrity.ts": {
+      "before": null,
+      "after": "684584f588831e51ee63b37e7ede18d52a29e30e4e46df5b62e8ab3e87a1fe74"
+    },
+    "apps/api/src/products.ts": {
+      "before": "bddd792ec2e4fb688853422e63c877fe86bc90450950a8f98217cd72bb14f88b",
+      "after": "52021f2737db349512c6b8a34f8b5de6740243e92292fd71ceb2f028f1645ae9"
+    },
+    "apps/api/src/brands.ts": {
+      "before": "3e754f37fb1d2b8ec44428ce4aac26aa417b648ce79e64bffc4a2bfd1e668891",
+      "after": "dc3adaf639b24449d644d12781fbab08451052731ce4c8602470f5247841b84c"
+    },
+    "apps/api/src/brand-portal.ts": {
+      "before": "19796f5319adad33d27afcf5cf0b82d8094ebbf0cd8ec6c2d04db17efa41b055",
+      "after": "d51e64832b0c36c8dbee48064ac21501f94544f348eef8b9888f587bbd27ce9d"
+    },
+    "apps/api/src/checkout.ts": {
+      "before": "2da9c04e26407b1efa4d837ab4d7d6ff8866a7d0551715779de2e71aaff1a86b",
+      "after": "d213cc487198fdccaaf3fa280bb1e628560bb873c10c7a8b529008bdce48f797"
+    },
+    "apps/api/src/controllers.ts": {
+      "before": "da4994508de0a453d85ce39101fb7ea494b4576b065b8e97d2c3256bd78e390b",
+      "after": "f15dbf079641e909351dd4393bd24b0d2ac25c4ee7825ca766bfdc3a737107a4"
+    },
+    "apps/api/src/admin-product-records.ts": {
+      "before": "d07c8e400bfe967779d22579d26ecaeff07d7e4dd3354f425b7d93dc752ec350",
+      "after": "e11dc7d971901dfb392a8c8419c8a02faf3a2b30643351e9404dd2f4dfeb28e9"
+    },
+    "apps/web/src/lib/collection-read.ts": {
+      "before": null,
+      "after": "6a3fd793c474ed4981dffefc07821ecac6e19e7af0a4ee84e39924cc731a5b79"
+    },
+    "apps/web/src/lib/api.ts": {
+      "before": "74f4b4942501bcb37de1111f53137546479ddfc87252db92cc116951f4069b9c",
+      "after": "5daae441a8f77bebaf0aa63448ca375b79fcab72ac804c29f06943e50f82b4d9"
+    },
+    "apps/web/src/components/data-status.tsx": {
+      "before": null,
+      "after": "c31c714360b32318423e06ea4f4868cb0c5c6d3b11e03fb760e9fbe2f9ef8e76"
+    },
+    "apps/web/src/app/page.tsx": {
+      "before": "cbffa5440de5160a0ff3dd6306e889d9049bfdd62e09af2f07fbf33cea58e3c9",
+      "after": "111c880db12bd0917f06fefe34640b39858e7e2cbcb7b29c713740eaface8f90"
+    },
+    "apps/web/src/app/catalog/page.tsx": {
+      "before": "d378788bebace4ebd1a979284aa034c369f4164c77075405e328eedf256c0b3a",
+      "after": "ee4bb2aed087884c19f1adea704d4811e789f9c963ea0747cec2aa7f91b27eba"
+    },
+    "apps/web/src/app/brand-partner/page.tsx": {
+      "before": "ac88cfb729e45071847d17c3b23a5fab5b1b8723143ab1f39e5ffb4eabc9ee74",
+      "after": "69550c77730e600fb1b0bd3fda2b2f48dfe2f77acb7a595e33ce6846049a6b6e"
+    },
+    "apps/web/src/app/product/[slug]/error.tsx": {
+      "before": null,
+      "after": "c505cd9a919c42c6747ac89e37b4d6876c9888ac7381d7689610b8d501f089f7"
+    },
+    "apps/web/src/app/api/admin/products/route.ts": {
+      "before": "270a6091a631e5456fb38cd47f4757f472e7e309a40c773329f94b360982bd0d",
+      "after": "805a16685d4a97b1763fc25095e0acbc8bab3a75081aad3c0e5c0ac270bdd99e"
+    },
+    "apps/web/src/app/api/products/route.ts": {
+      "before": "fa1d6d9d140ef6d200640a7ac39f5afd8dac0947b7498688e164a485c5e27745",
+      "after": "e30d45b6bead206fe917723d1973f3bb3a487517dd2f7f47dfdcd4d9689fbec1"
+    },
+    "apps/web/src/app/api/admin/orders/route.ts": {
+      "before": "a31a4e668eb56f477df12f46fb8e02e92cf3df444699e2cd3623f1aeb5419510",
+      "after": "5682c4c322177350280f8c72a3c03ef33ab8bf716f33c6d7142b24e2becbe0c3"
+    },
+    "apps/web/src/app/api/admin/summary/route.ts": {
+      "before": null,
+      "after": "23a4d286975d21cd4855b80bc1564bf3c1f529e0994b7c78d6d1e7b9ec3f1653"
+    },
+    "apps/web/src/app/api/admin/audit-log/route.ts": {
+      "before": null,
+      "after": "72cbac57f88180996d474b547f357589d82741626559b0a047207d577ddb3216"
+    },
+    "apps/web/src/app/admin/page.tsx": {
+      "before": "cdfbdc33f0d7295fe99f3bb797bdf82b12ea16ec08eb3539a5a5db8156620833",
+      "after": "b0a5ff2c3abcb434248936f11e3f2e7b021a809778834e2191a0ce611d3b7be9"
+    },
+    "apps/web/src/lib/types.ts": {
+      "before": "7564d323b13a3be1e10f79d0b448dc8c5743390bca9bde1bc0d9c6a83941fe04",
+      "after": "ddd7043f39107675b388f8c3708ba4e31cca8732e71926ce1e5920ea526ab395"
+    },
+    "apps/web/src/components/audit-history.tsx": {
+      "before": null,
+      "after": "4f1abc2afbc309dca02745ac83b32f87716c70a7b99f6c79ae9153202ab0e7ab"
+    },
+    "scripts/admin-ui-smoke.mjs": {
+      "before": "d2862d73a4a4c9148d5188e3ace4d1527c5305ae2a39b8ea22f3e6e14edc5703",
+      "after": "f4f92cfecefc43412f3ab9a1bc0db827dcc467e589508c7830a43052b52cb433"
+    },
+    "scripts/admin-product-records-smoke.ts": {
+      "before": "077019fc118218337fb137cc6e70b9cb0a44195437ee653966df31296b00cd94",
+      "after": "47a2e6ee15b2615bf1b08d564de75ef6d45812115fed832464cf16b38d5ad682"
+    },
+    ".github/workflows/staging-smoke.yml": {
+      "before": "fd1a8c79bfb8963d7931a50372a93e0fe5a78504adc1a83b07f5706c185e201e",
+      "after": "fd1a8c79bfb8963d7931a50372a93e0fe5a78504adc1a83b07f5706c185e201e"
+    },
+    ".github/workflows/theme-mode-browser.yml": {
+      "before": "50b2dbe7509bf51b21dfff9f6003d04fc2c8b93578206b7a92eca311807f974f",
+      "after": "50b2dbe7509bf51b21dfff9f6003d04fc2c8b93578206b7a92eca311807f974f"
+    },
+    ".github/workflows/admin-control-panel-browser.yml": {
+      "before": "63077e3aac99ca2818f112417ba26fa5d6c93b6ff741c68017be2953f565b072",
+      "after": "63077e3aac99ca2818f112417ba26fa5d6c93b6ff741c68017be2953f565b072"
+    },
+    ".github/workflows/ui-smoke.yml": {
+      "before": "f111d6df7014ec84ba93a44009a01dce056c4aa2d9ef5f8672a495dc5ce74e4b",
+      "after": "f111d6df7014ec84ba93a44009a01dce056c4aa2d9ef5f8672a495dc5ce74e4b"
+    },
+    ".github/workflows/admin-product-records.yml": {
+      "before": "d551dec6daf4d05f2e60a3fec6ebfbb2cb8b3478f72339857f7bd3e8c05d0fbc",
+      "after": "d551dec6daf4d05f2e60a3fec6ebfbb2cb8b3478f72339857f7bd3e8c05d0fbc"
+    }
+  }
+}

@@ -1,12 +1,14 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { DatabaseService } from './database';
 import type {Principal} from './auth';
+import {requireActor,parseEdit,assertVersion,recordAudit,publicationMissing,parsePage,pageResult} from './data-integrity';
 
 export const categories = ['home', 'lifestyle', 'decor', 'accessories', 'electronics', 'other'] as const;
 type Category = typeof categories[number];
 
 export interface Product {
   id: string;
+  edit_version: number;
   slug: string;
   sku: string | null;
   brand_id: string | null;
@@ -125,61 +127,78 @@ export function cleanProduct(body: unknown, partial = false): Partial<Product> {
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly db: DatabaseService) {}
-
-  async list(): Promise<Product[]> {
-    // A new installation has no invented products or unsafe placeholder orders.
-    if (!this.db.configured) return [];
-    const result = await this.db.query<Product>(
-      'SELECT p.id, p.sku, p.slug, p.brand_id, b.name AS brand_name, p.gallery_urls, p.name, p.description, p.category, p.price_idr::integer AS price_idr, p.stock_qty, p.weight_grams,p.length_cm,p.width_cm,p.height_cm,p.image_url,p.is_active FROM product.products p LEFT JOIN product.brands b ON p.brand_id=b.id WHERE p.is_active = true AND p.slug NOT LIKE \'demo-%\' ORDER BY p.created_at DESC LIMIT 48'
-    );
-    return result.rows;
-  }
-
-  async bySlug(slug: string): Promise<Product> {
-    if (!this.db.configured) throw new NotFoundException('Product not found');
-    const result = await this.db.query<Product>(
-      'SELECT p.id, p.sku, p.slug, p.brand_id, b.name AS brand_name, p.gallery_urls, p.name, p.description, p.category, p.price_idr::integer AS price_idr, p.stock_qty, p.weight_grams,p.length_cm,p.width_cm,p.height_cm,p.image_url,p.is_active FROM product.products p LEFT JOIN product.brands b ON p.brand_id=b.id WHERE p.slug = $1 AND p.is_active = true AND p.slug NOT LIKE \'demo-%\'',
-      [slug]
-    );
-    if (!result.rows[0]) throw new NotFoundException('Product not found');
-    return result.rows[0];
-  }
-
-  async listAdmin(): Promise<Product[]> {
-    const result = await this.db.query<Product>(
-      'SELECT p.id, p.sku, p.slug, p.brand_id, b.name AS brand_name, p.gallery_urls, p.name, p.description, p.category, p.price_idr::integer AS price_idr, p.stock_qty, p.weight_grams,p.length_cm,p.width_cm,p.height_cm,p.image_url,p.is_active FROM product.products p LEFT JOIN product.brands b ON p.brand_id=b.id WHERE p.slug NOT LIKE \'demo-%\' ORDER BY p.updated_at DESC LIMIT 150'
-    );
-    return result.rows;
-  }
-
-  async create(body: unknown, actor:Principal): Promise<Product> {
-    const product=cleanProduct(body);
-    if(product.stock_qty!==0)throw new BadRequestException('Stok awal harus 0. Catat stok di Warehouse Ledger dan pilih gudang fisik.');
-    const columns=Object.keys(product);
-    const placeholders=columns.map((_,index)=>'$'+(index+1)).join(', ');
-    const sql='INSERT INTO product.products ('+columns.join(', ')+') VALUES ('+placeholders+') RETURNING id,sku,slug,brand_id,gallery_urls,name,description,category,price_idr::integer AS price_idr,stock_qty,weight_grams,length_cm,width_cm,height_cm,image_url,is_active';
-    return this.db.transaction(async client=>{
-      const result=await client.query<Product>(sql,columns.map(key=>(product as Record<string,unknown>)[key]));
-      const created=result.rows[0];
-      if(created.stock_qty>0){
-        await client.query("INSERT INTO product.inventory_events(product_id,delta_qty,reason,actor_id,stock_before,stock_after,notes) VALUES($1,$2,'opening_balance',$3,0,$2,'Initial balance entered by Vapmart administrator')",[created.id,created.stock_qty,actor.id]);
-      }
-      return created;
-    });
-  }
-  async update(id: string, body: unknown): Promise<Product> {
-    if (!/^[a-f0-9-]{36}$/i.test(id)) throw new BadRequestException('Invalid ID');
-    if(body&&typeof body==='object'&&!Array.isArray(body)&&Object.hasOwn(body,'stock_qty'))
-      throw new BadRequestException('Gunakan Inventory Ledger untuk mengubah stok');
-    const product = cleanProduct(body, true);
-    const columns = Object.keys(product);
-    if (!columns.length) throw new BadRequestException('No changes supplied');
-    const result = await this.db.query<Product>(
-      `UPDATE product.products SET ${columns.map((key, index) => key + ' = $' + (index + 1)).join(', ')}, updated_at = now() WHERE id = $${columns.length + 1} RETURNING id, sku, slug, brand_id, gallery_urls, name, description, category, price_idr::integer AS price_idr, stock_qty, weight_grams,length_cm,width_cm,height_cm,image_url,is_active`,
-      [...columns.map(key => (product as Record<string, unknown>)[key]), id]
-    );
-    if (!result.rows[0]) throw new NotFoundException('Product not found');
-    return result.rows[0];
-  }
+ constructor(private readonly db:DatabaseService){}
+ async page(raw:Record<string,unknown>={},admin=false){
+  if(!this.db.configured)throw new ServiceUnavailableException('Database unavailable');
+  const f=parsePage(raw);
+  const result=await this.db.query<{result:{items:Product[];total:number}}>(
+   `WITH filtered AS (
+     SELECT p.*,b.name AS brand_name FROM product.products p LEFT JOIN product.brands b ON b.id=p.brand_id
+     WHERE p.slug NOT LIKE 'demo-%' AND ($1::boolean OR p.is_active)
+      AND ($2::text='' OR strpos(lower(concat_ws(' ',p.name,p.slug,p.sku,b.name)),lower($2))>0)
+      AND ($3::text='' OR p.category=$3) AND ($4::text='' OR p.brand_id::text=$4)
+      AND ($5::text='' OR ($5='published' AND p.is_active) OR ($5='draft' AND NOT p.is_active))
+    ), selected AS (SELECT * FROM filtered ORDER BY created_at DESC,id DESC LIMIT $6 OFFSET $7)
+    SELECT jsonb_build_object('items',coalesce((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.created_at DESC,s.id DESC) FROM selected s),'[]'::jsonb),
+      'total',(SELECT count(*)::integer FROM filtered)) AS result`,
+   [admin,f.q,f.category,f.brand,f.status,f.pageSize,(f.page-1)*f.pageSize]);
+  const d=result.rows[0].result;return pageResult(d.items,d.total,f.page,f.pageSize);
+ }
+ async list():Promise<Product[]>{return (await this.page()).items;}
+ async listAdmin():Promise<Product[]>{return (await this.page({},true)).items;}
+ async bySlug(slug:string):Promise<Product>{
+  if(!this.db.configured)throw new ServiceUnavailableException('Database unavailable');
+  const r=await this.db.query<Product>("SELECT p.*,p.price_idr::integer AS price_idr,b.name AS brand_name FROM product.products p LEFT JOIN product.brands b ON b.id=p.brand_id WHERE p.slug=$1 AND p.is_active AND p.slug NOT LIKE 'demo-%'",[slug]);
+  if(!r.rows[0])throw new NotFoundException('Product not found');return r.rows[0];
+ }
+ async create(body:unknown,actor?:Principal):Promise<Product>{
+  const operator=requireActor(actor),product=cleanProduct(body);
+  if(product.stock_qty!==0)throw new BadRequestException('Stok awal harus 0. Catat stok di Warehouse Ledger dan pilih gudang fisik.');
+  if(product.is_active)throw new BadRequestException('Produk baru harus disimpan sebagai draft.');
+  const keys=Object.keys(product);
+  try{return await this.db.transaction(async client=>{
+   const r=await client.query<Product>('INSERT INTO product.products ('+keys.join(',')+') VALUES ('+keys.map((_,i)=>'$'+(i+1)).join(',')+') RETURNING *,price_idr::integer AS price_idr',keys.map(k=>(product as Record<string,unknown>)[k]));
+   await recordAudit(client,'product',operator,null,r.rows[0] as unknown as Record<string,unknown>);return r.rows[0];
+  });}catch(e){if((e as {code?:string}).code==='23505')throw new ConflictException('SKU atau slug sudah digunakan.');throw e;}
+ }
+ async update(id:string,body:unknown,actor?:Principal):Promise<Product>{
+  if(!/^[a-f0-9-]{36}$/i.test(id))throw new BadRequestException('Invalid ID');
+  const operator=requireActor(actor),edit=parseEdit(body);
+  if(Object.hasOwn(edit.fields,'stock_qty'))throw new BadRequestException('Gunakan Warehouse Ledger untuk mengubah stok');
+  const patch=cleanProduct(edit.fields,true),keys=Object.keys(patch);
+  if(!keys.length)throw new BadRequestException('No changes supplied');
+  try{return await this.db.transaction(async client=>{
+   const previous=await client.query<Product>('SELECT *,price_idr::integer AS price_idr FROM product.products WHERE id=$1 FOR UPDATE',[id]);
+   const before=previous.rows[0];if(!before)throw new NotFoundException('Product not found');assertVersion(before.edit_version,edit.version);
+   const merged={...before,...patch};
+   if(merged.is_active){
+    const missing=publicationMissing(merged as unknown as Record<string,unknown>);
+    const brand=merged.brand_id?await client.query('SELECT 1 FROM product.brands WHERE id=$1 AND is_active',[merged.brand_id]):{rows:[]};
+    if(!brand.rows.length)missing.push('active_brand');
+    const inventory=await client.query('SELECT 1 FROM product.warehouse_stock s JOIN product.warehouses w ON w.id=s.warehouse_id WHERE s.product_id=$1 AND w.is_active AND w.is_dispatch_enabled LIMIT 1',[id]);
+    if(!inventory.rows.length)missing.push('verified_warehouse');
+    if(missing.length)throw new ConflictException({code:'PUBLICATION_INCOMPLETE',message:'Data belum lengkap: '+missing.join(', '),missing});
+   }
+   const r=await client.query<Product>('UPDATE product.products SET '+keys.map((k,i)=>k+'=$'+(i+1)).join(',')+',edit_version=edit_version+1,updated_at=now() WHERE id=$'+(keys.length+1)+' RETURNING *,price_idr::integer AS price_idr',[...keys.map(k=>(patch as Record<string,unknown>)[k]),id]);
+   await recordAudit(client,'product',operator,before as unknown as Record<string,unknown>,r.rows[0] as unknown as Record<string,unknown>);return r.rows[0];
+  });}catch(e){if((e as {code?:string}).code==='23505')throw new ConflictException('SKU atau slug sudah digunakan.');throw e;}
+ }
+ async summary(){
+  const r=await this.db.query(`SELECT jsonb_build_object(
+   'managed',(SELECT count(*) FROM product.products WHERE slug NOT LIKE 'demo-%'),
+   'published',(SELECT count(*) FROM product.products WHERE slug NOT LIKE 'demo-%' AND is_active),
+   'lowStock',(SELECT count(*) FROM product.products WHERE slug NOT LIKE 'demo-%' AND stock_qty<=5),
+   'orders',(SELECT count(*) FROM product.orders WHERE idempotency_key IS NOT NULL),
+   'pendingOrders',(SELECT count(*) FROM product.orders WHERE idempotency_key IS NOT NULL AND payment_status='not_initiated'),
+   'brands',(SELECT count(*) FROM product.brands)) AS totals`);
+  return {totals:r.rows[0].totals,scope:'database_total',observedAt:new Date().toISOString()};
+ }
+ async audit(raw:Record<string,unknown>){
+  const {entityId,entityType,...rest}=raw;
+  if(typeof entityId!=='string'||!/^[a-f0-9-]{36}$/i.test(entityId)||!['product','brand'].includes(String(entityType)))throw new BadRequestException('Invalid audit target');
+  const f=parsePage(rest);
+  const r=await this.db.query('SELECT id::text,entity_type,entity_id,actor_id,action,before_data,after_data,created_at FROM product.master_data_audit WHERE entity_id=$1 AND entity_type=$2 ORDER BY id DESC LIMIT $3 OFFSET $4',[entityId,entityType,f.pageSize,(f.page-1)*f.pageSize]);
+  const n=await this.db.query<{total:number}>('SELECT count(*)::integer total FROM product.master_data_audit WHERE entity_id=$1 AND entity_type=$2',[entityId,entityType]);
+  return pageResult(r.rows,n.rows[0].total,f.page,f.pageSize);
+ }
 }

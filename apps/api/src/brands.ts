@@ -1,8 +1,10 @@
 import {BadRequestException,ConflictException,Injectable,NotFoundException} from '@nestjs/common';
 import {DatabaseService} from './database';
+import type {Principal} from './auth';
+import {requireActor,parseEdit,assertVersion,recordAudit} from './data-integrity';
 const uuid=/^[0-9a-f-]{36}$/i;
 const restricted=/\b(nicotine|nikotin|vape|vaping|rokok|tobacco|e-cig(?:arette)?|e-liquid)\b/i;
-export interface Brand {id:string;slug:string;name:string;description:string;logo_url:string|null;is_active:boolean;}
+export interface Brand {id:string;edit_version:number;slug:string;name:string;description:string;logo_url:string|null;is_active:boolean;}
 function parseBrand(raw:unknown,partial:boolean):Record<string,unknown>{
  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new BadRequestException('Brand harus berupa objek');
  const body=raw as Record<string,unknown>;
@@ -39,23 +41,24 @@ function parseBrand(raw:unknown,partial:boolean):Record<string,unknown>{
 @Injectable()
 export class BrandsService {
  constructor(private readonly db:DatabaseService){}
- async publicList(){const r=await this.db.query<Brand>('SELECT id,slug,name,description,logo_url,is_active FROM product.brands WHERE is_active=true ORDER BY name');return {items:r.rows};}
- async list(){const r=await this.db.query<Brand>('SELECT id,slug,name,description,logo_url,is_active FROM product.brands ORDER BY name');return {items:r.rows};}
- async create(input:unknown){
-  const fields=parseBrand(input,false),keys=Object.keys(fields);
-  try{const r=await this.db.query<Brand>(
-    `INSERT INTO product.brands(${keys.join(',')}) VALUES (${keys.map((_,i)=>'$'+(i+1)).join(',')}) RETURNING id,slug,name,description,logo_url,is_active`,
-    keys.map(k=>fields[k]));return r.rows[0];}
-  catch(error){if((error as {code?:string}).code==='23505')throw new ConflictException('Nama atau slug brand sudah dipakai');throw error;}
+ async publicList(){const r=await this.db.query<Brand>('SELECT id,slug,name,description,logo_url,is_active,edit_version FROM product.brands WHERE is_active=true ORDER BY name');return {items:r.rows};}
+ async list(){const r=await this.db.query<Brand>('SELECT id,slug,name,description,logo_url,is_active,edit_version FROM product.brands ORDER BY name');return {items:r.rows};}
+ async create(input:unknown,actor?:Principal){
+  const operator=requireActor(actor),fields=parseBrand(input,false),keys=Object.keys(fields);
+  try{return await this.db.transaction(async client=>{
+   const r=await client.query<Brand>('INSERT INTO product.brands('+keys.join(',')+') VALUES ('+keys.map((_,i)=>'$'+(i+1)).join(',')+') RETURNING *',keys.map(k=>fields[k]));
+   await recordAudit(client,'brand',operator,null,r.rows[0] as unknown as Record<string,unknown>);return r.rows[0];
+  });}catch(e){if((e as {code?:string}).code==='23505')throw new ConflictException('Nama atau slug brand sudah dipakai');throw e;}
  }
- async update(id:string,input:unknown){
+ async update(id:string,input:unknown,actor?:Principal){
   if(!uuid.test(id))throw new BadRequestException('ID brand tidak valid');
-  const fields=parseBrand(input,true),keys=Object.keys(fields);
+  const operator=requireActor(actor),edit=parseEdit(input),fields=parseBrand(edit.fields,true),keys=Object.keys(fields);
   if(!keys.length)throw new BadRequestException('Tidak ada perubahan');
-  try{const r=await this.db.query<Brand>(
-    `UPDATE product.brands SET ${keys.map((k,i)=>k+'=$'+(i+1)).join(',')},updated_at=now() WHERE id=$${keys.length+1} RETURNING id,slug,name,description,logo_url,is_active`,
-    [...keys.map(k=>fields[k]),id]);
-    if(!r.rows[0])throw new NotFoundException('Brand tidak ditemukan');return r.rows[0];
-  }catch(error){if((error as {code?:string}).code==='23505')throw new ConflictException('Nama atau slug brand sudah dipakai');throw error;}
+  try{return await this.db.transaction(async client=>{
+   const previous=await client.query<Brand>('SELECT * FROM product.brands WHERE id=$1 FOR UPDATE',[id]);
+   const before=previous.rows[0];if(!before)throw new NotFoundException('Brand tidak ditemukan');assertVersion(before.edit_version,edit.version);
+   const r=await client.query<Brand>('UPDATE product.brands SET '+keys.map((k,i)=>k+'=$'+(i+1)).join(',')+',edit_version=edit_version+1,updated_at=now() WHERE id=$'+(keys.length+1)+' RETURNING *',[...keys.map(k=>fields[k]),id]);
+   await recordAudit(client,'brand',operator,before as unknown as Record<string,unknown>,r.rows[0] as unknown as Record<string,unknown>);return r.rows[0];
+  });}catch(e){if((e as {code?:string}).code==='23505')throw new ConflictException('Nama atau slug brand sudah dipakai');throw e;}
  }
 }

@@ -1,34 +1,16 @@
-import type { Product } from './types';
-
-export async function getProducts():Promise<Product[]> {
-  if (!process.env.API_INTERNAL_URL) return [];
-  try {
-    const response = await fetch(new URL('/v1/products',process.env.API_INTERNAL_URL), {cache:'no-store',signal:AbortSignal.timeout(7000)});
-    if (!response.ok) return [];
-    const data:unknown = await response.json();
-    if (typeof data !== 'object' || data === null || !('items' in data)) return [];
-    const items=(data as {items?:unknown}).items;
-    return Array.isArray(items) ? items as Product[] : [];
-  } catch { return []; }
-}
-
-export async function getProduct(slug:string):Promise<Product|null> {
-  if (!process.env.API_INTERNAL_URL) return null;
-  try {
-    const response=await fetch(new URL('/v1/products/'+encodeURIComponent(slug),process.env.API_INTERNAL_URL),{cache:'no-store',signal:AbortSignal.timeout(7000)});
-    if(!response.ok) return null;
-    return (await response.json()) as Product;
-  } catch { return null; }
-}
-
+import type {Product} from './types';
+import {CollectionReadError,readCollection,settleCollection} from './collection-read';
 export interface ActiveBrand {id:string;name:string;slug:string;logo_url:string|null;description:string;is_active:boolean;}
-export async function getBrands():Promise<ActiveBrand[]>{
- if(!process.env.API_INTERNAL_URL)return [];
- try{
-  const response=await fetch(new URL('/v1/brands',process.env.API_INTERNAL_URL),{cache:'no-store',signal:AbortSignal.timeout(7000)});
-  if(!response.ok)return [];
-  const result=await response.json() as {items?:ActiveBrand[]};
-  return Array.isArray(result.items)?result.items:[];
- }catch{return [];}
+function url(path:string){if(!process.env.API_INTERNAL_URL)throw new CollectionReadError('SOURCE_NOT_CONFIGURED');return new URL(path,process.env.API_INTERNAL_URL).toString();}
+const productValid=(x:unknown)=>!!x&&typeof x==='object'&&typeof (x as Product).id==='string'&&typeof (x as Product).slug==='string'&&typeof (x as Product).name==='string'&&typeof (x as Product).is_active==='boolean';
+const brandValid=(x:unknown)=>!!x&&typeof x==='object'&&typeof (x as ActiveBrand).id==='string'&&typeof (x as ActiveBrand).name==='string'&&typeof (x as ActiveBrand).slug==='string';
+export async function getProducts():Promise<Product[]>{return readCollection<Product>(url('/v1/products'),fetch,productValid);}
+export async function getBrands():Promise<ActiveBrand[]>{return readCollection<ActiveBrand>(url('/v1/brands'),fetch,brandValid);}
+export function getProductsResult(){return settleCollection(getProducts);}
+export function getBrandsResult(){return settleCollection(getBrands);}
+export async function getProduct(slug:string):Promise<Product|null>{
+ let r:Response;try{r=await fetch(url('/v1/products/'+encodeURIComponent(slug)),{cache:'no-store',signal:AbortSignal.timeout(8000)});}catch{throw new CollectionReadError('SOURCE_UNAVAILABLE');}
+ if(r.status===404)return null;if(!r.ok)throw new CollectionReadError('SOURCE_UNAVAILABLE');
+ let d:unknown;try{d=await r.json();}catch{throw new CollectionReadError('INVALID_RESPONSE');}
+ if(!productValid(d))throw new CollectionReadError('INVALID_RESPONSE');return d as Product;
 }
-

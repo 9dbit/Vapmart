@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Header, HttpCode, Param, Patch, Post, Req, ServiceUnavailableException, StreamableFile, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Param, Patch, Post, Query, Req, ServiceUnavailableException, StreamableFile, UseGuards } from '@nestjs/common';
 import { AdminGuard,CustomerGuard,type Principal } from './auth';
 import {BrandsService} from './brands';
 import {MediaService} from './media';
@@ -30,7 +30,7 @@ export class HealthController {
 export class CatalogController {
   constructor(private readonly products: ProductsService) {}
   @Get()
-  async list() { return { items: await this.products.list() }; }
+  async list(@Query() query:Record<string,unknown>) { return this.products.page(query); }
   @Get(':slug')
   async bySlug(@Param('slug') slug: string) { return this.products.bySlug(slug); }
 }
@@ -42,21 +42,25 @@ export class AdminController {
   @Get('status')
   status() { return { admin: true }; }
   @Get('products')
-  async listProducts() { return { items: await this.products.listAdmin() }; }
+  async listProducts(@Query() query:Record<string,unknown>) { return this.products.page(query,true); }
+  @Get('summary')
+  summary(){return this.products.summary();}
+  @Get('audit-log')
+  audit(@Query() query:Record<string,unknown>){return this.products.audit(query);}
   @Post('products')
   async create(@Req() req:{user:Principal},@Body() body: unknown) { return this.products.create(body,req.user); }
   @Patch('products/:id')
-  async update(@Param('id') id: string, @Body() body: unknown) { return this.products.update(id, body); }
+  async update(@Req() req:{user:Principal},@Param('id') id: string, @Body() body: unknown) { return this.products.update(id, body,req.user); }
   @Get('brands')
   listBrands(){return this.brands.list();}
   @Post('brands')
-  addBrand(@Body() body:unknown){return this.brands.create(body);}
+  addBrand(@Req() req:{user:Principal},@Body() body:unknown){return this.brands.create(body,req.user);}
   @Patch('brands/:id')
-  editBrand(@Param('id') id:string,@Body() body:unknown){return this.brands.update(id,body);}
+  editBrand(@Req() req:{user:Principal},@Param('id') id:string,@Body() body:unknown){return this.brands.update(id,body,req.user);}
   @Post('media')
   uploadMedia(@Req() req:{user:Principal},@Body() body:unknown){return this.media.upload(req.user,body);}
   @Get('orders')
-  listOrders(){return this.checkout.adminOrders();}
+  listOrders(@Query() query:Record<string,unknown>){return this.checkout.adminOrders(query);}
 }
 @Controller('v1/brands')
 export class BrandsController{

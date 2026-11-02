@@ -16,9 +16,10 @@ try{
   try{localStorage.setItem('vapmart-customer-auth-v1',JSON.stringify(data));}catch{}
  },session);
  const page=await context.newPage();
+ await page.route('**/api/admin/summary',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({totals:{published:0,lowStock:0,pendingOrders:0},scope:'database_total'})}));
  await page.route('**/api/admin/status',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({status:'admin_verified_mock'})}));
  for(const endpoint of ['products','brands','orders']){
-  await page.route('**/api/admin/'+endpoint,route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({items:[]})}));
+  await page.route('**/api/admin/'+endpoint+'**',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({items:[]})}));
  }
  await page.route('**/api/admin/media-library',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({items:[],readOnly:false})}));
  let ready=false;

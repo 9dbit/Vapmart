@@ -1,5 +1,6 @@
 export interface Product {
   id: string;
+  edit_version?: number;
   slug: string;
   sku?: string | null;
   brand_id?: string | null;

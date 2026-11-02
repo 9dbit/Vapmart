@@ -2,7 +2,8 @@ import Link from 'next/link';
 import {ProductGrid} from '@/components/product-grid';
 import {ReferenceVisualGrid} from '@/components/reference-visual-grid';
 import {allArchiveItems,isArchiveCategory,archiveCategories} from '@/lib/archive-catalog';
-import {getProducts} from '@/lib/api';
+import {getProductsResult} from '@/lib/api';
+import {DataStatus} from '@/components/data-status';
 import '../restored-home.css';
 export const dynamic='force-dynamic';
 export const metadata={title:'Katalog | Vapmart',robots:{index:false,follow:false}};
@@ -12,7 +13,8 @@ export default async function CatalogPage({searchParams}:{searchParams:Promise<{
  const query=typeof params.q==='string'?params.q.slice(0,80):'';
  const ref=typeof params.reference==='string'?params.reference:'all';
  const allowed=['all','home','lifestyle','decor','accessories','electronics','other'];
- const active=(await getProducts()).filter(p=>p.is_active&&!p.slug.startsWith('demo-'));
+ const result=await getProductsResult();
+ const active=result.items.filter(p=>p.is_active&&!p.slug.startsWith('demo-'));
  const referenceItems=isArchiveCategory(ref)?allArchiveItems.filter(p=>p.category===ref):allArchiveItems;
  return <main className="main-container legacy-product-wrapper vm-catalog-page vm-restored-catalog">
    <div className="vm-catalog-intro">
@@ -22,7 +24,7 @@ export default async function CatalogPage({searchParams}:{searchParams:Promise<{
      <p>Struktur katalog diperbarui tanpa menghilangkan referensi visual dari website sebelum rebuild.</p>
      <span className="vm-catalog-preview">Produk aktif hanya ditampilkan dari PostgreSQL setelah verifikasi. Pembayaran belum aktif.</span>
    </div>
-   {active.length>0?<ProductGrid products={active} initialTerm={query} initialCategory={allowed.includes(category)?category:'all'}/>:
+   {!result.ok?<DataStatus kind="produk" code={result.error}/>:active.length>0?<ProductGrid products={active} initialTerm={query} initialCategory={allowed.includes(category)?category:'all'}/>:
     <section className="vm-restored-catalog-status" aria-label="Status katalog aktif"><span className="vm-trendora-eyebrow">LIVE CATALOG</span>
       <h2>Katalog aktif sedang diverifikasi</h2>
       <p>Belum ada SKU dengan status tayang di PostgreSQL. Galeri foto referensi lama tetap dapat dilihat di bawah tanpa harga, stok, atau pembelian.</p>

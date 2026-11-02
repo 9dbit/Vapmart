@@ -4,6 +4,8 @@ import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {formatIDR,type Product} from '@/lib/types';
+import {readCollection} from '@/lib/collection-read';
+import {AuditHistory} from '@/components/audit-history';
 import {BrandAccessManager} from '@/components/brand-access-manager';
 import {ShippingPanel} from '@/components/shipping-panel';
 import {WarehouseOps} from '@/components/warehouse-ops';
@@ -14,7 +16,7 @@ import {AdminWorkspace,adminTitles,adminDescriptions,type AdminSection} from '@/
 import {AdminProductRecords,useProductRecordSummary} from '@/components/admin-product-records';
 import '../admin-v26.css';
 
-type Brand={id:string;name:string;slug:string;description:string;logo_url:string|null;is_active:boolean};
+type Brand={id:string;edit_version?:number;name:string;slug:string;description:string;logo_url:string|null;is_active:boolean};
 type Order={id:string;status:string;payment_status:string;contact_name:string;contact_email:string;city:string;province:string;total_idr:string;payment_method:string;created_at:string};
 type ProductDraft={name:string;slug:string;sku:string;description:string;category:string;price_idr:string;stock_qty:string;weight_grams:string;length_cm:string;width_cm:string;height_cm:string;brand_id:string;image_url:string;gallery_urls:string[];is_active:boolean};
 type BrandDraft={name:string;slug:string;description:string;logo_url:string;is_active:boolean};
@@ -45,6 +47,8 @@ export default function AdminPage(){
  const [orders,setOrders]=useState<Order[]>([]);
  const [editingProduct,setEditingProduct]=useState<string|null>(null);
  const [editingBrand,setEditingBrand]=useState<string|null>(null);
+ const [productVersion,setProductVersion]=useState<number|null>(null),[brandVersion,setBrandVersion]=useState<number|null>(null);
+ const [totals,setTotals]=useState<{published:number;lowStock:number;pendingOrders:number}|null>(null);
  const [productDraft,setProductDraft]=useState<ProductDraft>({...blankProduct});
  const [brandDraft,setBrandDraft]=useState<BrandDraft>({...blankBrand});
  const recordSummary=useProductRecordSummary(authorized&&verifiedToken===auth.accessToken?auth.accessToken:null,products);
@@ -53,15 +57,20 @@ export default function AdminPage(){
   if(!auth.accessToken)throw new Error('Sesi berakhir, silakan masuk ulang');
   return fetch(path,{...init,headers:{...init.headers,authorization:'Bearer '+auth.accessToken},cache:'no-store'});
  }
+ async function loadWorkspace(token:string|null){
+  if(!token)throw Error('Sesi berakhir. Silakan masuk ulang.');
+  const headers={authorization:'Bearer '+token};
+  const fetcher:typeof fetch=(input,init)=>fetch(input,{...init,headers:{...init?.headers,...headers},cache:'no-store'});
+  const [p,b,o,r]=await Promise.all([
+   readCollection<Product>('/api/admin/products',fetcher),readCollection<Brand>('/api/admin/brands',fetcher),
+   readCollection<Order>('/api/admin/orders',fetcher),fetcher('/api/admin/summary')]);
+  if(!r.ok)throw Error('Statistik seluruh database belum tersedia. Coba lagi.');
+  const stats=await r.json();if(!stats.totals)throw Error('Respons statistik tidak valid');
+  return {products:p,brands:b,orders:o,totals:stats.totals};
+ }
  async function refreshData(){
   if(!auth.accessToken)return;
-  const paths=['/api/admin/products','/api/admin/brands','/api/admin/orders'];
-  const responses=await Promise.all(paths.map(path=>authorizedFetch(path)));
-  const data=await Promise.all(responses.map(r=>r.json()));
-  for(let i=0;i<responses.length;i++)if(!responses[i].ok)throw new Error('Gagal memuat '+paths[i]+': '+statusError(responses[i],data[i]));
-  setProducts(Array.isArray(data[0].items)?data[0].items:[]);
-  setBrands(Array.isArray(data[1].items)?data[1].items:[]);
-  setOrders(Array.isArray(data[2].items)?data[2].items:[]);
+  const d=await loadWorkspace(auth.accessToken);setProducts(d.products);setBrands(d.brands);setOrders(d.orders);setTotals(d.totals);
  }
  useEffect(()=>{
   if(auth.loading)return;
@@ -81,24 +90,10 @@ export default function AdminPage(){
      setAuthorized(false);setVerifiedToken(null);
      return;
     }
-    const results=await Promise.all(['/api/admin/products','/api/admin/brands','/api/admin/orders'].map(url=>
-     fetch(url,{headers:{authorization:'Bearer '+auth.accessToken},cache:'no-store'})));
-    if(!alive)return;
-    if(results.some(r=>r.status===401||r.status===403)){
-     setAccessDenied(results.some(r=>r.status===403));
-     setSessionExpired(results.some(r=>r.status===401));setAuthorized(false);return;
-    }
-    const data=await Promise.all(results.map(async r=>{
-     try{return await r.json();}catch{return {};}
-    }));
+    const d=await loadWorkspace(auth.accessToken);
     if(!alive)return;
     setAuthorized(true);setVerifiedToken(auth.accessToken);setAccessDenied(false);setSessionExpired(false);
-    if(results.every(r=>r.ok)){
-     setProducts(Array.isArray(data[0].items)?data[0].items:[]);
-     setBrands(Array.isArray(data[1].items)?data[1].items:[]);
-     setOrders(Array.isArray(data[2].items)?data[2].items:[]);
-     setMessage('');
-    }else setMessage('Akses admin terverifikasi, tetapi beberapa data belum berhasil dimuat. Gunakan Refresh atau periksa koneksi API.');
+    setProducts(d.products);setBrands(d.brands);setOrders(d.orders);setTotals(d.totals);setMessage('');
    }catch{
     if(alive){setAuthorized(false);setVerifiedToken(null);}
    }finally{
@@ -126,20 +121,20 @@ export default function AdminPage(){
   window.scrollTo({top:0,behavior:'smooth'});
  }
  async function logout(){try{await auth.signOut();setAuthorized(false);setVerifiedToken(null);setProducts([]);setBrands([]);setOrders([]);setMessage('');}catch{setMessage('Tidak dapat keluar dari sesi, coba kembali.');}}
- const published=products.filter(p=>p.is_active).length;
- const lowStock=products.filter(p=>p.stock_qty<=5).length;
- const pending=orders.filter(o=>o.payment_status==='not_initiated').length;
+ const published=totals?.published??0;
+ const lowStock=totals?.lowStock??0;
+ const pending=totals?.pendingOrders??0;
  const editingProductRecord=products.find(p=>p.id===editingProduct);
  function setP<K extends keyof ProductDraft>(key:K,value:ProductDraft[K]){setProductDraft(p=>({...p,[key]:value}));}
  function setB<K extends keyof BrandDraft>(key:K,value:BrandDraft[K]){setBrandDraft(b=>({...b,[key]:value}));}
  function newProduct(){setEditingProduct(null);setProductDraft({...blankProduct,gallery_urls:[]});navigate('products');setMessage('');}
  function editProduct(p:Product){
-  setEditingProduct(p.id);setProductDraft({name:p.name,slug:p.slug,sku:p.sku||'',description:p.description,
+  setProductVersion(p.edit_version??null);setEditingProduct(p.id);setProductDraft({name:p.name,slug:p.slug,sku:p.sku||'',description:p.description,
    category:p.category,price_idr:String(p.price_idr),stock_qty:String(p.stock_qty),weight_grams:p.weight_grams?String(p.weight_grams):'',length_cm:p.length_cm?String(p.length_cm):'',width_cm:p.width_cm?String(p.width_cm):'',height_cm:p.height_cm?String(p.height_cm):'',brand_id:p.brand_id||'',image_url:p.image_url||'',
    gallery_urls:[...(p.gallery_urls||[])],is_active:p.is_active});navigate('products');window.requestAnimationFrame(()=>document.querySelector('.vma26-editor')?.scrollIntoView({behavior:'smooth',block:'start'}));
  }
  function newBrand(){setEditingBrand(null);setBrandDraft({...blankBrand});navigate('brands');setMessage('');}
- function editBrand(b:Brand){setEditingBrand(b.id);setBrandDraft({name:b.name,slug:b.slug,description:b.description,logo_url:b.logo_url||'',is_active:b.is_active});navigate('brands');}
+ function editBrand(b:Brand){setBrandVersion(b.edit_version??null);setEditingBrand(b.id);setBrandDraft({name:b.name,slug:b.slug,description:b.description,logo_url:b.logo_url||'',is_active:b.is_active});navigate('brands');}
  async function send(path:string,method:'POST'|'PATCH',payload:Record<string,unknown>){
   const response=await authorizedFetch(path,{method,headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
   const data=await response.json();
@@ -152,7 +147,7 @@ export default function AdminPage(){
   if(!Number.isSafeInteger(price)||price<0||!Number.isSafeInteger(stock)||stock<0){setMessage('Harga dan stok harus bilangan bulat tidak negatif.');setBusy(false);return;}
   try{
    await send(editingProduct?'/api/admin/products/'+editingProduct:'/api/admin/products',editingProduct?'PATCH':'POST',{
-    name:productDraft.name,slug:productDraft.slug,sku:productDraft.sku||null,description:productDraft.description,
+    ...(editingProduct?{expected_version:productVersion}:{}),name:productDraft.name,slug:productDraft.slug,sku:productDraft.sku||null,description:productDraft.description,
     category:productDraft.category,price_idr:price,...(editingProduct?{}:{stock_qty:0}),weight_grams:productDraft.weight_grams?Number(productDraft.weight_grams):null,length_cm:productDraft.length_cm?Number(productDraft.length_cm):null,width_cm:productDraft.width_cm?Number(productDraft.width_cm):null,height_cm:productDraft.height_cm?Number(productDraft.height_cm):null,brand_id:productDraft.brand_id||null,
     image_url:productDraft.image_url||null,gallery_urls:productDraft.gallery_urls,is_active:editingProduct?productDraft.is_active:false
    });
@@ -164,14 +159,14 @@ export default function AdminPage(){
  async function publish(p:Product){
   if(!window.confirm(p.is_active?'Sembunyikan produk ini dari storefront?':'Publikasikan produk ini? Pastikan foto, SKU, berat, dan stok sudah terverifikasi.'))return;
   setBusy(true);setMessage('');
-  try{await send('/api/admin/products/'+p.id,'PATCH',{is_active:!p.is_active});await refreshData();setMessage('Status publikasi produk diperbarui.');}
+  try{await send('/api/admin/products/'+p.id,'PATCH',{is_active:!p.is_active,expected_version:p.edit_version});await refreshData();setMessage('Status publikasi produk diperbarui.');}
   catch(error){setMessage(error instanceof Error?error.message:'Publikasi gagal');}finally{setBusy(false);}
  }
  async function saveBrand(event:FormEvent<HTMLFormElement>){
   event.preventDefault();setBusy(true);setMessage('');
   try{
    await send(editingBrand?'/api/admin/brands/'+editingBrand:'/api/admin/brands',editingBrand?'PATCH':'POST',{
-    name:brandDraft.name,slug:brandDraft.slug,description:brandDraft.description,
+    ...(editingBrand?{expected_version:brandVersion}:{}),name:brandDraft.name,slug:brandDraft.slug,description:brandDraft.description,
     logo_url:brandDraft.logo_url||null,is_active:brandDraft.is_active
    });
    await refreshData();setMessage(editingBrand?'Brand diperbarui.':'Brand baru ditambahkan.');
@@ -182,7 +177,7 @@ export default function AdminPage(){
  async function toggleBrand(brand:Brand){
   if(!window.confirm(brand.is_active?'Nonaktifkan brand ini? Akses dan katalog brand dapat terdampak.':'Aktifkan kembali brand ini?'))return;
   setBusy(true);setMessage('');
-  try{await send('/api/admin/brands/'+brand.id,'PATCH',{is_active:!brand.is_active});await refreshData();setMessage('Status brand diperbarui.');}
+  try{await send('/api/admin/brands/'+brand.id,'PATCH',{is_active:!brand.is_active,expected_version:brand.edit_version});await refreshData();setMessage('Status brand diperbarui.');}
   catch(error){setMessage(error instanceof Error?error.message:'Gagal mengubah brand');}finally{setBusy(false);}
  }
  async function upload(event:ChangeEvent<HTMLInputElement>,destination:'product'|'brand'){
@@ -310,6 +305,7 @@ export default function AdminPage(){
     </table>{orders.length===0&&<p className="vma26-muted">Belum ada draft pesanan.</p>}</div>
     <p className="vma26-muted">Pembayaran akan terhubung setelah provider, webhook, serta rekonsiliasi berhasil melewati QA. Saat ini tombol bayar tetap nonaktif.</p>
    </section>}
+   {(tab==='products'&&editingProduct||tab==='brands'&&editingBrand)&&<AuditHistory token={auth.accessToken} entityType={tab==='products'?'product':'brand'} entityId={(tab==='products'?editingProduct:editingBrand)!}/> }
    {message&&<p className="vma26-message" role="status" aria-live="polite">{message}</p>}
   </AdminWorkspace>;
 }

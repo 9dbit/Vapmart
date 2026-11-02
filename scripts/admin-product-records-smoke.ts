@@ -28,8 +28,9 @@ async function main(){
  try{
   await context.addInitScript(data=>localStorage.setItem('vapmart-customer-auth-v1',JSON.stringify(data)),session);
   const page=await context.newPage();
+ await page.route('**/api/admin/summary',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({totals:{published:0,lowStock:0,pendingOrders:0},scope:'database_total'})}));
   await page.route('**/api/admin/status',r=>r.fulfill({status:200,contentType:'application/json',body:'{"admin":true}'}));
-  for(const name of ['products','brands','orders'])await page.route('**/api/admin/'+name,r=>r.fulfill({status:200,contentType:'application/json',body:'{"items":[]}'}));
+  for(const name of ['products','brands','orders'])await page.route('**/api/admin/'+name+'**',r=>r.fulfill({status:200,contentType:'application/json',body:'{"items":[]}'}));
   await page.route('**/api/admin/product-records**',async route=>{
    if(route.request().method()!=='GET'){writeRequests++;await route.abort();return;}
    if(failNext){await route.fulfill({status:503,contentType:'application/json',body:'{"message":"Koneksi uji terputus"}'});return;}

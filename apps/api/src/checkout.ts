@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {BadRequestException,ConflictException,ForbiddenException,Injectable,NotFoundException,ServiceUnavailableException} from '@nestjs/common';
 import {DatabaseService} from './database';
 import type {Principal} from './auth';
+import {parsePage,pageResult} from './data-integrity';
 import {shippingFingerprint} from './shipping-fingerprint';
 
 type BasketItem={productId:string;quantity:number};
@@ -156,10 +157,19 @@ export class CheckoutService{
      'SELECT product_id,product_name,sku,quantity,unit_price_idr::text FROM product.order_items WHERE order_id=$1 ORDER BY id',[id]);
    return {order:order.rows[0],items:lines.rows,paymentEnabled:false};
  }
- async adminOrders(){
-   const rows=await this.db.query(
-     'SELECT id,status,payment_status,(payment_provider IS NOT NULL AND payment_reference IS NOT NULL) AS payment_verified,contact_name,contact_email,city,province,shipping_provider,shipping_courier_code,shipping_service_code,subtotal_idr::text,shipping_fee_idr::text,total_idr::text,payment_method,created_at FROM product.orders WHERE idempotency_key IS NOT NULL ORDER BY created_at DESC LIMIT 100');
-   return {items:rows.rows,paymentEnabled:false};
+ async adminOrders(raw:Record<string,unknown>={}){
+  const f=parsePage(raw);
+  const r=await this.db.query(`WITH filtered AS (
+   SELECT id,status,payment_status,(payment_provider IS NOT NULL AND payment_reference IS NOT NULL) AS payment_verified,
+    contact_name,contact_email,city,province,shipping_provider,shipping_courier_code,shipping_service_code,
+    subtotal_idr::text,shipping_fee_idr::text,total_idr::text,payment_method,created_at
+   FROM product.orders WHERE idempotency_key IS NOT NULL
+    AND ($1::text='' OR strpos(lower(concat_ws(' ',id::text,contact_name,contact_email,city)),lower($1))>0)
+    AND ($2::text='' OR status=$2 OR payment_status=$2)
+   ), selected AS (SELECT * FROM filtered ORDER BY created_at DESC,id DESC LIMIT $3 OFFSET $4)
+   SELECT jsonb_build_object('items',coalesce((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.created_at DESC,s.id DESC) FROM selected s),'[]'::jsonb),
+    'total',(SELECT count(*)::integer FROM filtered)) AS data`,[f.q,f.status,f.pageSize,(f.page-1)*f.pageSize]);
+  const d=r.rows[0].data;return {...pageResult(d.items,d.total,f.page,f.pageSize),paymentEnabled:false};
  }
  paymentSession(){
    throw new ServiceUnavailableException({code:'PAYMENT_PROVIDER_NOT_CONNECTED',message:'Pembayaran tidak dapat diproses sampai payment gateway terintegrasi dan diverifikasi'});

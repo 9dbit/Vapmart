@@ -1,4 +1,4 @@
-import {NextResponse} from 'next/server';
-import {getProducts} from '@/lib/api';
+import {NextRequest} from 'next/server';
+import {proxyJson} from '@/lib/server-proxy';
 export const dynamic='force-dynamic';
-export async function GET(){return NextResponse.json({items:await getProducts()},{headers:{'Cache-Control':'no-store'}});}
+export function GET(request:NextRequest){return proxyJson(request,'/v1/products'+request.nextUrl.search,'GET');}

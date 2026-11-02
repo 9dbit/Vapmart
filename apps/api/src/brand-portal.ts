@@ -34,13 +34,11 @@ export class BrandPortalService{
   return {brandId,role};
  }
  private async paidSales(brandId:string){
-  const r=await this.db.query<{paid_orders:string;units_sold:string;gross_item_sales_idr:string}>(
-   `SELECT count(DISTINCT o.id)::text AS paid_orders,coalesce(sum(CASE WHEN o.id IS NOT NULL THEN oi.quantity ELSE 0 END),0)::text AS units_sold,
-     coalesce(sum(CASE WHEN o.id IS NOT NULL THEN oi.quantity*oi.unit_price_idr ELSE 0 END),0)::text AS gross_item_sales_idr
-     FROM product.order_items oi JOIN product.orders o ON o.id=oi.order_id
-     JOIN product.products p ON p.id=oi.product_id
-     WHERE p.brand_id=$1 AND o.payment_status='paid' AND o.payment_provider IS NOT NULL
-       AND o.payment_reference IS NOT NULL AND o.status IN ('paid','fulfilled')`,[brandId]);
+  const r=await this.db.query(`SELECT count(DISTINCT o.id)::text AS paid_orders,coalesce(sum(oi.quantity),0)::text AS units_sold,
+   coalesce(sum(oi.quantity*oi.unit_price_idr),0)::text AS gross_item_sales_idr
+   FROM product.order_items oi JOIN product.orders o ON o.id=oi.order_id
+   WHERE oi.brand_id=$1 AND o.payment_status='paid' AND o.payment_provider IS NOT NULL
+    AND o.payment_reference IS NOT NULL AND o.status IN ('paid','fulfilled')`,[brandId]);
   return r.rows[0]||{paid_orders:'0',units_sold:'0',gross_item_sales_idr:'0'};
  }
  async overview(user:Principal,brandId:string){
@@ -57,16 +55,13 @@ export class BrandPortalService{
  }
  async sales(user:Principal,brandId:string){
   await this.grant(user,brandId);
-  const r=await this.db.query(
-   `SELECT p.id AS product_id,p.sku,p.name,coalesce(sum(CASE WHEN o.id IS NOT NULL THEN oi.quantity ELSE 0 END),0)::text AS units_sold,
-     coalesce(sum(CASE WHEN o.id IS NOT NULL THEN oi.quantity*oi.unit_price_idr ELSE 0 END),0)::text AS gross_item_sales_idr
-     FROM product.products p
-     LEFT JOIN product.order_items oi ON oi.product_id=p.id
-     LEFT JOIN product.orders o ON o.id=oi.order_id AND o.payment_status='paid'
-       AND o.payment_provider IS NOT NULL AND o.payment_reference IS NOT NULL AND o.status IN ('paid','fulfilled')
-     WHERE p.brand_id=$1 AND p.slug NOT LIKE 'demo-%'
-     GROUP BY p.id,p.sku,p.name ORDER BY p.name LIMIT 500`,[brandId]);
-  return {brandId,items:r.rows,scope:'brand_only',salesBasis:'verified_paid_item_gross',settlementAvailable:false};
+  const r=await this.db.query(`SELECT oi.product_id,oi.sku,oi.product_name AS name,sum(oi.quantity)::text AS units_sold,
+    sum(oi.quantity*oi.unit_price_idr)::text AS gross_item_sales_idr
+   FROM product.order_items oi JOIN product.orders o ON o.id=oi.order_id
+   WHERE oi.brand_id=$1 AND o.payment_status='paid' AND o.payment_provider IS NOT NULL
+    AND o.payment_reference IS NOT NULL AND o.status IN ('paid','fulfilled')
+   GROUP BY oi.product_id,oi.sku,oi.product_name ORDER BY oi.product_name,oi.product_id`,[brandId]);
+  return {brandId,items:r.rows,scope:'brand_only',salesBasis:'verified_paid_brand_snapshot',settlementAvailable:false};
  }
  async warehouseStock(user:Principal,brandId:string){
   await this.grant(user,brandId);

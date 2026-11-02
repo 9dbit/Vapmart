@@ -26,7 +26,7 @@ export const productRecordsSql=`WITH records AS (
  jsonb_build_object('id',p.id,'slug',p.slug,'name',p.name,'sku',p.sku,'brand_id',p.brand_id,'brand_name',b.name,
  'description',p.description,'category',p.category,'price_idr',p.price_idr::integer,'stock_qty',p.stock_qty,
  'image_url',p.image_url,'gallery_urls',p.gallery_urls,'is_active',p.is_active,
- 'weight_grams',p.weight_grams,'length_cm',p.length_cm,'width_cm',p.width_cm,'height_cm',p.height_cm) AS product
+ 'weight_grams',p.weight_grams,'length_cm',p.length_cm,'width_cm',p.width_cm,'height_cm',p.height_cm,'edit_version',p.edit_version) AS product
  FROM product.products p LEFT JOIN product.brands b ON b.id=p.brand_id WHERE p.slug NOT LIKE 'demo-%'
  UNION ALL
  SELECT 'existing:'||a.slug,'existing',NULL::text,a.slug,a.name,a.brand,a.category,NULL::text,
