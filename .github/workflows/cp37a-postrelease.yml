@@ -1,0 +1,40 @@
+name: CP37A Post-release Verification
+on:
+  push:
+    branches: [work/cp37a-stability-20261103]
+    paths: [sources/cp37a-release.json]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deployed-readonly-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install test tooling without production credentials
+        run: |
+          npm ci --no-audit --no-fund --prefix apps/api
+          npm install --no-save --no-audit --no-fund playwright@1.56.0
+          npx playwright install chromium
+      - name: Verify CP37-A live read APIs and safety boundaries
+        run: node scripts/cp37a-postrelease.mjs
+      - name: Existing live HTTP smoke
+        run: node scripts/smoke-staging.mjs
+      - name: Storefront and admin entry browser regression
+        run: node scripts/ui-smoke.mjs
+      - name: Theme and mobile regression
+        run: node scripts/theme-smoke.mjs
+      - name: Admin workspace with browser-only fixture identity
+        run: node scripts/admin-ui-smoke.mjs
+      - name: Existing 19 product records with isolated browser fixtures
+        run: apps/api/node_modules/.bin/tsx scripts/admin-product-records-smoke.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cp37a-live-verification
+          path: artifacts/
+          if-no-files-found: ignore
