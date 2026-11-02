@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useMemo,useState,type FormEvent,type ChangeEvent} from 'react';
+import {useEffect,useState,type FormEvent,type ChangeEvent} from 'react';
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {useCustomerAuth} from '@/lib/customer-auth';
@@ -11,6 +11,7 @@ import {FulfillmentPanel} from '@/components/fulfillment-panel';
 import {CourierOpsPanel} from '@/components/courier-ops-panel';
 import {AdminAccess,type AdminAccessPhase} from '@/components/admin-access';
 import {AdminWorkspace,adminTitles,adminDescriptions,type AdminSection} from '@/components/admin-workspace';
+import {AdminProductRecords,useProductRecordSummary} from '@/components/admin-product-records';
 import '../admin-v26.css';
 
 type Brand={id:string;name:string;slug:string;description:string;logo_url:string|null;is_active:boolean};
@@ -42,12 +43,11 @@ export default function AdminPage(){
  const [products,setProducts]=useState<Product[]>([]);
  const [brands,setBrands]=useState<Brand[]>([]);
  const [orders,setOrders]=useState<Order[]>([]);
- const [search,setSearch]=useState('');
- const [statusFilter,setStatusFilter]=useState('all');
  const [editingProduct,setEditingProduct]=useState<string|null>(null);
  const [editingBrand,setEditingBrand]=useState<string|null>(null);
  const [productDraft,setProductDraft]=useState<ProductDraft>({...blankProduct});
  const [brandDraft,setBrandDraft]=useState<BrandDraft>({...blankBrand});
+ const recordSummary=useProductRecordSummary(authorized&&verifiedToken===auth.accessToken?auth.accessToken:null,products);
 
  async function authorizedFetch(path:string,init:RequestInit={}){
   if(!auth.accessToken)throw new Error('Sesi berakhir, silakan masuk ulang');
@@ -126,12 +126,6 @@ export default function AdminPage(){
   window.scrollTo({top:0,behavior:'smooth'});
  }
  async function logout(){try{await auth.signOut();setAuthorized(false);setVerifiedToken(null);setProducts([]);setBrands([]);setOrders([]);setMessage('');}catch{setMessage('Tidak dapat keluar dari sesi, coba kembali.');}}
- const filtered=useMemo(()=>products.filter(p=>{
-  const q=search.trim().toLowerCase();
-  const match=!q||[p.name,p.sku||'',p.slug,p.brand_name||''].some(x=>x.toLowerCase().includes(q));
-  const status=statusFilter==='all'||(statusFilter==='active'&&p.is_active)||(statusFilter==='draft'&&!p.is_active)||(statusFilter==='low'&&p.stock_qty<=5);
-  return match&&status;
- }),[products,search,statusFilter]);
  const published=products.filter(p=>p.is_active).length;
  const lowStock=products.filter(p=>p.stock_qty<=5).length;
  const pending=orders.filter(o=>o.payment_status==='not_initiated').length;
@@ -228,44 +222,36 @@ export default function AdminPage(){
     <Link href="/" className="vma27-heading-action">↗ Lihat website</Link>
    </header>
    <div className="vma26-kpis">
-    <div><span>Inventori database</span><strong>{products.length}</strong><small>Produk pada PostgreSQL</small></div>
-    <div><span>Produk tayang</span><strong>{published}</strong><small>Terlihat di storefront</small></div>
-    <div><span>Stok ≤ 5</span><strong>{lowStock}</strong><small>Butuh pemeriksaan</small></div>
-    <div><span>Brand</span><strong>{brands.length}</strong><small>Aktif {brands.filter(b=>b.is_active).length}</small></div>
+    <div><span>Seluruh data produk</span><strong>{recordSummary.summary?.total??'—'}</strong><small className="vpr-source-count">{recordSummary.summary?`${recordSummary.summary.existing} existing + ${recordSummary.summary.managed} operasional`:'Memverifikasi sumber PostgreSQL'}</small></div>
+    <div><span>Produk tayang</span><strong>{recordSummary.summary?.published??published}</strong><small>Terlihat di storefront</small></div>
+    <div><span>Stok ≤ 5</span><strong>{lowStock}</strong><small>Hanya stok operasional</small></div>
+    <div><span>Brand operasional</span><strong>{brands.length}</strong><small>{recordSummary.summary?`${recordSummary.summary.existing_brands} brand pada data existing`:`Aktif ${brands.filter(b=>b.is_active).length}`}</small></div>
     <div><span>Draft pesanan</span><strong>{pending}</strong><small>Belum dibayar</small></div>
    </div>
-
+   {recordSummary.error&&<p className="vpr-catalog-warning" role="status">{recordSummary.error}. <button type="button" onClick={recordSummary.reload}>Coba sinkronkan lagi</button></p>}
    {tab==='overview'&&<div className="vma26-overview">
     <section className="vma26-panel"><p className="vma26-eyebrow">QUICK ACTIONS</p><h2>Kelola toko lebih cepat.</h2>
-     <p>Publikasikan produk non-nikotin setelah harga, stok, foto, dan SKU terverifikasi. Semua perubahan tercatat di PostgreSQL.</p>
-     <div className="vma26-quick-actions"><button className="vma26-btn-dark" type="button" onClick={newProduct}>+ Tambah produk</button><button className="vma26-btn-light" type="button" onClick={newBrand}>+ Tambah brand</button><button className="vma26-btn-light" type="button" onClick={()=>navigate('media')}>Lihat Media Library</button><button className="vma26-btn-light" type="button" onClick={()=>navigate('orders')}>Lihat pesanan</button></div>
+     <p>Produk existing dapat diperiksa di Produk &amp; SKU. Publikasi produk operasional tetap memerlukan data, foto, dan stok terverifikasi.</p>
+     <div className="vma26-quick-actions"><button className="vma26-btn-dark" type="button" onClick={()=>navigate('products')}>Lihat semua produk</button><button className="vma26-btn-light" type="button" onClick={newProduct}>+ Tambah produk</button><button className="vma26-btn-light" type="button" onClick={newBrand}>+ Tambah brand</button><button className="vma26-btn-light" type="button" onClick={()=>navigate('media')}>Lihat Media Library</button><button className="vma26-btn-light" type="button" onClick={()=>navigate('orders')}>Lihat pesanan</button></div>
     </section>
     <section className="vma26-panel vma26-gateway"><p className="vma26-eyebrow">PAYMENT STATUS</p><h2>Gateway belum terhubung</h2><p>QRIS, Virtual Account, dan e-wallet tersedia sebagai preferensi checkout. Pesanan baru disimpan sebagai draft dan tidak memicu transaksi.</p>
-     <div className="vma26-gate-row"><span>Cart & checkout review</span><strong>Siap di kode</strong></div>
+     <div className="vma26-gate-row"><span>Cart &amp; checkout review</span><strong>Siap di kode</strong></div>
      <div className="vma26-gate-row"><span>Draft order database</span><strong>Siap di kode</strong></div>
      <div className="vma26-gate-row"><span>Pembayaran langsung</span><strong>Nonaktif</strong></div>
     </section>
    </div>}
    {tab==='overview'&&products.length===0&&<section className="vma26-panel vma27-start-guide" aria-label="Panduan memulai">
-    <p className="vma26-eyebrow">GET STARTED</p><h2>Mulai mengelola toko dengan aman.</h2>
-    <p>Belum ada SKU aktif di katalog. Lengkapi data dan inventori yang sudah diverifikasi sebelum mempublikasikan produk.</p>
+    <p className="vma26-eyebrow">GET STARTED</p><h2>Periksa data existing, lengkapi operasional.</h2>
+    <p>Data existing tidak hilang. SKU dan stok yang belum tersedia pada sumber ditandai untuk pemeriksaan, bukan diisi angka perkiraan.</p>
     <div className="vma27-guide-steps">
-     <button type="button" onClick={()=>navigate('brands')}><span>01</span><strong>Daftarkan brand</strong><small>Tentukan identitas dan hak akses mitra</small></button>
-     <button type="button" onClick={()=>navigate('media')}><span>02</span><strong>Periksa aset</strong><small>Gunakan Media Library untuk foto dan logo</small></button>
-     <button type="button" onClick={newProduct}><span>03</span><strong>Lengkapi SKU</strong><small>Tambahkan harga, foto dan detail produk</small></button>
+     <button type="button" onClick={()=>navigate('products')}><span>01</span><strong>Periksa semua produk</strong><small>Nama, brand, kategori dan foto existing</small></button>
+     <button type="button" onClick={()=>navigate('media')}><span>02</span><strong>Periksa aset</strong><small>Media Library menyimpan foto dan logo asli</small></button>
+     <button type="button" onClick={newProduct}><span>03</span><strong>Lengkapi SKU operasional</strong><small>Gunakan data produk yang telah diverifikasi</small></button>
      <button type="button" onClick={()=>navigate('warehouses')}><span>04</span><strong>Verifikasi stok</strong><small>Catat penerimaan melalui gudang fisik</small></button>
     </div>
    </section>}
    {tab==='products'&&<div className="vma26-layout">
-    <section className="vma26-panel">
-     <div className="vma26-section-head"><div><p className="vma26-eyebrow">CATALOG MANAGER</p><h2>Produk <span>{filtered.length}</span></h2></div><button className="vma26-btn-dark" type="button" onClick={newProduct}>+ Produk baru</button></div>
-     <div className="vma26-filter"><input aria-label="Cari produk" placeholder="Cari nama, SKU, brand..." value={search} onChange={e=>setSearch(e.target.value)}/><select aria-label="Filter status" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="all">Semua status</option><option value="active">Published</option><option value="draft">Draft</option><option value="low">Stok rendah</option></select></div>
-     <div className="vma26-list">{filtered.length===0?<p className="vma26-muted">Belum ada produk pada filter ini.</p>:filtered.map(p=><article className="vma26-item" key={p.id}>
-       <div className="vma26-thumb">{p.image_url?<img src={p.image_url} alt=""/>:<span>V</span>}</div>
-       <div className="vma26-item-info"><strong>{p.name}</strong><small>{p.brand_name||brands.find(b=>b.id===p.brand_id)?.name||'Tanpa brand'} · SKU {p.sku||'Belum diisi'}</small><small>{formatIDR(p.price_idr)} · Stok {p.stock_qty}</small><span className={'vma26-state'+(p.is_active?' live':'')}>{p.is_active?'Published':'Draft'}</span></div>
-       <div className="vma26-item-actions"><button type="button" onClick={()=>editProduct(p)} disabled={busy}>Edit</button><button type="button" onClick={()=>publish(p)} disabled={busy}>{p.is_active?'Unpublish':'Publish'}</button>{p.is_active&&<Link href={'/product/'+p.slug}>Lihat ↗</Link>}</div>
-      </article>)}</div>
-    </section>
+    <AdminProductRecords token={auth.accessToken!} products={products} onEdit={editProduct} onPublish={publish} onNew={newProduct} onSynced={recordSummary.reload} busy={busy}/>
     <form className="vma26-panel vma26-editor" onSubmit={saveProduct}>
       <p className="vma26-eyebrow">{editingProduct?'EDIT PRODUCT':'NEW PRODUCT'}</p><h2>{editingProduct?'Edit produk':'Tambah produk'}</h2>
       <p className="vma26-muted">{editingProductRecord?'Terakhir dipilih: '+editingProductRecord.name:'Produk baru selalu berstatus draft hingga dipublikasikan.'}</p>
@@ -294,14 +280,14 @@ export default function AdminPage(){
    {tab==='brands'&&<><div className="vma26-layout">
     <section className="vma26-panel">
       <div className="vma26-section-head"><div><p className="vma26-eyebrow">BRAND DIRECTORY</p><h2>Brands <span>{brands.length}</span></h2></div><button type="button" className="vma26-btn-dark" onClick={newBrand}>+ Brand baru</button></div>
-      <div className="vma26-list">{brands.length===0?<p className="vma26-muted">Belum ada brand. Tambahkan brand pertama melalui form.</p>:brands.map(b=><article className="vma26-item" key={b.id}>
+      <div className="vma26-list">{brands.length===0?<p className="vma26-muted">Belum ada brand operasional. Brand sumber existing dapat diperiksa di Produk &amp; SKU.</p>:brands.map(b=><article className="vma26-item" key={b.id}>
        <div className="vma26-thumb">{b.logo_url?<img src={b.logo_url} alt=""/>:<span>{b.name.charAt(0)}</span>}</div>
        <div className="vma26-item-info"><strong>{b.name}</strong><small>{b.slug} · {products.filter(p=>p.brand_id===b.id).length} produk</small><span className={'vma26-state'+(b.is_active?' live':'')}>{b.is_active?'Aktif':'Nonaktif'}</span></div>
        <div className="vma26-item-actions"><button type="button" disabled={busy} onClick={()=>editBrand(b)}>Edit</button><button type="button" disabled={busy} onClick={()=>toggleBrand(b)}>{b.is_active?'Nonaktifkan':'Aktifkan'}</button></div>
       </article>)}</div>
     </section>
     <form className="vma26-panel vma26-editor" onSubmit={saveBrand}>
-      <p className="vma26-eyebrow">{editingBrand?'EDIT BRAND':'NEW BRAND'}</p><h2>{editingBrand?'Edit brand':'Tambah brand'}</h2>
+      <p className="vma26-eyebrow">BRAND MANAGER</p><h2>{editingBrand?'Edit brand':'Tambah brand'}</h2>
       <label>Nama brand<input required minLength={2} maxLength={100} value={brandDraft.name} onChange={e=>setBrandDraft(b=>({...b,name:e.target.value,slug:editingBrand?b.slug:slugify(e.target.value)}))}/></label>
       <label>Slug<input required pattern="[a-z0-9]+(-[a-z0-9]+)*" value={brandDraft.slug} onChange={e=>setB('slug',e.target.value)}/></label>
       <label>Deskripsi<textarea maxLength={1200} rows={3} value={brandDraft.description} onChange={e=>setB('description',e.target.value)}/></label>
@@ -324,7 +310,6 @@ export default function AdminPage(){
     </table>{orders.length===0&&<p className="vma26-muted">Belum ada draft pesanan.</p>}</div>
     <p className="vma26-muted">Pembayaran akan terhubung setelah provider, webhook, serta rekonsiliasi berhasil melewati QA. Saat ini tombol bayar tetap nonaktif.</p>
    </section>}
-
    {message&&<p className="vma26-message" role="status" aria-live="polite">{message}</p>}
   </AdminWorkspace>;
 }
