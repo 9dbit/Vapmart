@@ -40,7 +40,9 @@ jobs:
         with:
           node-version: 22
       - name: Materialize guarded patch on work branch only
-        run: python3 scripts/cp37a-prepare.py
+        run: |
+          python3 scripts/cp37a-prepare.py
+          python3 scripts/cp37a-finish.py
       - name: Install API dependencies
         run: npm ci --no-audit --no-fund
         working-directory: apps/api
