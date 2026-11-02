@@ -109,10 +109,10 @@ export function AdminProductRecords({token,products,onEdit,onPublish,onNew,onSyn
    <span role="status">{data?`${data.summary.existing} existing · ${data.summary.managed} operasional · ${data.summary.existing_media_linked}/${data.summary.existing} foto existing terhubung`:'Memeriksa sumber data…'}</span></div>
   <div className="vpr-search"><label>Cari produk<input type="search" value={q} maxLength={120} onChange={e=>setQ(e.target.value)} placeholder="Nama, SKU, brand, atau slug"/></label></div>
   <div className="vpr-filters">
-   <label>Sumber<select value={source} onChange={e=>filter(()=>setSource(e.target.value))}><option value="all">Semua produk</option><option value="existing">Existing</option><option value="managed">Operasional</option></select></label>
-   <label>Status<select value={status} onChange={e=>filter(()=>setStatus(e.target.value))}><option value="all">Semua status</option><option value="unverified">Perlu verifikasi</option><option value="draft">Draf</option><option value="published">Tayang</option></select></label>
-   <label>Brand<select value={brand} onChange={e=>filter(()=>setBrand(e.target.value))}><option value="">Semua brand</option>{data?.facets.brands.map(b=><option key={b} value={b}>{b}</option>)}</select></label>
-   <label>Kategori<select value={category} onChange={e=>filter(()=>setCategory(e.target.value))}><option value="">Semua kategori</option>{data?.facets.categories.map(c=><option key={c} value={c}>{c}</option>)}</select></label>
+   <label>Sumber<select aria-label="Filter sumber produk" value={source} onChange={e=>filter(()=>setSource(e.target.value))}><option value="all">Semua produk</option><option value="existing">Existing</option><option value="managed">Operasional</option></select></label>
+   <label>Status<select aria-label="Filter status produk" value={status} onChange={e=>filter(()=>setStatus(e.target.value))}><option value="all">Semua status</option><option value="unverified">Perlu verifikasi</option><option value="draft">Draf</option><option value="published">Tayang</option></select></label>
+   <label>Brand<select aria-label="Filter brand produk" value={brand} onChange={e=>filter(()=>setBrand(e.target.value))}><option value="">Semua brand</option>{data?.facets.brands.map(b=><option key={b} value={b}>{b}</option>)}</select></label>
+   <label>Kategori<select aria-label="Filter kategori produk" value={category} onChange={e=>filter(()=>setCategory(e.target.value))}><option value="">Semua kategori</option>{data?.facets.categories.map(c=><option key={c} value={c}>{c}</option>)}</select></label>
   </div>
   {error&&<p role="alert" className="vpr-error">{error}. Data tidak dianggap kosong. <button type="button" onClick={refresh}>Coba lagi</button></p>}
   <div className="vpr-list" aria-busy={loading}>
