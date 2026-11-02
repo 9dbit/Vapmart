@@ -4,7 +4,7 @@ import {resolve} from 'node:path';
 import {chromium} from 'playwright';
 import {allArchiveItems} from '../apps/web/src/lib/archive-catalog';
 
-// Browser fixture session only. Reads are intercepted; no production admin account or data mutation.
+// Fixture-only browser identity and intercepted data. No production administrator credentials or writes.
 const BASE='https://vapmart.id',API='https://vapmart-api-staging.up.railway.app';
 const sleep=(n:number)=>new Promise(r=>setTimeout(r,n));
 const user={id:'bca49deb-d128-4d41-a3ab-8f8e019f095e',aud:'authenticated',role:'authenticated',email:'catalog-qa@example.invalid',email_confirmed_at:'2026-11-02T00:00:00Z',created_at:'2026-11-02T00:00:00Z',app_metadata:{provider:'email',providers:['email']},user_metadata:{}};
@@ -15,8 +15,7 @@ const facets={brands:[...new Set(records.map(r=>r.brand))].sort(),categories:[..
 async function main(){
  let protectedReady=false;
  for(let i=0;i<65;i++){
-  try{
-   const [web,api]=await Promise.all([fetch(BASE+'/api/admin/product-records',{signal:AbortSignal.timeout(12000)}),fetch(API+'/v1/admin/product-records',{signal:AbortSignal.timeout(12000)})]);
+  try{const [web,api]=await Promise.all([fetch(BASE+'/api/admin/product-records',{signal:AbortSignal.timeout(12000)}),fetch(API+'/v1/admin/product-records',{signal:AbortSignal.timeout(12000)})]);
    if(web.status===401&&api.status===401){protectedReady=true;break;}
   }catch{}
   await sleep(4000);
@@ -35,40 +34,36 @@ async function main(){
    if(route.request().method()!=='GET'){writeRequests++;await route.abort();return;}
    if(failNext){await route.fulfill({status:503,contentType:'application/json',body:'{"message":"Koneksi uji terputus"}'});return;}
    const f=new URL(route.request().url()).searchParams,q=(f.get('q')||'').toLowerCase();
-   const filtered=records.filter(r=>(!q||[r.name,r.slug,r.brand,r.category].some(v=>v.toLowerCase().includes(q)))&&
-    (!f.get('brand')||r.brand===f.get('brand'))&&(!f.get('category')||r.category===f.get('category'))&&
-    f.get('source')!=='managed'&&!['published','draft'].includes(f.get('status')||''));
+   const filtered=records.filter(r=>(!q||[r.name,r.slug,r.brand,r.category].some(v=>v.toLowerCase().includes(q)))&&(!f.get('brand')||r.brand===f.get('brand'))&&(!f.get('category')||r.category===f.get('category'))&&f.get('source')!=='managed'&&!['published','draft'].includes(f.get('status')||''));
    const size=Number(f.get('pageSize')||24),p=Number(f.get('page')||1);
    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({items:filtered.slice((p-1)*size,p*size),matched:filtered.length,summary,facets,page:p,pageSize:size,pages:Math.ceil(filtered.length/size),hasMore:p*size<filtered.length,syncedAt:new Date().toISOString(),existingReadOnly:true,fullWooCommerceExportVerified:false})});
   });
   await page.route('**/api/admin/media-library/*/content',async route=>{
-   const id=new URL(route.request().url()).pathname.split('/').at(-2);const row=records.find(r=>r.media_id===id);
+   const id=new URL(route.request().url()).pathname.split('/').at(-2),row=records.find(r=>r.media_id===id);
    assert.ok(row);assert.equal(route.request().headers().authorization,'Bearer '+session.access_token);
    const path=resolve('apps/web/public'+row.original_path),ext=path.split('.').at(-1);
    await route.fulfill({status:200,contentType:ext==='png'?'image/png':ext==='webp'?'image/webp':'image/jpeg',body:await readFile(path)});
   });
   let rendered=false;
   for(let i=0;i<35;i++){
-   try{
-    await page.goto(BASE+'/admin?tab=products',{waitUntil:'domcontentloaded',timeout:20000});
-    await page.getByRole('combobox',{name:'Filter brand produk',exact:true}).waitFor({state:'visible',timeout:6000});
-    rendered=true;break;
+   try{await page.goto(BASE+'/admin?tab=products',{waitUntil:'domcontentloaded',timeout:20000});
+    await page.getByRole('combobox',{name:'Filter brand produk',exact:true}).waitFor({state:'visible',timeout:6000});rendered=true;break;
    }catch(e){console.log('Waiting for product records workspace',i,String(e).slice(0,150));}
    await sleep(4000);
   }
   assert.ok(rendered,'new source-aware product list must be deployed');
   await page.waitForFunction(()=>document.querySelectorAll('.vpr-row').length===19);
-  assert.equal(await page.locator('.vpr-row').count(),19);
   assert.equal(await page.locator('.vpr-row').getByRole('button',{name:'Publish',exact:true}).count(),0);
   assert.equal(await page.locator('.vpr-row').getByRole('button',{name:'Edit',exact:true}).count(),0);
   assert.ok((await page.locator('.vma26-kpis').innerText()).includes('19 existing + 0 operasional'));
+  await page.waitForFunction(()=>document.querySelectorAll('.vpr-row .vpr-image img').length===19);
   for(const image of await page.locator('.vpr-row .vpr-image img').all()){
    await image.scrollIntoViewIfNeeded();await image.evaluate(async img=>{await (img as HTMLImageElement).decode();});
   }
-  assert.equal(await page.locator('.vpr-row .vpr-image img').count(),19);
-  await page.evaluate(()=>window.scrollTo(0,0));
+  await page.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';window.scrollTo(0,0);});
+  await page.waitForFunction(()=>window.scrollY===0);
   await mkdir('artifacts/product-records',{recursive:true});
-  await page.screenshot({path:'artifacts/product-records/products-desktop.png',fullPage:true});
+  await page.screenshot({path:'artifacts/product-records/products-desktop.png',fullPage:true,animations:'disabled'});
   const search=page.locator('.vpr-panel').getByLabel('Cari produk');
   await search.fill('EMKAY');await page.waitForFunction(()=>document.querySelectorAll('.vpr-row').length===4);
   await page.locator('.vpr-row').first().getByRole('button',{name:'Lihat data'}).click();
@@ -86,10 +81,15 @@ async function main(){
   await page.getByRole('alert').filter({hasText:'Data tidak dianggap kosong'}).waitFor();
   failNext=false;await page.getByRole('button',{name:'Coba lagi',exact:true}).click();
   await page.waitForFunction(()=>document.querySelectorAll('.vpr-row').length===19);
+  // Fresh mobile load avoids capturing a desktop-to-mobile transform half-way through.
   await page.setViewportSize({width:390,height:844});
+  await page.goto(BASE+'/admin?tab=products',{waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>document.querySelectorAll('.vpr-row').length===19);
+  await page.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';window.scrollTo(0,0);(document.activeElement as HTMLElement|null)?.blur();});
+  await page.waitForFunction(()=>window.scrollY===0&&!!document.querySelector('.vma27-sidebar')&&document.querySelector('.vma27-sidebar')!.getBoundingClientRect().right<=0);
   const mobile=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
   assert.ok(mobile.scroll<=mobile.width+3,'no mobile horizontal overflow '+JSON.stringify(mobile));
-  await page.screenshot({path:'artifacts/product-records/products-mobile.png',fullPage:true});
+  await page.screenshot({path:'artifacts/product-records/products-mobile.png',fullPage:true,animations:'disabled'});
   assert.equal(writeRequests,0);
   console.log('VAPMART_PRODUCT_RECORDS_UI_PASS',JSON.stringify({sourceRecords:19,mediaLoaded:19,search:true,brandFilter:true,details:true,noPublication:true,retry:true,mobile,fixtureOnly:true}));
  }finally{await context.close();await browser.close();}
