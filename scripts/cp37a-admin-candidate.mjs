@@ -11,7 +11,7 @@ export async function verifyAdminCandidate(browser){
  const records=[{record_id:'managed:'+products[0].id,record_kind:'managed',product_id:products[0].id,slug:products[0].slug,name:products[0].name,brand:brand.name,category:'home',sku:products[0].sku,price_idr:100000,stock_qty:0,is_active:false,historical_price:null,historical_original_price:null,image_url:null,original_path:null,media_id:null,source_snapshot:'product.products',source_updated_at:'2026-11-03T00:00:00Z',read_only:false,missing_fields:['photo'],product:products[0]}];
  const context=await browser.newContext({viewport:{width:1440,height:1000}});
  await context.addInitScript(data=>localStorage.setItem('vapmart-customer-auth-v1',JSON.stringify(data)),session);
- let patches=0,seenProductPages=new Set();
+ let patches=0,seenProductPages=new Set();let page;
  try{
   await context.route('**/*',async route=>{
    const u=new URL(route.request().url());
@@ -41,7 +41,7 @@ export async function verifyAdminCandidate(browser){
    }
    return reply({message:'Unexpected mocked admin endpoint '+path},500);
   });
-  const page=await context.newPage();
+  page=await context.newPage();
   await page.goto('http://127.0.0.1:3000/admin?tab=products',{waitUntil:'networkidle'});
   await page.locator('.vpr-row').first().waitFor({timeout:15000});
   assert.deepEqual([...seenProductPages].sort(),[1,2,3],'workspace must read through all 205 product records');
@@ -53,11 +53,21 @@ export async function verifyAdminCandidate(browser){
   assert.equal(patches,1);assert.equal(await editor.getByLabel('Nama produk',{exact:true}).inputValue(),'My unsaved organizer change','409 must not discard typed changes');
   await page.getByRole('navigation',{name:'Menu Control Panel'}).getByRole('button',{name:'Gudang & Stok',exact:true}).click();
   await page.getByRole('button',{name:'Stok masuk / keluar',exact:true}).click();
-  const skuSelector=page.getByLabel('Produk',{exact:true}).first();
+  const stockForm=page.locator('.vm-warehouse form').filter({has:page.getByRole('heading',{name:'Catat stok fisik',exact:true})});
+  await stockForm.waitFor({state:'visible'});
+  const skuSelector=stockForm.locator('select').nth(1);
+  await skuSelector.waitFor({state:'visible'});
+  await skuSelector.locator('option[value="'+products[204].id+'"]').waitFor({state:'attached'});
   assert.equal(await skuSelector.locator('option').count(),205,'warehouse chooser includes SKUs beyond the old 150 limit');
   await skuSelector.selectOption(products[204].id);
   assert.equal(await skuSelector.inputValue(),products[204].id);
   await page.screenshot({path:'artifacts/cp37a/admin-warehouse-205-records.png',fullPage:true});
   console.log('CP37A_ADMIN_UI_PASS',{records:205,pages:3,versionSent:7,conflictPreservesDraft:true,warehouseLastSkuSelectable:true,realWrites:false});
+ }catch(e){
+  if(page&&!page.isClosed()){
+   console.error('CP37A_ADMIN_DIAGNOSTIC',{url:page.url(),seenProductPages:[...seenProductPages],patches,headings:await page.locator('h1,h2,h3').allTextContents(),selects:await page.locator('select').evaluateAll(nodes=>nodes.map(n=>({label:n.closest('label')?.childNodes[0]?.textContent,options:n.options.length})))});
+   await page.screenshot({path:'artifacts/cp37a/admin-failure.png',fullPage:true}).catch(()=>{});
+  }
+  throw e;
  }finally{await context.close();}
 }
