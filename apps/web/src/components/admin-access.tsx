@@ -2,6 +2,7 @@
 import {useState,type FormEvent} from 'react';
 import Link from 'next/link';
 import {useCustomerAuth} from '@/lib/customer-auth';
+import {AdminBrandLogo} from '@/components/admin-brand-logo';
 import '../app/admin-v27.css';
 
 export type AdminAccessPhase='checking'|'logged-out'|'denied'|'expired'|'error'|'unconfigured';
@@ -34,8 +35,7 @@ export function AdminAccess({phase,onRetry}:{phase:AdminAccessPhase;onRetry:()=>
   <div className="vma27-access-layout">
    <section className="vma27-access-intro" aria-label="Informasi dashboard">
     <Link href="/" className="vma27-access-brand" aria-label="Vapmart beranda">
-     <span className="vma27-brand-mark" aria-hidden="true">v</span>
-     <strong>vapmart<span>.</span></strong>
+     <AdminBrandLogo placement="access"/>
     </Link>
     <span className="vma27-access-kicker">PRIVATE WORKSPACE</span>
     <h1>Kelola toko.<br/><span>Satu tempat.</span></h1>

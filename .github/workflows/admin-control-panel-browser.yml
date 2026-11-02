@@ -19,3 +19,13 @@ jobs:
           npx playwright install chromium
       - name: Assert verified-admin UX with isolated mocked data
         run: node scripts/admin-ui-smoke.mjs
+      - name: Verify official ecommerce logo in admin light and dark modes
+        run: node scripts/admin-logo-smoke.mjs
+      - name: Save admin logo visual QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-official-logo-qa
+          path: artifacts/admin-official-logo/
+          retention-days: 7
+          if-no-files-found: ignore

@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState,type ReactNode} from 'react';
 import Link from 'next/link';
+import {AdminBrandLogo} from '@/components/admin-brand-logo';
 import '../app/admin-v27.css';
 
 export type AdminSection='overview'|'products'|'warehouses'|'brands'|'orders'|'fulfillment'|'courier'|'shipping'|'media';
@@ -42,8 +43,7 @@ export function AdminWorkspace({active,onNavigate,onLogout,email,children}:{
   {open&&<button type="button" className="vma27-nav-backdrop" aria-label="Tutup navigasi lewat overlay" onClick={()=>setOpen(false)}/>}
   <aside className={'vma27-sidebar'+(open?' is-open':'')} aria-label="Navigasi administrator">
    <div className="vma27-sidebar-brand">
-    <span className="vma27-brand-mark" aria-hidden="true">v</span>
-    <span className="vma27-sidebar-brand-text">vapmart<span>.</span><small>CONTROL PANEL</small></span>
+    <AdminBrandLogo placement="sidebar"/>
     <button type="button" className="vma27-close-nav" aria-label="Tutup menu" onClick={()=>setOpen(false)}>×</button>
    </div>
    <div className="vma27-sidebar-section">WORKSPACE</div>
