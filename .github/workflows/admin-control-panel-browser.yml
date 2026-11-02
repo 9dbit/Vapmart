@@ -1,7 +1,5 @@
 name: Admin Control Panel responsive QA
 on:
-  push:
-    branches: [feat/ecommerce-foundation-20261029]
   workflow_dispatch:
 jobs:
   admin-ui:

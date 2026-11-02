@@ -1,7 +1,5 @@
 name: Existing product synchronization QA
 on:
-  push:
-    branches: [feat/ecommerce-foundation-20261029]
   workflow_dispatch:
 jobs:
   product-records:
