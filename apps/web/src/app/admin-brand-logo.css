@@ -1,0 +1,11 @@
+/* Admin uses the exact storefront BrandLogo assets, ratio and light/dark switching.
+   Scope sizing to admin slots only; leave storefront and image bytes unchanged. */
+html body .vma27-official-brand{display:block;min-width:0;max-width:100%;flex:0 1 auto}
+html body .vma27-access-brand{max-width:100%}
+html body .vma27-official-brand-access{width:244px}
+html body .vma27-official-brand-sidebar{width:168px;margin-right:auto}
+html body .vma27-official-brand>.vm24-brand-logo{width:100%;max-width:100%;aspect-ratio:400 / 79;height:auto}
+html body .vma27-official-brand-caption{display:block;margin:10px 0 0;font-size:10px;letter-spacing:.17em;line-height:1.5;font-weight:750;color:#84738c}
+html body .vma27-sidebar-brand .vma27-close-nav{flex-shrink:0}
+html[data-vapmart-color-mode="dark"] body .vma27-official-brand-caption{color:#bca7ca}
+@media(max-width:760px){html body .vma27-official-brand-access{width:220px}}

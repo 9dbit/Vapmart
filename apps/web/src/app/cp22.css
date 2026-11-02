@@ -1,0 +1,329 @@
+/* Vapmart CP22: ISO ID-1 member card and consistent subpage header.
+   Original logo, real backend values and CP21 safety gates are preserved.
+   Solid purple + graphite panels: no translucent card artwork. */
+
+:root{
+  --vm22-purple:#8110e6;
+  --vm22-charcoal:#202026;
+  --vm22-solid-grey:#f0f0f3;
+  --vm22-solid-lilac:#f0e5ff;
+  --vm22-ink:#242029;
+}
+/* Header logo occupies one stable slot on every page. Back is a separate row. */
+html body .vm-modern-header{
+  position:sticky;
+  top:0;
+  z-index:55;
+  background:#fff;
+}
+html body .vm-modern-header .vm-header-main{background:transparent!important}
+html body .vm-modern-header.vm-subpage .legacy-logo{
+  position:static;
+  top:auto;right:auto;
+  flex:0 0 clamp(154px,15vw,205px);
+  width:clamp(154px,15vw,205px);
+  margin:0;
+}
+html body .vm-modern-header.vm-subpage .legacy-logo img{
+  display:block;width:100%;max-width:205px;height:auto;filter:none!important;opacity:1;
+}
+html body .vm22-backbar{
+  position:relative;
+  z-index:15;
+  background:#f8f8fa;
+  border-bottom:1px solid #efedf2;
+}
+html body .vm22-backbar-inner{
+  max-width:1500px;min-height:60px;padding:8px 5%;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+html body .vm22-back-link{
+  min-width:44px;min-height:44px;display:inline-flex;align-items:center;gap:12px;
+  text-decoration:none;color:#302837;font-size:13px;font-weight:750;
+  border-radius:999px;
+}
+html body .vm22-back-link:hover .vm22-back-icon{background:#ece0ff;color:#7525bb}
+html body .vm22-back-icon{
+  box-sizing:border-box;flex:none;width:44px;height:44px;
+  display:grid;place-items:center;border-radius:999px;
+  color:#332c3b;background:#fff;border:1px solid #e5e0ea;
+  transition:background .2s,color .2s;
+}
+html body .vm22-back-icon svg{width:22px;height:22px}
+html body .vm22-back-caption{color:#7a7180;font-size:12px;font-weight:600}
+html body .vm22-back-link:focus-visible{outline:2px solid var(--vm22-purple);outline-offset:3px}
+
+/* Real credit-card ratio = 85.60 x 53.98mm => 1.586:1.
+   The height comes only from aspect-ratio and width, not a tall min-height. */
+html body .vm-new-member-card.vm22-member-card{
+  box-sizing:border-box;
+  position:relative;
+  display:block;
+  width:100%;
+  max-width:640px;
+  min-width:0;
+  min-height:0;
+  height:auto;
+  aspect-ratio:85.6 / 53.98;
+  padding:0;
+  margin:0;
+  overflow:hidden;
+  isolation:isolate;
+  border:0;
+  border-radius:clamp(18px,3.8vw,25px);
+  color:#fff;
+  background:var(--vm22-purple);
+  box-shadow:0 14px 27px #3b17462b,0 1px 4px #2b19212a;
+}
+html body .vm-new-member-card.vm22-member-card:before{content:none!important}
+html body .vm22-card-purple-panel{
+  position:absolute;inset:0;z-index:0;
+  background:#8010e6;
+}
+html body .vm22-card-charcoal-panel{
+  position:absolute;inset:0;z-index:1;
+  background:var(--vm22-charcoal);
+  clip-path:polygon(78% 0,100% 0,100% 100%,41% 100%);
+}
+html body .vm22-card-engraving{
+  position:absolute;z-index:1;right:-5%;top:13%;
+  width:40%;height:75%;
+  overflow:visible;
+  transform:rotate(-12deg);
+}
+html body .vm22-card-content{
+  position:relative;
+  z-index:2;
+  box-sizing:border-box;width:100%;height:100%;
+  display:grid;grid-template-rows:auto minmax(0,1fr) auto;
+  padding:clamp(15px,3.9%,25px);
+  gap:3px;
+}
+html body .vm22-card-brand-row{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+  min-height:0;
+}
+html body .vm-new-card-brand.vm22-card-brand{
+  box-sizing:border-box;
+  padding:5px 9px;
+  width:clamp(113px,34%,175px);
+  min-width:0;
+  border-radius:10px;
+  background:#fff;
+  box-shadow:none;
+}
+html body .vm22-card-brand img{
+  display:block;width:100%;height:auto;max-width:none;
+  filter:none!important;object-fit:contain;
+}
+html body .vm22-card-type{
+  margin-top:8px;font-size:clamp(8px,1.2vw,10px);
+  font-weight:750;letter-spacing:.20em;
+  line-height:1.2;color:#f2e7ff;white-space:nowrap;
+}
+html body .vm22-card-holder-block{
+  align-self:center;
+  display:flex;flex-direction:column;align-items:flex-start;
+  min-width:0;max-width:100%;gap:3px;
+  padding:2px 0 0;
+}
+html body .vm22-card-holder-label{
+  color:#ead7ff;font-size:clamp(8px,1.05vw,10px);
+  letter-spacing:.15em;font-weight:700;line-height:1.3;
+}
+html body .vm22-card-holder{
+  display:block;max-width:97%;width:100%;
+  font-size:clamp(19px,2.35vw,29px);
+  font-weight:850;letter-spacing:-.04em;
+  line-height:1.15;color:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+html body .vm22-card-number{
+  margin-top:4px;font-size:clamp(12px,1.55vw,19px);
+  line-height:1.25;letter-spacing:.12em;color:#fff;
+  white-space:nowrap;
+}
+html body .vm22-card-bottom{
+  min-width:0;
+  display:grid;grid-template-columns:minmax(0,52fr) minmax(0,48fr);
+  align-items:end;gap:4px;
+}
+html body .vm22-card-membership,html body .vm22-card-coin-panel{
+  min-width:0;display:flex;align-items:flex-start;flex-direction:column;gap:6px;
+}
+html body .vm22-card-coin-panel{
+  padding-left:clamp(10px,2vw,22px);
+  border-left:1px solid #a59aaa;
+}
+html body .vm22-card-bottom-label{
+  font-size:clamp(8px,1.1vw,10px);
+  font-weight:720;letter-spacing:.13em;
+  line-height:1.25;color:#e8ddf4;
+}
+html body .vm22-card-status{
+  display:inline-flex;align-items:center;justify-content:flex-start;gap:5px;
+  box-sizing:border-box;max-width:100%;min-height:28px;
+  border-radius:999px;padding:4px 10px;
+  background:#532089;
+  border:1px solid #752db0;
+  color:#fff;font-size:clamp(10px,1.2vw,12px);font-weight:780;line-height:1.2;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+html body .vm22-card-status svg{flex:none;width:14px;height:14px}
+html body .vm22-card-status span{
+  min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+html body .vm22-card-status.is-active{background:#6818bb;border-color:#9c50f2}
+html body .vm22-card-coin-value{
+  width:100%;min-width:0;
+  display:flex;align-items:center;gap:6px;color:#fff;
+}
+html body .vm22-card-coin-value strong{
+  min-width:0;font-size:clamp(17px,2.5vw,27px);line-height:1;
+  font-weight:850;letter-spacing:-.045em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+html body .vm22-card-goldcoin{
+  flex:none;width:25px;height:25px;
+  display:grid;place-items:center;
+  border:2px solid #f9da68;border-radius:50%;
+  background:radial-gradient(circle at 30% 20%,#fff4a2 0%,#ffd153 28%,#e59d22 65%,#b76a16 100%);
+  box-shadow:inset 0 0 0 2px #d68820,inset 0 0 0 4px #fff09d;
+  color:#96540d;font-weight:950;font-size:13px;font-style:italic;
+  text-shadow:0 1px #ffe793;
+}
+html body .vm22-card-open-wallet{
+  flex:none;margin-left:auto;
+  box-sizing:border-box;width:27px;height:27px;
+  border:0;border-radius:999px;
+  display:grid;place-items:center;cursor:pointer;
+  background:#45414d;color:#fff;
+}
+html body .vm22-card-open-wallet:hover{background:#6d6175}
+html body .vm22-card-open-wallet:focus-visible{outline:2px solid #f0d3ff;outline-offset:2px}
+
+/* Directly underneath the card: solid purple/grey, clickable quick actions.
+   No fake balance or promotional event is manufactured for guests. */
+html body .vm22-member-page{background:#f6f6f8}
+html body .vm22-member-heading{
+  position:absolute!important;width:1px!important;height:1px!important;
+  margin:0!important;padding:0!important;overflow:hidden!important;
+  clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)!important;
+}
+html body .vm22-member-page .vm21-member-columns{
+  grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);
+  max-width:1100px;gap:22px;
+}
+html body .vm22-member-page .vm21-member-primary{gap:14px}
+html body .vm22-member-shortcuts{
+  display:flex;flex-direction:column;gap:10px;
+}
+html body .vm22-member-shortcut{
+  border:1px solid transparent;
+  border-radius:19px;
+  min-height:91px;
+  width:100%;
+  padding:14px 15px;
+  display:flex;align-items:center;justify-content:flex-start;gap:12px;
+  text-align:left;color:var(--vm22-ink);cursor:pointer;
+  transition:transform .2s,border-color .2s,background .2s;
+}
+html body .vm22-member-shortcut.is-lilac{
+  background:#ede0ff;border-color:#e8d5fc;
+}
+html body .vm22-member-shortcut.is-grey{
+  background:#ebecf0;border-color:#e5e5e9;
+}
+html body .vm22-member-shortcut:hover{transform:translateY(-1px);border-color:#c49cf2}
+html body .vm22-member-shortcut:focus-visible{outline:2px solid var(--vm22-purple);outline-offset:2px}
+html body .vm22-shortcut-icon{
+  display:grid;place-items:center;
+  flex:0 0 51px;width:51px;height:51px;
+  border-radius:15px;
+  color:#8010e6;
+  background:#dac2ff;
+}
+html body .is-grey .vm22-shortcut-icon{background:#ded9ea}
+html body .vm22-shortcut-copy{
+  min-width:0;flex:1 1 auto;display:flex;flex-direction:column;gap:5px;
+}
+html body .vm22-shortcut-copy strong{
+  font-weight:820;font-size:15px;line-height:1.2;
+  letter-spacing:-.015em;color:#29232e;
+}
+html body .vm22-shortcut-copy small{
+  font-size:11px;line-height:1.5;color:#696272;
+}
+html body .vm22-shortcut-chevron{
+  flex:none;display:grid;place-items:center;
+  width:31px;height:31px;
+  background:#fff;color:#7728cc;
+  border-radius:50%;
+  font-size:27px;line-height:1;font-weight:350;
+}
+html body #vm22-member-detail{scroll-margin-top:95px}
+/* Existing functional tabs, top-up tiers, benefits and history remain below shortcuts. */
+
+@media(max-width:900px){
+  html body .vm22-member-page .vm21-member-columns{
+    display:flex;flex-direction:column;gap:17px;
+    max-width:640px;align-items:stretch;
+  }
+  html body .vm22-member-page .vm21-member-primary,
+  html body .vm22-member-page .vm21-member-secondary{width:100%}
+}
+@media(max-width:767px){
+  html body .vm-modern-header.vm-subpage .legacy-logo{
+    flex:0 0 147px!important;width:147px!important;
+    margin:0!important;position:static!important;
+  }
+  html body .vm-modern-header.vm-subpage .legacy-logo img{
+    width:147px!important;max-width:147px!important;
+    height:auto!important;filter:none!important;
+  }
+  html body .vm22-backbar-inner{
+    min-height:55px;padding:5px 16px;
+  }
+  html body .vm22-back-link{gap:10px;font-size:13px;min-height:45px}
+  html body .vm22-back-icon{height:41px;width:41px}
+  html body .vm22-back-caption{display:none}
+  html body .vm22-member-page{
+    padding:13px 14px calc(122px + env(safe-area-inset-bottom));
+  }
+  html body .vm22-member-page .vm21-member-primary{gap:12px}
+  html body .vm-new-member-card.vm22-member-card{
+    max-width:none;
+    border-radius:19px;
+  }
+  html body .vm22-card-content{padding:clamp(12px,3.8vw,17px)}
+  html body .vm22-card-brand{padding:4px 7px!important;border-radius:8px!important}
+  html body .vm22-card-type{font-size:8px;letter-spacing:.12em;margin-top:7px}
+  html body .vm22-card-holder-label{font-size:8px}
+  html body .vm22-card-holder{font-size:clamp(17px,5.2vw,21px)}
+  html body .vm22-card-number{font-size:clamp(11px,3.1vw,14px);letter-spacing:.075em;margin-top:3px}
+  html body .vm22-card-membership,html body .vm22-card-coin-panel{gap:4px}
+  html body .vm22-card-coin-panel{padding-left:9px}
+  html body .vm22-card-bottom-label{font-size:8px;letter-spacing:.09em}
+  html body .vm22-card-status{min-height:25px;padding:3px 7px;font-size:9px;gap:4px}
+  html body .vm22-card-status svg{width:12px;height:12px}
+  html body .vm22-card-goldcoin{height:22px;width:22px;font-size:11px}
+  html body .vm22-card-coin-value{gap:5px}
+  html body .vm22-card-coin-value strong{font-size:clamp(15px,4vw,19px)}
+  html body .vm22-card-open-wallet{width:24px;height:24px}
+  html body .vm22-member-shortcut{min-height:83px;padding:11px 13px;border-radius:17px;gap:10px}
+  html body .vm22-shortcut-icon{width:47px;height:47px;flex-basis:47px;border-radius:14px}
+  html body .vm22-shortcut-copy strong{font-size:14px}
+  html body .vm22-shortcut-copy small{font-size:10.5px}
+  html body .vm22-shortcut-chevron{height:29px;width:29px;font-size:25px}
+}
+@media(max-width:359px){
+  html body .vm-modern-header.vm-subpage .legacy-logo{width:130px!important;flex-basis:130px!important}
+  html body .vm-modern-header.vm-subpage .legacy-logo img{width:130px!important}
+  html body .vm22-card-brand-row .vm22-card-type{font-size:7px}
+  html body .vm22-card-coin-value strong{font-size:14px}
+  html body .vm22-card-status{font-size:8px}
+}
+@media(prefers-reduced-motion:reduce){
+  html body .vm22-member-shortcut{transition:none!important}
+  html body .vm22-back-icon{transition:none!important}
+}

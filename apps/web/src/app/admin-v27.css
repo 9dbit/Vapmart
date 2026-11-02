@@ -1,0 +1,200 @@
+/* Vapmart CP37-R1: Accessible, unified administration shell. Isolated from public storefront. */
+.vma27-workspace{display:grid;grid-template-columns:246px minmax(0,1fr);min-height:100dvh;background:#f7f6fa;color:#332b3c}
+.vma27-workspace button,.vma27-access-page button{cursor:pointer}
+.vma27-workspace a,.vma27-access-page a{text-decoration:none}
+.vma27-sidebar{position:sticky;top:0;align-self:start;height:100dvh;overflow:auto;display:flex;flex-direction:column;padding:23px 13px 20px;background:#fff;border-right:1px solid #e8e1ed;z-index:20}
+.vma27-sidebar-brand{display:flex;align-items:center;gap:11px;padding:5px 10px 24px}
+.vma27-brand-mark{width:42px;height:42px;display:grid;place-items:center;flex:none;border-radius:14px;background:linear-gradient(145deg,#b03cec,#6d20c6);color:#fff;font-size:30px;font-weight:900;letter-spacing:-.09em;box-shadow:0 9px 22px #7b28c82a}
+.vma27-sidebar-brand-text{color:#302838;font-weight:850;font-size:24px;letter-spacing:-.07em;line-height:1}
+.vma27-sidebar-brand-text>span,.vma27-access-brand>strong>span{color:#8d2cd9}
+.vma27-sidebar-brand-text small{display:block;margin-top:9px;font-size:10px;letter-spacing:.17em;color:#84738c;font-weight:750}
+.vma27-sidebar-section{font-size:11px;letter-spacing:.13em;font-weight:750;color:#9a8ba3;padding:15px 17px 12px}
+.vma27-side-links{display:grid;gap:4px}
+.vma27-side-link{position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:49px;padding:10px 14px;text-align:left;border:0;background:transparent;border-radius:14px;color:#73667b;font-size:14px;font-weight:700;transition:background .15s ease,color .15s ease}
+.vma27-side-link:hover{background:#f8f0fd;color:#7230b0}
+.vma27-side-link.is-active{background:#efe2fa;color:#7525c7;font-weight:820}
+.vma27-side-symbol{font-size:19px;line-height:1;display:grid;place-items:center;width:23px;flex:none}
+.vma27-side-marker{width:6px;height:6px;border-radius:50%;margin-left:auto;background:#8525d5}
+.vma27-sidebar-bottom{margin-top:auto;padding:19px 8px 0}
+.vma27-locked-card{background:#f7f1fb;border:1px solid #eee2f4;border-radius:16px;padding:17px}
+.vma27-lock-icon{display:inline-block;color:#8524cf;font-size:12px;margin-right:8px}
+.vma27-locked-card strong{color:#47334f;font-size:13px}
+.vma27-locked-card p{font-size:12px;line-height:1.55;color:#82728c;margin:8px 0 0}
+.vma27-storefront-link{display:flex;align-items:center;justify-content:center;margin:14px 0 0;border:1px solid #e8e0ef;border-radius:14px;padding:13px 8px;color:#6d3b95;font-size:13px;font-weight:750}
+.vma27-content{min-width:0}
+.vma27-topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;min-height:87px;background:#ffffffeb;border-bottom:1px solid #eae3ee;padding:18px clamp(20px,3.2vw,48px);position:sticky;top:0;z-index:10;backdrop-filter:blur(20px)}
+.vma27-topbar-start,.vma27-topbar-actions{display:flex;align-items:center;gap:15px;min-width:0}
+.vma27-topbar-title{display:grid;gap:3px}
+.vma27-topbar-title small{font-size:11px;font-weight:750;letter-spacing:.1em;color:#8b7797}
+.vma27-topbar-title strong{font-size:20px;color:#322737;font-weight:800;letter-spacing:-.04em}
+.vma27-secure-state{display:inline-flex;align-items:center;gap:8px;border-radius:100px;background:#f1e7fa;padding:10px 13px;color:#7432b2;font-size:12px;font-weight:750;white-space:nowrap}
+.vma27-secure-state>span{width:7px;height:7px;border-radius:50%;background:#9239d3}
+.vma27-user-email{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#766a7d;font-size:12px}
+.vma27-signout{padding:10px 16px;border:1px solid #ded2e6;border-radius:999px;background:#fff;color:#653c7e;font-size:13px;font-weight:780;min-height:44px}
+.vma27-menu-toggle,.vma27-close-nav{display:none}
+.vma27-workspace .vma27-main{margin:0 auto;width:100%;max-width:1630px;padding:clamp(20px,3vw,39px) clamp(18px,3.2vw,48px) 100px;min-height:calc(100vh - 87px);font-size:16px;color:#322b39}
+.vma27-page-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;margin:0 0 21px}
+.vma27-page-heading h1{font-size:clamp(28px,3.4vw,42px);letter-spacing:-.06em;line-height:1.08;color:#35243e;margin:3px 0 9px;font-weight:800}
+.vma27-page-heading p:not(.vma26-eyebrow){font-size:15px;line-height:1.65;color:#796d80;margin:0;max-width:680px}
+.vma27-heading-action{display:inline-flex;align-items:center;min-height:44px;padding:10px 17px;background:#fff;border:1px solid #e3d6e9;border-radius:100px;color:#733ba6;font-size:13px;font-weight:780;white-space:nowrap}
+.vma27-workspace .vma26-panel{padding:clamp(22px,2vw,30px);border-radius:22px;border-color:#eae3ef;box-shadow:0 8px 28px #25132b06}
+.vma27-workspace .vma26-panel h2{font-size:clamp(22px,2vw,27px);font-weight:800;line-height:1.24}
+.vma27-workspace .vma26-panel h3{font-size:clamp(18px,1.8vw,22px)}
+.vma27-workspace .vma26-panel>p:not(.vma26-eyebrow),.vma27-workspace .vma26-muted{font-size:14px;line-height:1.65}
+.vma27-workspace .vma26-eyebrow{font-size:11px}
+.vma27-workspace .vma26-kpis{grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:4px 0 22px}
+.vma27-workspace .vma26-kpis>div{padding:21px 18px;gap:9px;border-radius:20px}
+.vma27-workspace .vma26-kpis span{font-size:13px}
+.vma27-workspace .vma26-kpis strong{font-size:clamp(25px,2.6vw,37px)}
+.vma27-workspace .vma26-kpis small{font-size:12px;line-height:1.45}
+.vma27-workspace .vma26-btn-dark,.vma27-workspace .vma26-btn-light{font-size:14px!important;min-height:47px;padding:12px 19px}
+.vma27-workspace .vma26-gate-row{font-size:14px}.vma27-workspace .vma26-gate-row strong{font-size:13px}
+.vma27-workspace .vma26-item-info strong{font-size:15px;line-height:1.4}
+.vma27-workspace .vma26-item-info small{font-size:13px;line-height:1.5}
+.vma27-workspace .vma26-state{font-size:12px;padding:6px 12px}
+.vma27-workspace .vma26-item-actions button,.vma27-workspace .vma26-item-actions a{font-size:13px!important;min-height:43px;padding:10px 13px}
+.vma27-workspace .vma26-editor>label,.vma27-workspace .vma26-cols>label{font-size:14px;line-height:1.45;font-weight:750}
+.vma27-workspace .vma26-filter input,.vma27-workspace .vma26-filter select{height:auto}
+.vma27-workspace .vma26-root input:not([type=checkbox]):not([type=file]),
+.vma27-workspace .vma26-root select,.vma27-workspace .vma26-root textarea{font-size:16px;min-height:46px;padding:12px 14px;border-radius:13px;line-height:1.45}
+.vma27-workspace .vma26-orders table{font-size:14px}
+.vma27-workspace .vma26-orders th{font-size:13px}.vma27-workspace .vma26-orders td small{font-size:12px}
+.vma27-workspace .vma26-item-actions{gap:8px}
+.vma27-workspace .vma26-gallery button{width:32px;height:32px}
+.vma27-workspace :where(button,a,input,textarea,select):focus-visible,
+.vma27-access-page :where(button,a,input,textarea):focus-visible{outline:3px solid #a653eb;outline-offset:3px}
+.vma27-workspace .vma26-message{font-size:14px}
+.vma27-workspace .vma26-quick-actions{gap:10px}
+.vma27-workspace .vma26-layout{gap:20px}
+.vma27-workspace .vma26-layout .vma26-editor{top:105px}
+.vma27-workspace .vml-heading h2{font-size:clamp(27px,3vw,38px)}
+.vma27-workspace .vml-heading p,.vma27-workspace .vml-footnote{font-size:14px}
+.vma27-workspace .vml-stats strong{font-size:24px}
+.vma27-workspace .vml-tools input{min-height:46px;font-size:16px}
+.vma27-workspace .vml-card-info strong{font-size:15px}
+.vma27-workspace .vml-folders button{min-height:43px;font-size:13px}
+.vma27-workspace .vml-detail label{font-size:14px}
+.vma27-workspace .vml-detail input,.vma27-workspace .vml-detail textarea{font-size:15px}
+.vma27-workspace .vm-warehouse,.vma27-workspace .vm-fulfillment,.vma27-workspace .vm-courier-ops{font-size:15px}
+.vma27-workspace .vm-ops-form label{font-size:14px}
+.vma27-workspace .vm-ops-stats small{font-size:13px}
+.vma27-workspace .vm-ops-table table{font-size:14px}
+.vma27-workspace .vm-ops-table th{font-size:12px}
+.vma27-workspace .vm-ops-secondary,.vma27-workspace .vm-ops-primary{min-height:44px;font-size:13px}
+.vma27-nav-backdrop{display:none}
+.vma27-access-page{min-height:100dvh;display:grid;place-items:center;background:#f7f6fa;max-width:none!important;width:100%;padding:30px 22px!important}
+.vma27-access-layout{width:min(1120px,100%);display:grid;grid-template-columns:1fr minmax(350px,460px);gap:clamp(24px,6vw,95px);align-items:center}
+.vma27-access-intro{padding:30px 0}
+.vma27-access-brand{display:flex;align-items:center;gap:12px;width:max-content}
+.vma27-access-brand>strong{font-size:29px;color:#3e3046;letter-spacing:-.075em;font-weight:860}
+.vma27-access-kicker{display:block;color:#832ac7;font-size:12px;letter-spacing:.14em;font-weight:850;margin:58px 0 17px}
+.vma27-access-intro h1{font-size:clamp(42px,5.4vw,72px);font-weight:850;letter-spacing:-.07em;line-height:1.07;margin:0 0 25px}
+.vma27-access-intro h1 span{color:#922fdb}
+.vma27-access-intro>p{font-size:17px;line-height:1.7;color:#7d7285;max-width:500px}
+.vma27-access-highlights{display:grid;gap:14px;margin-top:50px}
+.vma27-access-highlights div{display:flex;align-items:center;gap:13px;font-size:14px;font-weight:650;color:#685b71}
+.vma27-access-highlights strong{color:#8428d6;font-size:14px;background:#efe1f8;padding:8px 10px;border-radius:10px}
+.vma27-access-card{background:#fff;padding:clamp(28px,3.4vw,45px);border-radius:28px;border:1px solid #e9dff0;box-shadow:0 24px 65px #5a307b12;min-width:0}
+.vma27-access-chip{display:inline-flex;align-items:center;gap:9px;font-size:11px;letter-spacing:.1em;color:#8131bf;font-weight:850}
+.vma27-secure-dot{width:8px;height:8px;border-radius:50%;background:#8e32d0}
+.vma27-access-card h2{font-size:clamp(25px,2.5vw,35px);letter-spacing:-.055em;line-height:1.13;margin:20px 0 10px;color:#36253c}
+.vma27-access-subtitle{font-size:15px;color:#8b7e91;line-height:1.6;margin:0}
+.vma27-access-form{display:grid;gap:10px;margin-top:27px}
+.vma27-access-form>label{font-weight:780;font-size:14px;color:#55465f;margin-top:8px}
+.vma27-access-form>input,.vma27-password-wrap input{width:100%;height:50px;padding:12px 15px;border-radius:13px;border:1px solid #ded3e5;background:#faf8fc;color:#3c2e43;font-size:16px}
+.vma27-password-wrap{display:flex;align-items:center;position:relative}
+.vma27-password-wrap input{padding-right:95px}
+.vma27-password-wrap button{position:absolute;right:7px;top:7px;bottom:7px;min-width:78px;border:0;background:#eee4f5;border-radius:10px;color:#7437a1;font-weight:750;font-size:12px}
+.vma27-primary-button,.vma27-outline-button{min-height:52px;display:flex;align-items:center;justify-content:center;gap:9px;width:100%;border-radius:13px;font-weight:800;font-size:15px;padding:11px 16px}
+.vma27-primary-button{border:1px solid #8227d2;background:#8428d6;color:#fff;margin-top:14px}
+.vma27-primary-button:hover{background:#6f1dbb}
+.vma27-outline-button{border:1px solid #decbe9;background:#fff;color:#7435a6;margin-top:11px}
+.vma27-access-alert{border-radius:12px;padding:13px 15px;background:#fcf3f6;color:#93415d;border:1px solid #f0d4e1;font-size:14px;line-height:1.5;margin:12px 0}
+.vma27-access-existing{margin-top:24px;display:grid;gap:11px}
+.vma27-account-email{font-size:16px;overflow-wrap:anywhere}
+.vma27-access-label{color:#8a8090;font-size:13px}
+.vma27-access-loading{display:flex;align-items:center;gap:12px;font-size:14px;color:#71617d;margin-top:24px}
+.vma27-loading-ring{width:20px;height:20px;border:3px solid #e5d6f0;border-top-color:#8428d6;border-radius:50%;animation:vma27-spin .8s linear infinite}
+@keyframes vma27-spin{to{transform:rotate(360deg)}}
+.vma27-access-footer{display:flex;align-items:center;justify-content:space-between;gap:13px;flex-wrap:wrap;border-top:1px solid #eee5f0;margin-top:29px;padding-top:21px;font-size:12px;color:#93879a}
+.vma27-access-footer a{font-size:13px;color:#6d2fa5;font-weight:750}
+@media(max-width:1390px){
+ .vma27-workspace .vma26-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .vma27-workspace .vma26-layout{grid-template-columns:minmax(0,1fr)}
+ .vma27-workspace .vma26-editor{position:static}
+}
+@media(max-width:1020px){
+ .vma27-workspace{display:block}
+ .vma27-sidebar{position:fixed;left:0;top:0;bottom:0;width:min(294px,84vw);height:100dvh;transform:translateX(-103%);transition:transform .22s ease;box-shadow:14px 0 36px #2c19301b}
+ .vma27-sidebar.is-open{transform:translateX(0)}
+ .vma27-nav-backdrop{display:block;position:fixed;inset:0;background:#241e2f80;z-index:19;border:0}
+ .vma27-menu-toggle{display:grid;place-items:center;min-width:44px;height:44px;background:#f2e9f7;color:#7631ae;border:0;border-radius:13px;font-size:20px}
+ .vma27-close-nav{display:grid;place-items:center;margin-left:auto;width:35px;height:35px;border:0;border-radius:10px;background:#f3eaf8;color:#7735a8;font-size:25px}
+ .vma27-access-layout{grid-template-columns:1fr 1fr;gap:24px}
+ .vma27-access-kicker{margin-top:27px}
+}
+@media(max-width:760px){
+ .vma27-topbar{min-height:75px;padding:13px 18px}
+ .vma27-topbar-title strong{font-size:18px}
+ .vma27-secure-state,.vma27-user-email{display:none}
+ .vma27-workspace .vma27-main{padding:23px 16px 110px}
+ .vma27-page-heading{flex-direction:column}
+ .vma27-page-heading h1{font-size:31px}
+ .vma27-page-heading p:not(.vma26-eyebrow){font-size:14px}
+ .vma27-workspace .vma26-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .vma27-workspace .vma26-kpis>div{padding:19px 15px}
+ .vma27-workspace .vma26-panel{padding:20px;border-radius:18px}
+ .vma27-workspace .vma26-item-actions{margin-left:0}
+ .vma27-workspace .vma26-item-info{font-size:14px}
+ .vma27-access-layout{max-width:570px;grid-template-columns:1fr;gap:14px}
+ .vma27-access-intro{padding:0}
+ .vma27-access-intro h1{font-size:40px;margin-bottom:14px}
+ .vma27-access-intro>p{font-size:15px}
+ .vma27-access-highlights{display:none}
+ .vma27-access-kicker{margin:23px 0 9px}
+ .vma27-access-card{padding:26px}
+ .vma27-access-page{padding:22px 15px!important}
+}
+@media(max-width:410px){
+ .vma27-workspace .vma26-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .vma27-workspace .vma26-item{gap:9px}
+ .vma27-topbar-title small{font-size:10px}
+ .vma27-signout{padding:9px 12px}
+ .vma27-workspace .vma26-orders-scroller{max-width:100%}
+}
+html[data-vapmart-color-mode=dark] .vma27-workspace,html[data-vapmart-color-mode=dark] .vma27-access-page{background:#121116;color:#efe9f5}
+html[data-vapmart-color-mode=dark] .vma27-sidebar,html[data-vapmart-color-mode=dark] .vma27-topbar,html[data-vapmart-color-mode=dark] .vma27-access-card{background:#1d1b23;border-color:#35303c}
+html[data-vapmart-color-mode=dark] .vma27-sidebar-brand-text,html[data-vapmart-color-mode=dark] .vma27-topbar-title strong,html[data-vapmart-color-mode=dark] .vma27-page-heading h1,html[data-vapmart-color-mode=dark] .vma27-access-card h2,html[data-vapmart-color-mode=dark] .vma27-access-brand>strong{color:#f3eafb}
+html[data-vapmart-color-mode=dark] .vma27-side-link{color:#cfc1da}
+html[data-vapmart-color-mode=dark] .vma27-side-link.is-active{background:#423153;color:#efdcff}
+html[data-vapmart-color-mode=dark] .vma27-locked-card{background:#2a2134;border-color:#4c3d59}
+html[data-vapmart-color-mode=dark] .vma27-locked-card strong{color:#efdcff}
+html[data-vapmart-color-mode=dark] .vma27-storefront-link,html[data-vapmart-color-mode=dark] .vma27-signout,html[data-vapmart-color-mode=dark] .vma27-outline-button{background:#332a3c;color:#ead6fc;border-color:#594568}
+html[data-vapmart-color-mode=dark] .vma27-page-heading p:not(.vma26-eyebrow),html[data-vapmart-color-mode=dark] .vma27-access-intro>p,html[data-vapmart-color-mode=dark] .vma27-access-subtitle{color:#c2b3cb}
+html[data-vapmart-color-mode=dark] .vma27-access-form>label{color:#e6dced}
+html[data-vapmart-color-mode=dark] .vma27-access-form>input,html[data-vapmart-color-mode=dark] .vma27-password-wrap input{background:#2c2534;border-color:#564663;color:#fbf4ff}
+
+/* Old Control Panel CSS had a more specific 13px input rule. Override it for login readability. */
+.vma27-access-page.vma26-root .vma27-access-card .vma27-access-form>input:not([type=checkbox]),
+.vma27-access-page.vma26-root .vma27-access-card .vma27-password-wrap>input:not([type=checkbox]){
+ font-size:16px;min-height:50px;padding:12px 15px;line-height:1.4;
+}
+.vma27-access-page.vma26-root .vma27-access-card .vma27-password-wrap>input{padding-right:95px}
+
+@media(prefers-reduced-motion:reduce){.vma27-sidebar,.vma27-loading-ring{transition:none;animation:none}}
+
+
+.vma27-skip-link{position:fixed;top:-70px;left:16px;z-index:100;background:#8428d6;border-radius:12px;padding:12px 17px;color:#fff;font-weight:800;font-size:14px}
+.vma27-skip-link:focus{top:12px}
+.vma27-start-guide{margin-top:19px}
+.vma27-start-guide>p:not(.vma26-eyebrow){margin:7px 0 18px}
+.vma27-guide-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}
+.vma27-guide-steps>button{display:grid;gap:9px;text-align:left;align-content:start;border:1px solid #e8dcef;background:#faf7fc;border-radius:17px;min-height:142px;padding:17px}
+.vma27-guide-steps>button:hover{background:#f4e9fc;border-color:#d7b7f1}
+.vma27-guide-steps>button>span{color:#8a2ed3;font-size:12px;font-weight:850}
+.vma27-guide-steps>button>strong{font-size:15px;color:#46304d}
+.vma27-guide-steps>button>small{font-size:12px;color:#82728b;line-height:1.55}
+html[data-vapmart-color-mode=dark] .vma27-guide-steps>button{background:#2d2534;border-color:#53405f}
+html[data-vapmart-color-mode=dark] .vma27-guide-steps>button>strong{color:#efdef8}
+@media(max-width:1450px){.vma27-guide-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.vma27-guide-steps{grid-template-columns:1fr}.vma27-guide-steps>button{min-height:90px}}

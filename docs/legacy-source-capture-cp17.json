@@ -1,0 +1,239 @@
+{
+  "checkpoint": 17,
+  "capture_date": "2026-10-30",
+  "source": "Authorized SPARK.local public_html.zip (offline, read-only)",
+  "manifest_assets": 56,
+  "verification": {
+    "exact": 55,
+    "transformed_original": 1
+  },
+  "categories": [
+    {
+      "path": "apps/web/public/legacy/categories/brand.png",
+      "legacy_upload": "wp-content/uploads/2025/07/Asset-11-5-1.png",
+      "sha256": "0adcfe1b70cef637e94e660c5361bd2cda411bb342062dbd048db8845ca59d5c",
+      "dimensions": [
+        1080,
+        1080
+      ],
+      "match": true
+    },
+    {
+      "path": "apps/web/public/legacy/categories/pod.png",
+      "legacy_upload": "wp-content/uploads/2025/07/Asset-11-2-2.png",
+      "sha256": "53b34c0248b12d32c376928aebd0fb02807a9184be1eddbff7851eb2197960f8",
+      "dimensions": [
+        1080,
+        1080
+      ],
+      "match": true
+    },
+    {
+      "path": "apps/web/public/legacy/categories/mod.png",
+      "legacy_upload": "wp-content/uploads/2025/07/Asset-11-1-3.png",
+      "sha256": "8e5ee76e46d1ed288bcacb427e8eaa03cc193a3728a34b94ba4bc82e07a011b4",
+      "dimensions": [
+        1080,
+        1080
+      ],
+      "match": true
+    },
+    {
+      "path": "apps/web/public/legacy/categories/cartridge.png",
+      "legacy_upload": "wp-content/uploads/2025/07/5-5.png",
+      "sha256": "b076ccbed7348c9fa835edd105bd37dad6539e074e7a5d655406969220d898f5",
+      "dimensions": [
+        1080,
+        1080
+      ],
+      "match": true
+    },
+    {
+      "path": "apps/web/public/legacy/categories/liquid.png",
+      "legacy_upload": "wp-content/uploads/2025/07/Asset-11-3-1.png",
+      "sha256": "7c50d33b5814b80ea8aaacf84b8735d275a2b965d12a24811a066de5a4d9a648",
+      "dimensions": [
+        1080,
+        1080
+      ],
+      "match": true
+    }
+  ],
+  "banner_derivatives": [
+    {
+      "path": "apps/web/public/legacy/banners/mobile-01.png",
+      "legacy_upload": "wp-content/uploads/2025/07/1-1024x448.png",
+      "sha256": "5e26a8cf3715c8eaad4adcde5e56e84469cdff0419235a03269c61cec6c11402",
+      "dimensions": [
+        1024,
+        448
+      ],
+      "match": true
+    },
+    {
+      "path": "apps/web/public/legacy/banners/mobile-02.png",
+      "legacy_upload": "wp-content/uploads/2025/07/2-7-1024x448.png",
+      "sha256": "0b82522a7251f45f3668f2cb8abae401afe53756e1b30daf2c18fa8d8d405a26",
+      "dimensions": [
+        1024,
+        448
+      ],
+      "match": true
+    },
+    {
+      "path": "apps/web/public/legacy/banners/mobile-03.png",
+      "legacy_upload": "wp-content/uploads/2025/07/1600-x-700-1024x448.png",
+      "sha256": "fcfa667d13da6434bf3fc4d569c41e4137cc85985d5ff244636c6f78139b1397",
+      "dimensions": [
+        1024,
+        448
+      ],
+      "match": true
+    },
+    {
+      "path": "apps/web/public/legacy/banners/desktop-01.png",
+      "legacy_upload": "wp-content/uploads/2025/07/1-1-1024x320.png",
+      "sha256": "68b0ba3e739290de4e6ebd14d0d45ea32e8511ea492c5d401a033ed7bdd590c6",
+      "dimensions": [
+        1024,
+        320
+      ],
+      "match": true
+    },
+    {
+      "path": "apps/web/public/legacy/banners/desktop-02.png",
+      "legacy_upload": "wp-content/uploads/2025/07/2-8-1024x320.png",
+      "sha256": "c789ad1e85891862217735c235b25ec6ab1b632e2491bb383953d47815c8e5ec",
+      "dimensions": [
+        1024,
+        320
+      ],
+      "match": true
+    },
+    {
+      "path": "apps/web/public/legacy/banners/desktop-03.png",
+      "legacy_upload": "wp-content/uploads/2025/05/1600-x-500-1024x320.png",
+      "sha256": "1c4f50bac49fbc8927f694032d08408ff3353c74d279ffa9625936a6ff887b1e",
+      "dimensions": [
+        1024,
+        320
+      ],
+      "match": true
+    }
+  ],
+  "original_hero_sources": [
+    {
+      "source": "wp-content/uploads/2025/07/1-1.png",
+      "exists": true,
+      "bytes": 3006217,
+      "sha256": "458387d6fd356f638a1d7fc5a02054a9dd96ebedc3932b5edf34f1655ef964c5",
+      "dimensions": [
+        3200,
+        1000
+      ]
+    },
+    {
+      "source": "wp-content/uploads/2025/07/2-8.png",
+      "exists": true,
+      "bytes": 2306727,
+      "sha256": "fb6c89bb60add7524c4a69c00ad83a14a675d627f5612663656a57060ac01241",
+      "dimensions": [
+        3200,
+        1000
+      ]
+    },
+    {
+      "source": "wp-content/uploads/2025/05/1600-x-500.png",
+      "exists": true,
+      "bytes": 1082612,
+      "sha256": "bca959d80f14acf49d8fe666e62b470d1d66a630ad63290aa0f661e5e64d48da",
+      "dimensions": [
+        1600,
+        500
+      ]
+    },
+    {
+      "source": "wp-content/uploads/2025/07/1.png",
+      "exists": true,
+      "bytes": 3949482,
+      "sha256": "0bcb38029a526dbc1e8720cf6e9810e30d93e3526182ae576268cde1ea4b8d98",
+      "dimensions": [
+        3200,
+        1400
+      ]
+    },
+    {
+      "source": "wp-content/uploads/2025/07/2-7.png",
+      "exists": true,
+      "bytes": 3435973,
+      "sha256": "93b64540a73c7f4838877cb2c8a5920385a8abfe2188a2b0262d09d63e9e6e47",
+      "dimensions": [
+        3200,
+        1400
+      ]
+    },
+    {
+      "source": "wp-content/uploads/2025/07/1600-x-700.png",
+      "exists": true,
+      "bytes": 1595487,
+      "sha256": "0e261b7eb88b27aada235559ac4a0e2d9fbbbdac15b921dc8eb3d210784b4314",
+      "dimensions": [
+        1600,
+        700
+      ]
+    }
+  ],
+  "elementor_css_count": 41,
+  "elementor_stylesheet_paths": [
+    "wp-content/uploads/elementor/css/loop-34811.css",
+    "wp-content/uploads/elementor/css/loop-34865.css",
+    "wp-content/uploads/elementor/css/post-11233.css",
+    "wp-content/uploads/elementor/css/post-12116.css",
+    "wp-content/uploads/elementor/css/post-13634.css",
+    "wp-content/uploads/elementor/css/post-14715.css",
+    "wp-content/uploads/elementor/css/post-19018.css",
+    "wp-content/uploads/elementor/css/post-23285.css",
+    "wp-content/uploads/elementor/css/post-24842.css",
+    "wp-content/uploads/elementor/css/post-24912.css",
+    "wp-content/uploads/elementor/css/post-24991.css",
+    "wp-content/uploads/elementor/css/post-25685.css",
+    "wp-content/uploads/elementor/css/post-25688.css",
+    "wp-content/uploads/elementor/css/post-25767.css",
+    "wp-content/uploads/elementor/css/post-28475.css",
+    "wp-content/uploads/elementor/css/post-3069.css",
+    "wp-content/uploads/elementor/css/post-3079.css",
+    "wp-content/uploads/elementor/css/post-31714.css",
+    "wp-content/uploads/elementor/css/post-3201.css",
+    "wp-content/uploads/elementor/css/post-33364.css",
+    "wp-content/uploads/elementor/css/post-34787.css",
+    "wp-content/uploads/elementor/css/post-34798.css",
+    "wp-content/uploads/elementor/css/post-34927.css",
+    "wp-content/uploads/elementor/css/post-34940.css",
+    "wp-content/uploads/elementor/css/post-35034.css",
+    "wp-content/uploads/elementor/css/post-35841.css",
+    "wp-content/uploads/elementor/css/post-36133.css",
+    "wp-content/uploads/elementor/css/post-36140.css",
+    "wp-content/uploads/elementor/css/post-4272.css",
+    "wp-content/uploads/elementor/css/post-4280.css",
+    "wp-content/uploads/elementor/css/post-4951.css",
+    "wp-content/uploads/elementor/css/post-5148.css",
+    "wp-content/uploads/elementor/css/post-5173.css",
+    "wp-content/uploads/elementor/css/post-5175.css",
+    "wp-content/uploads/elementor/css/post-5279.css",
+    "wp-content/uploads/elementor/css/post-6610.css",
+    "wp-content/uploads/elementor/css/post-7051.css",
+    "wp-content/uploads/elementor/css/post-7819.css",
+    "wp-content/uploads/elementor/css/post-7950.css",
+    "wp-content/uploads/elementor/css/post-8028.css",
+    "wp-content/uploads/elementor/css/post-8443.css"
+  ],
+  "astra_css_count": 112,
+  "brand_assets_in_manifest": 13,
+  "installed_plugin_directories": 30,
+  "mysql_dump_in_zip": false,
+  "notes": [
+    "Checked only source asset members from tracked manifest; did not read wp-config.php, user records or plugin settings.",
+    "Source hash mismatch is not necessarily data corruption: archived source may differ from processed image in GitHub.",
+    "No MySQL export implied by media archive. Database export must be handled separately with access controls."
+  ]
+}

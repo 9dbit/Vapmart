@@ -1,0 +1,39 @@
+{
+  "audit_date": "2026-10-30",
+  "source": "Hostinger WordPress public_html.zip / Facebook for WooCommerce product catalog feed",
+  "source_sha256": "277beb9ef8c4375a6414bdf981482306e295cf44c3fb070de557870c21a301be",
+  "zip_entry_date": "2026-9-17",
+  "mode": "read_only_aggregate_no_legacy_product_import",
+  "rows": 302,
+  "unique_product_ids": 302,
+  "unique_product_groups": 87,
+  "distinct_titles": 87,
+  "category_counts": {
+    "Pod": 235,
+    "Cartridge": 40,
+    "e-Juice": 16,
+    "Semua Produk": 11
+  },
+  "brand_count": 9,
+  "availability": {
+    "in stock": 251,
+    "out of stock": 51
+  },
+  "sku_column_present": false,
+  "gtin_populated": 0,
+  "stock_quantities_populated": 2,
+  "sale_prices_populated": 262,
+  "main_image_links": 302,
+  "unique_main_image_links": 272,
+  "images_present_in_zip": 302,
+  "images_missing_from_zip": 0,
+  "approved_new_replacement_products": 0,
+  "eligible_for_active_catalog": false,
+  "customer_order_data_included": false,
+  "limitations": [
+    "Facebook feed is not the complete WooCommerce SQL/product export",
+    "Stock availability is not verified numeric stock",
+    "Historical vape-related goods are archive-only and may not enter the active catalog",
+    "Image file matches do not authorize reuse for replacement products"
+  ]
+}

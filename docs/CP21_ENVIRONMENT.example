@@ -1,0 +1,18 @@
+# Vapmart CP21 environment inventory (examples only, not production secrets)
+# apps/web - PUBLIC / safe variables
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+NEXT_PUBLIC_DIGITAL_CHECKOUT_ENABLED=false
+API_INTERNAL_URL=
+
+# apps/api - PRIVATE (never commit real values)
+DATABASE_URL=
+SUPABASE_URL=
+SUPABASE_PUBLISHABLE_KEY=
+DIGITAL_COMMERCE_ENABLED=false
+PAYMENT_MODE=disabled
+SANDBOX_WEBHOOK_SECRET=
+
+# SUPABASE_SERVICE_ROLE_KEY must never be set in the browser.
+# Sandbox-only activation requires explicit staging approval, 32+ char webhook secret and tests.
+# Current public shipping checkout endpoint remains intentionally disabled.

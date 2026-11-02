@@ -1,0 +1,24 @@
+/* Durable fallback for browsers that lack CSS Typed Arithmetic multiplication */
+html body .vm-glow-right{transform:translate3d(0,var(--vm-parallax-y),0)}
+@media(max-width:767px){html body:has(.vm-modern-header.vm-subpage){padding-bottom:99px}}
+
+/* Checkpoint 12 browser QA repairs: 20px legacy span labels made pills overlap. */
+html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a>span,
+html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav button>span:not(.vm-mobile-cart-count){
+  font-size:10px!important;line-height:1.15;white-space:nowrap;
+  letter-spacing:-.01em;max-width:100%;overflow:hidden;text-overflow:ellipsis;
+}
+html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a svg,
+html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav button svg{
+  flex:none;height:20px;width:20px;
+}
+/* Cart drawer is a modal and must always sit above sticky header / bottom navigation. */
+html body .drawer-shell{z-index:120}
+html body .drawer-shell .drawer-shade{z-index:0}
+html body .drawer-shell .cart-drawer{z-index:1;border-radius:25px 0 0 25px;overflow:hidden}
+html body .cart-drawer .close-btn{height:44px;width:44px;min-width:44px;
+  display:grid;place-items:center;border-radius:50%;background:#30243b;color:#fff}
+html body .cart-drawer .close-btn:hover{background:#613b83}
+@media(max-width:767px){
+  html body .drawer-shell .cart-drawer{border-radius:25px 25px 0 0}
+}

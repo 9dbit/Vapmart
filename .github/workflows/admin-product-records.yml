@@ -1,0 +1,53 @@
+name: Existing product synchronization QA
+on:
+  push:
+    branches: [feat/ecommerce-foundation-20261029]
+  workflow_dispatch:
+jobs:
+  product-records:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: vapmart_test
+          POSTGRES_PASSWORD: disposable_records_password
+          POSTGRES_DB: vapmart_records_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U vapmart_test -d vapmart_records_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgres://vapmart_test:disposable_records_password@127.0.0.1:5432/vapmart_records_test
+      PAYMENT_MODE: disabled
+      CHECKOUT_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install API, build and migrate disposable DB
+        working-directory: apps/api
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          npm run migrate
+      - name: Verify source parity, media links and repeat-read safety
+        working-directory: apps/api
+        run: npx tsx --test test/integration/admin-product-records.ts
+      - name: Install browser tooling
+        run: |
+          npm init -y >/dev/null
+          npm install --no-save --no-audit --no-fund playwright@1.56.0
+          npx playwright install chromium
+      - name: Verify protected API and admin product UI with browser fixtures
+        run: apps/api/node_modules/.bin/tsx scripts/admin-product-records-smoke.ts
+      - name: Preserve visual QA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-product-records-qa
+          path: artifacts/product-records/
+          if-no-files-found: ignore
+          retention-days: 7

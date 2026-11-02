@@ -1,0 +1,94 @@
+{
+  "checkpoint": "10",
+  "capturedAt": "2026-10-30 Asia/Jakarta",
+  "reference": {
+    "home": "WordPress public HTML snapshot 2026-03-16 and user's public_html.zip backup",
+    "categoryPod": "WordPress product-category/pod snapshot 2026-04-14",
+    "detailProduct": "WordPress product/into-mission-replacement-pods snapshot 2026-03-16"
+  },
+  "viewports": {
+    "desktop": {
+      "width": 1440,
+      "height": 900,
+      "source": {
+        "categoryFirstCard": [
+          72,
+          166,
+          208,
+          301
+        ],
+        "detailGallery": [
+          72,
+          133,
+          384,
+          476
+        ],
+        "headerHeight": 72
+      },
+      "staging": {
+        "categoryFirstCard": [
+          72,
+          166,
+          211,
+          285
+        ],
+        "detailMainImage": [
+          72,
+          133,
+          384,
+          384
+        ],
+        "headerHeight": 72
+      }
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "source": {
+        "categoryFirstCard": [
+          0,
+          103,
+          191,
+          276
+        ],
+        "detailGallery": [
+          0,
+          57,
+          390,
+          390
+        ],
+        "headerHeight": 57
+      },
+      "staging": {
+        "categoryFirstCard": [
+          0,
+          104,
+          192,
+          272
+        ],
+        "detailMainImage": [
+          0,
+          57,
+          390,
+          390
+        ],
+        "headerHeight": 57
+      }
+    }
+  },
+  "security": {
+    "archivedContent": "read-only, no purchase controls",
+    "historicalPrices": "not current offers",
+    "activeCheckout": false,
+    "customerLogin": false,
+    "robots": "noindex,nofollow on staging",
+    "assetCount": 56,
+    "assetVerification": "56/56 HEAD status 200 + Content-Length matches source manifest"
+  },
+  "knownGaps": [
+    "Account and cart WordPress snapshot retrieval got HTTP 429; those pages match brand style but are not certified pixel-perfect",
+    "Pod is sourced from verified original category data; other category exports incomplete",
+    "Exact product detail CSS spacing and recommendations differ from WordPress",
+    "Customer login and WooCommerce real catalog have no production data mapping"
+  ]
+}

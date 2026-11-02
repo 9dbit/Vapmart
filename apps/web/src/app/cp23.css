@@ -1,0 +1,108 @@
+/* Vapmart CP23: theme layer imported after CP22. */
+html{color-scheme:light}
+html[data-vapmart-color-mode="dark"]{color-scheme:dark}
+html body .vm23-theme-switcher{position:relative;z-index:78;flex:0 0 43px;min-width:43px;height:43px}
+html body .vm23-theme-trigger{box-sizing:border-box;list-style:none;display:grid;place-items:center;cursor:pointer;width:43px;height:43px;border:1px solid #e8e2ed;border-radius:50%;color:#352a40;background:#f8f6fa}
+html body .vm23-theme-trigger::-webkit-details-marker{display:none}
+html body .vm23-theme-trigger::marker{content:""}
+html body .vm23-theme-trigger:hover,html body .vm23-theme-switcher[open] .vm23-theme-trigger{background:#e9d5ff;color:#6d23b1;border-color:#c8a7f1}
+html body .vm23-theme-menu{position:absolute;right:-52px;top:calc(100% + 12px);box-sizing:border-box;width:258px;max-width:calc(100vw - 24px);display:flex;flex-direction:column;gap:5px;padding:12px;background:#fff;border:1px solid #e5dbea;border-radius:22px;box-shadow:0 18px 46px #271b3738;color:#2c2636}
+html body .vm23-theme-switcher:not([open]) .vm23-theme-menu{display:none}
+html body .vm23-theme-menu-heading{display:flex;flex-direction:column;gap:4px;padding:5px 8px 9px}
+html body .vm23-theme-menu-heading strong{font-size:14px;font-weight:800}
+html body .vm23-theme-menu-heading small{color:#857b8d;font-size:11px}
+html body .vm23-theme-menu button{width:100%;min-height:52px;display:flex;align-items:center;gap:10px;padding:8px 9px;border:1px solid transparent;border-radius:14px;background:transparent;color:#332b3d;text-align:left;cursor:pointer}
+html body .vm23-theme-menu button:hover{background:#f3eaff}
+html body .vm23-theme-menu button.is-current{background:#efe1ff;border-color:#d5b7f6}
+html body .vm23-theme-choice-icon{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:11px;background:#f3eafb;color:#7821c2}
+html body .vm23-theme-choice-text{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}
+html body .vm23-theme-choice-text strong{font-size:12px;font-weight:770}
+html body .vm23-theme-choice-text small{font-size:10px;color:#82768e}
+html body .vm23-theme-choice-check{flex:none;width:20px;text-align:center;font-size:15px;font-weight:800;color:#7b18cc}
+html body .vm23-theme-trigger:focus-visible,html body .vm23-theme-menu button:focus-visible{outline:2px solid #9d58e5;outline-offset:3px}
+html[data-vapmart-color-mode="dark"]{
+ --vm23-bg:#0e0e12;--vm23-surface:#19191e;--vm23-muted:#bdb4c7;--vm23-line:#38323e;--vm23-text:#f5f0f9;
+ --vm16-page:var(--vm23-bg);--vm16-white:var(--vm23-surface);--vm16-tint:#2d1f3b;--vm16-soft:#222026;--vm16-cocoa:var(--vm23-text);--vm16-muted:var(--vm23-muted);--vm16-hair:var(--vm23-line);--vm16-shadow:0 10px 30px #0005;
+ --vm12-bg:var(--vm23-bg);--vm12-surface:var(--vm23-surface);--vm12-strong:var(--vm23-text);--vm12-text:#ded6e6;--vm12-sub:var(--vm23-muted);
+ --vm21-canvas:var(--vm23-bg);--vm21-paper:var(--vm23-surface);--vm21-ink:var(--vm23-text);--vm21-muted:var(--vm23-muted);--vm21-border:var(--vm23-line);--vm22-ink:var(--vm23-text)
+}
+html[data-vapmart-color-mode="dark"] body{background:var(--vm23-bg);color:var(--vm23-text)}
+
+/* Dark header, real logo, theme menu and back row. */
+html[data-vapmart-color-mode="dark"] body .vm-modern-header{background:#131317;border-color:#35303b;box-shadow:0 3px 17px #0005}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-header-main{color:#f5f0f9;background:transparent!important}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .legacy-logo{box-sizing:border-box;border-radius:10px;padding:5px 7px;background:#fff}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .legacy-logo img{filter:none!important;opacity:1!important}
+html[data-vapmart-color-mode="dark"] body .vm-desktop-links{background:#211e27;border-color:#403646}
+html[data-vapmart-color-mode="dark"] body .vm-desktop-links a{color:#cfc5d8}
+html[data-vapmart-color-mode="dark"] body .vm-desktop-links a:hover:not(.is-active){background:#352641;color:#fff}
+html[data-vapmart-color-mode="dark"] body .vm-desktop-links a.is-active{background:#8310e8;color:#fff}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-reference-cart,html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-search-disclosure summary,html[data-vapmart-color-mode="dark"] body .vm23-theme-trigger{background:#25232b;color:#ebe3f4;border:1px solid #49404f}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-reference-cart:hover,html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-search-disclosure[open] summary,html[data-vapmart-color-mode="dark"] body .vm23-theme-trigger:hover,html[data-vapmart-color-mode="dark"] body .vm23-theme-switcher[open] .vm23-theme-trigger{background:#3b2a4b;color:#fff;border-color:#9760d5}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-reference-cart .cart-count{background:#8310e8;color:#fff;border-color:#19151c}
+html[data-vapmart-color-mode="dark"] body .vm-header-pill-search{background:#242029;color:#cfc4d6;border-color:#47384e}
+html[data-vapmart-color-mode="dark"] body .vm-header-pill-search input{color:#f8f3ff}
+html[data-vapmart-color-mode="dark"] body .vm-header-pill-search input::placeholder{color:#a99eb3}
+html[data-vapmart-color-mode="dark"] body .vm-header-pill-search button{background:#8310e8;color:#fff}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-search-disclosure form{background:#22202a;border-color:#5b4769}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-search-disclosure form input{background:#2b2832;color:#fff;border-color:#584662}
+html[data-vapmart-color-mode="dark"] body .vm-modern-header .vm-search-disclosure form button{background:#8310e8;color:#fff}
+html[data-vapmart-color-mode="dark"] body .vm22-backbar{background:#1b191f;border-color:#37313f}
+html[data-vapmart-color-mode="dark"] body .vm22-back-link{color:#f0e9f5}
+html[data-vapmart-color-mode="dark"] body .vm22-back-icon{background:#2c2733;border-color:#51465b;color:#eee4f8}
+html[data-vapmart-color-mode="dark"] body .vm22-back-caption{color:#bdb2c9}
+html[data-vapmart-color-mode="dark"] body .vm23-theme-menu{background:#1f1b25;color:#f3edf7;border-color:#4d4056;box-shadow:0 21px 50px #000b}
+html[data-vapmart-color-mode="dark"] body .vm23-theme-menu-heading small,html[data-vapmart-color-mode="dark"] body .vm23-theme-choice-text small{color:#beb2c9}
+html[data-vapmart-color-mode="dark"] body .vm23-theme-menu button{color:#eee7f5}
+html[data-vapmart-color-mode="dark"] body .vm23-theme-menu button:hover{background:#372844}
+html[data-vapmart-color-mode="dark"] body .vm23-theme-menu button.is-current{background:#49285f;border-color:#795397}
+html[data-vapmart-color-mode="dark"] body .vm23-theme-choice-icon{background:#362742;color:#ddadff}
+html[data-vapmart-color-mode="dark"] body .vm23-theme-choice-check{color:#e2c0ff}
+
+/* Homepage, category thumbnails, archived product/news cards, authentic brands. */
+html[data-vapmart-color-mode="dark"] body .vm-trendora-home,html[data-vapmart-color-mode="dark"] body .vm-reference-home{background:var(--vm23-bg);color:var(--vm23-text)}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-home .vm-trendora-hero.vm-hero-stage{background:radial-gradient(ellipse at 20% 8%,#6723b522,transparent 48%)}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-eyebrow,html[data-vapmart-color-mode="dark"] body .vm21-eyebrow{color:#c48aff}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-section-heading h2,html[data-vapmart-color-mode="dark"] body .vm-trendora-home .vm-ref-section-head h2,html[data-vapmart-color-mode="dark"] body .vm-trendora-home .vm-ref-brands h2,html[data-vapmart-color-mode="dark"] body .vm-home-intro h1{color:#f5f0f9}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-see-all,html[data-vapmart-color-mode="dark"] body .vm-home-discover,html[data-vapmart-color-mode="dark"] body .vm-home-quicksearch{background:#27242e;border-color:#4a4052;color:#f2eaf9;box-shadow:none}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-see-all:hover,html[data-vapmart-color-mode="dark"] body .vm-home-discover:hover{background:#372a43;color:#fff;border-color:#8456b9}
+html[data-vapmart-color-mode="dark"] body .vm-home-quicksearch input{color:#f2edf7}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-category{background:#1c1b21;color:#f1ecf8;border-color:#3e3645;box-shadow:0 9px 25px #0005}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-category:hover{background:#292231;border-color:#8455c4}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-category-image{background:#2a2731}
+html[data-vapmart-color-mode="dark"] body .vm-reference-card,html[data-vapmart-color-mode="dark"] body .vm-reference-news-card{background:#19191e;color:#f4edf8;border-color:#38323e;box-shadow:0 10px 24px #0006}
+html[data-vapmart-color-mode="dark"] body .vm-reference-card h3,html[data-vapmart-color-mode="dark"] body .vm-reference-news-card>div{color:#f1ecf7}
+html[data-vapmart-color-mode="dark"] body .vm-reference-price{color:#c18aff}
+html[data-vapmart-color-mode="dark"] body .vm-reference-price del{color:#afa5b9}
+html[data-vapmart-color-mode="dark"] body .vm-archive-image{background:#292631}
+html[data-vapmart-color-mode="dark"] body .vm-archive-image:after{background:#302936;color:#f4ecfa}
+html[data-vapmart-color-mode="dark"] body .vm-archive-chip{background:#32243c;color:#dfb8ff;border-color:#744d88}
+html[data-vapmart-color-mode="dark"] body .vm-reference-disclaimer,html[data-vapmart-color-mode="dark"] body .vm-archive-end-note,html[data-vapmart-color-mode="dark"] body .vm-home-subtitle{color:#baafc7}
+html[data-vapmart-color-mode="dark"] body .vm-reference-disclaimer a{color:#c38aff}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-member{background:#3e1c60;color:#fff;box-shadow:0 9px 24px #0007}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-member h2{color:#fff}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-member .vm-trendora-eyebrow{color:#e7c8ff}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-member p{color:#ddc8ed}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-member-mark{color:#9765c2}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-member-link{background:#8310e8;color:#fff;border-color:#8310e8}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-brands .vm-brand-rail .vm-brand-card,html[data-vapmart-color-mode="dark"] body .vm-brand-page.vm-partner-page .vm-partner-logos .vm-partner-card{background:#211d26;border-color:#3c3243;color:#eee7f5}
+html[data-vapmart-color-mode="dark"] body .vm-brand-card .vm-brand-name,html[data-vapmart-color-mode="dark"] body .vm-brand-page.vm-partner-page .vm-partner-logos .vm-brand-name{color:#e4dbea!important}
+html[data-vapmart-color-mode="dark"] body .vm-brand-rail .vm-brand-card:hover{background:#302539;border-color:#8250be}
+html[data-vapmart-color-mode="dark"] body .vm-brand-controls button{background:#312639;color:#e1bbff;border-color:#5f4672}
+html[data-vapmart-color-mode="dark"] body .vm-brand-card .vm-brand-stage{background:#18131f;border-color:#32253f}
+
+/* Dark catalog filters/search. */
+html[data-vapmart-color-mode="dark"] body .vm-category-page,html[data-vapmart-color-mode="dark"] body .vm-detail-page,html[data-vapmart-color-mode="dark"] body .vm-brand-page,html[data-vapmart-color-mode="dark"] body .vm-catalog-page,html[data-vapmart-color-mode="dark"] body .legacy-product-wrapper,html[data-vapmart-color-mode="dark"] body .vm-account-page,html[data-vapmart-color-mode="dark"] body .vm-member-page,html[data-vapmart-color-mode="dark"] body .vm-cart-page,html[data-vapmart-color-mode="dark"] body .vm21-account-page,html[data-vapmart-color-mode="dark"] body .vm21-member-page,html[data-vapmart-color-mode="dark"] body .vm21-cart-page-content{background:var(--vm23-bg);color:var(--vm23-text)}
+html[data-vapmart-color-mode="dark"] body .legacy-product-wrapper .shop-toolbar,html[data-vapmart-color-mode="dark"] body .legacy-product-wrapper .product-card,html[data-vapmart-color-mode="dark"] body .legacy-product-wrapper .product-description,html[data-vapmart-color-mode="dark"] body .legacy-product-wrapper .empty-collection{background:var(--vm23-surface);border-color:var(--vm23-line)}
+html[data-vapmart-color-mode="dark"] body .legacy-product-wrapper .category,html[data-vapmart-color-mode="dark"] body .vm-cp17-favorites-filter,html[data-vapmart-color-mode="dark"] body .vm-reset-filters{background:#2a2631;border-color:#494050;color:#e3dce9}
+html[data-vapmart-color-mode="dark"] body .legacy-product-wrapper .category:hover:not(.active),html[data-vapmart-color-mode="dark"] body .vm-cp17-favorites-filter:hover:not(.is-active),html[data-vapmart-color-mode="dark"] body .vm-reset-filters:hover{background:#382749;border-color:#8951c1;color:#fff}
+html[data-vapmart-color-mode="dark"] body .legacy-product-wrapper .category.active,html[data-vapmart-color-mode="dark"] body .vm-cp17-favorites-filter.is-active{color:#fff;background:#8310e8;border-color:#8310e8}
+html[data-vapmart-color-mode="dark"] body .vm-cp17-favorites-number{background:#43324f;color:#f3e7ff}
+html[data-vapmart-color-mode="dark"] body .legacy-product-wrapper .shop-controls input,html[data-vapmart-color-mode="dark"] body .legacy-product-wrapper .shop-controls select,html[data-vapmart-color-mode="dark"] body .legacy-product-wrapper .vm-search-combobox .search{background:#28252e;border-color:#4b4055;color:#f8f2ff}
+html[data-vapmart-color-mode="dark"] body .legacy-product-wrapper .shop-controls input::placeholder{color:#b4a6bf}
+html[data-vapmart-color-mode="dark"] body .vm-search-suggestions{background:#211e27;border-color:#51405d;box-shadow:0 13px 31px #0009}
+html[data-vapmart-color-mode="dark"] body .vm-search-suggestions button{color:#f3eff8}
+html[data-vapmart-color-mode="dark"] body .vm-search-suggestions button small{color:#c0b5ca}
+html[data-vapmart-color-mode="dark"] body .vm-search-suggestions button:hover,html[data-vapmart-color-mode="dark"] body .vm-search-suggestions [aria-selected=true] button{background:#3d2851}
+html[data-vapmart-color-mode="dark"] body .vm-search-clear{background:#3b2a48;color:#dcc1f4}
+html[data-vapmart-color-mode="dark"] body .legacy-product-wrapper .product-copy h3,html[data-vapmart-color-mode="dark"] body .legacy-product-wrapper .product-copy strong,html[data-vapmart-color-mode="dark"] body .legacy-product-wrapper .section-heading h2,html[data-vapmart-color-mode="dark"] body .vm-catalog-page .vm-catalog-intro h1,html[data-vapmart-color-mode="dark"] body .vm-catalog-intro h1,html[data-vapmart-color-mode="dark"] body .vm-category-page .vm-lined-heading{color:var(--vm23-text)}
