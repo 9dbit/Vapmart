@@ -15,6 +15,8 @@
   "preReleaseConclusion": "success",
   "migrationApplied": "017_product_engine.sql",
   "postReleaseStatus": "requested",
+  "verificationRevision": 2,
+  "captureCorrection": "Navigate each existing carousel slide before decoding its lazily loaded image. No application code changed.",
   "requiredSafetyState": {"paymentEnabled": false, "bookingEnabled": false, "rateLookupEnabled": false},
   "liveTestScope": "Public read requests and authorization denial checks only. Positive admin UI uses intercepted synthetic read-only data; all admin mutation requests are aborted. No real admin credentials or authorized live business writes.",
   "sampleCsvImportedIntoLive": false,
