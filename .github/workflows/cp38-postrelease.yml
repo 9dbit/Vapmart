@@ -73,14 +73,19 @@ jobs:
             if(p==='/api/admin/media-library')return route.fulfill({status:200,contentType:'application/json',body:'{"items":[]}'});
             return route.abort();
           });
+          async function loadedImages(){
+            await page.waitForFunction(()=>{const imgs=[...document.querySelectorAll('.vh-thumb img')];return imgs.length===3&&imgs.every(i=>i.complete&&i.naturalWidth>0);},null,{timeout:15000});
+            for(const image of await page.locator('.vh-thumb img, .vh-preview img').all())await image.evaluate(async img=>{await img.decode();});
+            await page.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';window.scrollTo(0,0);});
+            await page.waitForFunction(()=>window.scrollY===0);
+          }
           await page.goto(BASE+'/admin/media');await page.getByRole('link',{name:'Hero Banner',exact:true}).click();await page.locator('.vh-root[aria-busy="false"]').waitFor();assert.equal(await page.locator('.vh-row').count(),3);
-          await page.getByRole('button',{name:'Edit',exact:true}).first().click();await page.locator('.vh-preview img').waitFor();
-          await page.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';window.scrollTo(0,0);});await page.waitForTimeout(250);
+          await page.getByRole('button',{name:'Edit',exact:true}).first().click();await page.locator('.vh-preview img').waitFor();await loadedImages();
           await mkdir('artifacts/cp38-live',{recursive:true});await page.screenshot({path:'artifacts/cp38-live/hero-manager-desktop.png',fullPage:true,animations:'disabled'});
-          await page.setViewportSize({width:390,height:844});await page.reload();await page.locator('.vh-root[aria-busy="false"]').waitFor();
+          await page.setViewportSize({width:390,height:844});await page.reload();await page.locator('.vh-root[aria-busy="false"]').waitFor();await loadedImages();
           const mobile=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));assert.ok(mobile.scroll<=mobile.width+2);
           await page.screenshot({path:'artifacts/cp38-live/hero-manager-mobile.png',fullPage:true,animations:'disabled'});
-          assert.equal(mutations,0);await writeFile('artifacts/cp38-live/ui-report.json',JSON.stringify({passed:true,fixtureIdentity:true,realAdminLogin:false,mutations,mobile},null,2));console.log('CP38_LIVE_UI_PASS',mobile);
+          assert.equal(mutations,0);await writeFile('artifacts/cp38-live/ui-report.json',JSON.stringify({passed:true,fixtureIdentity:true,realAdminLogin:false,mutations,mobile,desktopImagesDecoded:3,mobileImagesDecoded:3},null,2));console.log('CP38_LIVE_UI_PASS',mobile);
           await context.close();await browser.close();
           JS
       - uses: actions/upload-artifact@v4

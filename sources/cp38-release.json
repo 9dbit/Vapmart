@@ -13,7 +13,9 @@
   "preflightRunId": 41597783972,
   "preflightConclusion": "success",
   "preflightArtifactId": 13213295335,
-  "postReleaseStatus": "requested",
+  "firstPostReleaseRunId": 41598580627,
+  "firstPostReleaseConclusion": "success",
+  "postReleaseStatus": "repeat_requested_with_image_decode_before_screenshots",
   "liveTestPolicy": "Public GET requests and authorization denials only. Admin browser identity and list are intercepted fixtures. No authorized live banner uploads, mutations, payment, courier or product actions.",
   "requiredSafetyState": {"paymentEnabled": false, "bookingEnabled": false, "rateLookupEnabled": false}
 }
