@@ -22,6 +22,7 @@ for(const base of [API+'/v1',WEB+'/api']){
  const invalid=await get(base+'/catalog/selection?ids=invalid');assert.equal(invalid.status,400);
 }
 const invalidToken=await fetch(WEB+'/api/admin/catalog/products',{headers:{authorization:'Bearer invalid-token'},signal:AbortSignal.timeout(20000)});assert.equal(invalidToken.status,401);
+await writeFile(OUT+'/public-checks.json',JSON.stringify(report,null,2)+'\n');
 const browser=await chromium.launch({headless:true});
 try{
  const anon=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});anon.setDefaultTimeout(20000);anon.setDefaultNavigationTimeout(30000);const ap=await anon.newPage();
@@ -29,7 +30,13 @@ try{
  await ap.goto(WEB+'/');await ap.locator('.vm-storefront-restored').waitFor();
  const homeGeo=await ap.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));assert.ok(homeGeo.scroll<=homeGeo.width+2);
  assert.equal(await ap.locator('.vm-carousel-slide').count(),hero.data.items.length);
- for(const img of await ap.locator('.vm-carousel-slide img').all())await img.evaluate(async x=>{await Promise.race([x.decode(),new Promise((_,reject)=>setTimeout(()=>reject(Error('Hero decode timeout')),5000))])});
+ // Native carousel navigation brings lazy slides into view before decode.
+ for(let i=0;i<hero.data.items.length;i++){
+  if(hero.data.items.length>1){await ap.locator('.vm-carousel-dots button').nth(i).click();await ap.waitForFunction(index=>document.querySelectorAll('.vm-carousel-slide')[index]?.getAttribute('aria-hidden')==='false',i);}
+  await ap.locator('.vm-carousel-slide img').nth(i).evaluate(async x=>{await Promise.race([x.decode(),new Promise((_,reject)=>setTimeout(()=>reject(Error('Visible hero decode timeout')),12000))]);if(!x.naturalWidth)throw Error('Hero image missing')});
+ }
+ if(hero.data.items.length>1)await ap.locator('.vm-carousel-dots button').first().click();
+ await ap.evaluate(()=>{document.documentElement.style.setProperty('scroll-behavior','auto','important');scrollTo({top:0,left:0,behavior:'instant'})});await ap.waitForFunction(()=>scrollY===0);
  await ap.screenshot({path:OUT+'/homepage-mobile.png',fullPage:true,animations:'disabled'});await anon.close();
  // Positive admin rendering uses intercepted synthetic read-only data. No real admin token or write request is submitted.
  const user={id:'39000000-0000-4000-8000-000000009999',email:'cp39-ui@example.invalid',aud:'authenticated',role:'authenticated',email_confirmed_at:new Date().toISOString(),created_at:new Date().toISOString(),app_metadata:{},user_metadata:{}};
