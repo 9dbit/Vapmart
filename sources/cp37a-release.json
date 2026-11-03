@@ -1,0 +1,17 @@
+{
+  "checkpoint": "CP37-A",
+  "releaseDate": "2026-11-03",
+  "releaseSha": "ca57e59ab6450ab45e11e4821574bfedee9369e3",
+  "releaseBranch": "release/vapmart-stable",
+  "projectId": "7c01e4d8-6152-4f04-9750-6e7031aa0830",
+  "environmentId": "04586a07-99b0-4cfd-95fa-bb6d8f1719e3",
+  "webDeploymentId": "bc5cffda-4fac-48e1-8e8f-9d9127559677",
+  "apiDeploymentId": "d04838c3-f64e-4829-ba32-06b7b968b02b",
+  "observedDeploymentStatus": {"web": "SUCCESS", "api": "SUCCESS"},
+  "preReleaseWorkflowRunId": 41519789231,
+  "preReleaseConclusion": "success",
+  "postReleaseStatus": "requested",
+  "liveTestPolicy": "Public reads and denial checks only; authenticated admin UI uses intercepted fixtures. No production administrator credentials or authorized data mutations.",
+  "requiredSafetyState": {"paymentEnabled": false, "bookingEnabled": false, "rateLookupEnabled": false},
+  "scope": "Finalize synchronized CP37-A deployment and verify existing UI, authorization boundaries, pagination, theme and internal product reference behavior. No DNS, email, payment or courier activation."
+}
