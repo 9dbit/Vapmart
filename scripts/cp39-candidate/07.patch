@@ -1,0 +1,221 @@
+diff --git a/apps/api/test/catalog-engine.test.ts b/apps/api/test/catalog-engine.test.ts
+new file mode 100644
+index 0000000..47398ef
+--- /dev/null
++++ b/apps/api/test/catalog-engine.test.ts
+@@ -0,0 +1,33 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {parseCSV,csvInteger,plainDescription} from '../src/catalog-csv';
++import {effectivePrice} from '../src/catalog-pricing';
++import {attributes,options,priceFields,stockInputs,imageUrl,safeCatalogTerms} from '../src/catalog-validation';
++import {CatalogAdminController,CatalogCustomerController} from '../src/catalog-controller';
++import {AdminGuard,CustomerGuard} from '../src/auth';
++import {GUARDS_METADATA} from '@nestjs/common/constants';
++test('CP39 CSV parses quotes, BOM, newlines and rejects malformed structure',()=>{
++ const p=parseCSV('\uFEFFID,Name,Description\r\n1,"Desk, light","First line\nSecond ""quoted"" line"\r\n');assert.equal(p.rows.length,1);assert.equal(p.rows[0].Name,'Desk, light');assert.match(p.rows[0].Description,/"quoted"/);
++ for(const text of ['A,A\n1,2','A,B\n1','A\n"unclosed','A,B\n"hello"x,2'])assert.throws(()=>parseCSV(text));
++ assert.equal(csvInteger('','Stock',true),null);assert.equal(csvInteger('0','Stock',true),0);assert.throws(()=>csvInteger('1,000','Stock'));assert.throws(()=>csvInteger('-2','Stock'));
++});
++test('CP39 authoritative promo has explicit start/end boundaries',()=>{
++ const p={price_idr:'100000',sale_price_idr:'80000',sale_starts_at:'2026-11-03T00:00:00Z',sale_ends_at:'2026-11-04T00:00:00Z'};
++ assert.equal(effectivePrice(p,Date.parse(p.sale_starts_at)-1),100000);assert.equal(effectivePrice(p,Date.parse(p.sale_starts_at)),80000);assert.equal(effectivePrice(p,Date.parse(p.sale_ends_at)),100000);
++ assert.equal(effectivePrice({...p,sale_price_idr:null}),100000);assert.throws(()=>priceFields({price_idr:10,sale_price_idr:10}));assert.throws(()=>priceFields({price_idr:10,sale_starts_at:'2026-11-03T00:00:00Z'}));
++ assert.ok(priceFields({price_idr:100,sale_price_idr:90,sale_starts_at:new Date('2026-11-03T00:00:00Z')}).sale_starts_at?.endsWith('Z'));
++});
++test('CP39 attributes limit dimensions and canonicalize combinations',()=>{
++ const d=attributes([{name:'Size',values:['S','L']},{name:'Color',values:['Black','White']}]);assert.deepEqual(Object.keys(options({Size:'S',Color:'White'},d)),['Color','Size']);
++ assert.throws(()=>options({Size:'S'},d));assert.throws(()=>options({Size:'XL',Color:'White'},d));assert.throws(()=>attributes(Array(4).fill({name:'A',values:['B']})));assert.throws(()=>attributes([{name:'a',values:['x','X']}]));
++});
++test('CP39 stock input keeps physical counts, optimistic snapshots and notes',()=>{
++ const s={warehouseId:'39000000-0000-4000-8000-000000000001',onHand:0,expectedOnHand:5,expectedReserved:0,notes:'Physical count reference'};assert.equal(stockInputs([s])[0].onHand,0);assert.throws(()=>stockInputs([s,s]));assert.throws(()=>stockInputs([{...s,onHand:-1}]));assert.throws(()=>stockInputs([{...s,onHand:1.5}]));
++});
++test('CP39 data remains text and restricted catalog safeguards remain',()=>{
++ assert.equal(imageUrl('/api/media/39000000-0000-4000-8000-000000000001'),'/api/media/39000000-0000-4000-8000-000000000001');assert.throws(()=>imageUrl('javascript:alert(1)'));assert.throws(()=>imageUrl('https://user:pass@example.com/a.png'));
++ assert.throws(()=>safeCatalogTerms('nicotine'));assert.throws(()=>safeCatalogTerms({type:'vape'}));assert.equal(plainDescription('<script>bad()</script><p>Plain text</p>').trim(),'Plain text');
++});
++test('CP39 write controllers keep server guards',()=>{
++ assert.ok(Reflect.getMetadata(GUARDS_METADATA,CatalogAdminController).includes(AdminGuard));assert.ok(Reflect.getMetadata(GUARDS_METADATA,CatalogCustomerController).includes(CustomerGuard));
++});
+diff --git a/apps/api/test/integration/catalog-engine.ts b/apps/api/test/integration/catalog-engine.ts
+new file mode 100644
+index 0000000..4ddd05c
+--- /dev/null
++++ b/apps/api/test/integration/catalog-engine.ts
+@@ -0,0 +1,84 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {randomUUID} from 'node:crypto';
++import {resolve} from 'node:path';
++import sharp from 'sharp';
++const {createFixture}=require(resolve('../../scripts/cp39-fixture-server.cjs'));
++test('CP39 end-to-end HTTP catalog, prices, warehouse ledger, imports, owner isolation and buyer reviews',async()=>{
++ const {app,db,users,base}=await createFixture();const A=users['fixture-admin'],B=users['fixture-buyer'],O=users['fixture-other'];
++ const call=async(path:string,body?:any,method='POST',token='fixture-admin')=>{const r=await fetch(base+path,{method:body===undefined?'GET':method,headers:{authorization:'Bearer '+token,'content-type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});const data=await r.json().catch(()=>null);return {status:r.status,data};};
++ const ok=async(path:string,body?:any,method='POST',token='fixture-admin')=>{const r=await call(path,body,method,token);assert.ok(r.status>=200&&r.status<300,JSON.stringify({path,...r}));return r.data;};
++ const api='/v1/admin/catalog',uuid=()=>randomUUID();
++ try{
++  assert.equal((await call(api+'/lookups',undefined,'GET','invalid')).status,401);assert.equal((await call(api+'/lookups',undefined,'GET','fixture-buyer')).status,403);assert.equal((await call(api+'/lookups',undefined,'GET','fixture-unverified')).status,403);
++  const l=await ok(api+'/lookups'),w1=l.warehouses.find((w:any)=>w.code==='CP39-A'),w2=l.warehouses.find((w:any)=>w.code==='CP39-B'),c=l.categories.find((c:any)=>c.slug==='other');assert.ok(w1&&w2&&c);
++  const png=await sharp({create:{width:128,height:128,channels:3,background:'#7144a5'}}).png().toBuffer();const asset=await ok('/v1/admin/media',{filename:'sample.png',mimeType:'image/png',base64:png.toString('base64')});
++  const image='/api/media/'+asset.id;const served=await fetch(base+'/v1/media/'+asset.id);assert.equal(served.status,200);assert.match(served.headers.get('content-type')||'',/webp/);assert.equal((await sharp(Buffer.from(await served.arrayBuffer())).metadata()).format,'webp');
++  const countBefore=(await db.query('SELECT count(*)::int n FROM product.products')).rows[0].n;
++  const product={name:'Desk Lamp CP39',slug:'desk-lamp-cp39',sku:'CP39-LAMP',description:'A configurable reading light for a work desk.',categoryIds:[c.id],brand_id:null,fulfillment_owner_brand_id:null,image_url:image,gallery_urls:[],price_idr:100000,sale_price_idr:80000,sale_starts_at:null,sale_ends_at:null,weight_grams:500,length_cm:20,width_cm:15,height_cm:30,product_type:'simple',attributes:[]};
++  const stock=(id:string,n:number,old=0,reserved=0)=>({warehouseId:id,onHand:n,expectedOnHand:old,expectedReserved:reserved,notes:'Counted test receipt document 39'});
++  const body={requestKey:uuid(),product,variants:[],warehouseStocks:[stock(w1.id,8),stock(w2.id,2)]};
++  let simple=await ok(api+'/products',body);assert.equal(simple.product.is_active,false);assert.equal(simple.product.stock_qty,10);assert.equal(simple.product.brand_id,null);
++  const replay=await ok(api+'/products',body);assert.equal(replay.replayed,true);assert.equal(replay.product.id,simple.product.id);assert.equal((await db.query('SELECT count(*)::int n FROM product.products')).rows[0].n,countBefore+1);
++  assert.equal((await call(api+'/products',{...body,product:{...product,name:'Changed request'}})).status,409);
++  simple=await ok(api+'/products/'+simple.product.id+'/state',{expectedVersion:simple.product.edit_version,active:true});
++  const publicSimple=await ok('/v1/products/'+product.slug);assert.equal(publicSimple.price_idr,80000);assert.equal(publicSimple.regular_price_idr,100000);
++  const q=await ok('/v1/checkout/quote',{items:[{productId:simple.product.id,quantity:2}]});assert.equal(q.subtotalIdr,160000);assert.equal(q.paymentEnabled,false);
++  const address={name:'Buyer Fixture',phone:'081234567890',address:'Jalan Uji Nomor 39',city:'Bandung',province:'Jawa Barat',postalCode:'40115',paymentMethod:'qris',idempotencyKey:uuid(),items:[{productId:simple.product.id,quantity:2}]};
++  const order=await ok('/v1/checkout/orders',address,'POST','fixture-buyer');assert.equal(order.paymentEnabled,false);const line=(await db.query('SELECT * FROM product.order_items WHERE order_id=$1',[order.id])).rows[0];assert.equal(line.ownership_scope,'platform');assert.equal(line.brand_id,null);assert.equal(Number(line.unit_price_idr),80000);
++  assert.equal((await call('/v1/checkout/orders/'+order.id,undefined,'GET','fixture-other')).status,404);
++  assert.equal((await ok('/v1/customer/catalog/orders',undefined,'GET','fixture-other')).total,0);
++  assert.equal((await call('/v1/customer/catalog/reviews',{orderItemId:line.id,displayName:'Buyer',rating:5,body:'The lamp works perfectly.'},'POST','fixture-buyer')).status,403);
++  assert.equal((await call('/v1/admin/fulfillment/orders/'+order.id+'/prepare',{idempotencyKey:uuid()})).status,409);
++  const current=await ok(api+'/products/'+simple.product.id);
++  await assert.rejects(()=>ok(api+'/products/'+simple.product.id,{requestKey:uuid(),expectedVersion:current.product.edit_version,product:{...product,name:'Should roll back'},warehouseStocks:[stock(w1.id,9,7)],variants:[]},'PATCH'));
++  assert.equal((await ok(api+'/products/'+simple.product.id)).product.name,product.name);
++  const edits=await Promise.all([call(api+'/products/'+simple.product.id+'/quick',{expectedVersion:current.product.edit_version,sku:'CP39-LAMP-A',price_idr:110000,sale_price_idr:80000,warehouseStocks:[]}),call(api+'/products/'+simple.product.id+'/quick',{expectedVersion:current.product.edit_version,sku:'CP39-LAMP-B',price_idr:110000,sale_price_idr:80000,warehouseStocks:[]})]);assert.equal(edits.filter(r=>r.status<300).length,1);assert.equal(edits.filter(r=>r.status===409).length,1);
++  // Only disposable database fixtures simulate provider-verified payment and delivery.
++  await db.query("UPDATE product.orders SET status='paid',payment_status='paid',payment_provider='fixture-local',payment_reference='fixture-confirmed' WHERE id=$1",[order.id]);
++  const batches=await ok('/v1/admin/fulfillment/orders/'+order.id+'/prepare',{idempotencyKey:uuid()});assert.equal(batches.batches.length,1);assert.equal(batches.batches[0].brandId,null);
++  const balance=await ok(api+'/products/'+simple.product.id),reserved=balance.stock.find((s:any)=>s.warehouse_id===w1.id);assert.equal(reserved.reserved,2);
++  const badStock=await call(api+'/products/'+simple.product.id+'/quick',{expectedVersion:balance.product.edit_version,price_idr:110000,sale_price_idr:80000,warehouseStocks:[stock(w1.id,1,8,2)]});assert.equal(badStock.status,409);
++  assert.equal((await ok('/v1/admin/fulfillment/batches')).items.some((b:any)=>b.id===batches.batches[0].id),true,'brandless fulfillment must remain visible');
++  const batch=batches.batches[0].id;await db.query("UPDATE product.fulfillment_batches SET carrier_handover_at=now(),state='ready_for_carrier' WHERE id=$1",[batch]);
++  await db.query("INSERT INTO product.shipments(order_id,fulfillment_batch_id,provider,state,provider_shipment_id) VALUES($1,$2,'biteship','delivered',$3)",[order.id,batch,'fixture-shipment-'+uuid()]);
++  const eligible=await ok('/v1/customer/catalog/review-eligible',undefined,'GET','fixture-buyer');assert.equal(eligible.items.length,1);
++  assert.equal((await call('/v1/customer/catalog/reviews',{orderItemId:line.id,displayName:'Other',rating:5,body:'This is not my order.'},'POST','fixture-other')).status,403);
++  const review=await ok('/v1/customer/catalog/reviews',{orderItemId:line.id,displayName:'Verified Buyer',rating:4,body:'The light is useful for reading.'},'POST','fixture-buyer');assert.equal(review.status,'pending');
++  assert.equal((await ok('/v1/catalog/reviews/'+product.slug)).total,0);
++  const reviews=await ok(api+'/reviews?status=pending');assert.equal(reviews.items.length,1);await ok(api+'/reviews/'+review.id+'/moderate',{expectedVersion:1,status:'approved',reply:'Thank you for your feedback.'});
++  const published=await ok('/v1/catalog/reviews/'+product.slug);assert.equal(published.average,4);assert.equal(published.items[0].verified_purchase,true);assert.ok(!('customer_user_id' in published.items[0]));
++  const category=await ok(api+'/categories',{name:'Desk Essentials',slug:'desk-essentials-cp39',active:true,parentId:c.id,image_url:image,description:'Desk objects'});
++  assert.equal((await call(api+'/categories/'+c.id,{name:c.name,slug:c.slug,active:true,parentId:category.id,image_url:null,description:'',expectedVersion:c.edit_version},'PATCH')).status,400);
++  const variable={...product,name:'Organizer Set CP39',slug:'organizer-set-cp39',sku:'CP39-SET',price_idr:0,sale_price_idr:null,product_type:'variable',categoryIds:[category.id],attributes:[{name:'Color',values:['Black','White']},{name:'Size',values:['Small','Large']},{name:'Material',values:['Wood']}]};
++  const variant=(color:string,size:string,sku:string)=>({sku,price_idr:120000,sale_price_idr:99000,option_values:{Color:color,Size:size,Material:'Wood'},enabled:true,warehouseStocks:[stock(w2.id,4)]});
++  let family=await ok(api+'/products',{requestKey:uuid(),product:variable,warehouseStocks:[],variants:[variant('Black','Small','CP39-V1'),variant('White','Large','CP39-V2')]});assert.equal(family.variants.length,2);assert.equal(family.product.stock_qty,0);assert.equal(family.variants.reduce((n:number,v:any)=>n+v.stock_qty,0),8);
++  family=await ok(api+'/products/'+family.product.id+'/state',{expectedVersion:family.product.edit_version,active:true});
++  const detail=await ok('/v1/products/'+variable.slug);assert.equal(detail.variants.length,2);assert.equal(detail.price_idr,99000);assert.equal(detail.stock_qty,8);
++  assert.equal((await call('/v1/checkout/quote',{items:[{productId:family.product.id,quantity:1}]})).status,409);
++  assert.equal((await ok('/v1/checkout/quote',{items:[{productId:family.variants[0].id,quantity:1}]})).subtotalIdr,99000);
++  assert.equal((await call(api+'/categories/'+category.id+'/archive',{expectedVersion:category.edit_version,confirm:true})).status,409);
++  assert.equal((await ok(api+'/products?category='+c.slug)).total>=2,true);
++  await ok(api+'/products/'+family.product.id+'/state',{expectedVersion:family.product.edit_version,active:false});assert.equal((await call('/v1/checkout/quote',{items:[{productId:family.variants[0].id,quantity:1}]})).status,409);
++  // Informational brand does not grant a partner access to platform-owned inventory or historic orders.
++  const brand=await ok('/v1/admin/brands',{name:'Sample Partner CP39',slug:'sample-partner-cp39'});
++  await db.query("INSERT INTO product.brand_memberships(brand_id,user_id,role,is_active,added_by) VALUES($1,$2,'viewer',true,$3)",[brand.id,O.id,A.id]);
++  const latest=await ok(api+'/products/'+simple.product.id);await ok(api+'/products/'+simple.product.id,{requestKey:uuid(),expectedVersion:latest.product.edit_version,product:{...product,sku:latest.product.sku,brand_id:brand.id,price_idr:110000},warehouseStocks:[],variants:[]},'PATCH');
++  assert.equal((await ok('/v1/brand-portal/'+brand.id+'/products',undefined,'GET','fixture-other')).items.length,0);
++  assert.equal((await ok('/v1/brand-portal/'+brand.id+'/sales',undefined,'GET','fixture-other')).items.length,0);
++  // CSV preview does not write products. Apply and replay use one atomic source mapping.
++  const csv='ID,Type,SKU,Name,Regular price,Sale price,Stock,Categories,Parent,Attribute 1 name,Attribute 1 value(s)\nA,simple,CP39-CSV-A,CSV Desk Mat,50000,40000,,Office > Mats,,,\nB,variable,CP39-CSV-B,CSV Storage Box,,,,Office > Boxes,,Color,"Blue, Red"\nC,variation,CP39-CSV-C,CSV Storage Box Blue,70000,,3,,id:B,Color,Blue\nD,variation,CP39-CSV-D,CSV Storage Box Red,75000,,0,,id:B,Color,Red\n';
++  const baseline=(await db.query('SELECT count(*)::int n FROM product.products')).rows[0].n;
++  const importBody={csv,sourceKey:'cp39-fixture',mode:'create',warehouseId:w2.id};const preview=await ok(api+'/imports/preview',importBody);assert.equal(preview.summary.errors,0,JSON.stringify(preview.errors));assert.equal(preview.summary.products,2);assert.equal(preview.summary.variants,2);assert.equal((await db.query('SELECT count(*)::int n FROM product.products')).rows[0].n,baseline);
++  assert.equal((await call(api+'/imports/'+preview.id+'/apply',{confirm:false})).status,400);assert.equal((await call(api+'/imports/'+preview.id,undefined,'GET','fixture-buyer')).status,403);
++  const applied=await ok(api+'/imports/'+preview.id+'/apply',{confirm:true});assert.equal(applied.report.productsCreated,2);assert.equal(applied.report.variantsCreated,2);assert.equal((await ok(api+'/imports/'+preview.id+'/apply',{confirm:true})).replayed,true);
++  assert.equal((await ok(api+'/imports/preview',importBody)).state,'applied');assert.equal((await db.query('SELECT count(*)::int n FROM product.products')).rows[0].n,baseline+4);
++  const imported=(await db.query("SELECT id,stock_qty,is_active FROM product.products WHERE sku='CP39-CSV-A'")).rows[0];assert.equal(imported.stock_qty,0);assert.equal(imported.is_active,false);assert.equal((await db.query('SELECT count(*)::int n FROM product.warehouse_stock_events WHERE product_id=$1',[imported.id])).rows[0].n,0,'blank stock cannot create a physical count');
++  const dup=await ok(api+'/imports/preview',{...importBody,sourceKey:'cp39-duplicate',csv:'ID,Type,SKU,Name,Regular price\n1,simple,SAME-SKU,One,100\n2,simple,SAME-SKU,Two,200\n'});assert.ok(dup.errors.length>0);assert.equal((await call(api+'/imports/'+dup.id+'/apply',{confirm:true})).status,409);
++  const badParent=await ok(api+'/imports/preview',{...importBody,sourceKey:'cp39-parent',csv:'ID,Type,SKU,Name,Regular price,Parent\n1,variation,CP39-X,Missing Parent,100,id:nope\n'});assert.ok(badParent.errors.length>0);
++  const update=await ok(api+'/imports/preview',{...importBody,mode:'upsert',csv:'ID,Type,SKU,Name,Regular price,Stock\nA,simple,CP39-CSV-A,CSV Desk Mat Updated,55000,\n'});assert.equal(update.summary.errors,0);const updated=await ok(api+'/imports/'+update.id+'/apply',{confirm:true});assert.equal(updated.report.productsUpdated,1);
++  const invalidPublication=await call(api+'/products/'+imported.id+'/state',{expectedVersion:(await ok(api+'/products/'+imported.id)).product.edit_version,active:true});assert.equal(invalidPublication.status,409);
++  const flags=await ok('/v1/shipping/config');assert.equal(flags.bookingEnabled,false);assert.equal(flags.paymentEnabled,false);assert.equal(flags.rateLookupEnabled,false);
++  console.log('CP39_ENGINE_HTTP_PASS',JSON.stringify({products:true,variants3Dimensions:true,prices:true,warehouseAtomicity:true,concurrency:true,brandOptional:true,partnerIsolation:true,categories:true,csvPreviewApplyReplay:true,blankStockPreserved:true,verifiedBuyerReviews:true,payment:false,courier:false,productionWrites:false}));
++ }finally{await app.close();}
++});
+diff --git a/apps/web/src/app/admin/orders/[id]/page.tsx b/apps/web/src/app/admin/orders/[id]/page.tsx
+new file mode 100644
+index 0000000..8d8b566
+--- /dev/null
++++ b/apps/web/src/app/admin/orders/[id]/page.tsx
+@@ -0,0 +1,2 @@
++import {CatalogOrdersAdmin} from '@/components/catalog-orders-admin';
++export default async function Page({params}:{params:Promise<{id:string}>}){return <CatalogOrdersAdmin id={(await params).id}/>;}
+diff --git a/apps/web/src/app/admin/orders/layout.tsx b/apps/web/src/app/admin/orders/layout.tsx
+new file mode 100644
+index 0000000..7f02516
+--- /dev/null
++++ b/apps/web/src/app/admin/orders/layout.tsx
+@@ -0,0 +1,2 @@
++import {CatalogAdminShell} from '@/components/catalog-admin-shell';
++export default function Layout({children}:{children:React.ReactNode}){return <CatalogAdminShell section="orders">{children}</CatalogAdminShell>;}
+diff --git a/apps/web/src/app/admin/orders/page.tsx b/apps/web/src/app/admin/orders/page.tsx
+new file mode 100644
+index 0000000..7cdbe53
+--- /dev/null
++++ b/apps/web/src/app/admin/orders/page.tsx
+@@ -0,0 +1,2 @@
++import {CatalogOrdersAdmin} from '@/components/catalog-orders-admin';
++export default function Page(){return <CatalogOrdersAdmin/>;}
+diff --git a/apps/web/src/app/admin/page.tsx b/apps/web/src/app/admin/page.tsx
+index 90bcc44..50bfcb3 100644
+--- a/apps/web/src/app/admin/page.tsx
++++ b/apps/web/src/app/admin/page.tsx
+@@ -105,6 +105,7 @@ export default function AdminPage(){
+  useEffect(()=>{
+   const sync=()=>{
+    const requested=new URLSearchParams(window.location.search).get('tab');
++   if(requested==='products'||requested==='orders'){router.replace('/admin/'+requested);return;}
+    const section=allowedTabs.find(x=>x===requested);
+    setTab(section||'overview');
+   };
+diff --git a/apps/web/src/app/admin/products/[id]/page.tsx b/apps/web/src/app/admin/products/[id]/page.tsx
+new file mode 100644
+index 0000000..3223d7c
+--- /dev/null
++++ b/apps/web/src/app/admin/products/[id]/page.tsx
+@@ -0,0 +1,2 @@
++import {CatalogProductEditor} from '@/components/catalog-product-editor';
++export default async function Page({params}:{params:Promise<{id:string}>}){return <CatalogProductEditor id={(await params).id}/>;}
+diff --git a/apps/web/src/app/admin/products/categories/page.tsx b/apps/web/src/app/admin/products/categories/page.tsx
+new file mode 100644
+index 0000000..e95ddea
+--- /dev/null
++++ b/apps/web/src/app/admin/products/categories/page.tsx
+@@ -0,0 +1,2 @@
++import {CatalogCategories} from '@/components/catalog-categories';
++export default function Page(){return <CatalogCategories/>;}
+diff --git a/apps/web/src/app/admin/products/import/page.tsx b/apps/web/src/app/admin/products/import/page.tsx
+new file mode 100644
+index 0000000..cc057c8
+--- /dev/null
++++ b/apps/web/src/app/admin/products/import/page.tsx
+@@ -0,0 +1,2 @@
++import {CatalogImportUI} from '@/components/catalog-import-ui';
++export default function Page(){return <CatalogImportUI/>;}
+diff --git a/apps/web/src/app/admin/products/layout.tsx b/apps/web/src/app/admin/products/layout.tsx
+new file mode 100644
+index 0000000..c3acf0d
+--- /dev/null
++++ b/apps/web/src/app/admin/products/layout.tsx
+@@ -0,0 +1,2 @@
++import {CatalogAdminShell} from '@/components/catalog-admin-shell';
++export default function Layout({children}:{children:React.ReactNode}){return <CatalogAdminShell>{children}</CatalogAdminShell>;}
+diff --git a/apps/web/src/app/admin/products/new/page.tsx b/apps/web/src/app/admin/products/new/page.tsx
+new file mode 100644
+index 0000000..fbfe791
+--- /dev/null
++++ b/apps/web/src/app/admin/products/new/page.tsx
+@@ -0,0 +1,2 @@
++import {CatalogProductEditor} from '@/components/catalog-product-editor';
++export default function Page(){return <CatalogProductEditor/>;}
+diff --git a/apps/web/src/app/admin/products/page.tsx b/apps/web/src/app/admin/products/page.tsx
+new file mode 100644
+index 0000000..f78bd76
+--- /dev/null
++++ b/apps/web/src/app/admin/products/page.tsx
+@@ -0,0 +1,2 @@
++import {CatalogProductList} from '@/components/catalog-product-list';
++export default function Page(){return <CatalogProductList/>;}
+diff --git a/apps/web/src/app/admin/products/reviews/page.tsx b/apps/web/src/app/admin/products/reviews/page.tsx
+new file mode 100644
+index 0000000..774723e
+--- /dev/null
++++ b/apps/web/src/app/admin/products/reviews/page.tsx
+@@ -0,0 +1,2 @@
++import {CatalogReviewsAdmin} from '@/components/catalog-reviews-admin';
++export default function Page(){return <CatalogReviewsAdmin/>;}
