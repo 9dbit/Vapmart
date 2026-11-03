@@ -2,7 +2,7 @@ name: CP39 Source Bundle
 on:
   push:
     branches: [work/cp39-product-engine-20261103]
-    paths: [.github/workflows/cp39-source.yml]
+    paths: [.github/workflows/cp39-source.yml, sources/cp39-bundle-request.json]
   workflow_dispatch:
 permissions:
   contents: read
