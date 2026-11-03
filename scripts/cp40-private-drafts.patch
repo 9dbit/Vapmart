@@ -1,0 +1,161 @@
+--- a/apps/api/src/catalog-workspace.ts
++++ b/apps/api/src/catalog-workspace.ts
+@@ -64,6 +64,8 @@
+  await q.query('INSERT INTO product.product_categories(product_id,category_id) SELECT $1,unnest($2::uuid[])',[id,ids]);
+ }
+ export async function assertPublishable(q:Reader,p:Record<string,any>){
++ // Private drafts may retain unreviewed text; every publication checks the stored record.
++ V.safeCatalogTerms(p.name,p.description,p.slug,p.sku,p.attributes??[],p.option_values??{});
+  const missing=publicationMissing(p).filter(s=>s!=='brand_id');
+  if(p.fulfillment_owner_brand_id&&!(await q.query('SELECT 1 FROM product.brands WHERE id=$1 AND is_active',[p.fulfillment_owner_brand_id])).rows.length)missing.push('active_owner');
+  if(p.brand_id&&!(await q.query('SELECT 1 FROM product.brands WHERE id=$1 AND is_active',[p.brand_id])).rows.length)missing.push('active_brand');
+@@ -129,7 +131,7 @@
+   const cats=await categoryIds(client,p);
+   const root:Record<string,any>={name:V.text(p.name,'Nama produk',2,140),slug:V.slug(p.slug),sku:V.sku(p.sku),description:V.text(p.description??'','Deskripsi',0,20000),category:cats.slug,
+    brand_id:p.brand_id?requireUuid(p.brand_id,'brand'):null,fulfillment_owner_brand_id:p.fulfillment_owner_brand_id?requireUuid(p.fulfillment_owner_brand_id,'pengelola'):null,...media(p),...V.priceFields(p),...dimensions(p),product_type:type,attributes:attrs,option_values:{}};
+-  V.safeCatalogTerms(root.name,root.description,root.slug,root.sku,attrs);
++  if(before?.is_active)V.safeCatalogTerms(root.name,root.description,root.slug,root.sku,attrs);
+   if(root.fulfillment_owner_brand_id&&!(await client.query('SELECT 1 FROM product.brands WHERE id=$1 AND is_active',[root.fulfillment_owner_brand_id])).rows.length)throw new BadRequestException('Pengelola partner tidak aktif');
+   if(root.brand_id&&!(await client.query('SELECT 1 FROM product.brands WHERE id=$1',[root.brand_id])).rows.length)throw new BadRequestException('Brand tidak ditemukan');
+   const mainStocks=V.stockInputs(x.warehouseStocks);
+@@ -153,7 +155,7 @@
+     if(typeof v.enabled!=='boolean')throw new BadRequestException('Status varian diperlukan');
+     const vp={...root,...V.priceFields(v),...dimensions({...root,...v}),...media({image_url:v.image_url||root.image_url,gallery_urls:v.gallery_urls??root.gallery_urls}),
+      name:(root.name+' - '+Object.values(opt).join(' / ')).slice(0,140),slug:prev?.slug||root.slug.slice(0,72)+'-v-'+randomUUID().slice(0,18),sku:V.sku(v.sku),product_type:'variation',attributes:[],option_values:opt};
+-    V.safeCatalogTerms(vp.name,vp.sku,opt);
++    if(saved.is_active&&v.enabled)V.safeCatalogTerms(vp.name,vp.sku,opt);
+     const row=await persist(client,who,vp,prev,id!,v.enabled);
+     await linkCategories(client,row.id,cats.ids);await stockSave(client,who,row.id,V.stockInputs(v.warehouseStocks));
+     if(saved.is_active&&row.is_active)await assertPublishable(client,row);
+@@ -168,7 +170,7 @@
+   return this.db.transaction(async client=>{await inventoryLock(client);
+    const before=(await client.query('SELECT * FROM product.products WHERE id=$1 AND archived_at IS NULL FOR UPDATE',[id])).rows[0];if(!before)throw new NotFoundException();
+    if(before.product_type==='variable')throw new ConflictException('Pilih SKU varian untuk edit cepat harga dan stok');
+-   assertVersion(before.edit_version,V.version(x.expectedVersion));const prices=V.priceFields({...before,price_idr:Number(before.price_idr),sale_price_idr:before.sale_price_idr==null?null:Number(before.sale_price_idr),...x}),code=V.sku(x.sku??before.sku);V.safeCatalogTerms(code);
++   assertVersion(before.edit_version,V.version(x.expectedVersion));const prices=V.priceFields({...before,price_idr:Number(before.price_idr),sale_price_idr:before.sale_price_idr==null?null:Number(before.sale_price_idr),...x}),code=V.sku(x.sku??before.sku);
+    const r=await client.query('UPDATE product.products SET sku=$2,price_idr=$3,sale_price_idr=$4,sale_starts_at=$5,sale_ends_at=$6,edit_version=edit_version+1,updated_at=now() WHERE id=$1 RETURNING *',[id,code,prices.price_idr,prices.sale_price_idr,prices.sale_starts_at,prices.sale_ends_at]);
+    await stockSave(client,who,id,V.stockInputs(x.warehouseStocks));
+    const parent=before.parent_product_id?(await client.query('SELECT is_active FROM product.products WHERE id=$1 FOR UPDATE',[before.parent_product_id])).rows[0]:null;
+@@ -182,6 +184,7 @@
+   return this.db.transaction(async client=>{await inventoryLock(client);
+    const before=(await client.query('SELECT * FROM product.products WHERE id=$1 AND parent_product_id IS NULL AND archived_at IS NULL FOR UPDATE',[id])).rows[0];if(!before)throw new NotFoundException();assertVersion(before.edit_version,V.version(x.expectedVersion));
+    if(x.active){
++    V.safeCatalogTerms(before.name,before.description,before.slug,before.sku,before.attributes??[],before.option_values??{});
+     if(before.product_type==='variable'){
+      const variants=(await client.query('SELECT * FROM product.products WHERE parent_product_id=$1 AND is_active AND archived_at IS NULL FOR UPDATE',[id])).rows;
+      if(!variants.length)throw new ConflictException('Tambahkan varian aktif sebelum publikasi');
+--- a/apps/api/src/products.ts
++++ b/apps/api/src/products.ts
+@@ -1,3 +1,4 @@
++import {safeCatalogTerms} from './catalog-validation';
+ import {publicPrice} from './catalog-pricing';
+ import {inventoryLock} from './warehouses';
+ import { BadRequestException, ConflictException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+@@ -204,6 +205,8 @@
+    if(patch.brand_id!==undefined&&before.brand_id&&before.fulfillment_owner_brand_id===before.brand_id){patch.fulfillment_owner_brand_id=patch.brand_id;keys.push('fulfillment_owner_brand_id');}
+    const merged={...before,...patch};
+    if(merged.is_active){
++    // Activation-only legacy requests must validate text already saved in a private draft.
++    safeCatalogTerms(merged.name,merged.description,merged.slug,merged.sku,(merged as any).attributes??[],(merged as any).option_values??{});
+     const missing=publicationMissing(merged as unknown as Record<string,unknown>);
+     const brand=merged.brand_id?await client.query('SELECT 1 FROM product.brands WHERE id=$1 AND is_active',[merged.brand_id]):{rows:[]};
+     if(merged.brand_id&&!brand.rows.length)missing.push('active_brand');
+--- /dev/null
++++ b/apps/api/test/catalog-private-drafts.test.ts
+@@ -0,0 +1,96 @@
++import 'reflect-metadata';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {randomUUID} from 'node:crypto';
++import {CatalogWorkspaceService,assertPublishable} from '../src/catalog-workspace';
++import {ProductsService} from '../src/products';
++import {DatabaseService} from '../src/database';
++import type {Principal} from '../src/auth';
++
++// Unit-only repository double. This is not a PostgreSQL or live HTTP test.
++const actor:Principal={id:'40000000-0000-4000-8000-000000000001',email:'draft-test@example.invalid',emailVerified:true};
++const category={id:'40000000-0000-4000-8000-000000000002',slug:'accessories',is_active:true};
++const productId='40000000-0000-4000-8000-000000000003';
++const input=()=>({name:'Tas aksesori',slug:'tas-aksesori',sku:'ACC-TEST',description:'Catatan internal: bukan produk vape.',categoryIds:[category.id],brand_id:null,fulfillment_owner_brand_id:null,image_url:null,gallery_urls:[],price_idr:0,sale_price_idr:null,sale_starts_at:null,sale_ends_at:null,weight_grams:null,length_cm:null,width_cm:null,height_cm:null,product_type:'simple',attributes:[]});
++function repository(seed:any=null){
++ const state={row:seed?structuredClone(seed):null as any,writes:[] as string[],calls:[] as string[]};
++ const client={query:async(sql:string,values:any[]=[])=>{
++  const s=sql.trim();state.calls.push(s);
++  if(s.startsWith('SELECT pg_advisory_xact_lock'))return {rows:[]};
++  if(s.startsWith('SELECT request_hash,response'))return {rows:[]};
++  if(s.startsWith('SELECT id,slug,is_active FROM product.categories'))return {rows:[category]};
++  if(s.startsWith('INSERT INTO product.products(')){
++   const cols=s.match(/^INSERT INTO product.products\(([^)]+)\)/)![1].split(',');
++   state.row={id:productId,edit_version:1,archived_at:null};
++   cols.forEach((col,i)=>state.row[col]=col==='stock_qty'?0:values[i]);
++   for(const key of ['attributes','option_values'])if(typeof state.row[key]==='string')state.row[key]=JSON.parse(state.row[key]);
++   state.writes.push(s);return {rows:[structuredClone(state.row)]};
++  }
++  if(s.startsWith('UPDATE product.products SET stock_qty=COALESCE')){state.writes.push(s);return {rows:[]};}
++  if(s.startsWith('UPDATE product.products SET sku=$2')){
++   Object.assign(state.row,{sku:values[1],price_idr:values[2],sale_price_idr:values[3],sale_starts_at:values[4],sale_ends_at:values[5],edit_version:state.row.edit_version+1});
++   state.writes.push(s);return {rows:[structuredClone(state.row)]};
++  }
++  if(s.startsWith('SELECT p.*,p.price_idr'))return {rows:[structuredClone(state.row)]};
++  if(s.startsWith('SELECT *,price_idr::int AS price_idr,sale_price_idr::int AS sale_price_idr FROM product.products WHERE parent_product_id'))return {rows:[]};
++  if(s.startsWith('SELECT s.product_id,s.warehouse_id'))return {rows:[]};
++  if(s.startsWith('SELECT * FROM product.products WHERE id=')||s.startsWith('SELECT *,price_idr::integer AS price_idr FROM product.products WHERE id='))return {rows:state.row?[structuredClone(state.row)]:[]};
++  if(/^INSERT INTO product\.(master_data_audit|catalog_audit|catalog_requests|product_categories)/.test(s)||s.startsWith('DELETE FROM product.product_categories')){state.writes.push(s);return {rows:[]};}
++  throw Error('Unexpected query in unit repository: '+s);
++ }};
++ const db={...client,transaction:async(fn:any)=>{const before=structuredClone(state.row);try{return await fn(client);}catch(e){state.row=before;throw e;}}} as unknown as DatabaseService;
++ return {state,db};
++}
++const payload=(product:any)=>({requestKey:randomUUID(),product,warehouseStocks:[],variants:[]});
++const restricted=(e:any)=>e?.getStatus?.()===400&&/Konten/.test(e.message);
++
++test('private draft retains review-keyword text and zero price without publishing',async()=>{
++ const {db,state}=repository();const result=await new CatalogWorkspaceService(db).save(actor,null,payload(input()));
++ assert.equal(result.product.description,input().description);assert.equal(result.product.price_idr,0);assert.equal(result.product.is_active,false);assert.equal(state.row.is_active,false);
++ assert.ok(!state.calls.some(s=>s.includes('SET is_active=$2')));
++});
++
++test('private draft quick edit accepts unreviewed SKU while preserving draft state',async()=>{
++ const seed={...input(),id:productId,edit_version:1,is_active:false,parent_product_id:null};const {db,state}=repository(seed);
++ const result=await new CatalogWorkspaceService(db).quick(actor,productId,{expectedVersion:1,sku:'ACC-VAPE-NOTE',price_idr:0,warehouseStocks:[]});
++ assert.equal(result.product.sku,'ACC-VAPE-NOTE');assert.equal(state.row.is_active,false);
++});
++
++test('private draft cannot bypass publication through any stored descriptive field',async()=>{
++ for(const key of ['name','description','slug','sku','attributes','option_values']){
++  let queries=0;const reader={query:async()=>{queries++;throw Error('Publication guard must execute before database readiness checks');}};
++  const p:any={...input(),description:'Tas kain biasa',attributes:[],option_values:{},[key]:key==='attributes'?[{name:'note',values:['vape']}]:key==='option_values'?{note:'vape'}:'vape'};
++  await assert.rejects(()=>assertPublishable(reader,p),restricted);assert.equal(queries,0);
++ }
++});
++
++test('variable parent publication checks parent text before examining enabled variants',async()=>{
++ const seed={...input(),id:productId,edit_version:1,is_active:false,product_type:'variable'};const {db,state}=repository(seed);
++ await assert.rejects(()=>new CatalogWorkspaceService(db).state(actor,productId,{expectedVersion:1,active:true}),restricted);
++ assert.equal(state.row.is_active,false);assert.equal(state.writes.length,0);
++});
++
++test('an active product cannot receive unreviewed text through family save',async()=>{
++ const seed={...input(),description:'Tas kain biasa',id:productId,edit_version:1,is_active:true};const {db,state}=repository(seed);
++ await assert.rejects(()=>new CatalogWorkspaceService(db).save(actor,productId,{...payload(input()),expectedVersion:1}),restricted);
++ assert.equal(state.row.description,'Tas kain biasa');assert.equal(state.writes.length,0);
++});
++
++test('legacy activation-only requests cannot publish restricted text saved by the new draft editor',async()=>{
++ const seed={...input(),id:productId,edit_version:1,is_active:false};const {db,state}=repository(seed);
++ await assert.rejects(()=>new ProductsService(db).update(productId,{expected_version:1,is_active:true},actor),restricted);
++ assert.equal(state.row.is_active,false);assert.equal(state.writes.length,0);
++});
++
++test('ordinary accessory publication still accepts complete validated data',async()=>{
++ const p={...input(),id:productId,description:'Tas kain untuk aksesori perjalanan.',price_idr:100000,image_url:'https://example.invalid/bag.png',weight_grams:500,length_cm:20,width_cm:15,height_cm:10};
++ const reader={query:async(sql:string)=>sql.includes('WITH RECURSIVE ancestors')?{rows:[{n:1,ok:true}]}:sql.includes('warehouse_stock')?{rows:[{exists:1}]}:Promise.reject(Error('Unexpected query'))};
++ await assertPublishable(reader,p);
++});
++
++test('private draft flexibility does not remove SKU, price or actor validation',async()=>{
++ for(const change of [{sku:'bad code'},{price_idr:-1},{price_idr:0.5}]){
++  const {db,state}=repository();await assert.rejects(()=>new CatalogWorkspaceService(db).save(actor,null,payload({...input(),...change})));assert.equal(state.row,null);
++ }
++ const {db}=repository();await assert.rejects(()=>new CatalogWorkspaceService(db).save({...actor,emailVerified:false},null,payload(input())),(e:any)=>e.getStatus()===403);
++});
