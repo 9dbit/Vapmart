@@ -1,0 +1,38 @@
+name: CP38 Repair Pinned Lockfile
+on:
+  push:
+    branches: [work/cp38-hero-banners-20261103]
+    paths: [.github/workflows/cp38-lockfile.yml]
+permissions:
+  contents: write
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Generate exact pinned lockfile without lifecycle scripts
+        run: |
+          test "${{ github.ref }}" = 'refs/heads/work/cp38-hero-banners-20261103'
+          node -e "const p=require('./apps/api/package.json');if(p.dependencies.sharp!=='0.35.3')process.exit(1)"
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund --prefix apps/api
+          git diff --exit-code -- apps/api/package.json
+          node -e "const p=require('./apps/api/package-lock.json');if(p.packages['node_modules/sharp'].version!=='0.35.3')process.exit(1)"
+      - name: Commit the lockfile on isolated work branch only
+        run: |
+          git config user.name 'Vapmart CI'
+          git config user.email 'vapmart-ci@users.noreply.github.com'
+          git add apps/api/package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix(cp38): synchronize tracked sharp 0.35.3 dependency lockfile'
+            git push origin HEAD:work/cp38-hero-banners-20261103
+          fi
+          git rev-parse HEAD
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cp38-verified-lockfile
+          path: apps/api/package-lock.json
+          retention-days: 3
