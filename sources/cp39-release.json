@@ -1,0 +1,23 @@
+{
+  "checkpoint": "CP39",
+  "date": "2026-11-03",
+  "applicationSha": "a52c1c4e70080c8ef25e58e4d6792d239618ee54",
+  "releaseBranch": "release/vapmart-stable",
+  "projectId": "7c01e4d8-6152-4f04-9750-6e7031aa0830",
+  "environmentId": "04586a07-99b0-4cfd-95fa-bb6d8f1719e3",
+  "apiDeploymentId": "c1c93e8f-f266-47f9-a00f-a0f526257ac6",
+  "apiSuccessAt": "2026-11-03T11:37:31.323Z",
+  "webDeploymentId": "95c800ee-03b8-4774-8eb7-2a1847899492",
+  "webSuccessAt": "2026-11-03T11:40:40.852Z",
+  "observedDeploymentStatuses": {"api": "SUCCESS", "web": "SUCCESS"},
+  "preReleaseRunId": 41628045181,
+  "preReleaseJobId": 125890902261,
+  "preReleaseConclusion": "success",
+  "migrationApplied": "017_product_engine.sql",
+  "postReleaseStatus": "requested",
+  "requiredSafetyState": {"paymentEnabled": false, "bookingEnabled": false, "rateLookupEnabled": false},
+  "liveTestScope": "Public read requests and authorization denial checks only. Positive admin UI uses intercepted synthetic read-only data; all admin mutation requests are aborted. No real admin credentials or authorized live business writes.",
+  "sampleCsvImportedIntoLive": false,
+  "realOperatorUatClaimed": false,
+  "rollbackCaution": "After CP39 variant records exist, use a reviewed CP39-compatible recovery build. Older CP38 code does not enforce parent/child publication semantics. Keep migration 017 and all business data."
+}
