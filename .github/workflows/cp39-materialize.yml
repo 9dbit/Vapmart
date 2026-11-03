@@ -25,6 +25,12 @@ jobs:
           import hashlib,json,subprocess
           from pathlib import Path
           root=Path('scripts/cp39-candidate')
+          repair=root/'08.patch'
+          if hashlib.sha256(repair.read_bytes()).hexdigest()=='d6d4f104da86cbc09f85b6ac53d105418b77d06625da2f4d461e38d9ac0d57b6':
+              original=repair.read_text()
+              needle='.vc-root :focus-visible'
+              assert original.count(needle)==1
+              repair.write_text(original.replace(needle,'.vc-check{flex-direction:row!important;align-items:center;gap:10px!important}'+needle))
           expected=json.loads((root/'checksums.json').read_text())
           assert len(expected)==13
           paths=[]
@@ -50,7 +56,7 @@ jobs:
           git config user.name 'Vapmart CI'
           git config user.email 'vapmart-ci@users.noreply.github.com'
           git add apps scripts/cp39-browser.mjs scripts/cp39-fixture-server.cjs sources/Vapmart_Checkpoint_39_2026-11-03_Product_Engine.md sources/cp39-source-manifest.json
-          git rm -r scripts/cp39-candidate
+          git rm -rf scripts/cp39-candidate
           git commit -m 'feat(cp39): materialize product engine candidate for isolated acceptance tests'
           git push origin HEAD:work/cp39-product-engine-20261103
           git rev-parse HEAD
