@@ -1,0 +1,19 @@
+{
+  "checkpoint": "CP38",
+  "releaseDate": "2026-11-03",
+  "releaseSha": "af47f967f5e32a8508ee274edc2de47237792bb6",
+  "releaseBranch": "release/vapmart-stable",
+  "projectId": "7c01e4d8-6152-4f04-9750-6e7031aa0830",
+  "environmentId": "04586a07-99b0-4cfd-95fa-bb6d8f1719e3",
+  "apiDeployment": {"id": "1141356d-da71-4783-9580-3d87259a90a4", "status": "SUCCESS", "updatedAt": "2026-11-03T07:44:05.826Z"},
+  "webDeployment": {"id": "f50da9bf-9e90-45c8-9834-7c16c9d514ad", "status": "SUCCESS", "updatedAt": "2026-11-03T07:46:21.081Z"},
+  "migration": "016_hero_banners.sql",
+  "migrationAppliedObservedAt": "2026-11-03T07:43:54.844697581Z",
+  "verifiedOriginalMedia": 59,
+  "preflightRunId": 41597783972,
+  "preflightConclusion": "success",
+  "preflightArtifactId": 13213295335,
+  "postReleaseStatus": "requested",
+  "liveTestPolicy": "Public GET requests and authorization denials only. Admin browser identity and list are intercepted fixtures. No authorized live banner uploads, mutations, payment, courier or product actions.",
+  "requiredSafetyState": {"paymentEnabled": false, "bookingEnabled": false, "rateLookupEnabled": false}
+}
