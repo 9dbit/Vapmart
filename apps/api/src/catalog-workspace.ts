@@ -64,6 +64,8 @@ async function linkCategories(q:Reader,id:string,ids:string[]){
  await q.query('INSERT INTO product.product_categories(product_id,category_id) SELECT $1,unnest($2::uuid[])',[id,ids]);
 }
 export async function assertPublishable(q:Reader,p:Record<string,any>){
+ // Private drafts may retain unreviewed text; every publication checks the stored record.
+ V.safeCatalogTerms(p.name,p.description,p.slug,p.sku,p.attributes??[],p.option_values??{});
  const missing=publicationMissing(p).filter(s=>s!=='brand_id');
  if(p.fulfillment_owner_brand_id&&!(await q.query('SELECT 1 FROM product.brands WHERE id=$1 AND is_active',[p.fulfillment_owner_brand_id])).rows.length)missing.push('active_owner');
  if(p.brand_id&&!(await q.query('SELECT 1 FROM product.brands WHERE id=$1 AND is_active',[p.brand_id])).rows.length)missing.push('active_brand');
@@ -129,7 +131,7 @@ export class CatalogWorkspaceService{
   const cats=await categoryIds(client,p);
   const root:Record<string,any>={name:V.text(p.name,'Nama produk',2,140),slug:V.slug(p.slug),sku:V.sku(p.sku),description:V.text(p.description??'','Deskripsi',0,20000),category:cats.slug,
    brand_id:p.brand_id?requireUuid(p.brand_id,'brand'):null,fulfillment_owner_brand_id:p.fulfillment_owner_brand_id?requireUuid(p.fulfillment_owner_brand_id,'pengelola'):null,...media(p),...V.priceFields(p),...dimensions(p),product_type:type,attributes:attrs,option_values:{}};
-  V.safeCatalogTerms(root.name,root.description,root.slug,root.sku,attrs);
+  if(before?.is_active)V.safeCatalogTerms(root.name,root.description,root.slug,root.sku,attrs);
   if(root.fulfillment_owner_brand_id&&!(await client.query('SELECT 1 FROM product.brands WHERE id=$1 AND is_active',[root.fulfillment_owner_brand_id])).rows.length)throw new BadRequestException('Pengelola partner tidak aktif');
   if(root.brand_id&&!(await client.query('SELECT 1 FROM product.brands WHERE id=$1',[root.brand_id])).rows.length)throw new BadRequestException('Brand tidak ditemukan');
   const mainStocks=V.stockInputs(x.warehouseStocks);
@@ -153,7 +155,7 @@ export class CatalogWorkspaceService{
     if(typeof v.enabled!=='boolean')throw new BadRequestException('Status varian diperlukan');
     const vp={...root,...V.priceFields(v),...dimensions({...root,...v}),...media({image_url:v.image_url||root.image_url,gallery_urls:v.gallery_urls??root.gallery_urls}),
      name:(root.name+' - '+Object.values(opt).join(' / ')).slice(0,140),slug:prev?.slug||root.slug.slice(0,72)+'-v-'+randomUUID().slice(0,18),sku:V.sku(v.sku),product_type:'variation',attributes:[],option_values:opt};
-    V.safeCatalogTerms(vp.name,vp.sku,opt);
+    if(saved.is_active&&v.enabled)V.safeCatalogTerms(vp.name,vp.sku,opt);
     const row=await persist(client,who,vp,prev,id!,v.enabled);
     await linkCategories(client,row.id,cats.ids);await stockSave(client,who,row.id,V.stockInputs(v.warehouseStocks));
     if(saved.is_active&&row.is_active)await assertPublishable(client,row);
@@ -168,7 +170,7 @@ export class CatalogWorkspaceService{
   return this.db.transaction(async client=>{await inventoryLock(client);
    const before=(await client.query('SELECT * FROM product.products WHERE id=$1 AND archived_at IS NULL FOR UPDATE',[id])).rows[0];if(!before)throw new NotFoundException();
    if(before.product_type==='variable')throw new ConflictException('Pilih SKU varian untuk edit cepat harga dan stok');
-   assertVersion(before.edit_version,V.version(x.expectedVersion));const prices=V.priceFields({...before,price_idr:Number(before.price_idr),sale_price_idr:before.sale_price_idr==null?null:Number(before.sale_price_idr),...x}),code=V.sku(x.sku??before.sku);V.safeCatalogTerms(code);
+   assertVersion(before.edit_version,V.version(x.expectedVersion));const prices=V.priceFields({...before,price_idr:Number(before.price_idr),sale_price_idr:before.sale_price_idr==null?null:Number(before.sale_price_idr),...x}),code=V.sku(x.sku??before.sku);
    const r=await client.query('UPDATE product.products SET sku=$2,price_idr=$3,sale_price_idr=$4,sale_starts_at=$5,sale_ends_at=$6,edit_version=edit_version+1,updated_at=now() WHERE id=$1 RETURNING *',[id,code,prices.price_idr,prices.sale_price_idr,prices.sale_starts_at,prices.sale_ends_at]);
    await stockSave(client,who,id,V.stockInputs(x.warehouseStocks));
    const parent=before.parent_product_id?(await client.query('SELECT is_active FROM product.products WHERE id=$1 FOR UPDATE',[before.parent_product_id])).rows[0]:null;
@@ -182,6 +184,7 @@ export class CatalogWorkspaceService{
   return this.db.transaction(async client=>{await inventoryLock(client);
    const before=(await client.query('SELECT * FROM product.products WHERE id=$1 AND parent_product_id IS NULL AND archived_at IS NULL FOR UPDATE',[id])).rows[0];if(!before)throw new NotFoundException();assertVersion(before.edit_version,V.version(x.expectedVersion));
    if(x.active){
+    V.safeCatalogTerms(before.name,before.description,before.slug,before.sku,before.attributes??[],before.option_values??{});
     if(before.product_type==='variable'){
      const variants=(await client.query('SELECT * FROM product.products WHERE parent_product_id=$1 AND is_active AND archived_at IS NULL FOR UPDATE',[id])).rows;
      if(!variants.length)throw new ConflictException('Tambahkan varian aktif sebelum publikasi');

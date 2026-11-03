@@ -1,3 +1,4 @@
+import {safeCatalogTerms} from './catalog-validation';
 import {publicPrice} from './catalog-pricing';
 import {inventoryLock} from './warehouses';
 import { BadRequestException, ConflictException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
@@ -204,6 +205,8 @@ export class ProductsService {
    if(patch.brand_id!==undefined&&before.brand_id&&before.fulfillment_owner_brand_id===before.brand_id){patch.fulfillment_owner_brand_id=patch.brand_id;keys.push('fulfillment_owner_brand_id');}
    const merged={...before,...patch};
    if(merged.is_active){
+    // Activation-only legacy requests must validate text already saved in a private draft.
+    safeCatalogTerms(merged.name,merged.description,merged.slug,merged.sku,(merged as any).attributes??[],(merged as any).option_values??{});
     const missing=publicationMissing(merged as unknown as Record<string,unknown>);
     const brand=merged.brand_id?await client.query('SELECT 1 FROM product.brands WHERE id=$1 AND is_active',[merged.brand_id]):{rows:[]};
     if(merged.brand_id&&!brand.rows.length)missing.push('active_brand');
