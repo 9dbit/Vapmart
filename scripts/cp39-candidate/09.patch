@@ -1,0 +1,133 @@
+diff --git a/apps/web/src/components/cart-page.tsx b/apps/web/src/components/cart-page.tsx
+index 57b390b..878510b 100644
+--- a/apps/web/src/components/cart-page.tsx
++++ b/apps/web/src/components/cart-page.tsx
+@@ -1,5 +1,6 @@
+ 'use client';
+ import Link from 'next/link';
++import '../app/catalog-store.css';
+ import {useCart} from '@/lib/cart';
+ import {formatIDR} from '@/lib/types';
+ import {isDigitalProduct} from '@/lib/digital-products';
+@@ -12,7 +13,7 @@ function EmptyCartImage(){
+  </svg>;
+ }
+ export function CartPageContent(){
+- const {items,count,subtotal,setQuantity,remove}=useCart();
++ const {items,count,subtotal,setQuantity,remove,refresh,refreshing,catalogError}=useCart();
+  const digitalOnly=items.length===1&&items[0].quantity===1&&isDigitalProduct(items[0].product);
+  const physicalOnly=items.length>0&&items.every(x=>!isDigitalProduct(x.product));
+  return <div className="vm21-cart-page-content">
+@@ -21,6 +22,8 @@ export function CartPageContent(){
+      <p>Periksa pilihanmu sebelum melanjutkan.</p></div>
+      <Link href="/catalog" className="vm21-secondary">Jelajahi Katalog <span aria-hidden="true">↗</span></Link>
+    </div>
++   {catalogError&&<p role="alert" className="vcs-cart-warning">{catalogError}</p>}
++   {!!items.length&&<button type="button" className="vm21-secondary" disabled={refreshing} onClick={()=>void refresh()}>{refreshing?'Memperbarui...':'Perbarui harga dan stok'}</button>}
+    {!items.length?
+     <section className="vm21-cart-empty-page">
+       <div className="vm21-drawer-bag-illustration"><EmptyCartImage/></div>
+@@ -34,9 +37,9 @@ export function CartPageContent(){
+           <div className="vm21-cart-product-image">{product.image_url?<img src={product.image_url} alt={product.name}/>:<span aria-hidden="true">{isDigitalProduct(product)?'V':'✦'}</span>}</div>
+           <div className="vm21-cart-product-body">
+             <span className="vm21-eyebrow">{isDigitalProduct(product)?'DIGITAL · COIN / MEMBER':'PRODUK STAGING'}</span>
+-            {isDigitalProduct(product)?<Link href="/member-2"><h2>{product.name}</h2></Link>:<Link href={'/product/'+product.slug}><h2>{product.name}</h2></Link>}
++            {isDigitalProduct(product)?<Link href="/member-2"><h2>{product.name}</h2></Link>:<Link href={'/product/'+(product.parent_slug||product.slug)}><h2>{product.name}</h2></Link>}
+             <p>{isDigitalProduct(product)?'Dikirim ke akun setelah pembayaran terverifikasi':product.category}</p>
+-            <strong>{formatIDR(product.price_idr)}</strong>
++            <strong>{formatIDR(product.price_idr)}</strong>{!isDigitalProduct(product)&&(!product.is_active||product.stock_qty<=0)&&<p className="vcs-unavailable">SKU tidak tersedia. Hapus atau pilih variasi lain.</p>}
+             <div className="vm21-cart-product-actions">
+               {!isDigitalProduct(product)&&<div className="vm21-drawer-qty">
+                 <button type="button" disabled={quantity<=1} onClick={()=>setQuantity(product.id,quantity-1)} aria-label={'Kurangi '+product.name}>−</button><span>{quantity}</span>
+diff --git a/apps/web/src/components/catalog-admin-shell.tsx b/apps/web/src/components/catalog-admin-shell.tsx
+new file mode 100644
+index 0000000..dce004a
+--- /dev/null
++++ b/apps/web/src/components/catalog-admin-shell.tsx
+@@ -0,0 +1,37 @@
++'use client';
++import {createContext,useContext,useEffect,useState,type ReactNode} from 'react';
++import {usePathname,useRouter} from 'next/navigation';
++import Link from 'next/link';
++import {useCustomerAuth} from '@/lib/customer-auth';
++import {AdminWorkspace,type AdminSection} from './admin-workspace';
++import '../app/admin-v26.css';
++import '../app/catalog-admin.css';
++type Client={request:<T=any>(path:string,body?:unknown,method?:'POST'|'PATCH')=>Promise<T>;upload:(file:File)=>Promise<string>};
++const Context=createContext<Client|null>(null);
++export function useCatalogAdmin(){const x=useContext(Context);if(!x)throw Error('Catalog admin context required');return x;}
++export function CatalogAdminShell({children,section='products'}:{children:ReactNode;section?:'products'|'orders'}){
++ const auth=useCustomerAuth(),router=useRouter(),path=usePathname();const [verified,setVerified]=useState<string|null>(null),[error,setError]=useState(''),[retry,setRetry]=useState(0);
++ useEffect(()=>{if(auth.loading)return;const ac=new AbortController();setVerified(null);setError('');
++  if(!auth.accessToken){router.replace('/admin');return;}
++  fetch('/api/admin/status',{headers:{authorization:'Bearer '+auth.accessToken},cache:'no-store',signal:ac.signal}).then(async r=>{if(r.status===401||r.status===403){router.replace('/admin');return;}if(!r.ok)throw Error('Tidak dapat memverifikasi sesi administrator');setVerified(auth.accessToken);}).catch(e=>{if(!ac.signal.aborted)setError(e.message);});return()=>ac.abort();
++ },[auth.loading,auth.accessToken,router,retry]);
++ async function request<T=any>(target:string,body?:unknown,method:'POST'|'PATCH'='POST'):Promise<T>{
++  if(!auth.accessToken)throw Error('Sesi berakhir');const r=await fetch('/api/admin/catalog/'+target,{method:body===undefined?'GET':method,headers:{authorization:'Bearer '+auth.accessToken,'content-type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)}),cache:'no-store'});
++  const d=await r.json().catch(()=>({message:'Respons server tidak valid'}));if(!r.ok){if(r.status===401)throw Error('Sesi berakhir. Masuk ulang sebelum melanjutkan.');throw Error(Array.isArray(d.message)?d.message.join(', '):d.message||'Permintaan gagal ('+r.status+')');}return d;
++ }
++ async function upload(file:File){
++  if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>1572864)throw Error('JPG, PNG atau WebP maksimal 1,5 MiB per gambar');
++  const base64=await new Promise<string>((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]);r.onerror=()=>reject(Error('Gagal membaca gambar'));r.readAsDataURL(file);});
++  const r=await fetch('/api/admin/media',{method:'POST',headers:{authorization:'Bearer '+auth.accessToken,'content-type':'application/json'},body:JSON.stringify({filename:file.name,mimeType:file.type,base64})});const d=await r.json();if(!r.ok)throw Error(d.message||'Upload gagal');return '/api/media/'+d.id;
++ }
++ function navigate(s:AdminSection){router.push(s==='media'?'/admin/media':s==='products'?'/admin/products':s==='orders'?'/admin/orders':s==='overview'?'/admin':'/admin?tab='+s);}
++ if(!verified||verified!==auth.accessToken)return <main className="vma27-access-page"><section className="vma26-panel"><h1>Vapmart Control Panel</h1><p role={error?'alert':'status'}>{error||'Memverifikasi akses...'}</p>{error&&<button onClick={()=>setRetry(x=>x+1)}>Coba lagi</button>}</section></main>;
++ return <AdminWorkspace active={section} email={auth.user?.email} onNavigate={navigate} onLogout={async()=>{await auth.signOut();router.replace('/admin');}}>
++  <Context.Provider value={{request,upload}}><div className="vc-root" data-engine="cp39">
++   <header className="vc-heading"><div><small>VAPMART / CATALOG & OPERATIONS</small><h1>{section==='products'?'Produk & SKU':'Pesanan'}</h1><p>{section==='products'?'Kelola produk, harga, variasi dan stok dari satu workspace.':'Data pesanan dan pembayaran dari server. Tidak ada penandaan lunas manual.'}</p></div><Link href="/" className="vc-button">Lihat website</Link></header>
++   {section==='products'&&<nav className="vc-nav" aria-label="Halaman produk">{[['/admin/products','Semua Produk'],['/admin/products/new','Tambah Produk'],['/admin/products/categories','Kategori Produk'],['/admin/products/reviews','Review Pembeli']].map(([href,label])=><Link key={href} href={href} aria-current={path===href?'page':undefined}>{label}</Link>)}</nav>}
++   {children}
++  </div></Context.Provider>
++ </AdminWorkspace>;
++}
++export function CatalogNotice({error,message}:{error?:string;message?:string}){return error?<p role="alert" className="vc-alert">{error}</p>:message?<p role="status" className="vc-notice">{message}</p>:null;}
+diff --git a/apps/web/src/components/catalog-categories.tsx b/apps/web/src/components/catalog-categories.tsx
+new file mode 100644
+index 0000000..1c20082
+--- /dev/null
++++ b/apps/web/src/components/catalog-categories.tsx
+@@ -0,0 +1,12 @@
++'use client';
++import {useEffect,useState,type FormEvent} from 'react';
++import {CatalogNotice,useCatalogAdmin} from './catalog-admin-shell';
++import {ImagesField} from './catalog-editor-fields';
++const blank={id:'',name:'',slug:'',parentId:'',image_url:'',description:'',active:true,expectedVersion:1};
++export function CatalogCategories(){const {request}=useCatalogAdmin(),[items,setItems]=useState<any[]>([]),[form,setForm]=useState(blank),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true),[revision,setRevision]=useState(0);
++ useEffect(()=>{let live=true;setLoading(true);request('categories').then(d=>{if(live)setItems(d.items)}).catch(e=>setError(e.message)).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[revision]);
++ async function save(e:FormEvent){e.preventDefault();setBusy(true);setError('');try{const {id,...body}=form;await request(id?'categories/'+id:'categories',{...body,parentId:body.parentId||null,image_url:body.image_url||null},id?'PATCH':'POST');setForm(blank);setRevision(x=>x+1);setNotice('Kategori tersimpan.');}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
++ async function archive(c:any){if(!confirm('Nonaktifkan kategori '+c.name+'? Produk tidak dihapus. Kategori terpakai harus dipindahkan terlebih dahulu.'))return;setBusy(true);setError('');try{await request('categories/'+c.id+'/archive',{expectedVersion:c.edit_version,confirm:true});setRevision(x=>x+1);}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
++ function edit(c:any){setForm({id:c.id,name:c.name,slug:c.slug,parentId:c.parent_id||'',image_url:c.image_url||'',description:c.description,active:c.is_active,expectedVersion:c.edit_version});window.scrollTo({top:0,behavior:'smooth'})}
++ return <><CatalogNotice error={error} message={notice}/><form className="vc-panel" onSubmit={save}><h2>{form.id?'Edit kategori':'Tambah kategori'}</h2><div className="vc-grid"><label>Nama kategori<input required maxLength={100} value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label>Slug kategori<input required maxLength={120} pattern="[a-z0-9]+(-[a-z0-9]+)*" value={form.slug} onChange={e=>setForm({...form,slug:e.target.value})}/></label><label>Kategori induk<select value={form.parentId} onChange={e=>setForm({...form,parentId:e.target.value})}><option value="">Tanpa induk</option>{items.filter(c=>c.id!==form.id&&c.is_active).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label><label className="vc-check"><input type="checkbox" checked={form.active} onChange={e=>setForm({...form,active:e.target.checked})}/>Kategori aktif</label><label className="vc-wide">Deskripsi kategori<textarea maxLength={1500} rows={3} value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></label><div className="vc-wide"><ImagesField value={form.image_url?[form.image_url]:[]} onChange={v=>setForm({...form,image_url:v[0]||''})}/></div></div><div className="vc-actions"><button type="submit" className="vc-primary" disabled={busy}>Simpan kategori</button>{form.id&&<button type="button" onClick={()=>setForm(blank)}>Batal edit</button>}</div></form><section className="vc-panel"><h2>Daftar kategori</h2>{loading?<p role="status">Memuat kategori...</p>:<div className="vc-table-wrap"><table className="vc-table"><thead><tr><th>Gambar</th><th>Nama / slug</th><th>Induk</th><th>Produk</th><th>Status</th><th>Aksi</th></tr></thead><tbody>{items.map(c=><tr key={c.id}><td>{c.image_url&&<img src={c.image_url} width={60} height={60} alt={c.name} style={{objectFit:'contain'}}/>}</td><td><strong>{c.name}</strong><br/><small>{c.slug}</small></td><td>{items.find(x=>x.id===c.parent_id)?.name||'-'}</td><td>{c.product_count}</td><td>{c.is_active?'Aktif':'Nonaktif'}</td><td><div className="vc-actions"><button onClick={()=>edit(c)}>Edit</button><button className="vc-danger" disabled={busy||!c.is_active} onClick={()=>archive(c)}>Nonaktifkan</button></div></td></tr>)}</tbody></table></div>}</section></>;
++}
+diff --git a/apps/web/src/components/catalog-editor-fields.tsx b/apps/web/src/components/catalog-editor-fields.tsx
+new file mode 100644
+index 0000000..6a673f8
+--- /dev/null
++++ b/apps/web/src/components/catalog-editor-fields.tsx
+@@ -0,0 +1,25 @@
++'use client';
++import {useState} from 'react';
++import {useCatalogAdmin} from './catalog-admin-shell';
++export type Lookup={categories:any[];warehouses:any[];brands:any[]};
++export type StockDraft={warehouseId:string;onHand:string;expectedOnHand:number;expectedReserved:number;notes:string};
++export function stockDrafts(lookups:Lookup,rows:any[],productId?:string):StockDraft[]{return lookups.warehouses.filter(w=>w.is_active&&!w.is_system_hold).map(w=>{const row=rows.find(s=>s.product_id===productId&&s.warehouse_id===w.id);return {warehouseId:w.id,onHand:row?String(row.on_hand):'',expectedOnHand:row?.on_hand??0,expectedReserved:row?.reserved??0,notes:''};});}
++export function stockPayload(rows:StockDraft[]){return rows.filter(s=>s.onHand!=='').map(s=>({...s,onHand:Number(s.onHand)}));}
++export function StockFields({value,onChange,lookups}:{value:StockDraft[];onChange:(v:StockDraft[])=>void;lookups:Lookup}){
++ const edit=(i:number,k:keyof StockDraft,v:string)=>onChange(value.map((s,n)=>n===i?{...s,[k]:v}:s));
++ return <div><p className="vc-muted">Isi stok fisik tiap gudang. Kolom kosong tidak mengubah stok. Reservasi tidak diubah; stok tersedia dihitung otomatis. Setiap perubahan memerlukan catatan.</p>
++ {!value.length?<p role="status">Belum ada gudang fisik aktif. Tambahkan melalui Gudang & Stok; produk tetap dapat disimpan sebagai draft.</p>:<div className="vc-table-wrap"><table className="vc-table"><thead><tr><th>Gudang</th><th>Stok fisik</th><th>Direservasi</th><th>Tersedia</th><th>Catatan perubahan</th></tr></thead><tbody>{value.map((s,i)=>{const w=lookups.warehouses.find(w=>w.id===s.warehouseId);return <tr key={s.warehouseId}><td><strong>{w?.name}</strong><br/><small>{w?.code} {w?.is_dispatch_enabled?'':' / Dispatch OFF'}</small></td><td><input aria-label={'Stok '+w?.name} type="number" min={s.expectedReserved} step="1" value={s.onHand} placeholder="Tidak diubah" onChange={e=>edit(i,'onHand',e.target.value)}/></td><td>{s.expectedReserved}</td><td>{s.onHand===''?'-':Number(s.onHand)-s.expectedReserved}</td><td><input className="vc-stock-note" aria-label={'Catatan stok '+w?.name} value={s.notes} maxLength={300} placeholder="Referensi penerimaan / koreksi" onChange={e=>edit(i,'notes',e.target.value)}/></td></tr>;})}</tbody></table></div>}
++ </div>;
++}
++export function ImagesField({value,onChange}:{value:string[];onChange:(v:string[])=>void}){
++ const {upload}=useCatalogAdmin();const [busy,setBusy]=useState(false),[error,setError]=useState(''),[url,setUrl]=useState('');
++ async function files(selected:File[]){setBusy(true);setError('');try{const next=[...value];if(next.length+selected.length>21)throw Error('Maksimal satu utama dan 20 gambar pendukung');for(const file of selected)next.push(await upload(file));onChange([...new Set(next)]);}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
++ return <div><label>Upload gambar utama dan pendukung<input type="file" accept="image/png,image/jpeg,image/webp" multiple disabled={busy} onChange={e=>{void files(Array.from(e.target.files||[]));e.target.value='';}}/></label><p className="vc-muted">Gambar pertama menjadi gambar utama. JPG, PNG, WebP, maksimal 1,5 MiB per file. File tetap tersimpan saat dilepas dari produk.</p>
++ {busy&&<p role="status">Mengunggah gambar...</p>}{error&&<p role="alert" className="vc-alert">{error}</p>}
++ <div className="vc-photos">{value.map((src,i)=><div className="vc-photo" key={src}><a href={src} target="_blank" rel="noreferrer"><img src={src} alt={'Preview '+(i+1)}/></a><strong>{i===0?'Gambar utama':'Pendukung '+i}</strong><div className="vc-actions">{i>0&&<button type="button" onClick={()=>onChange([src,...value.filter((_,j)=>j!==i)])}>Jadikan utama</button>}<button type="button" disabled={i===0} aria-label={'Naik gambar '+(i+1)} onClick={()=>{const a=[...value];[a[i-1],a[i]]=[a[i],a[i-1]];onChange(a);}}>Naik</button><button type="button" onClick={()=>onChange(value.filter((_,j)=>j!==i))}>Lepaskan</button></div></div>)}</div>
++ <details><summary>Gunakan URL gambar HTTPS</summary><div className="vc-actions"><input aria-label="URL gambar" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://..."/><button type="button" onClick={()=>{try{const u=new URL(url);if(u.protocol!=='https:'||u.username||u.password||u.hash||value.length>=21)throw Error();onChange([...new Set([...value,url.trim()])]);setUrl('');setError('');}catch{setError('URL HTTPS valid diperlukan, maksimal 21 gambar');}}}>Tambahkan URL</button></div></details></div>;
++}
++export const inputDate=(v:unknown)=>{if(!v)return '';const d=new Date(String(v));return Number.isNaN(d.valueOf())?'':new Date(d.valueOf()+7*3600000).toISOString().slice(0,16);};
++export const isoDate=(v:string)=>v?new Date(v+':00+07:00').toISOString():null;
++export function PriceFields({value,onChange,prefix=''}:{value:any;onChange:(k:string,v:string)=>void;prefix?:string}){return <div className="vc-grid"><label>Harga normal (Rp)<input aria-label={prefix+'Harga normal'} type="number" min="0" step="1" required value={value.price_idr} onChange={e=>onChange('price_idr',e.target.value)}/></label><label>Harga promo (Rp)<input aria-label={prefix+'Harga promo'} type="number" min="0" step="1" value={value.sale_price_idr??''} placeholder="Opsional" onChange={e=>onChange('sale_price_idr',e.target.value)}/></label><label>Mulai promo (WIB)<input aria-label={prefix+'Mulai promo'} type="datetime-local" value={value.sale_starts_at??''} onChange={e=>onChange('sale_starts_at',e.target.value)}/></label><label>Akhir promo (WIB)<input aria-label={prefix+'Akhir promo'} type="datetime-local" value={value.sale_ends_at??''} onChange={e=>onChange('sale_ends_at',e.target.value)}/></label></div>;}
++export const pricesPayload=(v:any)=>({price_idr:Number(v.price_idr),sale_price_idr:v.sale_price_idr===''||v.sale_price_idr==null?null:Number(v.sale_price_idr),sale_starts_at:isoDate(v.sale_starts_at||''),sale_ends_at:isoDate(v.sale_ends_at||'')});
