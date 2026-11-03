@@ -1,0 +1,46 @@
+name: CP40 Post-release Verification
+on:
+  push:
+    branches: [work/cp40-private-drafts-20261103]
+    paths: [sources/cp40-release.json]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Require recorded terminal deployment success
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          const release=JSON.parse(readFileSync('sources/cp40-release.json','utf8'));
+          assert.equal(release.apiStatus,'SUCCESS');
+          assert.equal(release.webStatus,'SUCCESS');
+          assert.equal(release.preReleaseConclusion,'success');
+          assert.equal(release.liveWrites,false);
+          JS
+      - name: Browser tooling
+        run: npm install --no-save --no-audit --no-fund playwright@1.56.0 && npx playwright install --with-deps chromium
+      - name: Public reads, authorization denials and intercepted read-only UI
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/cp40-live
+          timeout --signal=TERM --kill-after=10s 240s node scripts/live-cp39.mjs 2>&1 | tee artifacts/cp40-live/acceptance.log
+          timeout --signal=TERM --kill-after=10s 120s node scripts/theme-smoke.mjs 2>&1 | tee artifacts/cp40-live/theme.log
+          cp sources/cp40-release.json artifacts/cp40-live/release.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cp40-live-verification
+          path: artifacts/
+          retention-days: 14
+          if-no-files-found: error
