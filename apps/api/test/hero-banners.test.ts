@@ -1,0 +1,31 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import sharp from 'sharp';
+import {parseHero,heroId} from '../src/hero-banners';
+import {validateHeroImage,HERO_MAX_BYTES} from '../src/hero-images';
+test('hero validation accepts only explicit content fields and UUID assets',()=>{
+ const valid={title:'  Informasi layanan  ',alt:'Informasi layanan terbaru',desktopAssetId:randomUUID(),mobileAssetId:randomUUID(),idempotencyKey:randomUUID()};
+ assert.equal(parseHero(valid).title,'Informasi layanan');
+ assert.throws(()=>parseHero({...valid,is_active:true}));
+ assert.throws(()=>parseHero({...valid,desktopPath:'https://evil.invalid/x'}));
+ assert.throws(()=>parseHero({...valid,desktopAssetId:'../private'}));
+ assert.throws(()=>parseHero({...valid,idempotencyKey:undefined}));
+ assert.throws(()=>parseHero({...valid,title:''}));
+ assert.throws(()=>parseHero({...valid,alt:'x'.repeat(241)}));
+ assert.throws(()=>heroId('javascript:alert(1)'));
+ assert.throws(()=>parseHero({title:'Edit',alt:'Edit'},true));
+ assert.equal(parseHero({title:'Edit',alt:'Edit',expectedVersion:2},true).expectedVersion,2);
+});
+test('upload decodes bytes, strips metadata, stores a web-safe derivative and preserves original',async()=>{
+ const original=await sharp({create:{width:1024,height:320,channels:3,background:'#7250aa'}}).png().toBuffer();
+ const result=await validateHeroImage({buffer:original,originalname:'../../information.png',mimetype:'image/png',size:original.length});
+ assert.equal(result.filename,'information.png');assert.ok(result.original.equals(original));
+ assert.equal((await sharp(result.display).metadata()).format,'webp');assert.equal(result.width,1024);
+ await assert.rejects(()=>validateHeroImage(undefined));
+ await assert.rejects(()=>validateHeroImage({buffer:original,originalname:'spoof.webp',mimetype:'image/webp',size:original.length}));
+ await assert.rejects(()=>validateHeroImage({buffer:Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script/></svg>'),originalname:'x.png',mimetype:'image/png',size:51}));
+ await assert.rejects(()=>validateHeroImage({buffer:Buffer.alloc(HERO_MAX_BYTES+1),originalname:'large.png',mimetype:'image/png',size:HERO_MAX_BYTES+1}));
+ const tiny=await sharp({create:{width:2,height:2,channels:3,background:'#ffffff'}}).png().toBuffer();
+ await assert.rejects(()=>validateHeroImage({buffer:tiny,originalname:'tiny.png',mimetype:'image/png',size:tiny.length}));
+});

@@ -1,0 +1,78 @@
+import assert from 'node:assert/strict';
+import {mkdir,writeFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+import {resolve} from 'node:path';
+import {chromium} from 'playwright';
+const require=createRequire(resolve('apps/api/package.json')),sharp=require('sharp');
+const BASE='http://127.0.0.1:3000',API='http://127.0.0.1:4100';
+if(process.env.HERO_LOCAL_TEST!=='1')throw Error('Local testing only');
+const output='artifacts/cp38';await mkdir(output,{recursive:true});
+const png=await sharp({create:{width:1024,height:320,channels:3,background:'#7250aa'}}).png().toBuffer();
+const mobile=await sharp({create:{width:1024,height:448,channels:3,background:'#b7a5d0'}}).png().toBuffer();
+await writeFile(output+'/test-desktop.png',png);await writeFile(output+'/test-mobile.png',mobile);
+const user={id:'38000000-0000-4000-8000-000000009999',aud:'authenticated',role:'authenticated',email:'hero-ui@example.invalid',email_confirmed_at:'2026-11-03T00:00:00Z',created_at:'2026-11-03T00:00:00Z',app_metadata:{provider:'email',providers:['email']},user_metadata:{}};
+const session={access_token:'fixture-admin',refresh_token:'fixture-refresh',token_type:'bearer',expires_in:7200,expires_at:Math.floor(Date.now()/1000)+7200,user};
+const browser=await chromium.launch({headless:true,...(process.env.BROWSER_EXECUTABLE?{executablePath:process.env.BROWSER_EXECUTABLE}:{})});
+const context=await browser.newContext({viewport:{width:1440,height:1000}});
+await context.addInitScript(s=>localStorage.setItem('vapmart-customer-auth-v1',JSON.stringify(s)),session);
+const page=await context.newPage();let accept=true;page.on('dialog',d=>accept?d.accept():d.dismiss());
+const publicSlides=async()=>{const r=await fetch(BASE+'/api/hero-banners');assert.equal(r.status,200);return (await r.json()).items;};
+const rows=()=>page.locator('.vh-row');
+const row=title=>rows().filter({has:page.locator('.vh-row-title>strong',{hasText:title})});
+async function waitReady(){await page.locator('.vh-root[aria-busy="false"]').waitFor();}
+try{
+ for(let i=0;i<30;i++){try{if((await fetch(BASE+'/admin/banners')).status===200)break;}catch{}await new Promise(r=>setTimeout(r,1000));}
+ const anon=await fetch(BASE+'/api/admin/hero-banners');assert.equal(anon.status,401);
+ const home=await context.newPage();await home.goto(BASE);assert.equal(await home.locator('.vm-carousel-slide').count(),3);
+ await page.goto(BASE+'/admin/banners');await waitReady();assert.equal(await rows().count(),3);
+ await page.getByLabel('Nama banner',{exact:true}).fill('Informasi layanan');
+ await page.getByLabel('Teks alternatif gambar',{exact:true}).fill('Jam layanan Vapmart');
+ await page.locator('#hero-desktop').setInputFiles(output+'/test-desktop.png');
+ await page.locator('#hero-mobile').setInputFiles(output+'/test-mobile.png');
+ await page.locator('.vh-preview img').waitFor();assert.equal((await publicSlides()).length,3,'unsaved images stay out of public hero');
+ await page.getByRole('button',{name:'Simpan draft',exact:true}).click();await page.getByRole('status').filter({hasText:'Draft tersimpan'}).waitFor();await waitReady();
+ assert.equal(await rows().count(),4);assert.equal((await publicSlides()).length,3,'saved draft remains private');
+ await row('Informasi layanan').getByRole('button',{name:'Aktifkan',exact:true}).click();await waitReady();assert.equal((await publicSlides()).length,4);
+ await home.reload();assert.equal(await home.locator('.vm-carousel-slide').count(),4);
+ const record=(await publicSlides()).find(s=>s.label==='Jam layanan Vapmart');assert.ok(record.desktop.startsWith('/api/hero-banners/assets/'));
+ const image=await fetch(BASE+record.desktop);assert.equal(image.status,200);assert.match(image.headers.get('content-type'),/image\/webp/);
+ await row('Informasi layanan').getByRole('button',{name:'Naikkan Informasi layanan',exact:true}).click();await waitReady();assert.equal((await publicSlides())[2].key,record.key);
+ await row('Informasi layanan').getByRole('button',{name:'Edit',exact:true}).click();
+ await page.getByLabel('Nama banner',{exact:true}).fill('Informasi terbaru');await page.getByRole('button',{name:'Simpan perubahan',exact:true}).click();
+ await page.getByRole('status').filter({hasText:'Perubahan disimpan'}).waitFor();await waitReady();assert.equal(await row('Informasi terbaru').count(),1);
+ await page.reload();await waitReady();assert.equal(await row('Informasi terbaru').count(),1,'saved changes survive reload');
+ await row('Informasi terbaru').getByRole('button',{name:'Nonaktifkan',exact:true}).click();await waitReady();assert.equal((await publicSlides()).length,3);
+ assert.equal((await fetch(BASE+record.desktop)).status,404,'disabled derivative is not publicly retrievable');
+ accept=false;await row('Informasi terbaru').getByRole('button',{name:'Hapus',exact:true}).click();assert.equal(await row('Informasi terbaru').count(),1);
+ accept=true;await row('Informasi terbaru').getByRole('button',{name:'Hapus',exact:true}).click();await waitReady();assert.equal(await rows().count(),3);
+ await page.getByRole('button',{name:'Sampah (1)',exact:true}).click();await row('Informasi terbaru').getByRole('button',{name:'Pulihkan sebagai draft',exact:true}).click();await waitReady();assert.equal((await publicSlides()).length,3);
+ await page.getByRole('button',{name:'Daftar (4)',exact:true}).click();assert.equal(await row('Informasi terbaru').getByText('Draft',{exact:true}).count(),1);
+ while(await page.getByRole('button',{name:'Nonaktifkan',exact:true}).count()){
+  await page.getByRole('button',{name:'Nonaktifkan',exact:true}).first().click();await waitReady();
+ }
+ assert.equal((await publicSlides()).length,0);await home.reload();assert.equal(await home.locator('.vm-carousel-shell').count(),0);
+ await row('Banner 1').getByRole('button',{name:'Aktifkan',exact:true}).click();await waitReady();await home.reload();
+ assert.equal(await home.locator('.vm-carousel-slide').count(),1);assert.equal(await home.locator('.vm-carousel-arrow').count(),0);
+ await row('Informasi terbaru').getByRole('button',{name:'Edit',exact:true}).click();await page.getByLabel('Nama banner',{exact:true}).fill('Input belum disimpan');
+ const headers={authorization:'Bearer fixture-admin','content-type':'application/json'};
+ const list=await(await fetch(API+'/v1/admin/hero-banners',{headers})).json();const target=list.items.find(x=>x.id===record.key);
+ await fetch(API+'/v1/admin/hero-banners/'+target.id,{method:'PATCH',headers,body:JSON.stringify({title:'Edit operator lain',alt:target.alt,expectedVersion:target.editVersion})});
+ await page.getByRole('button',{name:'Simpan perubahan',exact:true}).click();await page.getByRole('alert').filter({hasText:'operator lain'}).waitFor();
+ assert.equal(await page.getByLabel('Nama banner',{exact:true}).inputValue(),'Input belum disimpan');
+ await page.getByRole('button',{name:'Batalkan',exact:true}).click();await page.getByRole('button',{name:'Refresh',exact:true}).click();await waitReady();
+ await row('Banner 2').getByRole('button',{name:'Aktifkan',exact:true}).click();await waitReady();
+ await row('Banner 3').getByRole('button',{name:'Aktifkan',exact:true}).click();await waitReady();
+ await row('Banner 1').getByRole('button',{name:'Edit',exact:true}).click();
+ await page.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';window.scrollTo(0,0);});await page.waitForTimeout(300);
+ await page.screenshot({path:output+'/hero-manager-desktop.png',fullPage:true,animations:'disabled'});
+ await page.setViewportSize({width:390,height:844});await page.reload();await waitReady();
+ const geometry=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));assert.ok(geometry.scroll<=geometry.width+2,JSON.stringify(geometry));
+ await page.screenshot({path:output+'/hero-manager-mobile.png',fullPage:true,animations:'disabled'});
+ await page.getByRole('button',{name:'Buka navigasi',exact:true}).click();assert.ok(await page.locator('.vma27-sidebar.is-open').isVisible());await page.getByRole('button',{name:'Tutup menu',exact:true}).click();
+ await page.route('**/api/admin/hero-banners',r=>r.request().method()==='GET'?r.fulfill({status:503,contentType:'application/json',body:'{"message":"Koneksi terputus"}'}):r.continue());
+ await page.getByRole('button',{name:'Refresh',exact:true}).click();await page.getByRole('alert').filter({hasText:'Koneksi terputus'}).waitFor();assert.equal(await rows().count(),4);
+ await page.unroute('**/api/admin/hero-banners');await page.getByRole('button',{name:'Muat ulang daftar',exact:true}).click();await waitReady();
+ await writeFile(output+'/browser-report.json',JSON.stringify({pass:true,fixtureAuth:true,realLocalPostgres:true,liveWrites:false,upload:true,draft:true,activate:true,reorder:true,edit:true,disable:true,deleteConfirm:true,restore:true,zeroAndSingle:true,conflictPreservesInput:true,errorRetry:true,mobile:geometry},null,2));
+ console.log('CP38_HERO_BROWSER_PASS',geometry);
+ await home.close();
+}finally{await context.close();await browser.close();}

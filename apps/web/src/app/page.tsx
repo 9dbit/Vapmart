@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import {getHeroResult} from '@/lib/hero-banners';
 import {getProductsResult,getBrandsResult} from '@/lib/api';
 import {DataStatus} from '@/components/data-status';
 import {HeroCarousel} from '@/components/hero-carousel';
@@ -14,15 +15,16 @@ import './restored-home.css';
 export const dynamic='force-dynamic';
 
 export default async function Home(){
- const [productResult,brandResult]=await Promise.all([getProductsResult(),getBrandsResult()]);
+ const [productResult,brandResult,heroResult]=await Promise.all([getProductsResult(),getBrandsResult(),getHeroResult()]);
  const products=productResult.items,brands=brandResult.items;
  const active=products.filter(p=>p.is_active&&!p.slug.startsWith('demo-'));
  return <main className="legacy-home vm-reference-home vm-trendora-home vm-storefront-restored" id="home" data-vapmart-ui="restored-cp32">
-   <div className="vm-hero-stage vm-trendora-hero">
+   {heroResult.ok&&heroResult.items.length>0&&<div className="vm-hero-stage vm-trendora-hero">
      <ParallaxAmbient />
-     <HeroCarousel />
-   </div>
-   <p className="main-container vm-restored-media-note">Materi banner terdahulu ditampilkan sebagai referensi visual, bukan penawaran atau promosi aktif. Pembayaran dan pemesanan masih nonaktif.</p>
+     <HeroCarousel slides={heroResult.items}/>
+   </div>}
+   {!heroResult.ok&&<DataStatus kind="banner" code={heroResult.error}/>}
+   {heroResult.items.some(s=>s.reference)&&<p className="main-container vm-restored-media-note">Materi banner terdahulu ditampilkan sebagai referensi visual, bukan penawaran atau promosi aktif. Pembayaran dan pemesanan masih nonaktif.</p>}
 
    <section className="main-container vm-trendora-categories" id="categories">
      <div className="vm-trendora-section-heading">

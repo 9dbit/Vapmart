@@ -1,5 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
+import Link from 'next/link';
+import '../../hero-banners.css';
 import {useRouter} from 'next/navigation';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {AdminMediaLibrary} from '@/components/admin-media-library';
@@ -44,6 +46,7 @@ export default function PrivateMediaPage(){
   <header className="vma27-page-heading"><div><p className="vma26-eyebrow">VAPMART / ASSET MANAGEMENT</p>
    <h1>Media &amp; Aset</h1><p>Kelola gambar dan dokumentasi brand dari library privat yang terlindungi.</p>
   </div></header>
+  <nav className="vh-tabs" aria-label="Pengelolaan media"><Link href="/admin/media" aria-current="page">Media &amp; Aset</Link><Link href="/admin/banners">Hero Banner</Link></nav>
   <AdminMediaLibrary token={auth.accessToken}/>
  </AdminWorkspace>;
 }

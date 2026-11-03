@@ -1,0 +1,87 @@
+name: CP38 Hero Banner Verification
+on:
+  push:
+    branches: [work/cp38-hero-banners-20261103]
+    paths: ['apps/**', 'scripts/cp38-*', '.github/workflows/cp38-verify.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cp38-verify-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: vapmart_test
+          POSTGRES_PASSWORD: disposable_cp38_password
+          POSTGRES_DB: vapmart_cp38_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U vapmart_test -d vapmart_cp38_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgres://vapmart_test:disposable_cp38_password@127.0.0.1:5432/vapmart_cp38_test
+      HERO_LOCAL_TEST: '1'
+      CHECKOUT_ENABLED: 'false'
+      DIGITAL_COMMERCE_ENABLED: 'false'
+      PAYMENT_MODE: disabled
+      SHIPPING_RATE_LOOKUP_ENABLED: 'false'
+      BITESHIP_WEBHOOK_ENABLED: 'false'
+      API_INTERNAL_URL: http://127.0.0.1:4100
+      NEXT_PUBLIC_SUPABASE_URL: https://auth-fixture.example.invalid
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_fixture_only_not_a_real_key
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build API and run unit tests
+        run: npm ci --no-audit --no-fund && npm run build && npm test
+        working-directory: apps/api
+      - name: Migrate twice and test HTTP lifecycle on disposable PostgreSQL
+        run: |
+          npm run migrate
+          npm run migrate
+          npx tsx --test test/integration/hero-banners.ts
+        working-directory: apps/api
+      - name: Existing data integrity, warehouse and courier regressions
+        run: |
+          npx tsx --test test/integration/cp37a-integrity.ts
+          npx tsx --test test/integration/warehouse-fulfillment.ts
+          npx tsx --test test/integration/courier-orchestration.ts
+        working-directory: apps/api
+      - name: Build production Web
+        run: npm ci --no-audit --no-fund && npm run build
+        working-directory: apps/web
+      - name: Install isolated browser tooling
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.56.0
+          npx playwright install --with-deps chromium
+      - name: Full-stack browser lifecycle against loopback services only
+        run: |
+          mkdir -p artifacts/cp38
+          node scripts/cp38-fixture-server.cjs > artifacts/cp38/local-api.log 2>&1 &
+          API_PID=$!
+          (cd apps/web && npm run start) > artifacts/cp38/local-web.log 2>&1 &
+          WEB_PID=$!
+          trap 'kill "$API_PID" "$WEB_PID" 2>/dev/null || true' EXIT
+          node scripts/cp38-browser.mjs
+      - name: Record exact verified source
+        run: |
+          git rev-parse HEAD | tee artifacts/cp38/verified-source-sha.txt
+          git diff --exit-code -- apps/api/src/auth.ts apps/api/src/shipping.ts apps/api/src/warehouses.ts apps/api/src/fulfillment.ts apps/web/public apps/api/resources
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cp38-hero-verification
+          path: artifacts/cp38/
+          if-no-files-found: ignore
+          retention-days: 7
