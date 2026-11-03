@@ -1,0 +1,31 @@
+name: CP39-R1 Live Price Verification
+on:
+  push:
+    branches: [work/cp39-r1-zero-price-20261103]
+    paths: [sources/cp39r1-release.json]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save --no-audit --no-fund playwright@1.56.0 && npx playwright install --with-deps chromium
+      - name: Read-only public placeholder and intercepted admin UI checks
+        env:
+          CP39R1_BASE: https://vapmart.id
+          CP39R1_LIVE_READONLY: '1'
+        run: timeout --signal=TERM --kill-after=10s 180s node scripts/cp39r1-prices.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cp39r1-live-prices
+          path: artifacts/cp39r1-live/
+          retention-days: 7
