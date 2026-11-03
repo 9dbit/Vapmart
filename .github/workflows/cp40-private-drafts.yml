@@ -2,7 +2,7 @@ name: CP40 Private Draft Verification
 on:
   push:
     branches: [work/cp40-private-drafts-20261103]
-    paths: [.github/workflows/cp40-private-drafts.yml]
+    paths: ['apps/**','scripts/cp40-browser.mjs','.github/workflows/cp40-private-drafts.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -10,51 +10,7 @@ concurrency:
   group: cp40-private-drafts
   cancel-in-progress: false
 jobs:
-  prepare:
-    if: github.ref == 'refs/heads/work/cp40-private-drafts-20261103'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: write
-    outputs:
-      sha: ${{ steps.source.outputs.sha }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0
-      - name: Validate and materialize the reviewed three-file candidate
-        run: |
-          python3 - <<'PY'
-          import hashlib,subprocess
-          from pathlib import Path
-          expected={'apps/api/src/catalog-workspace.ts':'c0e23e416032b4f94e248e1ac49660e00daec5c6','apps/api/src/products.ts':'1ee70f50638504d0fe60ebfe50480a4b0b425bff'}
-          for path,sha in expected.items():
-              assert subprocess.check_output(['git','hash-object',path],text=True).strip()==sha,path
-          patch=Path('scripts/cp40-private-drafts.patch')
-          assert hashlib.sha256(patch.read_bytes()).hexdigest()=='5e4b7a76cf809ca1955669aa85da70d545fc4bbe2a562f7f112fb0f712020c08','Patch checksum mismatch'
-          targets=[line[6:] for line in patch.read_text().splitlines() if line.startswith('+++ b/')]
-          assert set(targets)==set(expected)|{'apps/api/test/catalog-private-drafts.test.ts'} and len(targets)==3
-          subprocess.run(['git','apply','--check',str(patch)],check=True)
-          subprocess.run(['git','apply',str(patch)],check=True)
-          for path,sha in {'apps/api/src/catalog-workspace.ts':'dc5624dd345bf65adc647212c842607fb6261e3b4dc281bb3a3b6558510ca57c','apps/api/src/products.ts':'2a66e5314729dbf0f7045911eacde29fa41f2e6e47cc514bb82b29a63934936f','apps/api/test/catalog-private-drafts.test.ts':'c32bc74a9a26087b2f036be6b2ef999fba7369218e080f53e3ec1d1022a20b51'}.items():
-              assert hashlib.sha256(Path(path).read_bytes()).hexdigest()==sha,path
-          PY
-          git diff --exit-code 10bc9335cf65559cfdf13b847b1877edd9e1a1e3 -- apps/web apps/api/sql apps/api/src/auth.ts apps/api/src/catalog-validation.ts apps/api/src/catalog-import.ts apps/api/src/checkout.ts apps/api/src/shipping.ts apps/api/src/hero-banners.ts
-      - name: Commit exact candidate only to isolated work branch
-        id: source
-        run: |
-          set -euo pipefail
-          CURRENT=$(git ls-remote origin refs/heads/work/cp40-private-drafts-20261103 | cut -f1)
-          test "$CURRENT" = "$GITHUB_SHA"
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add apps/api/src/catalog-workspace.ts apps/api/src/products.ts apps/api/test/catalog-private-drafts.test.ts
-          git commit -m 'fix(cp40): persist private drafts and validate every publication path'
-          git push origin HEAD:refs/heads/work/cp40-private-drafts-20261103
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
   verify:
-    needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -66,7 +22,7 @@ jobs:
           POSTGRES_DB: vapmart_cp39_cp40
         ports: ['5432:5432']
         options: >-
-          --health-cmd 'pg_isready -U vapmart_test -d vapmart_cp39_cp40'
+          --health-cmd "pg_isready -U vapmart_test -d vapmart_cp39_cp40"
           --health-interval 5s --health-timeout 5s --health-retries 12
     env:
       DATABASE_URL: postgres://vapmart_test:disposable_cp40_only@127.0.0.1:5432/vapmart_cp39_cp40
@@ -84,17 +40,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.prepare.outputs.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: mkdir -p artifacts/cp40
-      - name: Exact source, clean install, API build and unit tests
+      - name: Verify committed source and preserved systems
+        run: |
+          mkdir -p artifacts/cp40
+          git rev-parse HEAD > artifacts/cp40/verified-source.txt
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          for path,sha in {'apps/api/src/catalog-workspace.ts':'dc5624dd345bf65adc647212c842607fb6261e3b4dc281bb3a3b6558510ca57c','apps/api/src/products.ts':'2a66e5314729dbf0f7045911eacde29fa41f2e6e47cc514bb82b29a63934936f','apps/api/test/catalog-private-drafts.test.ts':'c32bc74a9a26087b2f036be6b2ef999fba7369218e080f53e3ec1d1022a20b51'}.items():
+              assert hashlib.sha256(Path(path).read_bytes()).hexdigest()==sha,path
+          PY
+          git diff --exit-code 10bc9335cf65559cfdf13b847b1877edd9e1a1e3 -- apps/web apps/api/sql apps/api/src/auth.ts apps/api/src/catalog-validation.ts apps/api/src/catalog-import.ts apps/api/src/checkout.ts apps/api/src/shipping.ts apps/api/src/hero-banners.ts
+      - name: Clean dependency install, API build and unit tests
         run: |
           set -o pipefail
-          git rev-parse HEAD > artifacts/cp40/verified-source.txt
           npm ci --no-audit --no-fund --prefix apps/api
           npm run build --prefix apps/api
           npm test --prefix apps/api 2>&1 | tee artifacts/cp40/unit-tests.log
