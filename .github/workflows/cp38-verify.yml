@@ -40,9 +40,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Check pinned dependency and preserved existing systems
+        run: |
+          node -e "const p=require('./apps/api/package-lock.json');if(p.packages['node_modules/sharp'].version!=='0.35.3')process.exit(1)"
+          git diff --exit-code ca57e59ab6450ab45e11e4821574bfedee9369e3 HEAD -- apps/api/src/auth.ts apps/api/src/shipping.ts apps/api/src/warehouses.ts apps/api/src/fulfillment.ts apps/web/public apps/api/resources
       - name: Build API and run unit tests
         run: npm ci --no-audit --no-fund && npm run build && npm test
         working-directory: apps/api
