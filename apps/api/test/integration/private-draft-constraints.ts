@@ -36,7 +36,7 @@ test('CP40 database-level publication guards and parent-child concurrency',async
   const hold=new Promise<void>(r=>release=r),ready=new Promise<void>(r=>started=r);
   const childWrite=db.transaction(async(q:any)=>{await q.query("SET LOCAL lock_timeout='5s'");await q.query('UPDATE product.products SET description=$2 WHERE id=$1',[child.id,'Private review note: vape.']);started();await hold;});
   await ready;
-  const activation=db.transaction(async(q:any)=>{await q.query("SET LOCAL lock_timeout='5s'");await q.query('UPDATE product.products SET is_active=true WHERE id=$1',[parent.id]);}).then(()=>({ok:true}),((e:any)=>({ok:false,code:e.code})));
+  const activation=db.transaction(async(q:any)=>{await q.query("SET LOCAL lock_timeout='5s'");await q.query('UPDATE product.products SET is_active=true WHERE id=$1',[parent.id]);}).then(()=>({ok:true}),((e:any)=>({ok:false,code:e.code??e.cause?.code})));
   await pause();release();await childWrite;assert.deepEqual(await activation,{ok:false,code:'23514'});
   await db.query('UPDATE product.products SET description=$2 WHERE id=$1',[child.id,'A fabric accessory bag.']);
   // Parent activation first: child edit waits and then rejects publication of unreviewed text.
@@ -44,7 +44,7 @@ test('CP40 database-level publication guards and parent-child concurrency',async
   const parentHold=new Promise<void>(r=>releaseParent=r),parentReady=new Promise<void>(r=>parentStarted=r);
   const parentWrite=db.transaction(async(q:any)=>{await q.query("SET LOCAL lock_timeout='5s'");await q.query('UPDATE product.products SET is_active=true WHERE id=$1',[parent.id]);parentStarted();await parentHold;});
   await parentReady;
-  const childEdit=db.transaction(async(q:any)=>{await q.query("SET LOCAL lock_timeout='5s'");await q.query('UPDATE product.products SET description=$2 WHERE id=$1',[child.id,'Private review note: vape.']);}).then(()=>({ok:true}),((e:any)=>({ok:false,code:e.code})));
+  const childEdit=db.transaction(async(q:any)=>{await q.query("SET LOCAL lock_timeout='5s'");await q.query('UPDATE product.products SET description=$2 WHERE id=$1',[child.id,'Private review note: vape.']);}).then(()=>({ok:true}),((e:any)=>({ok:false,code:e.code??e.cause?.code})));
   await pause();releaseParent();await parentWrite;assert.deepEqual(await childEdit,{ok:false,code:'23514'});
   console.log('CP40_DATABASE_GUARDS_PASS',JSON.stringify({directSqlPublication:true,activeEditRollback:true,zeroPrivateDraft:true,childPrivacy:true,parentChildRaces:2,isolation:'READ COMMITTED',productionWrites:false}));
  }finally{await app.close();}
