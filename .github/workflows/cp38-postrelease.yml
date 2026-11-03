@@ -1,0 +1,92 @@
+name: CP38 Post-release Verification
+on:
+  push:
+    branches: [work/cp38-hero-banners-20261103]
+    paths: [sources/cp38-release.json]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deployed-readonly-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser tooling
+        run: |
+          npm ci --no-audit --no-fund --prefix apps/api
+          npm install --no-save --no-audit --no-fund playwright@1.56.0
+          npx playwright install --with-deps chromium
+      - name: Read-only hero publication and private endpoint checks
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {mkdir,writeFile} from 'node:fs/promises';
+          const WEB='https://vapmart.id',API='https://vapmart-api-staging.up.railway.app';
+          const report={checkpoint:'CP38',observedAt:new Date().toISOString(),checks:[],authenticatedWrites:false};
+          const get=async url=>{const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(15000)});const text=await r.text();let data;try{data=JSON.parse(text);}catch{}return{status:r.status,text,data,url:r.url,cache:r.headers.get('cache-control')};};
+          const a=await get(API+'/v1/hero-banners'),w=await get(WEB+'/api/hero-banners');
+          assert.equal(a.status,200);assert.equal(w.status,200);assert.deepEqual(a.data,w.data);
+          assert.equal(w.data.items.length,3,'initial release preserves all three existing banners');
+          for(const base of [API+'/v1',WEB+'/api']){
+            for(const path of ['/admin/hero-banners','/admin/hero-banners/assets/38000000-0000-4000-8000-000000000001/content']){
+              const x=await get(base+path);assert.equal(x.status,401);report.checks.push({url:base+path,status:401});
+            }
+            const missing=await get(base+'/hero-banners/assets/38000000-0000-4000-8000-000000000001');assert.equal(missing.status,404);
+          }
+          const invalid=await fetch(WEB+'/api/admin/hero-banners',{headers:{authorization:'Bearer invalid-token'},signal:AbortSignal.timeout(15000)});assert.equal(invalid.status,401);
+          const home=await get(WEB+'/');assert.equal(home.status,200);assert.ok(home.text.includes('vm-carousel-shell'));
+          for(const b of w.data.items){assert.ok(home.text.includes(b.desktop));for(const path of [b.desktop,b.mobile])assert.equal((await get(WEB+path)).status,200);}
+          const shipping=await get(WEB+'/api/shipping/config'),checkout=await get(WEB+'/api/checkout/config');
+          assert.equal(shipping.data.paymentEnabled,false);assert.equal(shipping.data.bookingEnabled,false);assert.equal(shipping.data.rateLookupEnabled,false);assert.equal(checkout.data.paymentEnabled,false);
+          report.checks.push({publicHeroCount:w.data.items.length,matchingWebAndApi:true,originalImagesAvailable:true,payment:false,booking:false,rateLookup:false});
+          await mkdir('artifacts/cp38-live',{recursive:true});await writeFile('artifacts/cp38-live/report.json',JSON.stringify(report,null,2));console.log('CP38_LIVE_READONLY_PASS',JSON.stringify(report));
+          JS
+      - name: Existing public and authorization smoke tests
+        run: node scripts/cp37a-postrelease.mjs && node scripts/smoke-staging.mjs
+      - name: Existing browser and theme regressions
+        run: node scripts/ui-smoke.mjs && node scripts/theme-smoke.mjs
+      - name: Hero manager live UI with intercepted read-only identity
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {chromium} from 'playwright';
+          import {mkdir,writeFile} from 'node:fs/promises';
+          const BASE='https://vapmart.id';
+          const browser=await chromium.launch({headless:true});
+          const anon=await browser.newPage();await anon.goto(BASE+'/admin/banners');await anon.waitForURL(u=>u.pathname==='/admin');assert.equal(await anon.locator('.vh-root').count(),0);await anon.close();
+          const slides=(await(await fetch(BASE+'/api/hero-banners')).json()).items;
+          const user={id:'38000000-0000-4000-8000-000000009998',aud:'authenticated',role:'authenticated',email:'hero-live-ui@example.invalid',email_confirmed_at:new Date().toISOString(),created_at:new Date().toISOString(),app_metadata:{},user_metadata:{}};
+          const session={access_token:'fixture-not-real-live-readonly',refresh_token:'fixture-refresh',token_type:'bearer',expires_in:3600,expires_at:Math.floor(Date.now()/1000)+3600,user};
+          const context=await browser.newContext({viewport:{width:1440,height:1000}});await context.addInitScript(s=>localStorage.setItem('vapmart-customer-auth-v1',JSON.stringify(s)),session);
+          let mutations=0;const page=await context.newPage();
+          await page.route('**/api/admin/**',route=>{
+            if(route.request().method()!=='GET'){mutations++;return route.abort();}
+            const p=new URL(route.request().url()).pathname;
+            if(p==='/api/admin/status')return route.fulfill({status:200,contentType:'application/json',body:'{"admin":true}'});
+            if(p==='/api/admin/hero-banners')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({revision:1,items:slides.map((b,i)=>({id:b.key,title:'Banner '+(i+1),alt:b.label,desktopPath:b.desktop,mobilePath:b.mobile,desktopAssetId:null,mobileAssetId:null,active:true,editVersion:1,deletedAt:null,position:(i+1)*10}))})});
+            if(p==='/api/admin/media-library')return route.fulfill({status:200,contentType:'application/json',body:'{"items":[]}'});
+            return route.abort();
+          });
+          await page.goto(BASE+'/admin/media');await page.getByRole('link',{name:'Hero Banner',exact:true}).click();await page.locator('.vh-root[aria-busy="false"]').waitFor();assert.equal(await page.locator('.vh-row').count(),3);
+          await page.getByRole('button',{name:'Edit',exact:true}).first().click();await page.locator('.vh-preview img').waitFor();
+          await page.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';window.scrollTo(0,0);});await page.waitForTimeout(250);
+          await mkdir('artifacts/cp38-live',{recursive:true});await page.screenshot({path:'artifacts/cp38-live/hero-manager-desktop.png',fullPage:true,animations:'disabled'});
+          await page.setViewportSize({width:390,height:844});await page.reload();await page.locator('.vh-root[aria-busy="false"]').waitFor();
+          const mobile=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));assert.ok(mobile.scroll<=mobile.width+2);
+          await page.screenshot({path:'artifacts/cp38-live/hero-manager-mobile.png',fullPage:true,animations:'disabled'});
+          assert.equal(mutations,0);await writeFile('artifacts/cp38-live/ui-report.json',JSON.stringify({passed:true,fixtureIdentity:true,realAdminLogin:false,mutations,mobile},null,2));console.log('CP38_LIVE_UI_PASS',mobile);
+          await context.close();await browser.close();
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cp38-live-verification
+          path: artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
