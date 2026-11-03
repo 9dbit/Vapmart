@@ -1,0 +1,23 @@
+.vm-reference-card .vm-reference-placeholder-price {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.5rem 0 0.65rem;
+  min-width: 0;
+  color: inherit;
+}
+.vm-reference-card .vm-reference-placeholder-price strong {
+  display: block;
+  font-size: clamp(1.05rem, 2.5vw, 1.35rem);
+  font-weight: 800;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.vm-reference-card .vm-reference-placeholder-price span {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
