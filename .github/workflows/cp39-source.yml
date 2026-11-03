@@ -1,0 +1,25 @@
+name: CP39 Source Bundle
+on:
+  push:
+    branches: [work/cp39-product-engine-20261103]
+    paths: [.github/workflows/cp39-source.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          mkdir -p /tmp/cp39-source
+          git archive --format=tar HEAD > /tmp/cp39-source/source.tar
+          git rev-parse HEAD > /tmp/cp39-source/source-sha.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cp39-source
+          path: /tmp/cp39-source/
+          retention-days: 3
