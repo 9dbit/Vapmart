@@ -4,7 +4,7 @@ import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {CatalogNotice,useCatalogAdmin} from './catalog-admin-shell';
 import {ImagesField,PriceFields,StockFields,stockDrafts,stockPayload,inputDate,pricesPayload,type Lookup,type StockDraft} from './catalog-editor-fields';
-const blank={name:'',slug:'',sku:'',description:'',product_type:'simple',price_idr:'',sale_price_idr:'',sale_starts_at:'',sale_ends_at:'',brand_id:'',fulfillment_owner_brand_id:'',weight_grams:'',length_cm:'',width_cm:'',height_cm:''};
+const blank={name:'',slug:'',sku:'',description:'',product_type:'simple',price_idr:'0',sale_price_idr:'',sale_starts_at:'',sale_ends_at:'',brand_id:'',fulfillment_owner_brand_id:'',weight_grams:'',length_cm:'',width_cm:'',height_cm:''};
 const slugify=(v:string)=>v.toLowerCase().normalize('NFKD').replace(/[^a-z0-9\s-]/g,'').trim().replace(/[\s-]+/g,'-').slice(0,120);
 function draft(p:any){return {...blank,...p,price_idr:String(p.price_idr??''),sale_price_idr:p.sale_price_idr==null?'':String(p.sale_price_idr),sale_starts_at:inputDate(p.sale_starts_at),sale_ends_at:inputDate(p.sale_ends_at),brand_id:p.brand_id||'',fulfillment_owner_brand_id:p.fulfillment_owner_brand_id||'',...Object.fromEntries(['weight_grams','length_cm','width_cm','height_cm'].map(k=>[k,p[k]??'']))};}
 const dimensionPayload=(p:any)=>Object.fromEntries(['weight_grams','length_cm','width_cm','height_cm'].map(k=>[k,p[k]===''||p[k]==null?null:Number(p[k])]));
