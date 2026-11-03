@@ -8,7 +8,7 @@ permissions:
   contents: read
 concurrency:
   group: cp40-private-drafts
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -51,24 +51,27 @@ jobs:
           mkdir -p artifacts/cp40
           git rev-parse HEAD > artifacts/cp40/verified-source.txt
           python3 - <<'PY'
-          import hashlib
+          import hashlib,subprocess
           from pathlib import Path
           for path,sha in {'apps/api/src/catalog-workspace.ts':'dc5624dd345bf65adc647212c842607fb6261e3b4dc281bb3a3b6558510ca57c','apps/api/src/products.ts':'2a66e5314729dbf0f7045911eacde29fa41f2e6e47cc514bb82b29a63934936f','apps/api/test/catalog-private-drafts.test.ts':'c32bc74a9a26087b2f036be6b2ef999fba7369218e080f53e3ec1d1022a20b51'}.items():
               assert hashlib.sha256(Path(path).read_bytes()).hexdigest()==sha,path
+          old=subprocess.check_output(['git','ls-tree','--name-only','10bc9335cf65559cfdf13b847b1877edd9e1a1e3:apps/api/sql'],text=True).splitlines()
+          subprocess.run(['git','diff','--exit-code','10bc9335cf65559cfdf13b847b1877edd9e1a1e3','--',*[f'apps/api/sql/{p}' for p in old]],check=True)
           PY
-          git diff --exit-code 10bc9335cf65559cfdf13b847b1877edd9e1a1e3 -- apps/web apps/api/sql apps/api/src/auth.ts apps/api/src/catalog-validation.ts apps/api/src/catalog-import.ts apps/api/src/checkout.ts apps/api/src/shipping.ts apps/api/src/hero-banners.ts
+          git diff --exit-code 10bc9335cf65559cfdf13b847b1877edd9e1a1e3 -- apps/web apps/api/src/auth.ts apps/api/src/catalog-validation.ts apps/api/src/catalog-import.ts apps/api/src/checkout.ts apps/api/src/shipping.ts apps/api/src/hero-banners.ts
       - name: Clean dependency install, API build and unit tests
         run: |
           set -o pipefail
           npm ci --no-audit --no-fund --prefix apps/api
           npm run build --prefix apps/api
           npm test --prefix apps/api 2>&1 | tee artifacts/cp40/unit-tests.log
-      - name: Migrate twice and verify draft boundaries on real disposable PostgreSQL
+      - name: Migrate twice and verify draft and database boundaries on real PostgreSQL
         working-directory: apps/api
         run: |
           set -o pipefail
           npm run migrate && npm run migrate
           npx tsx --test test/integration/private-drafts.ts 2>&1 | tee ../../artifacts/cp40/private-drafts-http.log
+          npx tsx --test test/integration/private-draft-constraints.ts 2>&1 | tee ../../artifacts/cp40/database-guards.log
       - name: Catalog, integrity, warehouse, courier and banner regressions
         working-directory: apps/api
         run: |
