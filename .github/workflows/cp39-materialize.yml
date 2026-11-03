@@ -1,0 +1,56 @@
+name: CP39 Materialize Candidate
+on:
+  push:
+    branches: [work/cp39-product-engine-20261103]
+    paths: [.github/workflows/cp39-materialize.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: cp39-materialize
+  cancel-in-progress: false
+jobs:
+  materialize:
+    if: github.ref == 'refs/heads/work/cp39-product-engine-20261103'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Verify checksums and apply inspectable patches
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,subprocess
+          from pathlib import Path
+          root=Path('scripts/cp39-candidate')
+          expected=json.loads((root/'checksums.json').read_text())
+          assert len(expected)==13
+          paths=[]
+          for name,digest in sorted(expected.items()):
+              file=root/name
+              assert hashlib.sha256(file.read_bytes()).hexdigest()==digest, name
+              for line in file.read_text().splitlines():
+                  if line.startswith('+++ b/'):
+                      target=line[6:]
+                      assert target.startswith(('apps/','scripts/cp39-','sources/Vapmart_Checkpoint_39_')) and '..' not in Path(target).parts
+                      paths.append(target)
+          assert len(paths)==len(set(paths))==63
+          patches=[str(root/name) for name in sorted(expected)]
+          subprocess.run(['git','apply','--check',*patches],check=True)
+          subprocess.run(['git','apply',*patches],check=True)
+          manifest={p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in sorted(paths)}
+          Path('sources/cp39-source-manifest.json').write_text(json.dumps({'baseline':'f5909c0a9d9fe87803234d4695021f5b49b670a3','files':manifest},indent=2)+'\n')
+          print('CP39_MATERIALIZED_FILES',len(paths))
+          PY
+          git diff --exit-code f5909c0a9d9fe87803234d4695021f5b49b670a3 -- apps/api/src/auth.ts apps/api/src/hero-banners.ts apps/web/public apps/api/resources
+      - name: Commit materialized source without deploying
+        run: |
+          git config user.name 'Vapmart CI'
+          git config user.email 'vapmart-ci@users.noreply.github.com'
+          git add apps scripts/cp39-browser.mjs scripts/cp39-fixture-server.cjs sources/Vapmart_Checkpoint_39_2026-11-03_Product_Engine.md sources/cp39-source-manifest.json
+          git rm -r scripts/cp39-candidate
+          git commit -m 'feat(cp39): materialize product engine candidate for isolated acceptance tests'
+          git push origin HEAD:work/cp39-product-engine-20261103
+          git rev-parse HEAD
