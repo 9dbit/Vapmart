@@ -44,13 +44,13 @@ export class BrandPortalService{
  async overview(user:Principal,brandId:string){
   const role=await this.grant(user,brandId);
   const r=await this.db.query<{products:number;published:number;total_stock:string;low_stock:number}>(
-   "SELECT count(*)::integer products,count(*) FILTER (WHERE is_active)::integer published,coalesce(sum(stock_qty),0)::text total_stock,count(*) FILTER (WHERE stock_qty<=5)::integer low_stock FROM product.products WHERE brand_id=$1 AND slug NOT LIKE 'demo-%'",[brandId]);
+   "SELECT count(*)::integer products,count(*) FILTER (WHERE is_active)::integer published,coalesce(sum(stock_qty),0)::text total_stock,count(*) FILTER (WHERE stock_qty<=5)::integer low_stock FROM product.products WHERE fulfillment_owner_brand_id=$1 AND archived_at IS NULL AND slug NOT LIKE 'demo-%'",[brandId]);
   return {brandId,role,inventory:r.rows[0],sales:await this.paidSales(brandId),salesBasis:'verified_paid_item_gross',paymentEnabled:false};
  }
  async products(user:Principal,brandId:string){
   await this.grant(user,brandId);
   const r=await this.db.query(
-   "SELECT id,sku,name,price_idr::text,stock_qty,is_active,weight_grams,updated_at FROM product.products WHERE brand_id=$1 AND slug NOT LIKE 'demo-%' ORDER BY updated_at DESC LIMIT 500",[brandId]);
+   "SELECT id,sku,name,price_idr::text,stock_qty,is_active,weight_grams,updated_at FROM product.products WHERE fulfillment_owner_brand_id=$1 AND archived_at IS NULL AND slug NOT LIKE 'demo-%' ORDER BY updated_at DESC LIMIT 500",[brandId]);
   return {brandId,items:r.rows,scope:'brand_only'};
  }
  async sales(user:Principal,brandId:string){
@@ -66,7 +66,7 @@ export class BrandPortalService{
  async warehouseStock(user:Principal,brandId:string){
   await this.grant(user,brandId);
   const r=await this.db.query(
-   "SELECT w.code,w.name AS warehouse_name,w.city,p.id AS product_id,p.sku,p.name AS product_name,s.on_hand,s.reserved,(s.on_hand-s.reserved) AS available,w.is_dispatch_enabled FROM product.warehouse_stock s JOIN product.products p ON p.id=s.product_id JOIN product.warehouses w ON w.id=s.warehouse_id WHERE p.brand_id=$1 AND NOT w.is_system_hold AND p.slug NOT LIKE 'demo-%' ORDER BY p.name,w.code LIMIT 500",
+   "SELECT w.code,w.name AS warehouse_name,w.city,p.id AS product_id,p.sku,p.name AS product_name,s.on_hand,s.reserved,(s.on_hand-s.reserved) AS available,w.is_dispatch_enabled FROM product.warehouse_stock s JOIN product.products p ON p.id=s.product_id JOIN product.warehouses w ON w.id=s.warehouse_id WHERE p.fulfillment_owner_brand_id=$1 AND p.archived_at IS NULL AND NOT w.is_system_hold AND p.slug NOT LIKE 'demo-%' ORDER BY p.name,w.code LIMIT 500",
    [brandId]);
   return {brandId,items:r.rows,readOnly:true,customerDataExcluded:true};
  }

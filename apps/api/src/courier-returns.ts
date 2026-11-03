@@ -50,7 +50,7 @@ export class CourierReturnService{
    `SELECT r.id,r.batch_id,r.order_id,r.status,r.reason,r.review_note,r.received_note,
     r.received_warehouse_id,r.created_at,r.updated_at,b.name AS brand_name,w.code AS origin_warehouse
     FROM product.courier_returns r JOIN product.fulfillment_batches f ON f.id=r.batch_id
-    JOIN product.brands b ON b.id=f.brand_id JOIN product.warehouses w ON w.id=f.warehouse_id
+    LEFT JOIN product.brands b ON b.id=f.brand_id JOIN product.warehouses w ON w.id=f.warehouse_id
     ORDER BY r.created_at DESC LIMIT 200`);
   return {items:r.rows,refundAutomatic:false,providerReturnBooked:false};
  }

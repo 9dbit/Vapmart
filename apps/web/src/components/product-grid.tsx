@@ -1,10 +1,11 @@
 'use client';
 import Link from 'next/link';
-import {useMemo,useRef,useState,type KeyboardEvent} from 'react';
+import '../app/catalog-store.css';
+import {useEffect,useMemo,useRef,useState,type KeyboardEvent} from 'react';
 import {useCart} from '@/lib/cart';
 import {useWishlist} from '@/lib/wishlist';
 import {FavoriteButton} from '@/components/favorite-button';
-import {categories,formatIDR,type Product} from '@/lib/types';
+import {formatIDR,type Product} from '@/lib/types';
 
 function ProductCard({product,index}:{product:Product;index:number}){
   const {add}=useCart();
@@ -12,12 +13,16 @@ function ProductCard({product,index}:{product:Product;index:number}){
   return <article className="product-card"><Link href={`/product/${product.slug}`} className={`product-art product-art-${index%4}`} aria-label={`Lihat ${product.name}`}>
     {product.image_url?<img src={product.image_url} alt={product.name} loading="lazy" decoding="async" />:<div className="product-placeholder"><span className="placeholder-spark">✦</span><span>VAPMART OBJECTS</span></div>}
     <span className="product-index">VM / {String(index+1).padStart(2,'0')}</span>{soldOut&&<span className="soldout-tag">Stok habis</span>}
-  </Link><FavoriteButton id={product.id} name={product.name} className="vm-cp17-card-favorite"/><div className="product-description"><div className="product-copy"><p className="eyebrow">{product.brand_name?product.brand_name+' · ':''}{product.category}{product.sku?` · SKU ${product.sku}`:''}</p><Link href={`/product/${product.slug}`}><h3>{product.name}</h3></Link><strong>{formatIDR(product.price_idr)}</strong></div><button type="button" disabled={soldOut} onClick={()=>add(product)} className="add-circle" aria-label={`Tambahkan ${product.name} ke keranjang`}>+</button></div></article>;
+  </Link><FavoriteButton id={product.id} name={product.name} className="vm-cp17-card-favorite"/><div className="product-description"><div className="product-copy"><p className="eyebrow">{product.brand_name?product.brand_name+' · ':''}{product.category}{product.sku?` · SKU ${product.sku}`:''}</p><Link href={`/product/${product.slug}`}><h3>{product.name}</h3></Link><span className="vcs-price">{product.promo_active&&product.product_type!=='variable'&&<del>{formatIDR(product.regular_price_idr||product.price_idr)}</del>}<strong>{product.product_type==='variable'?'Mulai ':''}{formatIDR(product.price_idr)}</strong></span></div>{product.product_type==='variable'?<Link href={`/product/${product.slug}`} className="add-circle" aria-label={`Pilih variasi ${product.name}`}>+</Link>:<button type="button" disabled={soldOut} onClick={()=>add(product)} className="add-circle" aria-label={`Tambahkan ${product.name} ke keranjang`}>+</button>}</div></article>;
 }
 const normalize=(value:string)=>value.toLocaleLowerCase('id-ID').trim();
 const match=(p:Product,query:string)=>normalize([p.name,p.sku??'',p.brand_name??'',p.description,p.category].join(' ')).includes(query);
 export function ProductGrid({products,initialCategory='all',initialTerm=''}:{products:Product[];initialCategory?:string;initialTerm?:string}){
   const [category,setCategory]=useState(initialCategory);
+  const [categoryTree,setCategoryTree]=useState<any[]>([]);
+  useEffect(()=>{const ac=new AbortController();fetch('/api/catalog/categories',{cache:'no-store',signal:ac.signal}).then(r=>r.ok?r.json():null).then(d=>{if(d?.items)setCategoryTree(d.items)}).catch(()=>{});return()=>ac.abort()},[]);
+  const categories=[{value:'all',label:'Semua produk'},...(categoryTree.length?categoryTree.map(c=>({value:c.slug,label:c.name})):Array.from(new Set(products.map(p=>p.category))).map(c=>({value:c,label:c})))];
+  const categoryMatch=(p:Product)=>{if(category==='all')return true;const selected=new Set([category]);let added=true;while(added){added=false;for(const c of categoryTree){const parent=categoryTree.find(x=>x.id===c.parent_id);if(parent&&selected.has(parent.slug)&&!selected.has(c.slug)){selected.add(c.slug);added=true;}}}return [p.category,...p.category_slugs||[]].some(c=>selected.has(c));};
   const [term,setTerm]=useState(initialTerm);
   const [sort,setSort]=useState('newest');
   const [favoritesOnly,setFavoritesOnly]=useState(false);
@@ -29,11 +34,11 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
   const activeProducts=useMemo(()=>products.filter(p=>p.is_active),[products]);
   const suggestions=useMemo(()=>query?activeProducts.filter(p=>match(p,query)).slice(0,5):[],[activeProducts,query]);
   const filtered=useMemo(()=>{
-    let result=activeProducts.filter(p=>(category==='all'||p.category===category)&&(!query||match(p,query))&&(!favoritesOnly||savedIds.includes(p.id)));
+    let result=activeProducts.filter(p=>categoryMatch(p)&&(!query||match(p,query))&&(!favoritesOnly||savedIds.includes(p.id)));
     if(sort==='priceLow')result=[...result].sort((a,b)=>a.price_idr-b.price_idr);
     if(sort==='priceHigh')result=[...result].sort((a,b)=>b.price_idr-a.price_idr);
     return result;
-  },[activeProducts,category,query,sort,favoritesOnly,savedIds]);
+  },[activeProducts,category,query,sort,favoritesOnly,savedIds,categoryTree]);
   const pick=(p:Product)=>{setTerm(p.name);setCategory('all');setShowSuggestions(false);setActiveSuggestion(-1);searchRef.current?.focus();};
   const reset=()=>{setCategory('all');setTerm('');setSort('newest');setFavoritesOnly(false);setShowSuggestions(false);setActiveSuggestion(-1);searchRef.current?.focus();};
   const onSearchKey=(event:KeyboardEvent<HTMLInputElement>)=>{

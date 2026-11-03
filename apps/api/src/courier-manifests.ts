@@ -7,7 +7,7 @@ import {parseManifestRequest} from './courier-protocol';
 import {buildBiteshipOrderPayload} from './courier-adapter';
 
 type BatchRow={
- id:string;order_id:string;brand_id:string;warehouse_id:string;state:string;
+ id:string;order_id:string;brand_id:string|null;warehouse_id:string;state:string;
  status:string;payment_status:string;payment_provider:string|null;payment_reference:string|null;
  shipping_quote_id:string|null;shipping_courier_code:string|null;shipping_service_code:string|null;
  contact_name:string|null;contact_phone:string|null;contact_email:string|null;address_line:string|null;
@@ -68,7 +68,7 @@ export class CourierManifestService{
    m.id AS manifest_id,m.state AS manifest_state,m.pickup_method,m.pickup_date,m.pickup_time,m.total_weight_grams,
    s.id AS shipment_id,s.state AS carrier_state,s.provider_status,s.tracking_number,s.provider_shipment_id,
    (SELECT count(*)::integer FROM product.courier_tracking_events ev WHERE ev.shipment_id=s.id) AS provider_events
-   FROM product.fulfillment_batches f JOIN product.brands b ON b.id=f.brand_id
+   FROM product.fulfillment_batches f LEFT JOIN product.brands b ON b.id=f.brand_id
    JOIN product.warehouses w ON w.id=f.warehouse_id
    LEFT JOIN product.courier_manifests m ON m.batch_id=f.id
    LEFT JOIN product.shipments s ON s.fulfillment_batch_id=f.id
@@ -161,7 +161,7 @@ export class CourierManifestService{
     b.name AS brand_name
     FROM product.courier_manifests m JOIN product.fulfillment_batches f ON f.id=m.batch_id
     JOIN product.orders o ON o.id=f.order_id JOIN product.warehouses w ON w.id=f.warehouse_id
-    JOIN product.brands b ON b.id=f.brand_id WHERE m.batch_id=$1`,[batchId]);
+    LEFT JOIN product.brands b ON b.id=f.brand_id WHERE m.batch_id=$1`,[batchId]);
   if(!r.rows[0])throw new NotFoundException('Prepare a manifest before printing a packing slip');
   const items=await this.db.query(
    'SELECT mi.quantity,mi.weight_grams,p.name,p.sku FROM product.courier_manifest_items mi JOIN product.products p ON p.id=mi.product_id JOIN product.courier_manifests m ON m.id=mi.manifest_id WHERE m.batch_id=$1 ORDER BY p.name',[batchId]);

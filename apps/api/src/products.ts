@@ -1,14 +1,28 @@
+import {publicPrice} from './catalog-pricing';
+import {inventoryLock} from './warehouses';
 import { BadRequestException, ConflictException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { DatabaseService } from './database';
 import type {Principal} from './auth';
 import {requireActor,parseEdit,assertVersion,recordAudit,publicationMissing,parsePage,pageResult} from './data-integrity';
 
 export const categories = ['home', 'lifestyle', 'decor', 'accessories', 'electronics', 'other'] as const;
-type Category = typeof categories[number];
+type Category = string;
 
 export interface Product {
   id: string;
   edit_version: number;
+  product_type?:'simple'|'variable'|'variation';
+  parent_product_id?:string|null;
+  attributes?:{name:string;values:string[]}[];
+  option_values?:Record<string,string>;
+  variants?:Product[];
+  sale_price_idr?:number|null;
+  sale_starts_at?:string|null;
+  sale_ends_at?:string|null;
+  fulfillment_owner_brand_id?:string|null;
+  regular_price_idr?:number;
+  price_max_idr?:number;
+  promo_active?:boolean;
   slug: string;
   sku: string | null;
   brand_id: string | null;
@@ -66,14 +80,14 @@ export function cleanProduct(body: unknown, partial = false): Partial<Product> {
     out.name = input.name.trim();
   }
   if ('description' in input) {
-    if (typeof input.description !== 'string' || input.description.length > 3000)
+    if (typeof input.description !== 'string' || input.description.length > 20000)
       throw new BadRequestException('Invalid description');
     out.description = input.description;
   } else if (!partial) {
     out.description = '';
   }
   if ('category' in input) {
-    if (typeof input.category !== 'string' || !categories.includes(input.category as Category))
+    if (typeof input.category !== 'string' || !categories.includes(input.category as typeof categories[number]))
       throw new BadRequestException('Unsupported category');
     out.category = input.category;
   }
@@ -107,9 +121,9 @@ export function cleanProduct(body: unknown, partial = false): Partial<Product> {
     else out.brand_id=input.brand_id;
   }
   if ('gallery_urls' in input) {
-    if(!Array.isArray(input.gallery_urls)||input.gallery_urls.length>8||
+    if(!Array.isArray(input.gallery_urls)||input.gallery_urls.length>20||
       input.gallery_urls.some(u=>typeof u!=='string'||u.length>600||!/^https:\/\//i.test(u)))
-      throw new BadRequestException('Invalid image gallery (maximum 8 HTTPS photos)');
+      throw new BadRequestException('Invalid image gallery (maximum 20 HTTPS photos)');
     if(new Set(input.gallery_urls).size!==input.gallery_urls.length)
       throw new BadRequestException('Duplicate gallery image');
     out.gallery_urls=input.gallery_urls;
@@ -118,7 +132,7 @@ export function cleanProduct(body: unknown, partial = false): Partial<Product> {
     if (typeof input.is_active !== 'boolean') throw new BadRequestException('Invalid is_active');
     out.is_active = input.is_active;
   }
-  if ([out.name,out.description,out.slug,out.sku].some(v=>restricted.test(String(v||'')))) {
+  if ([out.name,out.description,out.slug,out.sku,out.category].some(v=>restricted.test(String(v||'')))) {
     throw new BadRequestException('This catalog cannot contain nicotine or tobacco products');
   }
   if (!partial) out.is_active ??= false;
@@ -134,30 +148,45 @@ export class ProductsService {
   const result=await this.db.query<{result:{items:Product[];total:number}}>(
    `WITH filtered AS (
      SELECT p.*,b.name AS brand_name FROM product.products p LEFT JOIN product.brands b ON b.id=p.brand_id
-     WHERE p.slug NOT LIKE 'demo-%' AND ($1::boolean OR p.is_active)
+     WHERE p.slug NOT LIKE 'demo-%' AND p.archived_at IS NULL AND ($1::boolean OR (p.is_active AND p.parent_product_id IS NULL))
       AND ($2::text='' OR strpos(lower(concat_ws(' ',p.name,p.slug,p.sku,b.name)),lower($2))>0)
-      AND ($3::text='' OR p.category=$3) AND ($4::text='' OR p.brand_id::text=$4)
+      AND ($3::text='' OR p.category=$3 OR EXISTS(SELECT 1 FROM product.product_categories pc JOIN product.categories c ON c.id=pc.category_id WHERE pc.product_id=p.id AND c.slug=$3)) AND ($4::text='' OR p.brand_id::text=$4)
       AND ($5::text='' OR ($5='published' AND p.is_active) OR ($5='draft' AND NOT p.is_active))
     ), selected AS (SELECT * FROM filtered ORDER BY created_at DESC,id DESC LIMIT $6 OFFSET $7)
     SELECT jsonb_build_object('items',coalesce((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.created_at DESC,s.id DESC) FROM selected s),'[]'::jsonb),
       'total',(SELECT count(*)::integer FROM filtered)) AS result`,
    [admin,f.q,f.category,f.brand,f.status,f.pageSize,(f.page-1)*f.pageSize]);
-  const d=result.rows[0].result;return pageResult(d.items,d.total,f.page,f.pageSize);
+  const d=result.rows[0].result;const items=admin?d.items:await this.publicRows(d.items);return pageResult(items,d.total,f.page,f.pageSize);
+ }
+ async publicRows(rows:Product[],includeVariants=false):Promise<Product[]>{
+  if(!rows.length)return [];
+  const parentIds=rows.filter(p=>p.product_type==='variable').map(p=>p.id);
+  const all=parentIds.length?(await this.db.query<Product>((includeVariants?'SELECT *,price_idr::int AS price_idr':'SELECT id,parent_product_id,price_idr::int AS price_idr,sale_price_idr,sale_starts_at,sale_ends_at,stock_qty')+' FROM product.products WHERE parent_product_id=ANY($1::uuid[]) AND is_active AND archived_at IS NULL ORDER BY created_at,id',[parentIds])).rows:[];
+  const cats=(await this.db.query<{product_id:string;slug:string}>('SELECT pc.product_id,c.slug FROM product.product_categories pc JOIN product.categories c ON c.id=pc.category_id WHERE pc.product_id=ANY($1::uuid[])',[rows.map(p=>p.id)])).rows;
+  const now=Date.now();return rows.map(p=>{
+   (p as any).category_slugs=cats.filter(c=>c.product_id===p.id).map(c=>c.slug);
+   const priced=publicPrice(p,now);if(p.product_type!=='variable')return priced;
+   const variants=all.filter(v=>v.parent_product_id===p.id).map(v=>({...publicPrice(v,now),parent_slug:p.slug}));
+   const prices=variants.map(v=>v.price_idr);return {...priced,...(includeVariants?{variants}:{}),stock_qty:variants.reduce((n,v)=>n+v.stock_qty,0),price_idr:prices.length?Math.min(...prices):0,price_max_idr:prices.length?Math.max(...prices):0,promo_active:variants.some(v=>v.promo_active)};
+  });
  }
  async list():Promise<Product[]>{return (await this.page()).items;}
  async listAdmin():Promise<Product[]>{return (await this.page({},true)).items;}
  async bySlug(slug:string):Promise<Product>{
   if(!this.db.configured)throw new ServiceUnavailableException('Database unavailable');
-  const r=await this.db.query<Product>("SELECT p.*,p.price_idr::integer AS price_idr,b.name AS brand_name FROM product.products p LEFT JOIN product.brands b ON b.id=p.brand_id WHERE p.slug=$1 AND p.is_active AND p.slug NOT LIKE 'demo-%'",[slug]);
-  if(!r.rows[0])throw new NotFoundException('Product not found');return r.rows[0];
+  const r=await this.db.query<Product>("SELECT p.*,p.price_idr::integer AS price_idr,b.name AS brand_name FROM product.products p LEFT JOIN product.brands b ON b.id=p.brand_id WHERE p.slug=$1 AND p.is_active AND p.archived_at IS NULL AND p.parent_product_id IS NULL AND p.slug NOT LIKE 'demo-%'",[slug]);
+  if(!r.rows[0])throw new NotFoundException('Product not found');return (await this.publicRows(r.rows,true))[0];
  }
  async create(body:unknown,actor?:Principal):Promise<Product>{
   const operator=requireActor(actor),product=cleanProduct(body);
   if(product.stock_qty!==0)throw new BadRequestException('Stok awal harus 0. Catat stok di Warehouse Ledger dan pilih gudang fisik.');
   if(product.is_active)throw new BadRequestException('Produk baru harus disimpan sebagai draft.');
+  if(product.brand_id)product.fulfillment_owner_brand_id=product.brand_id;
   const keys=Object.keys(product);
   try{return await this.db.transaction(async client=>{
+   await inventoryLock(client);
    const r=await client.query<Product>('INSERT INTO product.products ('+keys.join(',')+') VALUES ('+keys.map((_,i)=>'$'+(i+1)).join(',')+') RETURNING *,price_idr::integer AS price_idr',keys.map(k=>(product as Record<string,unknown>)[k]));
+   await client.query('INSERT INTO product.product_categories(product_id,category_id) SELECT $1,id FROM product.categories WHERE slug=$2',[r.rows[0].id,r.rows[0].category]);
    await recordAudit(client,'product',operator,null,r.rows[0] as unknown as Record<string,unknown>);return r.rows[0];
   });}catch(e){if((e as {code?:string}).code==='23505')throw new ConflictException('SKU atau slug sudah digunakan.');throw e;}
  }
@@ -168,18 +197,22 @@ export class ProductsService {
   const patch=cleanProduct(edit.fields,true),keys=Object.keys(patch);
   if(!keys.length)throw new BadRequestException('No changes supplied');
   try{return await this.db.transaction(async client=>{
+   await inventoryLock(client);
    const previous=await client.query<Product>('SELECT *,price_idr::integer AS price_idr FROM product.products WHERE id=$1 FOR UPDATE',[id]);
    const before=previous.rows[0];if(!before)throw new NotFoundException('Product not found');assertVersion(before.edit_version,edit.version);
+   if(before.product_type&&before.product_type!=='simple')throw new ConflictException('Gunakan editor Produk untuk mengubah varian.');
+   if(patch.brand_id!==undefined&&before.brand_id&&before.fulfillment_owner_brand_id===before.brand_id){patch.fulfillment_owner_brand_id=patch.brand_id;keys.push('fulfillment_owner_brand_id');}
    const merged={...before,...patch};
    if(merged.is_active){
     const missing=publicationMissing(merged as unknown as Record<string,unknown>);
     const brand=merged.brand_id?await client.query('SELECT 1 FROM product.brands WHERE id=$1 AND is_active',[merged.brand_id]):{rows:[]};
-    if(!brand.rows.length)missing.push('active_brand');
+    if(merged.brand_id&&!brand.rows.length)missing.push('active_brand');
     const inventory=await client.query('SELECT 1 FROM product.warehouse_stock s JOIN product.warehouses w ON w.id=s.warehouse_id WHERE s.product_id=$1 AND w.is_active AND w.is_dispatch_enabled LIMIT 1',[id]);
     if(!inventory.rows.length)missing.push('verified_warehouse');
     if(missing.length)throw new ConflictException({code:'PUBLICATION_INCOMPLETE',message:'Data belum lengkap: '+missing.join(', '),missing});
    }
    const r=await client.query<Product>('UPDATE product.products SET '+keys.map((k,i)=>k+'=$'+(i+1)).join(',')+',edit_version=edit_version+1,updated_at=now() WHERE id=$'+(keys.length+1)+' RETURNING *,price_idr::integer AS price_idr',[...keys.map(k=>(patch as Record<string,unknown>)[k]),id]);
+   if(patch.category){await client.query('DELETE FROM product.product_categories WHERE product_id=$1',[id]);await client.query('INSERT INTO product.product_categories(product_id,category_id) SELECT $1,id FROM product.categories WHERE slug=$2',[id,patch.category]);}
    await recordAudit(client,'product',operator,before as unknown as Record<string,unknown>,r.rows[0] as unknown as Record<string,unknown>);return r.rows[0];
   });}catch(e){if((e as {code?:string}).code==='23505')throw new ConflictException('SKU atau slug sudah digunakan.');throw e;}
  }

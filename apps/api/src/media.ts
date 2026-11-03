@@ -1,5 +1,6 @@
 import {BadRequestException,Injectable,NotFoundException} from '@nestjs/common';
 import {DatabaseService} from './database';
+import {validateHeroImage} from './hero-images';
 import type {Principal} from './auth';
 export const MAX_IMAGE_BYTES=1572864;
 const uuid=/^[0-9a-f-]{36}$/i;
@@ -27,10 +28,17 @@ export class MediaService{
  constructor(private readonly db:DatabaseService){}
  async upload(user:Principal,input:unknown){
   const parsed=parseImageUpload(input);
-  const r=await this.db.query<{id:string}>(
-   'INSERT INTO product.media_assets(uploaded_by,filename,mime_type,size_bytes,content) VALUES($1,$2,$3,$4,$5) RETURNING id',
-   [user.id,parsed.filename,parsed.mimeType,parsed.content.length,parsed.content]);
-  return {id:r.rows[0].id,mimeType:parsed.mimeType,sizeBytes:parsed.content.length};
+  const image=await validateHeroImage({buffer:parsed.content,originalname:parsed.filename,mimetype:parsed.mimeType,size:parsed.content.length});
+  if(image.display.length>MAX_IMAGE_BYTES)throw new BadRequestException('Gambar terlalu besar setelah optimasi; kurangi dimensi atau ukuran file');
+  return this.db.transaction(async client=>{
+   await client.query('SELECT pg_advisory_xact_lock(2026110309)');
+   const quota=(await client.query("SELECT count(*) FILTER(WHERE uploaded_by=$1 AND created_at>now()-interval '1 hour')::int recent,coalesce(sum(size_bytes+coalesce(octet_length(original_content),0)),0)::text bytes FROM product.media_assets",[user.id])).rows[0];
+   if(quota.recent>=60||Number(quota.bytes)+image.original.length+image.display.length>536870912)throw new BadRequestException('Batas upload tercapai. Maksimal 60 file per jam dan 512 MiB penyimpanan produk.');
+   const r=await client.query<{id:string}>(
+    'INSERT INTO product.media_assets(uploaded_by,filename,mime_type,size_bytes,content,original_content,original_mime_type) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id',
+    [user.id,parsed.filename,'image/webp',image.display.length,image.display,image.original,image.mime]);
+   return {id:r.rows[0].id,mimeType:'image/webp',sizeBytes:image.display.length};
+  });
  }
  async get(id:string){
   if(!uuid.test(id))throw new BadRequestException('ID foto tidak valid');

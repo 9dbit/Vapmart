@@ -159,7 +159,7 @@ export class WarehouseService{
   const b=parseWarehouseMovement(raw);
   return this.db.transaction(async client=>{
    await inventoryLock(client);
-   const product=await client.query<{id:string;slug:string}>('SELECT id,slug FROM product.products WHERE id=$1 FOR UPDATE',[b.productId]);
+   const product=await client.query<{id:string;slug:string}>("SELECT id,slug FROM product.products WHERE id=$1 AND product_type<>'variable' AND archived_at IS NULL FOR UPDATE",[b.productId]);
    if(!product.rows[0]||product.rows[0].slug.startsWith('demo-'))throw new NotFoundException('Product not found');
    const warehouse=await client.query<{is_active:boolean;is_system_hold:boolean}>('SELECT is_active,is_system_hold FROM product.warehouses WHERE id=$1 FOR UPDATE',[b.warehouseId]);
    if(!warehouse.rows[0]||!warehouse.rows[0].is_active||warehouse.rows[0].is_system_hold)throw new ConflictException('Use warehouse transfer to reconcile legacy hold');
@@ -189,7 +189,7 @@ export class WarehouseService{
      throw new ConflictException('Transfer key used with different details');
     return {transfer:x,replayed:true};
    }
-   const p=await client.query<{slug:string}>('SELECT slug FROM product.products WHERE id=$1 FOR UPDATE',[b.productId]);
+   const p=await client.query<{slug:string}>("SELECT slug FROM product.products WHERE id=$1 AND product_type<>'variable' AND archived_at IS NULL FOR UPDATE",[b.productId]);
    if(!p.rows[0]||p.rows[0].slug.startsWith('demo-'))throw new NotFoundException('Product not found');
    const ws=await client.query<{id:string;is_active:boolean;is_system_hold:boolean}>(
     'SELECT id,is_active,is_system_hold FROM product.warehouses WHERE id=ANY($1::uuid[]) ORDER BY id FOR UPDATE',
@@ -219,7 +219,7 @@ export class WarehouseService{
  async brandStocks(brandId:string){
   requireUuid(brandId,'brand');
   const result=await this.db.query(
-   "SELECT w.code,w.name AS warehouse_name,w.city,s.product_id,p.sku,p.name AS product_name,s.on_hand,s.reserved,(s.on_hand-s.reserved) AS available,w.is_dispatch_enabled FROM product.warehouse_stock s JOIN product.products p ON p.id=s.product_id JOIN product.warehouses w ON w.id=s.warehouse_id WHERE p.brand_id=$1 AND p.slug NOT LIKE 'demo-%' AND NOT w.is_system_hold ORDER BY p.name,w.code LIMIT 500",
+   "SELECT w.code,w.name AS warehouse_name,w.city,s.product_id,p.sku,p.name AS product_name,s.on_hand,s.reserved,(s.on_hand-s.reserved) AS available,w.is_dispatch_enabled FROM product.warehouse_stock s JOIN product.products p ON p.id=s.product_id JOIN product.warehouses w ON w.id=s.warehouse_id WHERE p.fulfillment_owner_brand_id=$1 AND p.archived_at IS NULL AND p.slug NOT LIKE 'demo-%' AND NOT w.is_system_hold ORDER BY p.name,w.code LIMIT 500",
    [brandId]);
   return {items:result.rows,readOnly:true};
  }

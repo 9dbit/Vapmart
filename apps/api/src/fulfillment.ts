@@ -23,7 +23,7 @@ export function parseFulfillmentStatus(raw:unknown){
 }
 const nextStates:Record<string,string>={reserved:'picking',picking:'packed',packed:'ready_for_carrier'};
 type Order={id:string;status:string;payment_status:string;payment_provider:string|null;payment_reference:string|null};
-type OrderLine={id:string;product_id:string;quantity:number;brand_id:string|null;slug:string};
+type OrderLine={id:string;product_id:string;quantity:number;brand_id:string|null;ownership_scope:string;slug:string};
 type Place={warehouse_id:string;on_hand:number;reserved:number;code:string};
 @Injectable()
 export class FulfillmentService {
@@ -33,7 +33,7 @@ export class FulfillmentService {
    `SELECT f.id,f.order_id,f.brand_id,b.name AS brand_name,f.warehouse_id,w.code AS warehouse_code,
     f.state,f.created_at,f.updated_at,o.payment_status,
     (SELECT COALESCE(sum(l.quantity),0)::integer FROM product.fulfillment_lines l WHERE l.batch_id=f.id) AS units
-    FROM product.fulfillment_batches f JOIN product.brands b ON b.id=f.brand_id
+    FROM product.fulfillment_batches f LEFT JOIN product.brands b ON b.id=f.brand_id
     JOIN product.warehouses w ON w.id=f.warehouse_id JOIN product.orders o ON o.id=f.order_id
     ORDER BY f.created_at DESC LIMIT 200`);
   return {items:result.rows,courierBookingEnabled:false,paymentEnabled:false,trackingSource:'internal_only'};
@@ -43,7 +43,7 @@ export class FulfillmentService {
   const [order,items]=await Promise.all([
    this.db.query<Order>('SELECT id,status,payment_status,payment_provider,payment_reference FROM product.orders WHERE id=$1',[orderId]),
    this.db.query<{id:string;product_id:string;brand_id:string|null;quantity:number;product_name:string;sku:string|null}>(
-    'SELECT oi.id,oi.product_id,COALESCE(oi.brand_id,p.brand_id) AS brand_id,oi.quantity,oi.product_name,oi.sku FROM product.order_items oi JOIN product.products p ON p.id=oi.product_id WHERE oi.order_id=$1 ORDER BY brand_id,oi.id',[orderId])
+    'SELECT oi.id,oi.product_id,oi.brand_id,oi.ownership_scope,oi.quantity,oi.product_name,oi.sku FROM product.order_items oi JOIN product.products p ON p.id=oi.product_id WHERE oi.order_id=$1 ORDER BY brand_id,oi.id',[orderId])
   ]);
   if(!order.rows[0])throw new NotFoundException('Order not found');
   const warehouseStock=await this.db.query<{product_id:string;warehouse_code:string;available:number}>(
@@ -69,14 +69,14 @@ export class FulfillmentService {
    }
    if(!paidOrderVerified(order))throw new ConflictException('Cannot reserve a draft or unverified payment');
    const lines=await client.query<OrderLine>(
-    `SELECT oi.id,oi.product_id,oi.quantity,COALESCE(oi.brand_id,p.brand_id) AS brand_id,p.slug
+    `SELECT oi.id,oi.product_id,oi.quantity,oi.brand_id,oi.ownership_scope,p.slug
     FROM product.order_items oi JOIN product.products p ON p.id=oi.product_id
     WHERE oi.order_id=$1 ORDER BY oi.product_id,oi.id FOR UPDATE OF p`,[orderId]);
    if(!lines.rows.length)throw new ConflictException('Order has no items');
-   const batches=new Map<string,{id:string;brandId:string;warehouseId:string}>();
+   const batches=new Map<string,{id:string;brandId:string|null;warehouseId:string}>();
    const affected:string[]=[];
    for(const line of lines.rows){
-    if(line.slug.startsWith('demo-')||!line.brand_id)throw new ConflictException('Order contains a product without verified brand');
+    if(line.slug.startsWith('demo-')||(!line.brand_id&&line.ownership_scope!=='platform'))throw new ConflictException('Order ownership snapshot is unverified');
     const stock=await client.query<Place>(
      `SELECT s.warehouse_id,s.on_hand,s.reserved,w.code
        FROM product.warehouse_stock s JOIN product.warehouses w ON w.id=s.warehouse_id
@@ -87,7 +87,7 @@ export class FulfillmentService {
      const available=place.on_hand-place.reserved;
      if(available<=0)continue;
      const quantity=Math.min(available,remaining);
-     const key=line.brand_id+':'+place.warehouse_id;
+     const key=(line.brand_id||'platform')+':'+place.warehouse_id;
      let batch=batches.get(key);
      if(!batch){
       const inserted=await client.query<{id:string}>(
@@ -188,7 +188,7 @@ export class FulfillmentService {
    `SELECT f.id AS batch_id,b.name AS brand_name,f.state,w.city AS origin_city,
       (SELECT json_agg(json_build_object('state',e.state,'at',e.created_at) ORDER BY e.created_at,e.id)
        FROM product.fulfillment_tracking_events e WHERE e.batch_id=f.id) AS events
-      FROM product.fulfillment_batches f JOIN product.brands b ON b.id=f.brand_id
+      FROM product.fulfillment_batches f LEFT JOIN product.brands b ON b.id=f.brand_id
       JOIN product.warehouses w ON w.id=f.warehouse_id WHERE f.order_id=$1
       ORDER BY b.name,w.code`,[orderId]);
   return {orderId,batches:r.rows,carrierTrackingAvailable:false,trackingNumber:null,paymentEnabled:false};

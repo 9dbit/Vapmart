@@ -41,7 +41,7 @@ export default function CheckoutPage(){
  useEffect(()=>{
   if(includesDigital||requestItems.length===0){setQuote(null);setError('');return;}
   const controller=new AbortController();
-  setQuoting(true);setError('');setQuote(null);setShippingRates([]);setSelectedQuoteId('');
+  requestKey.current=null;setQuoting(true);setError('');setQuote(null);setShippingRates([]);setSelectedQuoteId('');
   fetch('/api/checkout/quote',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({items:requestItems}),signal:controller.signal,cache:'no-store'})
    .then(async response=>{
     const result=await response.json();
@@ -129,7 +129,7 @@ export default function CheckoutPage(){
     {physical.map(({product,quantity})=><div className="vco26-line" key={product.id}>
       <div className="vco26-thumb">{product.image_url?<img src={product.image_url} alt=""/>:<strong>V</strong>}</div>
       <div><strong>{product.name}</strong><small>{product.sku||'SKU belum tersedia'} · {quantity} pcs</small></div>
-      <b>{formatIDR(product.price_idr*quantity)}</b>
+      <b>{formatIDR((quote?.items.find(x=>x.productId===product.id)?.unitPriceIdr??product.price_idr)*quantity)}</b>
     </div>)}
     {quoting?<p className="vco26-quiet">Memeriksa harga dan stok terkini...</p>:quote?<div className="vco26-totals">
       <div><span>Subtotal aktual</span><b>{formatIDR(quote.subtotalIdr)}</b></div>

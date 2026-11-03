@@ -8,7 +8,17 @@ export interface Product {
   gallery_urls?: string[];
   name: string;
   description: string;
-  category: 'home' | 'lifestyle' | 'decor' | 'accessories' | 'electronics' | 'other';
+  category: string;
+  category_slugs?: string[];
+  product_type?: 'simple'|'variable'|'variation';
+  parent_slug?: string;
+  attributes?: {name:string;values:string[]}[];
+  option_values?: Record<string,string>;
+  variants?: Product[];
+  regular_price_idr?:number;
+  price_max_idr?:number;
+  promo_active?:boolean;
+  available?:boolean;
   price_idr: number;
   stock_qty: number;
   weight_grams?: number|null;

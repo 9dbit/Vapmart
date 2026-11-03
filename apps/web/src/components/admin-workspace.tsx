@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState,type ReactNode} from 'react';
 import Link from 'next/link';
+import {useRouter} from 'next/navigation';
 import {AdminBrandLogo} from '@/components/admin-brand-logo';
 import '../app/admin-v27.css';
 
@@ -35,9 +36,9 @@ export const adminDescriptions:Record<AdminSection,string>={
 export function AdminWorkspace({active,onNavigate,onLogout,email,children}:{
  active:AdminSection;onNavigate:(section:AdminSection)=>void;onLogout:()=>void|Promise<void>;email:string|null|undefined;children:ReactNode;
 }){
- const [open,setOpen]=useState(false);
+ const [open,setOpen]=useState(false);const router=useRouter();
  useEffect(()=>setOpen(false),[active]);
- const navigate=(s:AdminSection)=>{setOpen(false);onNavigate(s);};
+ const navigate=(s:AdminSection)=>{setOpen(false);if(s==='products'){router.push('/admin/products');return;}if(s==='orders'){router.push('/admin/orders');return;}onNavigate(s);};
  return <div className="vma27-workspace">
   <a className="vma27-skip-link" href="#admin-main">Langsung ke konten</a>
   {open&&<button type="button" className="vma27-nav-backdrop" aria-label="Tutup navigasi lewat overlay" onClick={()=>setOpen(false)}/>}

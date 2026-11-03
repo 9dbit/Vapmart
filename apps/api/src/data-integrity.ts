@@ -22,8 +22,8 @@ export async function recordAudit(client:PoolClient,type:'product'|'brand',actor
 }
 export function publicationMissing(p:Record<string,unknown>):string[]{
  const missing:string[]=[];
- for(const k of ['sku','brand_id','description'])if(typeof p[k]!=='string'||!String(p[k]).trim())missing.push(k);
- if(typeof p.image_url!=='string'||!/^https:\/\//i.test(p.image_url))missing.push('image_url');
+ for(const k of ['sku','description'])if(typeof p[k]!=='string'||!String(p[k]).trim())missing.push(k);
+ if(typeof p.image_url!=='string'||!/^https:\/\/|^\/api\/media\/[0-9a-f-]{36}$/i.test(p.image_url))missing.push('image_url');
  if(!Number.isSafeInteger(Number(p.price_idr))||Number(p.price_idr)<=0)missing.push('price_idr');
  for(const k of ['weight_grams','length_cm','width_cm','height_cm'])if(!Number.isSafeInteger(p[k])||Number(p[k])<=0)missing.push(k);
  return missing;
@@ -34,7 +34,7 @@ export function parsePage(raw:Record<string,unknown>={}){
  function number(k:string,n:number,max:number){const v=raw[k]===undefined?String(n):raw[k];
   if(typeof v!=='string'||!/^\d{1,6}$/.test(v)||Number(v)<1||Number(v)>max)throw new BadRequestException('Invalid '+k);return Number(v);}
  function text(k:string,max:number){const v=raw[k]??'';if(typeof v!=='string'||v.length>max)throw new BadRequestException('Invalid '+k);return v.trim();}
- return {page:number('page',1,100000),pageSize:number('pageSize',100,100),q:text('q',120),category:text('category',50),brand:text('brand',80),status:text('status',40)};
+ return {page:number('page',1,100000),pageSize:number('pageSize',100,100),q:text('q',120),category:text('category',120),brand:text('brand',80),status:text('status',40)};
 }
 export function pageResult<T>(items:T[],total:number,page:number,pageSize:number){
  return {items,total,page,pageSize,pages:Math.ceil(total/pageSize),hasMore:page*pageSize<total};

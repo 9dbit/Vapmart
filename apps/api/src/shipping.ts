@@ -1,3 +1,4 @@
+import {effectivePrice,sellableSQL,type PriceInput} from './catalog-pricing';
 import {BadRequestException,ConflictException,ForbiddenException,Injectable,ServiceUnavailableException} from '@nestjs/common';
 import {DatabaseService} from './database';
 import type {Principal} from './auth';
@@ -39,8 +40,8 @@ export class ShippingService{
   const key=process.env.BITESHIP_API_KEY,origin=process.env.SHIPPING_ORIGIN_POSTAL_CODE;
   if(process.env.SHIPPING_RATE_LOOKUP_ENABLED!=='true'||!key||!key.startsWith('biteship_test.')||!origin||!/^[0-9]{5}$/.test(origin))
    throw new ServiceUnavailableException({code:'SHIPPING_SANDBOX_NOT_CONFIGURED',message:'Tarif kurir belum diaktifkan'});
-  const list=await this.db.query<{id:string;slug:string;name:string;price_idr:string|number;stock_qty:number;is_active:boolean;weight_grams:number|null;length_cm:number|null;width_cm:number|null;height_cm:number|null}>(
-    'SELECT id,slug,name,price_idr,stock_qty,is_active,weight_grams,length_cm,width_cm,height_cm FROM product.products WHERE id=ANY($1::uuid[])',[items.map(i=>i.productId)]);
+  const list=await this.db.query<{id:string;slug:string;name:string;stock_qty:number;is_active:boolean;weight_grams:number|null;length_cm:number|null;width_cm:number|null;height_cm:number|null}&PriceInput>(
+    `SELECT p.* FROM product.products p WHERE p.id=ANY($1::uuid[]) AND ${sellableSQL}`,[items.map(i=>i.productId)]);
   const byId=new Map(list.rows.map(p=>[p.id,p]));
   const fingerprintItems:Array<{productId:string;quantity:number;unitPriceIdr:number;weightGrams:number}>=[];
   const goods=items.map(i=>{
@@ -48,7 +49,7 @@ export class ShippingService{
    if(!p||!p.is_active||p.slug.startsWith('demo-')||p.stock_qty<i.quantity)throw new ConflictException('Stok atau produk tidak tersedia');
    if(!Number.isSafeInteger(p.weight_grams)||!p.weight_grams||p.weight_grams<=0)
     throw new ConflictException('Berat produk belum dilengkapi');
-   const value=Number(p.price_idr);
+   const value=effectivePrice(p);
    if(!Number.isSafeInteger(value)||value<0)throw new ConflictException('Harga produk belum valid');
    fingerprintItems.push({productId:i.productId,quantity:i.quantity,unitPriceIdr:value,weightGrams:p.weight_grams});
    return {name:p.name,value,weight:p.weight_grams,quantity:i.quantity,

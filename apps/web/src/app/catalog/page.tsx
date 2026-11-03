@@ -12,7 +12,7 @@ export default async function CatalogPage({searchParams}:{searchParams:Promise<{
  const category=typeof params.category==='string'?params.category:'all';
  const query=typeof params.q==='string'?params.q.slice(0,80):'';
  const ref=typeof params.reference==='string'?params.reference:'all';
- const allowed=['all','home','lifestyle','decor','accessories','electronics','other'];
+ const validCategory=/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(category)&&category.length<=120;
  const result=await getProductsResult();
  const active=result.items.filter(p=>p.is_active&&!p.slug.startsWith('demo-'));
  const referenceItems=isArchiveCategory(ref)?allArchiveItems.filter(p=>p.category===ref):allArchiveItems;
@@ -24,7 +24,7 @@ export default async function CatalogPage({searchParams}:{searchParams:Promise<{
      <p>Struktur katalog diperbarui tanpa menghilangkan referensi visual dari website sebelum rebuild.</p>
      <span className="vm-catalog-preview">Produk aktif hanya ditampilkan dari PostgreSQL setelah verifikasi. Pembayaran belum aktif.</span>
    </div>
-   {!result.ok?<DataStatus kind="produk" code={result.error}/>:active.length>0?<ProductGrid products={active} initialTerm={query} initialCategory={allowed.includes(category)?category:'all'}/>:
+   {!result.ok?<DataStatus kind="produk" code={result.error}/>:active.length>0?<ProductGrid products={active} initialTerm={query} initialCategory={validCategory?category:'all'}/>:
     <section className="vm-restored-catalog-status" aria-label="Status katalog aktif"><span className="vm-trendora-eyebrow">LIVE CATALOG</span>
       <h2>Katalog aktif sedang diverifikasi</h2>
       <p>Belum ada SKU dengan status tayang di PostgreSQL. Galeri foto referensi lama tetap dapat dilihat di bawah tanpa harga, stok, atau pembelian.</p>

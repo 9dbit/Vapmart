@@ -105,6 +105,7 @@ export default function AdminPage(){
  useEffect(()=>{
   const sync=()=>{
    const requested=new URLSearchParams(window.location.search).get('tab');
+   if(requested==='products'||requested==='orders'){router.replace('/admin/'+requested);return;}
    const section=allowedTabs.find(x=>x===requested);
    setTab(section||'overview');
   };

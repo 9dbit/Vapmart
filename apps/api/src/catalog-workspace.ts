@@ -1,0 +1,240 @@
+import {BadRequestException,ConflictException,Injectable,NotFoundException} from '@nestjs/common';
+import {createHash,randomUUID} from 'node:crypto';
+import type {PoolClient} from 'pg';
+import {DatabaseService} from './database';
+import type {Principal} from './auth';
+import {requireActor,assertVersion,recordAudit,parsePage,pageResult,publicationMissing} from './data-integrity';
+import {inventoryLock,ensureBalance,writeEvent,refreshProductAvailability,requireUuid} from './warehouses';
+import * as V from './catalog-validation';
+import {publicPrice} from './catalog-pricing';
+type Reader={query:(sql:string,values?:any[])=>Promise<{rows:any[]}>};
+const fields=['name','slug','sku','description','category','brand_id','fulfillment_owner_brand_id','image_url','gallery_urls','price_idr','sale_price_idr','sale_starts_at','sale_ends_at','weight_grams','length_cm','width_cm','height_cm','product_type','attributes','option_values'];
+const bodyFields=['name','slug','sku','description','categoryId','categoryIds','brand_id','fulfillment_owner_brand_id','image_url','gallery_urls','price_idr','sale_price_idr','sale_starts_at','sale_ends_at','weight_grams','length_cm','width_cm','height_cm','product_type','attributes'];
+function value(p:Record<string,any>,key:string){return ['attributes','option_values'].includes(key)?JSON.stringify(p[key]):p[key];}
+export async function catalogAudit(q:Reader,actor:string,type:string,id:string,action:string,before:any,after:any){
+ await q.query('INSERT INTO product.catalog_audit(actor_id,entity_type,entity_id,action,before_data,after_data) VALUES($1,$2,$3,$4,$5::jsonb,$6::jsonb)',[actor,type,id,action,before===null?null:JSON.stringify(before),after===null?null:JSON.stringify(after)]);
+}
+export async function family(q:Reader,id:string){
+ const r=await q.query(`SELECT p.*,p.price_idr::int AS price_idr,p.sale_price_idr::int AS sale_price_idr,b.name brand_name,
+ (SELECT coalesce(jsonb_agg(pc.category_id ORDER BY (c.slug=p.category) DESC,c.name),'[]'::jsonb) FROM product.product_categories pc JOIN product.categories c ON c.id=pc.category_id WHERE pc.product_id=p.id) AS category_ids
+ FROM product.products p LEFT JOIN product.brands b ON b.id=p.brand_id WHERE p.id=$1 AND p.archived_at IS NULL`,[id]);
+ const root=r.rows[0];if(!root)throw new NotFoundException('Produk tidak ditemukan');
+ const variants=await q.query('SELECT *,price_idr::int AS price_idr,sale_price_idr::int AS sale_price_idr FROM product.products WHERE parent_product_id=$1 AND archived_at IS NULL ORDER BY created_at,id',[id]);
+ const ids=[id,...variants.rows.map(v=>v.id)];
+ const stock=await q.query(`SELECT s.product_id,s.warehouse_id,s.on_hand,s.reserved,(s.on_hand-s.reserved) available,w.name warehouse_name,w.code,w.is_active,w.is_dispatch_enabled,w.is_system_hold
+ FROM product.warehouse_stock s JOIN product.warehouses w ON w.id=s.warehouse_id WHERE s.product_id=ANY($1::uuid[]) ORDER BY s.product_id,w.code`,[ids]);
+ return {product:root,variants:variants.rows,stock:stock.rows};
+}
+function media(x:Record<string,any>){
+ const image_url=V.imageUrl(x.image_url);
+ if(!Array.isArray(x.gallery_urls??[])||(x.gallery_urls??[]).length>20)throw new BadRequestException('Galeri maksimal 20 gambar');
+ const gallery_urls=(x.gallery_urls??[]).map((u:unknown)=>V.imageUrl(u));
+ if(gallery_urls.some((u:any)=>!u)||new Set(gallery_urls).size!==gallery_urls.length||image_url&&gallery_urls.includes(image_url))throw new BadRequestException('Gambar utama dan pendukung harus berbeda');
+ return {image_url,gallery_urls};
+}
+function dimensions(x:Record<string,any>){
+ const o:Record<string,number|null>={};for(const k of ['weight_grams','length_cm','width_cm','height_cm'])o[k]=x[k]===null||x[k]===undefined||x[k]===''?null:V.integer(x[k],k,1,k==='weight_grams'?1000000:1000);return o;
+}
+async function stockSave(client:PoolClient,actor:string,id:string,rows:V.StockInput[]){
+ for(const s of [...rows].sort((a,b)=>a.warehouseId.localeCompare(b.warehouseId))){
+  const w=(await client.query('SELECT is_active,is_system_hold FROM product.warehouses WHERE id=$1 FOR UPDATE',[s.warehouseId])).rows[0];
+  if(!w||!w.is_active||w.is_system_hold)throw new ConflictException('Pilih gudang fisik aktif; stok HOLD harus direkonsiliasi melalui transfer');
+  const balance=await ensureBalance(client,s.warehouseId,id);
+  if(balance.on_hand!==s.expectedOnHand||balance.reserved!==s.expectedReserved)V.conflict('Stok gudang telah berubah. Muat ulang produk sebelum menyimpan.');
+  if(s.onHand<balance.reserved)throw new ConflictException('Stok fisik tidak boleh kurang dari stok yang direservasi');
+  const delta=s.onHand-balance.on_hand;
+  if(delta){
+   if(Math.abs(delta)>100000)throw new BadRequestException('Perubahan stok maksimal 100.000 unit per simpan');
+   if(s.notes.trim().length<6)throw new BadRequestException('Catatan perubahan stok minimal 6 karakter');
+   await writeEvent(client,{row:balance,deltaHand:delta,deltaReserved:0,reason:balance.on_hand===0&&delta>0?'receipt':'adjustment',notes:s.notes,actor,key:randomUUID()});
+  }
+ }
+ await refreshProductAvailability(client,[id]);
+}
+async function categoryIds(q:Reader,x:Record<string,any>){
+ const ids=x.categoryIds??(x.categoryId?[x.categoryId]:[]);
+ if(!Array.isArray(ids)||ids.length<1||ids.length>15)throw new BadRequestException('Pilih 1-15 kategori');
+ const unique=[...new Set(ids.map(v=>requireUuid(v,'kategori')))];
+ const rows=(await q.query('SELECT id,slug,is_active FROM product.categories WHERE id=ANY($1::uuid[])',[unique])).rows;
+ if(rows.length!==unique.length||rows.some(r=>!r.is_active))throw new ConflictException('Kategori tidak ditemukan atau nonaktif');
+ return {ids:unique,slug:rows.find(r=>r.id===unique[0])!.slug as string};
+}
+async function linkCategories(q:Reader,id:string,ids:string[]){
+ await q.query('DELETE FROM product.product_categories WHERE product_id=$1',[id]);
+ await q.query('INSERT INTO product.product_categories(product_id,category_id) SELECT $1,unnest($2::uuid[])',[id,ids]);
+}
+export async function assertPublishable(q:Reader,p:Record<string,any>){
+ const missing=publicationMissing(p).filter(s=>s!=='brand_id');
+ if(p.fulfillment_owner_brand_id&&!(await q.query('SELECT 1 FROM product.brands WHERE id=$1 AND is_active',[p.fulfillment_owner_brand_id])).rows.length)missing.push('active_owner');
+ if(p.brand_id&&!(await q.query('SELECT 1 FROM product.brands WHERE id=$1 AND is_active',[p.brand_id])).rows.length)missing.push('active_brand');
+ const cats=await q.query(`WITH RECURSIVE ancestors AS (SELECT c.id,c.parent_id,c.is_active FROM product.categories c WHERE c.slug=$1
+ UNION ALL SELECT c.id,c.parent_id,c.is_active FROM product.categories c JOIN ancestors a ON c.id=a.parent_id)
+ SELECT count(*)::int n,bool_and(is_active) ok FROM ancestors`,[p.category]);
+ if(!cats.rows[0]?.n||!cats.rows[0]?.ok)missing.push('active_category');
+ if(!(await q.query(`SELECT 1 FROM product.warehouse_stock s JOIN product.warehouses w ON w.id=s.warehouse_id WHERE s.product_id=$1 AND w.is_active AND w.is_dispatch_enabled LIMIT 1`,[p.id])).rows.length)missing.push('verified_warehouse');
+ if(missing.length)throw new ConflictException({code:'PUBLICATION_INCOMPLETE',message:'Lengkapi '+[...new Set(missing)].join(', '),missing});
+}
+async function persist(client:PoolClient,actor:string,p:Record<string,any>,before:any,parentId:string|null,enabled:boolean){
+ let after:any;
+ if(before){
+  const r=await client.query('UPDATE product.products SET '+fields.map((k,i)=>k+'=$'+(i+1)).join(',')+',is_active=$'+(fields.length+1)+',edit_version=edit_version+1,updated_at=now() WHERE id=$'+(fields.length+2)+' RETURNING *', [...fields.map(k=>value(p,k)),enabled,before.id]);after=r.rows[0];
+ }else{
+  const r=await client.query('INSERT INTO product.products('+fields.join(',')+',parent_product_id,is_active,stock_qty) VALUES('+fields.map((_,i)=>'$'+(i+1)).join(',')+',$'+(fields.length+1)+',$'+(fields.length+2)+',0) RETURNING *',[...fields.map(k=>value(p,k)),parentId,enabled]);after=r.rows[0];
+ }
+ await recordAudit(client,'product',actor,before,after);return after;
+}
+@Injectable()
+export class CatalogWorkspaceService{
+ constructor(private readonly db:DatabaseService){}
+ async lookups(){
+  const [categories,warehouses,brands]=await Promise.all([this.categories(),this.db.query('SELECT id,code,name,is_active,is_dispatch_enabled,is_system_hold FROM product.warehouses ORDER BY code'),this.db.query('SELECT id,name,is_active FROM product.brands ORDER BY name')]);
+  return {categories:categories.items,warehouses:warehouses.rows,brands:brands.rows,limits:{attributes:3,variants:200,images:20},paymentEnabled:false};
+ }
+ async list(raw:Record<string,unknown>={}){
+  const f=parsePage(raw),r=await this.db.query(`WITH RECURSIVE cats AS(SELECT id FROM product.categories WHERE slug=$3 UNION ALL SELECT c.id FROM product.categories c JOIN cats ON c.parent_id=cats.id),
+ filtered AS(SELECT p.*,p.price_idr::int regular_price_idr,b.name brand_name,
+ (SELECT count(*)::int FROM product.products v WHERE v.parent_product_id=p.id AND v.archived_at IS NULL) variants_count,
+ CASE WHEN p.product_type='variable' THEN coalesce((SELECT sum(v.stock_qty) FROM product.products v WHERE v.parent_product_id=p.id AND v.is_active AND v.archived_at IS NULL),0) ELSE p.stock_qty END AS available_qty,
+ (SELECT coalesce(jsonb_agg(c.name ORDER BY c.name),'[]'::jsonb) FROM product.product_categories pc JOIN product.categories c ON c.id=pc.category_id WHERE pc.product_id=p.id) category_names
+ FROM product.products p LEFT JOIN product.brands b ON b.id=p.brand_id
+ WHERE p.parent_product_id IS NULL AND p.archived_at IS NULL AND p.slug NOT LIKE 'demo-%'
+ AND ($1='' OR strpos(lower(concat_ws(' ',p.name,p.slug,p.sku,b.name)),lower($1))>0 OR EXISTS(SELECT 1 FROM product.products v WHERE v.parent_product_id=p.id AND strpos(lower(coalesce(v.sku,'')),lower($1))>0))
+ AND ($2='' OR ($2='published' AND p.is_active) OR ($2='draft' AND NOT p.is_active))
+ AND ($3='' OR EXISTS(SELECT 1 FROM product.product_categories pc WHERE pc.product_id=p.id AND pc.category_id IN(SELECT id FROM cats)))
+ AND ($4='' OR ($4='none' AND p.brand_id IS NULL) OR p.brand_id::text=$4)),
+ selected AS(SELECT * FROM filtered ORDER BY created_at DESC,id DESC LIMIT $5 OFFSET $6)
+ SELECT jsonb_build_object('items',coalesce((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.created_at DESC,s.id DESC) FROM selected s),'[]'::jsonb),'total',(SELECT count(*)::int FROM filtered)) data`,[f.q,f.status,f.category,f.brand,f.pageSize,(f.page-1)*f.pageSize]);
+  const d=r.rows[0].data;return pageResult(d.items,d.total,f.page,f.pageSize);
+ }
+ async detail(id:string){requireUuid(id,'produk');return family(this.db,id);}
+ async save(actor:Principal,id:string|null,raw:unknown){
+  const who=requireActor(actor),x=V.record(raw,['requestKey','expectedVersion','product','variants','warehouseStocks']);
+  const key=requireUuid(x.requestKey,'request'),hash=createHash('sha256').update(JSON.stringify({id,raw})).digest('hex');
+  try{return await this.db.transaction(async client=>{
+   await inventoryLock(client);
+   const prior=(await client.query('SELECT request_hash,response FROM product.catalog_requests WHERE actor_id=$1 AND request_key=$2',[who,key])).rows[0];
+   if(prior){if(prior.request_hash!==hash)throw new ConflictException('Request key digunakan untuk data berbeda');return {...prior.response,replayed:true};}
+   const saved=await this.saveFamily(client,actor,id,x);
+   await client.query('INSERT INTO product.catalog_requests(actor_id,request_key,request_hash,response) VALUES($1,$2,$3,$4::jsonb)',[who,key,hash,JSON.stringify(saved)]);return saved;
+  });}catch(e){if((e as {code?:string}).code==='23505')throw new ConflictException('SKU, slug, atau kombinasi variasi sudah digunakan');throw e;}
+ }
+ // Caller owns the transaction and shared inventory lock; used by the reviewed import plan too.
+ async saveFamily(client:PoolClient,actor:Principal,id:string|null,x:Record<string,any>){
+  const who=requireActor(actor);let before:any=null;
+  if(id){requireUuid(id,'produk');before=(await client.query('SELECT * FROM product.products WHERE id=$1 AND archived_at IS NULL FOR UPDATE',[id])).rows[0];if(!before||before.parent_product_id)throw new NotFoundException('Produk utama tidak ditemukan');assertVersion(before.edit_version,V.version(x.expectedVersion));}
+  const p=V.record(x.product,bodyFields),type=p.product_type??before?.product_type??'simple';
+  if(!['simple','variable'].includes(type))throw new BadRequestException('Tipe produk tidak valid');
+  if(before&&type!==before.product_type)throw new ConflictException('Tipe produk tersimpan tidak dapat diubah; buat produk baru agar riwayat SKU tetap utuh');
+  const attrs=V.attributes(p.attributes??[]);if(type==='simple'&&attrs.length||type==='variable'&&attrs.length===0)throw new BadRequestException('Produk variasi membutuhkan 1-3 atribut');
+  const cats=await categoryIds(client,p);
+  const root:Record<string,any>={name:V.text(p.name,'Nama produk',2,140),slug:V.slug(p.slug),sku:V.sku(p.sku),description:V.text(p.description??'','Deskripsi',0,20000),category:cats.slug,
+   brand_id:p.brand_id?requireUuid(p.brand_id,'brand'):null,fulfillment_owner_brand_id:p.fulfillment_owner_brand_id?requireUuid(p.fulfillment_owner_brand_id,'pengelola'):null,...media(p),...V.priceFields(p),...dimensions(p),product_type:type,attributes:attrs,option_values:{}};
+  V.safeCatalogTerms(root.name,root.description,root.slug,root.sku,attrs);
+  if(root.fulfillment_owner_brand_id&&!(await client.query('SELECT 1 FROM product.brands WHERE id=$1 AND is_active',[root.fulfillment_owner_brand_id])).rows.length)throw new BadRequestException('Pengelola partner tidak aktif');
+  if(root.brand_id&&!(await client.query('SELECT 1 FROM product.brands WHERE id=$1',[root.brand_id])).rows.length)throw new BadRequestException('Brand tidak ditemukan');
+  const mainStocks=V.stockInputs(x.warehouseStocks);
+  if(type==='variable'&&mainStocks.length)throw new BadRequestException('Stok produk variasi dicatat pada setiap SKU varian, bukan induk');
+  let saved=await persist(client,who,root,before,null,before?.is_active??false);id=saved.id;
+  await linkCategories(client,id!,cats.ids);
+  if(type==='simple'){
+   if((x.variants??[]).length)throw new BadRequestException('Produk simple tidak mempunyai varian');
+   await stockSave(client,who,id!,mainStocks);
+  }else{
+   if(!Array.isArray(x.variants)||x.variants.length>200)throw new BadRequestException('Maksimal 200 kombinasi per produk');
+   const old=(await client.query('SELECT * FROM product.products WHERE parent_product_id=$1 AND archived_at IS NULL ORDER BY id FOR UPDATE',[id])).rows;
+   const supplied=new Set(x.variants.filter((v:any)=>v.id).map((v:any)=>v.id));
+   if(old.some(v=>!supplied.has(v.id)))throw new ConflictException('Varian existing tidak boleh hilang dari form. Nonaktifkan varian yang tidak dijual.');
+   const combinations=new Set<string>(),ids=new Set<string>();
+   for(const raw of x.variants){
+    const v=V.record(raw,['id','expectedVersion','sku','price_idr','sale_price_idr','sale_starts_at','sale_ends_at','option_values','enabled','weight_grams','length_cm','width_cm','height_cm','image_url','gallery_urls','warehouseStocks']);
+    const prev=v.id?old.find(o=>o.id===v.id):null;if(v.id&&!prev)throw new BadRequestException('Varian bukan milik produk ini');
+    if(v.id){if(ids.has(v.id))throw new BadRequestException('ID varian ganda');ids.add(v.id);assertVersion(prev.edit_version,V.version(v.expectedVersion));}
+    const opt=V.options(v.option_values,attrs),signature=JSON.stringify(opt);if(combinations.has(signature))throw new BadRequestException('Kombinasi varian ganda');combinations.add(signature);
+    if(typeof v.enabled!=='boolean')throw new BadRequestException('Status varian diperlukan');
+    const vp={...root,...V.priceFields(v),...dimensions({...root,...v}),...media({image_url:v.image_url||root.image_url,gallery_urls:v.gallery_urls??root.gallery_urls}),
+     name:(root.name+' - '+Object.values(opt).join(' / ')).slice(0,140),slug:prev?.slug||root.slug.slice(0,72)+'-v-'+randomUUID().slice(0,18),sku:V.sku(v.sku),product_type:'variation',attributes:[],option_values:opt};
+    V.safeCatalogTerms(vp.name,vp.sku,opt);
+    const row=await persist(client,who,vp,prev,id!,v.enabled);
+    await linkCategories(client,row.id,cats.ids);await stockSave(client,who,row.id,V.stockInputs(v.warehouseStocks));
+    if(saved.is_active&&row.is_active)await assertPublishable(client,row);
+   }
+   if(saved.is_active&&!x.variants.some((v:any)=>v.enabled))throw new ConflictException('Produk aktif membutuhkan setidaknya satu varian aktif');
+  }
+  if(saved.is_active&&type==='simple')await assertPublishable(client,saved);
+  const result=await family(client,id!);await catalogAudit(client,who,'product',id!,'save_family',before,result.product);return result;
+ }
+ async quick(actor:Principal,id:string,raw:unknown){
+  requireUuid(id,'produk');const who=requireActor(actor),x=V.record(raw,['expectedVersion','sku','price_idr','sale_price_idr','sale_starts_at','sale_ends_at','warehouseStocks']);
+  return this.db.transaction(async client=>{await inventoryLock(client);
+   const before=(await client.query('SELECT * FROM product.products WHERE id=$1 AND archived_at IS NULL FOR UPDATE',[id])).rows[0];if(!before)throw new NotFoundException();
+   if(before.product_type==='variable')throw new ConflictException('Pilih SKU varian untuk edit cepat harga dan stok');
+   assertVersion(before.edit_version,V.version(x.expectedVersion));const prices=V.priceFields({...before,price_idr:Number(before.price_idr),sale_price_idr:before.sale_price_idr==null?null:Number(before.sale_price_idr),...x}),code=V.sku(x.sku??before.sku);V.safeCatalogTerms(code);
+   const r=await client.query('UPDATE product.products SET sku=$2,price_idr=$3,sale_price_idr=$4,sale_starts_at=$5,sale_ends_at=$6,edit_version=edit_version+1,updated_at=now() WHERE id=$1 RETURNING *',[id,code,prices.price_idr,prices.sale_price_idr,prices.sale_starts_at,prices.sale_ends_at]);
+   await stockSave(client,who,id,V.stockInputs(x.warehouseStocks));
+   const parent=before.parent_product_id?(await client.query('SELECT is_active FROM product.products WHERE id=$1 FOR UPDATE',[before.parent_product_id])).rows[0]:null;
+   if(r.rows[0].is_active&&(!before.parent_product_id||parent?.is_active))await assertPublishable(client,r.rows[0]);
+   if(before.parent_product_id)await client.query('UPDATE product.products SET edit_version=edit_version+1,updated_at=now() WHERE id=$1',[before.parent_product_id]);
+   await recordAudit(client,'product',who,before,r.rows[0]);return family(client,before.parent_product_id||id);
+  });
+ }
+ async state(actor:Principal,id:string,raw:unknown){
+  const who=requireActor(actor);requireUuid(id,'produk');const x=V.record(raw,['expectedVersion','active']);if(typeof x.active!=='boolean')throw new BadRequestException('Status tidak valid');
+  return this.db.transaction(async client=>{await inventoryLock(client);
+   const before=(await client.query('SELECT * FROM product.products WHERE id=$1 AND parent_product_id IS NULL AND archived_at IS NULL FOR UPDATE',[id])).rows[0];if(!before)throw new NotFoundException();assertVersion(before.edit_version,V.version(x.expectedVersion));
+   if(x.active){
+    if(before.product_type==='variable'){
+     const variants=(await client.query('SELECT * FROM product.products WHERE parent_product_id=$1 AND is_active AND archived_at IS NULL FOR UPDATE',[id])).rows;
+     if(!variants.length)throw new ConflictException('Tambahkan varian aktif sebelum publikasi');
+     for(const v of variants)await assertPublishable(client,v);
+    }else await assertPublishable(client,before);
+   }
+   const after=(await client.query('UPDATE product.products SET is_active=$2,edit_version=edit_version+1,updated_at=now() WHERE id=$1 RETURNING *',[id,x.active])).rows[0];await recordAudit(client,'product',who,before,after);return family(client,id);
+  });
+ }
+ async categories(publicOnly=false){
+  const r=await this.db.query(`SELECT c.*,(SELECT count(DISTINCT p.id)::int FROM product.product_categories pc JOIN product.products p ON p.id=pc.product_id WHERE pc.category_id=c.id AND p.parent_product_id IS NULL AND p.archived_at IS NULL AND p.slug NOT LIKE 'demo-%' AND ($1::boolean=false OR p.is_active)) product_count
+ FROM product.categories c WHERE ($1::boolean=false OR c.is_active) ORDER BY c.name,c.id`,[publicOnly]);return {items:r.rows};
+ }
+ async categorySave(actor:Principal,id:string|null,raw:unknown){
+  const who=requireActor(actor),x=V.record(raw,['name','slug','parentId','image_url','description','active','expectedVersion']);
+  const name=V.text(x.name,'Nama kategori',2,100),code=V.slug(x.slug),parent=x.parentId?requireUuid(x.parentId,'kategori induk'):null,img=V.imageUrl(x.image_url),description=V.text(x.description??'','Deskripsi kategori',0,1500);
+  V.safeCatalogTerms(name,code,description);if(typeof x.active!=='boolean')throw new BadRequestException('Status kategori diperlukan');
+  try{return await this.db.transaction(async client=>{await inventoryLock(client);let before:any=null;
+   if(id){requireUuid(id,'kategori');before=(await client.query('SELECT * FROM product.categories WHERE id=$1 FOR UPDATE',[id])).rows[0];if(!before)throw new NotFoundException();assertVersion(before.edit_version,V.version(x.expectedVersion));}
+   if(parent){
+    const ancestors=(await client.query('WITH RECURSIVE a AS (SELECT id,parent_id,is_active FROM product.categories WHERE id=$1 UNION ALL SELECT c.id,c.parent_id,c.is_active FROM product.categories c JOIN a ON c.id=a.parent_id) SELECT id,is_active FROM a',[parent])).rows;
+    if(!ancestors.length||ancestors.some(a=>a.id===id)||ancestors.length>=5||x.active&&ancestors.some(a=>!a.is_active))throw new BadRequestException('Kategori induk tidak valid, melingkar, atau melebihi lima tingkat');
+   }
+   if(id&&!x.active){
+    const used=(await client.query(`WITH RECURSIVE c AS(SELECT id FROM product.categories WHERE id=$1 UNION ALL SELECT x.id FROM product.categories x JOIN c ON x.parent_id=c.id)
+     SELECT 1 FROM product.product_categories pc JOIN product.products p ON p.id=pc.product_id WHERE pc.category_id IN(SELECT id FROM c) AND p.is_active AND p.parent_product_id IS NULL AND p.archived_at IS NULL LIMIT 1`,[id])).rows;
+    if(used.length)throw new ConflictException('Pindahkan atau nonaktifkan produk tayang pada kategori ini terlebih dahulu');
+   }
+   const args=[name,code,parent,img,description,x.active];const after=id?(await client.query('UPDATE product.categories SET name=$1,slug=$2,parent_id=$3,image_url=$4,description=$5,is_active=$6,edit_version=edit_version+1,updated_at=now() WHERE id=$7 RETURNING *',[...args,id])).rows[0]:(await client.query('INSERT INTO product.categories(name,slug,parent_id,image_url,description,is_active) VALUES($1,$2,$3,$4,$5,$6) RETURNING *',args)).rows[0];
+   await catalogAudit(client,who,'category',after.id,before?'update':'create',before,after);return after;
+  });}catch(e){if((e as {code?:string}).code==='23505')throw new ConflictException('Slug kategori sudah digunakan');throw e;}
+ }
+ async categoryArchive(actor:Principal,id:string,raw:unknown){
+  const who=requireActor(actor);requireUuid(id,'kategori');const x=V.record(raw,['expectedVersion','confirm']);if(x.confirm!==true)throw new BadRequestException('Konfirmasi diperlukan');
+  return this.db.transaction(async client=>{await inventoryLock(client);const old=(await client.query('SELECT * FROM product.categories WHERE id=$1 FOR UPDATE',[id])).rows[0];if(!old)throw new NotFoundException();assertVersion(old.edit_version,V.version(x.expectedVersion));
+   const used=await client.query('SELECT 1 FROM product.product_categories WHERE category_id=$1 UNION ALL SELECT 1 FROM product.categories WHERE parent_id=$1 LIMIT 1',[id]);if(used.rows.length)throw new ConflictException('Kategori masih dipakai produk atau mempunyai anak. Pindahkan terlebih dahulu.');
+   await client.query('UPDATE product.categories SET is_active=false,edit_version=edit_version+1,updated_at=now() WHERE id=$1',[id]);await catalogAudit(client,who,'category',id,'archive',old,{...old,is_active:false});return {archived:true};});
+ }
+ async selection(rawIds:unknown){
+  if(typeof rawIds!=='string')throw new BadRequestException('ID produk diperlukan');const ids=[...new Set(rawIds.split(',').filter(Boolean))];if(ids.length>50)throw new BadRequestException('Maksimal 50 SKU');ids.forEach(id=>requireUuid(id,'SKU'));
+  const r=await this.db.query(`SELECT p.*,parent.slug parent_slug FROM product.products p LEFT JOIN product.products parent ON parent.id=p.parent_product_id
+   WHERE p.id=ANY($1::uuid[]) AND p.is_active AND p.archived_at IS NULL AND p.product_type<>'variable' AND p.slug NOT LIKE 'demo-%' AND (p.parent_product_id IS NULL OR parent.is_active AND parent.archived_at IS NULL)`,[ids]);
+  return {items:r.rows.map(p=>publicPrice(p as any)),observedAt:new Date().toISOString()};
+ }
+ async orders(raw:Record<string,unknown>={},customerId?:string){
+  const f=parsePage(raw),r=await this.db.query(`WITH filtered AS(SELECT id,status,payment_status,contact_name,city,province,total_idr::text,created_at,expires_at,payment_method
+   FROM product.orders WHERE idempotency_key IS NOT NULL AND ($1::uuid IS NULL OR customer_user_id=$1)
+   AND ($2='' OR strpos(lower(concat_ws(' ',id::text,contact_name,city)),lower($2))>0)
+   AND ($3='' OR status=$3 OR payment_status=$3)),s AS(SELECT * FROM filtered ORDER BY created_at DESC,id DESC LIMIT $4 OFFSET $5)
+   SELECT jsonb_build_object('items',coalesce((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.created_at DESC,s.id DESC) FROM s),'[]'::jsonb),'total',(SELECT count(*)::int FROM filtered)) data`,[customerId||null,f.q,f.status,f.pageSize,(f.page-1)*f.pageSize]);const d=r.rows[0].data;return {...pageResult(d.items,d.total,f.page,f.pageSize),paymentEnabled:false};
+ }
+ async orderDetail(id:string){
+  requireUuid(id,'pesanan');const order=(await this.db.query('SELECT id,status,payment_status,contact_name,contact_email,contact_phone,address_line,city,province,postal_code,subtotal_idr::text,shipping_fee_idr::text,total_idr::text,payment_method,shipping_courier_code,shipping_service_code,created_at,expires_at FROM product.orders WHERE id=$1',[id])).rows[0];if(!order)throw new NotFoundException();
+  const lines=await this.db.query('SELECT id,product_id,product_name,sku,quantity,unit_price_idr::text,brand_id FROM product.order_items WHERE order_id=$1 ORDER BY id',[id]);return {order,items:lines.rows,paymentEnabled:false};
+ }
+}

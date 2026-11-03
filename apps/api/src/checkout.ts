@@ -1,3 +1,5 @@
+import {effectivePrice,sellableSQL,type PriceInput} from './catalog-pricing';
+import {inventoryLock} from './warehouses';
 import {createHash} from 'node:crypto';
 import {BadRequestException,ConflictException,ForbiddenException,Injectable,NotFoundException,ServiceUnavailableException} from '@nestjs/common';
 import {DatabaseService} from './database';
@@ -34,15 +36,15 @@ function shippingAmount():number|null {
  const amount=Number(raw);
  return Number.isSafeInteger(amount)&&amount>=0&&amount<=10000000?amount:null;
 }
-export function priceBasket(items:BasketItem[],rows:Array<{id:string;sku:string|null;brand_id?:string|null;name:string;price_idr:string|number;stock_qty:number;is_active:boolean}>):Quote{
+export function priceBasket(items:BasketItem[],rows:Array<{id:string;sku:string|null;brand_id?:string|null;fulfillment_owner_brand_id?:string|null;name:string;price_idr:string|number;sale_price_idr?:string|number|null;sale_starts_at?:string|null;sale_ends_at?:string|null;stock_qty:number;is_active:boolean}>):Quote{
  const byId=new Map(rows.map(row=>[row.id,row]));
  const priced=items.map(item=>{
    const product=byId.get(item.productId);
    if(!product||!product.is_active)throw new ConflictException('Produk tidak tersedia lagi, silakan perbarui keranjang');
    if(product.stock_qty<item.quantity)throw new ConflictException('Stok tidak mencukupi untuk '+product.name);
-   const unitPriceIdr=Number(product.price_idr);
+   const unitPriceIdr=effectivePrice(product);
    if(!Number.isSafeInteger(unitPriceIdr)||unitPriceIdr<0)throw new ServiceUnavailableException('Harga produk belum valid');
-   return {productId:item.productId,brandId:product.brand_id||null,sku:product.sku,name:product.name,unitPriceIdr,quantity:item.quantity,lineTotalIdr:unitPriceIdr*item.quantity,stockQty:product.stock_qty};
+   return {productId:item.productId,brandId:product.fulfillment_owner_brand_id===undefined?(product.brand_id||null):product.fulfillment_owner_brand_id,sku:product.sku,name:product.name,unitPriceIdr,quantity:item.quantity,lineTotalIdr:unitPriceIdr*item.quantity,stockQty:product.stock_qty};
  });
  const subtotalIdr=priced.reduce((sum,item)=>sum+item.lineTotalIdr,0);
  const shippingFeeIdr=shippingAmount();
@@ -82,7 +84,7 @@ export class CheckoutService{
  constructor(private readonly db:DatabaseService){}
  config(){return {paymentEnabled:false,providerConnected:false,methods:PAYMENT_METHODS,shippingFeeIdr:shippingAmount(),shippingMode:process.env.SHIPPING_RATE_LOOKUP_ENABLED==='true'?'sandbox_select':'fixed_estimate',ordersMode:'draft_only'};}
  private async quoted(items:BasketItem[],query:(sql:string,params:unknown[])=>Promise<{rows:any[]}>):Promise<Quote>{
-   const rows=await query('SELECT id,sku,brand_id,name,price_idr,stock_qty,is_active FROM product.products WHERE id=ANY($1::uuid[])',[items.map(x=>x.productId)]);
+   const rows=await query(`SELECT p.* FROM product.products p WHERE p.id=ANY($1::uuid[]) AND ${sellableSQL}`,[items.map(x=>x.productId)]);
    return priceBasket(items,rows.rows);
  }
  quote(raw:unknown){
@@ -93,6 +95,7 @@ export class CheckoutService{
    if(!user.email||!user.emailVerified)throw new ForbiddenException('Masuk dengan email yang sudah diverifikasi');
    const {items,details}=parseDraftOrder(raw);
    return this.db.transaction(async client=>{
+     await inventoryLock(client);
      const hash=createHash('sha256').update(JSON.stringify({items,details:{...details,idempotencyKey:undefined}})).digest('hex');
      const existing=await client.query<{id:string;request_hash:string;status:string;payment_status:string}>(
        'SELECT id,request_hash,status,payment_status FROM product.orders WHERE customer_user_id=$1 AND idempotency_key=$2',
@@ -116,14 +119,14 @@ export class CheckoutService{
       if(!stored||stored.applied_order_id||Date.parse(stored.expires_at)<=Date.now()||
         stored.destination_postal_code!==details.postalCode||stored.origin_postal_code!==process.env.SHIPPING_ORIGIN_POSTAL_CODE||
         stored.provider!=='biteship_test')throw new ConflictException('Pilihan ongkir habis masa berlaku, silakan cek ulang');
-      const live=await client.query<{id:string;price_idr:string;weight_grams:number|null}>(
-       'SELECT id,price_idr::text,weight_grams FROM product.products WHERE id=ANY($1::uuid[])',
+      const live=await client.query<{id:string;weight_grams:number|null}&PriceInput>(
+       `SELECT p.* FROM product.products p WHERE p.id=ANY($1::uuid[]) AND ${sellableSQL}`,
        [items.map(i=>i.productId)]);
       const byId=new Map(live.rows.map(p=>[p.id,p]));
       const signature=shippingFingerprint(items.map(i=>{
        const p=byId.get(i.productId);
        if(!p||!p.weight_grams||!Number.isSafeInteger(Number(p.price_idr)))throw new ConflictException('Harga atau berat produk tidak tersedia, mohon cek ongkir ulang');
-       return {productId:i.productId,quantity:i.quantity,unitPriceIdr:Number(p.price_idr),weightGrams:p.weight_grams};
+       return {productId:i.productId,quantity:i.quantity,unitPriceIdr:effectivePrice(p),weightGrams:p.weight_grams};
       }));
       if(signature!==stored.cart_fingerprint)throw new ConflictException('Harga, berat, atau isi keranjang berubah; mohon cek ongkir ulang');
       shippingFee=Number(stored.amount_idr);
@@ -141,8 +144,8 @@ export class CheckoutService{
       await client.query('UPDATE product.shipping_rate_quotes SET applied_order_id=$2 WHERE id=$1 AND applied_order_id IS NULL',[details.shippingQuoteId,order.rows[0].id]);
      }
      for(const item of quote.items){
-       await client.query('INSERT INTO product.order_items(order_id,product_id,quantity,unit_price_idr,product_name,sku,brand_id) VALUES($1,$2,$3,$4,$5,$6,$7)',
-         [order.rows[0].id,item.productId,item.quantity,item.unitPriceIdr,item.name,item.sku,item.brandId]);
+       await client.query('INSERT INTO product.order_items(order_id,product_id,quantity,unit_price_idr,product_name,sku,brand_id,ownership_scope) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',
+         [order.rows[0].id,item.productId,item.quantity,item.unitPriceIdr,item.name,item.sku,item.brandId,item.brandId?'brand':'platform']);
      }
      return {id:order.rows[0].id,status:order.rows[0].status,paymentStatus:order.rows[0].payment_status,paymentEnabled:false,totalIdr:draftTotal};
    });
@@ -154,7 +157,7 @@ export class CheckoutService{
      [id,user.id]);
    if(!order.rows[0])throw new NotFoundException('Pesanan tidak ditemukan');
    const lines=await this.db.query(
-     'SELECT product_id,product_name,sku,quantity,unit_price_idr::text FROM product.order_items WHERE order_id=$1 ORDER BY id',[id]);
+     'SELECT id,product_id,product_name,sku,quantity,unit_price_idr::text FROM product.order_items WHERE order_id=$1 ORDER BY id',[id]);
    return {order:order.rows[0],items:lines.rows,paymentEnabled:false};
  }
  async adminOrders(raw:Record<string,unknown>={}){

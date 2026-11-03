@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
+import {BuyerReviewForm} from '@/components/catalog-public-reviews';
 import {useParams} from 'next/navigation';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {formatIDR} from '@/lib/types';
@@ -74,7 +75,7 @@ export default function OrderPage(){
      const rma=returns.find(x=>x.batch_id===t.batch_id);
      const delivered=latest?.carrier_state==='delivered';
      return <div key={t.batch_id} style={{padding:'15px 0',borderBottom:'1px solid #eee5f0'}}>
-      <strong>{t.brand_name} · {t.state.replaceAll('_',' ')}</strong>
+      <strong>{t.brand_name||'Vapmart'} · {t.state.replaceAll('_',' ')}</strong>
       <p>Asal: {t.origin_city||'Gudang belum tersedia'}</p>
       <div style={{background:'#f5eef9',borderRadius:14,padding:13,margin:'10px 0'}}>
         <strong>Ekspedisi: {latest?.provider_status?.replaceAll('_',' ')||'Belum dipesan'}</strong>
@@ -100,5 +101,7 @@ export default function OrderPage(){
     <p className="vco26-footnote">Status lunas hanya bisa diberikan oleh backend setelah notifikasi payment gateway diverifikasi.</p>
     <Link className="vco26-secondary" href="/catalog">Kembali ke katalog ↗</Link>
    </section>:<section className="vco26-card">Detail belum tersedia.</section>}
+ {detail&&<BuyerReviewForm orderId={params.id}/>}
+ <Link href="/pesanan">Seluruh pesanan saya</Link>
  </main>;
 }

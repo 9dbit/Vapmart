@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import '../app/catalog-store.css';
 import {useCart} from '@/lib/cart';
 import {formatIDR} from '@/lib/types';
 import {isDigitalProduct} from '@/lib/digital-products';
@@ -12,7 +13,7 @@ function EmptyCartImage(){
  </svg>;
 }
 export function CartPageContent(){
- const {items,count,subtotal,setQuantity,remove}=useCart();
+ const {items,count,subtotal,setQuantity,remove,refresh,refreshing,catalogError}=useCart();
  const digitalOnly=items.length===1&&items[0].quantity===1&&isDigitalProduct(items[0].product);
  const physicalOnly=items.length>0&&items.every(x=>!isDigitalProduct(x.product));
  return <div className="vm21-cart-page-content">
@@ -21,6 +22,8 @@ export function CartPageContent(){
      <p>Periksa pilihanmu sebelum melanjutkan.</p></div>
      <Link href="/catalog" className="vm21-secondary">Jelajahi Katalog <span aria-hidden="true">↗</span></Link>
    </div>
+   {catalogError&&<p role="alert" className="vcs-cart-warning">{catalogError}</p>}
+   {!!items.length&&<button type="button" className="vm21-secondary" disabled={refreshing} onClick={()=>void refresh()}>{refreshing?'Memperbarui...':'Perbarui harga dan stok'}</button>}
    {!items.length?
     <section className="vm21-cart-empty-page">
       <div className="vm21-drawer-bag-illustration"><EmptyCartImage/></div>
@@ -34,9 +37,9 @@ export function CartPageContent(){
           <div className="vm21-cart-product-image">{product.image_url?<img src={product.image_url} alt={product.name}/>:<span aria-hidden="true">{isDigitalProduct(product)?'V':'✦'}</span>}</div>
           <div className="vm21-cart-product-body">
             <span className="vm21-eyebrow">{isDigitalProduct(product)?'DIGITAL · COIN / MEMBER':'PRODUK STAGING'}</span>
-            {isDigitalProduct(product)?<Link href="/member-2"><h2>{product.name}</h2></Link>:<Link href={'/product/'+product.slug}><h2>{product.name}</h2></Link>}
+            {isDigitalProduct(product)?<Link href="/member-2"><h2>{product.name}</h2></Link>:<Link href={'/product/'+(product.parent_slug||product.slug)}><h2>{product.name}</h2></Link>}
             <p>{isDigitalProduct(product)?'Dikirim ke akun setelah pembayaran terverifikasi':product.category}</p>
-            <strong>{formatIDR(product.price_idr)}</strong>
+            <strong>{formatIDR(product.price_idr)}</strong>{!isDigitalProduct(product)&&(!product.is_active||product.stock_qty<=0)&&<p className="vcs-unavailable">SKU tidak tersedia. Hapus atau pilih variasi lain.</p>}
             <div className="vm21-cart-product-actions">
               {!isDigitalProduct(product)&&<div className="vm21-drawer-qty">
                 <button type="button" disabled={quantity<=1} onClick={()=>setQuantity(product.id,quantity-1)} aria-label={'Kurangi '+product.name}>−</button><span>{quantity}</span>
