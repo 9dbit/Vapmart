@@ -10,6 +10,8 @@ test('quote prices originate from database, not cart input',()=>{
  const quote=priceBasket(cart,[{id,sku:'DECOR-001',name:'Vas Keramik',price_idr:150000,stock_qty:4,is_active:true}]);
  assert.equal(quote.subtotalIdr,300000);
  assert.equal(quote.paymentEnabled,false);
+ assert.equal(quote.discountIdr,0);
+ assert.equal(quote.voucherCode,null);
  assert.equal(quote.items[0].quantity,2);
 });
 test('rejects price injection into cart',()=>{
@@ -21,6 +23,8 @@ test('rejects duplicate items and unavailable stock',()=>{
 });
 test('validate checkout without allowing payment state injection',()=>{
  assert.equal(parseDraftOrder(form).details.paymentMethod,'qris');
+ assert.equal(parseDraftOrder({...form,paymentMethod:'bank_transfer',voucherCode:'SAVE10'}).details.paymentMethod,'bank_transfer');
+ assert.equal(parseDraftOrder({...form,paymentMethod:'bank_transfer',voucherCode:'save10'}).details.voucherCode,'SAVE10');
  assert.throws(()=>parseDraftOrder({...form,paymentStatus:'paid'}),/tidak dikenali/);
  assert.throws(()=>parseDraftOrder({...form,paymentMethod:'bank_transfer_manual'}),/tidak tersedia/);
  assert.throws(()=>parseDraftOrder({...form,postalCode:'100'}),/Kode pos/);
