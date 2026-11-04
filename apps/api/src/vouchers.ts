@@ -60,6 +60,7 @@ async function audit(client:PoolClient,actor:string,id:string,action:string,befo
   [actor,'voucher',id,action,before?JSON.stringify(before):null,JSON.stringify(after)]
  );
 }
+function lifecycleFor(row:any){const now=Date.now();return !row.is_active?'inactive':row.starts_at&&Date.parse(row.starts_at)>now?'scheduled':row.ends_at&&Date.parse(row.ends_at)<=now?'expired':'active';}
 function publicRow(row:any){
  return {
   id:row.id,code:row.code,discountType:row.discount_type,discountValue:Number(row.discount_value),
@@ -110,7 +111,7 @@ export class VoucherAdminService{
     '(code,discount_type,discount_value,max_discount_idr,min_subtotal_idr,usage_limit,starts_at,ends_at,is_active,created_by,updated_by) '+
     'VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$10) RETURNING *',
     [v.code,v.discount_type,v.discount_value,v.max_discount_idr,v.min_subtotal_idr,v.usage_limit,v.starts_at,v.ends_at,v.is_active,operator]);
-   const row=r.rows[0];await audit(client,operator,row.id,'create',null,row);return this.detail(row.id);
+   const row=r.rows[0];await audit(client,operator,row.id,'create',null,row);return publicRow({...row,used_paid:0,pending_orders:0,lifecycle:lifecycleFor(row)});
   });}catch(e:any){if(e?.code==='23505')throw new ConflictException('Kode voucher sudah digunakan');throw e;}
  }
  async update(actor:Principal,id:string,raw:unknown){
@@ -133,7 +134,8 @@ export class VoucherAdminService{
     [id,v.code,v.discount_type,v.discount_value,v.max_discount_idr,v.min_subtotal_idr,v.usage_limit,v.starts_at,v.ends_at,v.is_active,operator]);
    const after=r.rows[0];const action=before.is_active!==after.is_active?(after.is_active?'activate':'deactivate'):'update';
    await audit(client,operator,id,action,before,after);
-   return this.detail(id);
+   const usage=await client.query("SELECT count(*) FILTER(WHERE payment_status='paid')::int AS used_paid,count(*) FILTER(WHERE payment_status='pending')::int AS pending_orders FROM product.orders WHERE voucher_id=$1",[id]);
+   return publicRow({...after,...usage.rows[0],lifecycle:lifecycleFor(after)});
   });}catch(e:any){if(e?.code==='23505')throw new ConflictException('Kode voucher sudah digunakan');throw e;}
  }
 }
