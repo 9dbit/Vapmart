@@ -19,6 +19,7 @@ import {MediaService} from './media';
 import {CheckoutService} from './checkout';
 import {VoucherAdminService} from './vouchers';
 import {PromotionAdminService} from './promotions';
+import {PromotionAnalyticsService} from './promotion-analytics';
 import {InventoryService} from './inventory';
 import {WarehouseService} from './warehouses';
 import {WarehouseController} from './warehouse-controller';
@@ -38,6 +39,6 @@ import {CourierAdminController,BiteshipWebhookController,CourierReturnAdminContr
 
 @Module({
  controllers:[CatalogAdminController,CatalogPublicController,CatalogCustomerController,HeroBannersAdminController,HeroBannersPublicController,AdminProductRecordsController,MediaLibraryController,HealthController,CatalogController,AdminController,OrdersController,BrandsController,MediaController,CheckoutController,CoinPacksController,MemberController,DigitalOrderController,SandboxWebhookController,BrandPortalController,BrandAccessAdminController,ShippingController,CourierAdminController,BiteshipWebhookController,CourierReturnAdminController,CourierReturnCustomerController,CourierTrackingCustomerController,InventoryController,WarehouseController,FulfillmentAdminController,CustomerFulfillmentController,AdminBrandInvitationsController,AcceptBrandInvitationController],
- providers:[CatalogWorkspaceService,CatalogImportService,CatalogReviewsService,HeroBannersService,AdminProductRecordsService,MediaLibraryService,DatabaseService,ProductsService,BrandsService,MediaService,CheckoutService,VoucherAdminService,PromotionAdminService,SupabaseAuthService,AdminGuard,CustomerGuard,MemberCommerceService,SandboxPaymentsService,BrandPortalService,ShippingService,CourierManifestService,CourierEventService,CourierReturnService,InventoryService,WarehouseService,FulfillmentService,BrandInvitationsService]
+ providers:[CatalogWorkspaceService,CatalogImportService,CatalogReviewsService,HeroBannersService,AdminProductRecordsService,MediaLibraryService,DatabaseService,ProductsService,BrandsService,MediaService,CheckoutService,VoucherAdminService,PromotionAdminService,PromotionAnalyticsService,SupabaseAuthService,AdminGuard,CustomerGuard,MemberCommerceService,SandboxPaymentsService,BrandPortalService,ShippingService,CourierManifestService,CourierEventService,CourierReturnService,InventoryService,WarehouseService,FulfillmentService,BrandInvitationsService]
 })
 export class AppModule {}
