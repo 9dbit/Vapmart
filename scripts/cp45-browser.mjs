@@ -18,9 +18,8 @@ const page=await ctx.newPage(),errors=[];
 page.on('pageerror',e=>errors.push(e.message));
 page.on('dialog',async dialog=>dialog.accept());
 try{
- await page.goto(BASE+'/admin/products');
- await page.getByRole('heading',{name:'Semua Produk',exact:false}).first().waitFor();
- await page.getByText('Referensi produk existing',{exact:false}).click();
+ await page.goto(BASE+'/admin/products/arsip');
+ await page.getByRole('heading',{name:'Arsip & Konversi Produk',exact:true}).waitFor();
  const legacy=page.locator('.vpr-row[data-kind=existing]').first();
  await legacy.waitFor();
  const name=await legacy.locator('.vpr-row-info strong').innerText();
