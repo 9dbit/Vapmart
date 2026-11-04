@@ -9,9 +9,16 @@ import {shippingFingerprint} from './shipping-fingerprint';
 
 type BasketItem={productId:string;quantity:number};
 type PricedItem={productId:string;brandId:string|null;sku:string|null;name:string;unitPriceIdr:number;quantity:number;lineTotalIdr:number;stockQty:number};
-type Quote={items:PricedItem[];subtotalIdr:number;shippingFeeIdr:number|null;totalIdr:number|null;currency:'IDR';shippingEstimate:boolean;paymentEnabled:false;paymentMethods:string[]};
+type Quote={items:PricedItem[];subtotalIdr:number;discountIdr:number;voucherCode:string|null;voucherId:string|null;shippingFeeIdr:number|null;totalIdr:number|null;currency:'IDR';shippingEstimate:boolean;paymentEnabled:false;paymentMethods:string[]};
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-export const PAYMENT_METHODS=['qris','virtual_account','ewallet'] as const;
+export const PAYMENT_METHODS=['bank_transfer','qris','virtual_account','ewallet'] as const;
+function voucherCode(raw:unknown):string|null{
+ if(raw===undefined||raw===null||raw==='')return null;
+ if(typeof raw!=='string')throw new BadRequestException('Kode voucher tidak valid');
+ const code=raw.trim().toUpperCase();
+ if(!/^[A-Z0-9][A-Z0-9_-]{2,31}$/.test(code))throw new BadRequestException('Kode voucher tidak valid');
+ return code;
+}
 
 export function parseBasket(raw:unknown):BasketItem[]{
  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new BadRequestException('Keranjang tidak valid');
@@ -48,10 +55,10 @@ export function priceBasket(items:BasketItem[],rows:Array<{id:string;sku:string|
  });
  const subtotalIdr=priced.reduce((sum,item)=>sum+item.lineTotalIdr,0);
  const shippingFeeIdr=shippingAmount();
- return {items:priced,subtotalIdr,shippingFeeIdr,totalIdr:shippingFeeIdr===null?null:subtotalIdr+shippingFeeIdr,
+ return {items:priced,subtotalIdr,discountIdr:0,voucherCode:null,voucherId:null,shippingFeeIdr,totalIdr:shippingFeeIdr===null?null:subtotalIdr+shippingFeeIdr,
   currency:'IDR',shippingEstimate:true,paymentEnabled:false,paymentMethods:[...PAYMENT_METHODS]};
 }
-type Address={name:string;phone:string;address:string;city:string;province:string;postalCode:string;paymentMethod:typeof PAYMENT_METHODS[number];idempotencyKey:string;shippingQuoteId:string|null};
+type Address={name:string;phone:string;address:string;city:string;province:string;postalCode:string;paymentMethod:typeof PAYMENT_METHODS[number];idempotencyKey:string;shippingQuoteId:string|null;voucherCode:string|null};
 function addressString(raw:unknown,label:string,min:number,max:number):string{
  if(typeof raw!=='string'||raw.trim().length<min||raw.trim().length>max)throw new BadRequestException(label+' wajib diisi dengan benar');
  return raw.trim();
@@ -59,7 +66,7 @@ function addressString(raw:unknown,label:string,min:number,max:number):string{
 export function parseDraftOrder(raw:unknown){
  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new BadRequestException('Data checkout tidak valid');
  const data=raw as Record<string,unknown>;
- if(Object.keys(data).some(k=>!['items','name','phone','address','city','province','postalCode','paymentMethod','idempotencyKey','shippingQuoteId'].includes(k)))
+ if(Object.keys(data).some(k=>!['items','name','phone','address','city','province','postalCode','paymentMethod','idempotencyKey','shippingQuoteId','voucherCode'].includes(k)))
    throw new BadRequestException('Kolom checkout tidak dikenali');
  const items=parseBasket({items:data.items});
  const name=addressString(data.name,'Nama penerima',2,100);
@@ -76,20 +83,28 @@ export function parseDraftOrder(raw:unknown){
    throw new BadRequestException('Kunci checkout tidak valid');
  if(data.shippingQuoteId!==undefined&&data.shippingQuoteId!==null&&(typeof data.shippingQuoteId!=='string'||!uuid.test(data.shippingQuoteId)))
    throw new BadRequestException('Shipping quote ID tidak valid');
- const details:Address={name,phone,address,city,province,postalCode,paymentMethod:data.paymentMethod as Address['paymentMethod'],idempotencyKey:data.idempotencyKey,shippingQuoteId:typeof data.shippingQuoteId==='string'?data.shippingQuoteId:null};
+ const details:Address={name,phone,address,city,province,postalCode,paymentMethod:data.paymentMethod as Address['paymentMethod'],idempotencyKey:data.idempotencyKey,shippingQuoteId:typeof data.shippingQuoteId==='string'?data.shippingQuoteId:null,voucherCode:voucherCode(data.voucherCode)};
  return {items,details};
 }
 @Injectable()
 export class CheckoutService{
  constructor(private readonly db:DatabaseService){}
  config(){return {paymentEnabled:false,providerConnected:false,methods:PAYMENT_METHODS,shippingFeeIdr:shippingAmount(),shippingMode:process.env.SHIPPING_RATE_LOOKUP_ENABLED==='true'?'sandbox_select':'fixed_estimate',ordersMode:'draft_only'};}
- private async quoted(items:BasketItem[],query:(sql:string,params:unknown[])=>Promise<{rows:any[]}>):Promise<Quote>{
+ private async quoted(items:BasketItem[],query:(sql:string,params:unknown[])=>Promise<{rows:any[]}>,code:string|null=null):Promise<Quote>{
    const rows=await query(`SELECT p.* FROM product.products p WHERE p.id=ANY($1::uuid[]) AND ${sellableSQL}`,[items.map(x=>x.productId)]);
-   return priceBasket(items,rows.rows);
+   const base=priceBasket(items,rows.rows);if(!code)return base;
+   const vr=await query(`SELECT v.id,v.code,v.discount_type,v.discount_value,v.max_discount_idr::text,max_discount_idr,v.min_subtotal_idr::text min_subtotal_idr,v.usage_limit
+    FROM product.vouchers v WHERE v.code=$1 AND v.is_active AND (v.starts_at IS NULL OR v.starts_at<=now()) AND (v.ends_at IS NULL OR v.ends_at>now()) LIMIT 1`,[code]);
+   const v=vr.rows[0];if(!v)throw new ConflictException('Voucher tidak tersedia atau sudah berakhir');
+   if(base.subtotalIdr<Number(v.min_subtotal_idr||0))throw new ConflictException('Minimum belanja voucher belum terpenuhi');
+   if(v.usage_limit){const used=await query(`SELECT count(*)::int n FROM product.orders WHERE voucher_id=$1 AND payment_status='paid'`,[v.id]);if(Number(used.rows[0]?.n||0)>=Number(v.usage_limit))throw new ConflictException('Kuota voucher sudah habis');}
+   let discount=v.discount_type==='percent'?Math.floor(base.subtotalIdr*Number(v.discount_value)/100):Number(v.discount_value);
+   if(v.max_discount_idr!==null&&v.max_discount_idr!==undefined)discount=Math.min(discount,Number(v.max_discount_idr));discount=Math.max(0,Math.min(discount,base.subtotalIdr));
+   return {...base,discountIdr:discount,voucherCode:v.code,voucherId:v.id,totalIdr:base.shippingFeeIdr===null?null:base.subtotalIdr-discount+base.shippingFeeIdr};
  }
  quote(raw:unknown){
-   const items=parseBasket(raw);
-   return this.quoted(items,(sql,params)=>this.db.query(sql,params));
+   const items=parseBasket(raw),code=voucherCode((raw as Record<string,unknown>)?.voucherCode);
+   return this.quoted(items,(sql,params)=>this.db.query(sql,params),code);
  }
  async createDraft(user:Principal,raw:unknown){
    if(!user.email||!user.emailVerified)throw new ForbiddenException('Masuk dengan email yang sudah diverifikasi');
@@ -108,7 +123,7 @@ export class CheckoutService{
        "SELECT COUNT(*)::text total FROM product.orders WHERE customer_user_id=$1 AND created_at > now() - interval '24 hours' AND payment_status='not_initiated'",
        [user.id]);
      if(Number(recent.rows[0]?.total||0)>=5)throw new ConflictException('Batas lima draft per hari tercapai');
-     const quote=await this.quoted(items,(sql,params)=>client.query(sql,params));
+     const quote=await this.quoted(items,(sql,params)=>client.query(sql,params),details.voucherCode);
      let shippingFee=quote.shippingFeeIdr;
      let service:{provider:string;courier_code:string;service_code:string}|null=null;
      if(details.shippingQuoteId){
@@ -136,10 +151,10 @@ export class CheckoutService{
      }
      if(shippingFee===null||!Number.isSafeInteger(shippingFee)||shippingFee<0)
       throw new ServiceUnavailableException({code:'SHIPPING_QUOTE_NOT_CONFIGURED'});
-     const draftTotal=quote.subtotalIdr+shippingFee;
+     const draftTotal=quote.subtotalIdr-quote.discountIdr+shippingFee,paymentStatus=details.paymentMethod==='bank_transfer'?'pending':'not_initiated';
      const order=await client.query<{id:string;status:string;payment_status:string}>(
-       "INSERT INTO product.orders(customer_user_id,status,currency,total_idr,subtotal_idr,shipping_fee_idr,idempotency_key,request_hash,contact_name,contact_email,contact_phone,address_line,city,province,postal_code,shipping_method,payment_method,payment_status,expires_at,shipping_quote_id,shipping_provider,shipping_courier_code,shipping_service_code) VALUES ($1,'draft','IDR',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'standard',$14,'not_initiated',now()+interval '24 hours',$15,$16,$17,$18) RETURNING id,status,payment_status",
-       [user.id,draftTotal,quote.subtotalIdr,shippingFee,details.idempotencyKey,hash,details.name,user.email,details.phone,details.address,details.city,details.province,details.postalCode,details.paymentMethod,details.shippingQuoteId,service?.provider||null,service?.courier_code||null,service?.service_code||null]);
+       "INSERT INTO product.orders(customer_user_id,status,currency,total_idr,subtotal_idr,discount_idr,shipping_fee_idr,idempotency_key,request_hash,contact_name,contact_email,contact_phone,address_line,city,province,postal_code,shipping_method,payment_method,payment_status,expires_at,shipping_quote_id,shipping_provider,shipping_courier_code,shipping_service_code,voucher_id,voucher_code) VALUES ($1,'draft','IDR',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'standard',$15,$16,now()+interval '24 hours',$17,$18,$19,$20,$21,$22) RETURNING id,status,payment_status",
+       [user.id,draftTotal,quote.subtotalIdr,quote.discountIdr,shippingFee,details.idempotencyKey,hash,details.name,user.email,details.phone,details.address,details.city,details.province,details.postalCode,details.paymentMethod,paymentStatus,details.shippingQuoteId,service?.provider||null,service?.courier_code||null,service?.service_code||null,quote.voucherId,quote.voucherCode]);
      if(details.shippingQuoteId){
       await client.query('UPDATE product.shipping_rate_quotes SET applied_order_id=$2 WHERE id=$1 AND applied_order_id IS NULL',[details.shippingQuoteId,order.rows[0].id]);
      }
@@ -147,13 +162,13 @@ export class CheckoutService{
        await client.query('INSERT INTO product.order_items(order_id,product_id,quantity,unit_price_idr,product_name,sku,brand_id,ownership_scope) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',
          [order.rows[0].id,item.productId,item.quantity,item.unitPriceIdr,item.name,item.sku,item.brandId,item.brandId?'brand':'platform']);
      }
-     return {id:order.rows[0].id,status:order.rows[0].status,paymentStatus:order.rows[0].payment_status,paymentEnabled:false,totalIdr:draftTotal};
+     return {id:order.rows[0].id,status:order.rows[0].status,paymentStatus:order.rows[0].payment_status,paymentMethod:details.paymentMethod,paymentEnabled:false,totalIdr:draftTotal,discountIdr:quote.discountIdr,voucherCode:quote.voucherCode};
    });
  }
  async getOrder(user:Principal,id:string){
    if(!uuid.test(id))throw new BadRequestException('ID pesanan tidak valid');
    const order=await this.db.query(
-     'SELECT id,status,payment_status,payment_method,shipping_provider,shipping_courier_code,shipping_service_code,subtotal_idr::text,shipping_fee_idr::text,total_idr::text,contact_name,city,province,created_at,expires_at FROM product.orders WHERE id=$1 AND customer_user_id=$2',
+     'SELECT id,status,payment_status,payment_method,shipping_provider,shipping_courier_code,shipping_service_code,subtotal_idr::text,discount_idr::text,voucher_code,shipping_fee_idr::text,total_idr::text,contact_name,city,province,created_at,expires_at FROM product.orders WHERE id=$1 AND customer_user_id=$2',
      [id,user.id]);
    if(!order.rows[0])throw new NotFoundException('Pesanan tidak ditemukan');
    const lines=await this.db.query(
@@ -165,7 +180,7 @@ export class CheckoutService{
   const r=await this.db.query(`WITH filtered AS (
    SELECT id,status,payment_status,(payment_provider IS NOT NULL AND payment_reference IS NOT NULL) AS payment_verified,
     contact_name,contact_email,city,province,shipping_provider,shipping_courier_code,shipping_service_code,
-    subtotal_idr::text,shipping_fee_idr::text,total_idr::text,payment_method,created_at
+    subtotal_idr::text,discount_idr::text,voucher_code,shipping_fee_idr::text,total_idr::text,payment_method,created_at
    FROM product.orders WHERE idempotency_key IS NOT NULL
     AND ($1::text='' OR strpos(lower(concat_ws(' ',id::text,contact_name,contact_email,city)),lower($1))>0)
     AND ($2::text='' OR status=$2 OR payment_status=$2)
