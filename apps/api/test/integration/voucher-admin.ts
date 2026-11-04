@@ -11,7 +11,8 @@ test('CP42 voucher admin creates, schedules, edits, deactivates and audits vouch
  };
  const ok=async(path:string,body?:unknown,method='POST')=>{const r=await call(path,body,method);assert.ok(r.status>=200&&r.status<300,JSON.stringify({path,...r}));return r.data;};
  try{
-  const empty=await ok('/v1/admin/catalog/vouchers?pageSize=100');assert.equal(empty.total,0);
+  const baselineOrders=Number((await db.query("SELECT count(*)::int n FROM product.orders WHERE voucher_id IS NOT NULL")).rows[0].n);
+  const empty=await ok('/v1/admin/catalog/vouchers?q=CP42SAVE15&pageSize=100');assert.equal(empty.total,0);
   const created=await ok('/v1/admin/catalog/vouchers',{
    code:'cp42save15',discountType:'percent',discountValue:15,maxDiscountIdr:30000,minSubtotalIdr:100000,usageLimit:25,
    startsAt:'2026-12-01T00:00:00.000Z',endsAt:'2026-12-31T23:59:59.000Z',isActive:true
@@ -51,7 +52,7 @@ test('CP42 voucher admin creates, schedules, edits, deactivates and audits vouch
   assert.deepEqual(columns.rows.map((x:any)=>x.column_name),['edit_version','updated_by']);
 
   const orders=await db.query("SELECT count(*)::int n FROM product.orders WHERE voucher_id IS NOT NULL");
-  assert.equal(orders.rows[0].n,0,'voucher administration must not create orders or payments');
+  assert.equal(Number(orders.rows[0].n),baselineOrders,'voucher administration must not create orders or payments');
 
   console.log('CP42_VOUCHER_ADMIN_PASS',JSON.stringify({create:true,schedule:true,deactivate:true,reactivate:true,staleConflict:true,duplicateGuard:true,audit:true,ordersCreated:0,paymentsCaptured:false}));
  }finally{await app.close();}
