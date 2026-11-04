@@ -100,7 +100,7 @@ Railway project `7c01e4d8-6152-4f04-9750-6e7031aa0830`, environment `04586a07-99
 ### Domains
 
 - `www.vapmart.id`: verified, valid TLS, Railway DNS PROPAGATED.
-- `vapmart.id`: verified, valid TLS, Railway DNS PROPAGATED on follow-up read. A preceding immediate status read transiently returned REQUIRES_UPDATE, but recheck returned PROPAGATED.
+- `vapmart.id`: ownership verified and TLS valid. Railway DNS status alternated between `PROPAGATED` and `REQUIRES_UPDATE` across consecutive checks, while currentValue remained blank for the apex CNAME/flattened record. Therefore public apex DNS resolution is not independently confirmed by this checkpoint; verify apex DNS externally with Hostinger/authoritative resolver before treating it as fully cleared.
 
 ### Safety
 
