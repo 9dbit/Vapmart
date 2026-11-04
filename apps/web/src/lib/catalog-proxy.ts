@@ -19,6 +19,6 @@ export async function catalogProxy(req:NextRequest,segments:string[],scope:'admi
   const url=new URL('/v1/'+(scope==='admin'?'admin/catalog/':scope==='customer'?'customer/catalog/':'catalog/')+path+req.nextUrl.search,base);
   const r=await fetch(url,{method:req.method,headers:{...(scope!=='public'?{authorization}:{}),'content-type':'application/json'},...(body?{body:body as BodyInit}:{}),cache:'no-store',signal:AbortSignal.timeout(path.endsWith('/apply')?120000:30000)});
   const csv=path==='analytics/ledger.csv'&&r.ok;
-  return new Response(await r.text(),{status:r.status,headers:{'content-type':csv?'text/csv; charset=utf-8':'application/json; charset=utf-8','cache-control':'private, no-store','x-content-type-options':'nosniff',...(csv?{'content-disposition':'attachment; filename="vapmart-promotion-ledger.csv"'}:{})}});
+  return new Response(csv?await r.arrayBuffer():await r.text(),{status:r.status,headers:{'content-type':csv?'text/csv; charset=utf-8':'application/json; charset=utf-8','cache-control':'private, no-store','x-content-type-options':'nosniff',...(csv?{'content-disposition':'attachment; filename="vapmart-promotion-ledger.csv"'}:{})}});
  }catch{return NextResponse.json({message:'Layanan belum merespons. Coba lagi; permintaan tersimpan tidak digandakan.'},{status:503});}
 }
