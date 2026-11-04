@@ -2,6 +2,7 @@
 import {useEffect,useMemo,useState,type FormEvent} from 'react';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {CatalogNotice,useCatalogAdmin} from './catalog-admin-shell';
+import '../app/catalog-analytics.css';
 
 type Money=string;
 type Period={from:string;to:string;timezone:string;campaignId:string|null};
@@ -161,7 +162,7 @@ export function CatalogPromotionAnalytics(){
     {ledgerLoading&&<p role="status">Memuat ledger...</p>}
     <div className="vc-analytics-ledger-paging"><button type="button" disabled={!history.length||ledgerLoading} onClick={()=>{setCursor(history[history.length-1]);setHistory(h=>h.slice(0,-1))}}>Sebelumnya</button><span>Halaman {history.length+1}</span><button type="button" disabled={!ledger?.hasMore||ledgerLoading} onClick={()=>{setHistory(h=>[...h,cursor]);setCursor(ledger?.nextCursor||null)}}>Berikutnya</button></div>
    </section>
-   <p className="vc-analytics-disclosure">**Batas interpretasi:** {overview.definitions.paidRate} {overview.definitions.growth} {overview.definitions.refunds}</p>
+   <p className="vc-analytics-disclosure"><strong>Batas interpretasi:</strong> {overview.definitions.paidRate} {overview.definitions.growth} {overview.definitions.refunds}</p>
   </>}
  </div>;
 }
