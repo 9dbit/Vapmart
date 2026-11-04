@@ -5,11 +5,12 @@ import {CatalogImportService} from './catalog-import';
 import {CatalogReviewsService} from './catalog-reviews';
 import {VoucherAdminService} from './vouchers';
 import {PromotionAdminService} from './promotions';
+import {PromotionAnalyticsService} from './promotion-analytics';
 type AuthRequest={user:Principal};
 @Controller('v1/admin/catalog')
 @UseGuards(AdminGuard)
 export class CatalogAdminController{
- constructor(private readonly catalog:CatalogWorkspaceService,private readonly imports:CatalogImportService,private readonly reviews:CatalogReviewsService,private readonly vouchers:VoucherAdminService,private readonly promotions:PromotionAdminService){}
+ constructor(private readonly catalog:CatalogWorkspaceService,private readonly imports:CatalogImportService,private readonly reviews:CatalogReviewsService,private readonly vouchers:VoucherAdminService,private readonly promotions:PromotionAdminService,private readonly analytics:PromotionAnalyticsService){}
  @Header('Cache-Control','private, no-store') @Get('lookups') lookups(){return this.catalog.lookups();}
  @Header('Cache-Control','private, no-store') @Get('products') products(@Query() q:Record<string,unknown>){return this.catalog.list(q);}
  @Header('Cache-Control','private, no-store') @Get('products/:id') product(@Param('id') id:string){return this.catalog.detail(id);}
@@ -34,6 +35,9 @@ export class CatalogAdminController{
  @Header('Cache-Control','private, no-store') @Get('promotions/:id') promotion(@Param('id') id:string){return this.promotions.detail(id);}
  @Header('Cache-Control','private, no-store') @Post('promotions') promotionCreate(@Req() r:AuthRequest,@Body() b:unknown){return this.promotions.create(r.user,b);}
  @Header('Cache-Control','private, no-store') @Patch('promotions/:id') promotionUpdate(@Req() r:AuthRequest,@Param('id') id:string,@Body() b:unknown){return this.promotions.update(r.user,id,b);}
+ @Header('Cache-Control','private, no-store') @Get('analytics/summary') promotionAnalytics(@Query() q:Record<string,unknown>){return this.analytics.overview(q);}
+ @Header('Cache-Control','private, no-store') @Get('analytics/ledger') promotionLedger(@Query() q:Record<string,unknown>){return this.analytics.ledger(q);}
+ @Header('Cache-Control','private, no-store') @Header('Content-Type','text/csv; charset=utf-8') @Header('Content-Disposition','attachment; filename="vapmart-promotion-ledger.csv"') @Get('analytics/ledger.csv') promotionLedgerExport(@Query() q:Record<string,unknown>){return this.analytics.csv(q);}
  @Header('Cache-Control','private, no-store') @Get('orders') orders(@Query() q:Record<string,unknown>){return this.catalog.orders(q);}
  @Header('Cache-Control','private, no-store') @Get('orders/:id') order(@Param('id') id:string){return this.catalog.orderDetail(id);}
 }
