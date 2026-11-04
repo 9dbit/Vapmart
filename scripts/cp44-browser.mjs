@@ -28,10 +28,10 @@ try{
  for(let i=0;i<45;i++){try{if((await fetch(BASE+'/api/health',{signal:AbortSignal.timeout(1000)})).ok)break}catch{}await new Promise(r=>setTimeout(r,1000));}
  await page.goto(BASE+'/admin/promotions/analytics');
  await page.getByRole('heading',{name:'Promotion Analytics'}).waitFor();
- await page.getByText('GMV paid',{exact:true}).first().waitFor();
+ await page.getByText('GMV terverifikasi',{exact:true}).first().waitFor();
  await page.getByRole('heading',{name:'Finance ledger'}).waitFor();
  assert.equal(await page.getByRole('link',{name:'Analytics',exact:true}).getAttribute('aria-current'),'page');
- assert.ok(await page.getByText('Biaya diskon paid',{exact:true}).count());
+ assert.ok(await page.getByText('Diskon terverifikasi',{exact:true}).count());
  assert.ok(await page.getByText('Reconciliation exceptions',{exact:true}).count());
  await screenshot('analytics-desktop');
  const from=await page.getByLabel('Tanggal mulai').inputValue();
