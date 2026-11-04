@@ -1,5 +1,5 @@
 import {NextRequest,NextResponse} from 'next/server';
-const privatePattern=/^(lookups|products(?:\/[0-9a-f-]{36}(?:\/(?:quick|state))?)?|categories(?:\/[0-9a-f-]{36}(?:\/archive)?)?|reviews(?:\/[0-9a-f-]{36}\/moderate)?|imports\/(?:preview|[0-9a-f-]{36}(?:\/apply)?)|orders(?:\/[0-9a-f-]{36})?|vouchers(?:\/[0-9a-f-]{36})?|promotions(?:\/[0-9a-f-]{36})?)$/i;
+const privatePattern=/^(lookups|products(?:\/[0-9a-f-]{36}(?:\/(?:quick|state))?)?|categories(?:\/[0-9a-f-]{36}(?:\/archive)?)?|reviews(?:\/[0-9a-f-]{36}\/moderate)?|imports\/(?:preview|[0-9a-f-]{36}(?:\/apply)?)|orders(?:\/[0-9a-f-]{36})?|vouchers(?:\/[0-9a-f-]{36})?|promotions(?:\/[0-9a-f-]{36})?|analytics\/(?:summary|ledger(?:\.csv)?))$/i;
 export async function catalogProxy(req:NextRequest,segments:string[],scope:'admin'|'public'|'customer'){
  const path=segments.join('/');
  const allowed=scope==='admin'?privatePattern.test(path):scope==='public'?/^(categories|selection|reviews\/[a-z0-9-]{1,120})$/.test(path):/^(review-eligible|reviews|orders)$/.test(path);
@@ -18,6 +18,7 @@ export async function catalogProxy(req:NextRequest,segments:string[],scope:'admi
  try{
   const url=new URL('/v1/'+(scope==='admin'?'admin/catalog/':scope==='customer'?'customer/catalog/':'catalog/')+path+req.nextUrl.search,base);
   const r=await fetch(url,{method:req.method,headers:{...(scope!=='public'?{authorization}:{}),'content-type':'application/json'},...(body?{body:body as BodyInit}:{}),cache:'no-store',signal:AbortSignal.timeout(path.endsWith('/apply')?120000:30000)});
-  return new Response(await r.text(),{status:r.status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'private, no-store'}});
+  const csv=path==='analytics/ledger.csv'&&r.ok;
+  return new Response(await r.text(),{status:r.status,headers:{'content-type':csv?'text/csv; charset=utf-8':'application/json; charset=utf-8','cache-control':'private, no-store','x-content-type-options':'nosniff',...(csv?{'content-disposition':'attachment; filename="vapmart-promotion-ledger.csv"'}:{})}});
  }catch{return NextResponse.json({message:'Layanan belum merespons. Coba lagi; permintaan tersimpan tidak digandakan.'},{status:503});}
 }
