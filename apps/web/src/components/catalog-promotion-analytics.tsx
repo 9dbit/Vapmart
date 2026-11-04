@@ -28,9 +28,9 @@ const money=(x:Money|number|bigint|undefined)=>rupiah.format(BigInt(x??0));
 const count=(n:number|string|undefined)=>integer.format(Number(n||0));
 const pct=(n:number|null|undefined)=>n===null||n===undefined?'—':n.toLocaleString('id-ID',{maximumFractionDigits:2})+'%';
 const pctHeight=(value:string,max:bigint)=>{
- const n=BigInt(value||'0');return max===0n||n===0n?0:Math.max(0,Math.min(100,Number(n*10000n/max)/100));
+ const n=BigInt(value||'0');return max===BigInt(0)||n===BigInt(0)?0:Math.max(0,Math.min(100,Number(n*BigInt(10000)/max)/100));
 };
-const numericMax=(list:string[])=>list.reduce((m,x)=>BigInt(x||'0')>m?BigInt(x||'0'):m,0n);
+const numericMax=(list:string[])=>list.reduce((m,x)=>BigInt(x||'0')>m?BigInt(x||'0'):m,BigInt(0));
 const today=()=>new Date(Date.now()+7*3600000).toISOString().slice(0,10);
 const dayOffset=(day:string,diff:number)=>new Date(Date.parse(day+'T00:00:00+07:00')+diff*WINDOW+7*3600000).toISOString().slice(0,10);
 const initial=():Filters=>{const end=today();return {from:dayOffset(end,-29),to:end,campaignId:''}};
@@ -49,15 +49,15 @@ function BarChart({rows,kind}:{rows:Daily[];kind:'gmv'|'discount'}){
      <div className="vc-analytics-bar-track">
       {kind==='gmv'?<div className="vc-bar-gmv" style={{height:height+'%'}}/>:
        <div className="vc-analytics-bar-stack" style={{height:height+'%'}}>
-        <div className="vc-bar-voucher" style={{height:(discountTotal>0n?Number(voucherTotal*10000n/discountTotal)/100:0)+'%'}}/>
-        <div className="vc-bar-promo" style={{height:(discountTotal>0n?Number(promoTotal*10000n/discountTotal)/100:0)+'%'}}/>
+        <div className="vc-bar-voucher" style={{height:(discountTotal>BigInt(0)?Number(voucherTotal*BigInt(10000)/discountTotal)/100:0)+'%'}}/>
+        <div className="vc-bar-promo" style={{height:(discountTotal>BigInt(0)?Number(promoTotal*BigInt(10000)/discountTotal)/100:0)+'%'}}/>
        </div>}
      </div>
      <span className="vc-analytics-day-label">{i===0||i===rows.length-1||i%Math.max(1,Math.ceil(rows.length/7))===0?r.day.slice(5):''}</span>
     </div>;
    })}
   </div></div>
-  {max===0n&&<p className="vc-analytics-chart-empty">Belum ada nilai paid pada periode ini.</p>}
+  {max===BigInt(0)&&<p className="vc-analytics-chart-empty">Belum ada nilai paid pada periode ini.</p>}
  </div>;
 }
 function BreakdownTable({title,items}:{title:string;items:Breakdown[]}){
@@ -156,7 +156,7 @@ export function CatalogPromotionAnalytics(){
      <button type="button" className="vc-primary" disabled={exportBusy||ledgerLoading} onClick={()=>void exportCsv()}>{exportBusy?'Membuat CSV...':'Export CSV'}</button></div>
     <CatalogNotice error={exportError}/>
     <div className="vc-table-wrap"><table className="vc-table"><thead><tr><th>Order</th><th>Created WIB</th><th>Status</th><th>Campaign / Voucher</th><th>Subtotal</th><th>Diskon promo</th><th>Diskon voucher</th><th>Total</th><th>Reconciliation</th></tr></thead><tbody>
-     {(ledger?.items||[]).map(x=><tr key={x.id}><td><code>{x.id.slice(0,8)}</code></td><td>{new Date(x.createdAt).toLocaleString('id-ID',{timeZone:'Asia/Jakarta'})}</td><td>{x.paymentStatus}</td><td>{x.campaignTitle||'—'}<small className="vc-analytics-subline">{x.voucherCode||''}</small></td><td>{money(x.subtotalIdr)}</td><td>{money(x.promotionDiscountIdr)}</td><td>{money(x.voucherDiscountIdr)}</td><td>{money(x.totalIdr)}</td><td>{BigInt(x.discountDeltaIdr)===0n&&BigInt(x.totalDeltaIdr)===0n?'OK':'Periksa'}</td></tr>)}
+     {(ledger?.items||[]).map(x=><tr key={x.id}><td><code>{x.id.slice(0,8)}</code></td><td>{new Date(x.createdAt).toLocaleString('id-ID',{timeZone:'Asia/Jakarta'})}</td><td>{x.paymentStatus}</td><td>{x.campaignTitle||'—'}<small className="vc-analytics-subline">{x.voucherCode||''}</small></td><td>{money(x.subtotalIdr)}</td><td>{money(x.promotionDiscountIdr)}</td><td>{money(x.voucherDiscountIdr)}</td><td>{money(x.totalIdr)}</td><td>{BigInt(x.discountDeltaIdr)===BigInt(0)&&BigInt(x.totalDeltaIdr)===BigInt(0)?'OK':'Periksa'}</td></tr>)}
     </tbody></table></div>
     {!ledgerLoading&&!ledger?.items.length&&<p className="vc-empty">Belum ada order berpromo dalam filter ini.</p>}
     {ledgerLoading&&<p role="status">Memuat ledger...</p>}
