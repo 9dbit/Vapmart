@@ -20,7 +20,7 @@ type Brand={id:string;edit_version?:number;name:string;slug:string;description:s
 type Order={id:string;status:string;payment_status:string;contact_name:string;contact_email:string;city:string;province:string;total_idr:string;payment_method:string;created_at:string};
 type ProductDraft={name:string;slug:string;sku:string;description:string;category:string;price_idr:string;stock_qty:string;weight_grams:string;length_cm:string;width_cm:string;height_cm:string;brand_id:string;image_url:string;gallery_urls:string[];is_active:boolean};
 type BrandDraft={name:string;slug:string;description:string;logo_url:string;is_active:boolean};
-type Tab=Exclude<AdminSection,'media'>;
+type Tab=Exclude<AdminSection,'media'|'vouchers'>;
 const allowedTabs:ReadonlyArray<Tab>=['overview','products','warehouses','brands','orders','fulfillment','courier','shipping'];
 const categories=['home','lifestyle','decor','accessories','electronics','other'];
 const blankProduct:ProductDraft={name:'',slug:'',sku:'',description:'',category:'lifestyle',price_idr:'',stock_qty:'0',weight_grams:'',length_cm:'',width_cm:'',height_cm:'',brand_id:'',image_url:'',gallery_urls:[],is_active:false};
@@ -115,6 +115,7 @@ export default function AdminPage(){
  },[]);
  function navigate(section:AdminSection){
   if(section==='media'){router.push('/admin/media');return;}
+  if(section==='vouchers'){router.push('/admin/vouchers');return;}
   setTab(section);
   const url=section==='overview'?'/admin':'/admin?tab='+encodeURIComponent(section);
   if(window.location.pathname==='/admin'&&window.location.pathname+window.location.search!==url)
