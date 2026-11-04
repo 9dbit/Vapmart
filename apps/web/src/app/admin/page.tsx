@@ -48,7 +48,7 @@ export default function AdminPage(){
  const [editingProduct,setEditingProduct]=useState<string|null>(null);
  const [editingBrand,setEditingBrand]=useState<string|null>(null);
  const [productVersion,setProductVersion]=useState<number|null>(null),[brandVersion,setBrandVersion]=useState<number|null>(null);
- const [totals,setTotals]=useState<{published:number;lowStock:number;pendingOrders:number}|null>(null);
+ const [totals,setTotals]=useState<{published:number;lowStock:number;pendingOrders:number;draftOrders?:number;bankTransferPending?:number}|null>(null);
  const [productDraft,setProductDraft]=useState<ProductDraft>({...blankProduct});
  const [brandDraft,setBrandDraft]=useState<BrandDraft>({...blankBrand});
  const recordSummary=useProductRecordSummary(authorized&&verifiedToken===auth.accessToken?auth.accessToken:null,products);
@@ -223,7 +223,7 @@ export default function AdminPage(){
     <div><span>Produk tayang</span><strong>{recordSummary.summary?.published??published}</strong><small>Terlihat di storefront</small></div>
     <div><span>Stok ≤ 5</span><strong>{lowStock}</strong><small>Hanya stok operasional</small></div>
     <div><span>Brand operasional</span><strong>{brands.length}</strong><small>{recordSummary.summary?`${recordSummary.summary.existing_brands} brand pada data existing`:`Aktif ${brands.filter(b=>b.is_active).length}`}</small></div>
-    <div><span>Draft pesanan</span><strong>{pending}</strong><small>Belum dibayar</small></div>
+    <div><span>Menunggu pembayaran</span><strong>{pending}</strong><small>Termasuk {totals?.bankTransferPending??0} transfer bank pending dan {totals?.draftOrders??0} draft belum dimulai</small></div>
    </div>
    {recordSummary.error&&<p className="vpr-catalog-warning" role="status">{recordSummary.error}. <button type="button" onClick={recordSummary.reload}>Coba sinkronkan lagi</button></p>}
    {tab==='overview'&&<div className="vma26-overview">
