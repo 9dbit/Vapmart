@@ -9,7 +9,7 @@ import {formatIDR} from '@/lib/types';
 import '../checkout-v26.css';
 
 type QuoteItem={productId:string;sku:string|null;name:string;unitPriceIdr:number;quantity:number;lineTotalIdr:number;stockQty:number};
-type Quote={items:QuoteItem[];subtotalIdr:number;discountIdr:number;voucherCode:string|null;shippingFeeIdr:number|null;totalIdr:number|null;shippingEstimate:boolean;paymentEnabled:boolean;paymentMethods:string[]};
+type Quote={items:QuoteItem[];subtotalIdr:number;discountIdr:number;voucherDiscountIdr:number;voucherCode:string|null;promotionDiscountIdr:number;promotionEventId:string|null;promotionTitle:string|null;shippingFeeIdr:number|null;totalIdr:number|null;shippingEstimate:boolean;paymentEnabled:boolean;paymentMethods:string[]};
 type ShippingOption={quoteId:string;expiresAt:string;courierCode:string;courierName:string;serviceCode:string;serviceName:string;priceIdr:number;duration:string};
 type ShippingConfig={rateLookupEnabled:boolean;bookingEnabled:boolean;paymentEnabled:boolean;rateType:string};
 type DraftForm={name:string;phone:string;address:string;city:string;province:string;postalCode:string;paymentMethod:'bank_transfer'|'qris'|'virtual_account'|'ewallet'};
@@ -44,7 +44,7 @@ export default function CheckoutPage(){
   if(includesDigital||requestItems.length===0){setQuote(null);setError('');return;}
   const controller=new AbortController();
   requestKey.current=null;setQuoting(true);setError('');setQuote(null);setShippingRates([]);setSelectedQuoteId('');
-  fetch('/api/checkout/quote',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({items:requestItems,...(appliedVoucher?{voucherCode:appliedVoucher}:{})}),signal:controller.signal,cache:'no-store'})
+  fetch('/api/checkout/quote',{method:'POST',headers:{'content-type':'application/json',...(auth.accessToken?{authorization:'Bearer '+auth.accessToken}:{})},body:JSON.stringify({items:requestItems,...(appliedVoucher?{voucherCode:appliedVoucher}:{})}),signal:controller.signal,cache:'no-store'})
    .then(async response=>{
     const result=await response.json();
     if(!response.ok)throw new Error(typeof result?.message==='string'?result.message:'Harga atau stok tidak dapat diperiksa, coba lagi.');
@@ -54,7 +54,7 @@ export default function CheckoutPage(){
   return()=>controller.abort();
  // Cart is transformed to stable primitive signature to prevent repeated quotes during unrelated renders.
  // eslint-disable-next-line react-hooks/exhaustive-deps
- },[key,includesDigital]);
+ },[key,includesDigital,auth.accessToken]);
  const change=(name:keyof DraftForm,value:string)=>{
   setForm(previous=>({...previous,[name]:value}));setOrder(null);requestKey.current=null;
   if(name==='postalCode'){setShippingRates([]);setSelectedQuoteId('');}
@@ -137,7 +137,8 @@ export default function CheckoutPage(){
     </div>)}
     {quoting?<p className="vco26-quiet">Memeriksa harga dan stok terkini...</p>:quote?<div className="vco26-totals">
       <div><span>Subtotal aktual</span><b>{formatIDR(quote.subtotalIdr)}</b></div>
-      {quote.discountIdr>0&&<div><span>Voucher {quote.voucherCode||''}</span><b>-{formatIDR(quote.discountIdr)}</b></div>}
+      {quote.voucherDiscountIdr>0&&<div><span>Voucher {quote.voucherCode||''}</span><b>-{formatIDR(quote.voucherDiscountIdr)}</b></div>}
+      {quote.promotionDiscountIdr>0&&<div><span>Promo otomatis {quote.promotionTitle||''}</span><b>-{formatIDR(quote.promotionDiscountIdr)}</b></div>}
       <div><span>{selectedShipping?selectedShipping.courierName+' · '+selectedShipping.serviceName:'Ongkir standar (estimasi)'}</span><b>{shippingPrice===null?'Belum tersedia':formatIDR(shippingPrice)}</b></div>
       <div className="vco26-total"><span>Total estimasi</span><strong>{totalPreview===null?'Belum tersedia':formatIDR(totalPreview)}</strong></div>
     </div>:<p className="vco26-quiet">Harga aktual hanya tampil setelah diverifikasi oleh server.</p>}
