@@ -74,14 +74,14 @@ jobs:
         run: |
           set -o pipefail
           for ENTRY in 'catalog-engine:catalog' 'cp37a-integrity:integrity' 'warehouse-fulfillment:warehouse' 'courier-orchestration:courier'; do
-            TEST=${ENTRY%%:*}; DB="vapmart_cp41_${ENTRY##*:}"
+            TEST=${ENTRY%%:*}; DB="vapmart_cp39_cp41_${ENTRY##*:}"
             psql "$DATABASE_URL" -c "CREATE DATABASE $DB"
             URL="postgres://vapmart_test:disposable_cp41_only@127.0.0.1:5432/$DB"
             DATABASE_URL="$URL" npm run migrate
             DATABASE_URL="$URL" npx tsx --test "test/integration/$TEST.ts" 2>&1 | tee "../../artifacts/cp41/$TEST.log"
           done
-          psql "$DATABASE_URL" -c 'CREATE DATABASE vapmart_cp38_cp41'
-          URL='postgres://vapmart_test:disposable_cp41_only@127.0.0.1:5432/vapmart_cp38_cp41'
+          psql "$DATABASE_URL" -c 'CREATE DATABASE vapmart_cp39_cp38_cp41'
+          URL='postgres://vapmart_test:disposable_cp41_only@127.0.0.1:5432/vapmart_cp39_cp38_cp41'
           DATABASE_URL="$URL" npm run migrate
           DATABASE_URL="$URL" HERO_LOCAL_TEST=1 npx tsx --test test/integration/hero-banners.ts 2>&1 | tee ../../artifacts/cp41/hero.log
       - name: Web production build
