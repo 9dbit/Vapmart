@@ -1,0 +1,127 @@
+name: CP45 Transaction Integrity and Catalog Conversion Verification
+on:
+  push:
+    branches: [feat/cp45-integrity-catalog-20261104]
+    paths: ['apps/**','scripts/cp39-browser.mjs','scripts/cp40-browser.mjs','scripts/cp41-browser.mjs','scripts/cp42-browser.mjs','scripts/cp43-browser.mjs','scripts/cp44-browser.mjs','scripts/cp45-browser.mjs','.github/workflows/cp45-integrity-catalog.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cp45-integrity-catalog-verification
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: vapmart_test
+          POSTGRES_PASSWORD: disposable_cp45_only
+          POSTGRES_DB: vapmart_cp39_cp45
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U vapmart_test -d vapmart_cp39_cp45"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgres://vapmart_test:disposable_cp45_only@127.0.0.1:5432/vapmart_cp39_cp45
+      CP39_LOCAL_TEST: '1'
+      CHECKOUT_ENABLED: 'false'
+      DIGITAL_COMMERCE_ENABLED: 'false'
+      PAYMENT_MODE: disabled
+      SHIPPING_RATE_LOOKUP_ENABLED: 'false'
+      BITESHIP_WEBHOOK_ENABLED: 'false'
+      SHIPPING_FEE_IDR: '15000'
+      API_INTERNAL_URL: http://127.0.0.1:4100
+      NEXT_PUBLIC_SUPABASE_URL: https://auth-fixture.example.invalid
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_fixture_only_not_a_real_key
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Record exact candidate and safety flags
+        run: |
+          mkdir -p artifacts/cp45
+          git rev-parse HEAD | tee artifacts/cp45/verified-source.txt
+          test "$PAYMENT_MODE" = "disabled"
+          test "$CHECKOUT_ENABLED" = "false"
+          test "$SHIPPING_RATE_LOOKUP_ENABLED" = "false"
+          test "$BITESHIP_WEBHOOK_ENABLED" = "false"
+          test "$(git grep -n "bookingEnabled:true" -- apps 2>/dev/null | wc -l)" -eq 0
+      - name: Clean installs, API build and unit tests
+        run: |
+          set -o pipefail
+          npm ci --no-audit --no-fund --prefix apps/api
+          npm run build --prefix apps/api
+          npm test --prefix apps/api 2>&1 | tee artifacts/cp45/unit-tests.log
+      - name: Migrate twice and verify checkout, voucher and promotion engines
+        working-directory: apps/api
+        run: |
+          set -o pipefail
+          npm run migrate && npm run migrate
+          npx tsx --test test/integration/private-drafts.ts 2>&1 | tee ../../artifacts/cp45/private-drafts-http.log
+          npx tsx --test test/integration/private-draft-constraints.ts 2>&1 | tee ../../artifacts/cp45/database-guards.log
+          npx tsx --test test/integration/checkout-conversion.ts 2>&1 | tee ../../artifacts/cp45/checkout-conversion.log
+          npx tsx --test test/integration/voucher-admin.ts 2>&1 | tee ../../artifacts/cp45/voucher-admin.log
+          npx tsx --test test/integration/promotion-campaigns.ts 2>&1 | tee ../../artifacts/cp45/promotion-campaigns.log
+          psql "$DATABASE_URL" -c 'CREATE DATABASE vapmart_cp39_cp45_analytics'
+          URL='postgres://vapmart_test:disposable_cp45_only@127.0.0.1:5432/vapmart_cp39_cp45_analytics'
+          DATABASE_URL="$URL" npm run migrate
+          DATABASE_URL="$URL" npx tsx --test test/integration/promotion-analytics.ts 2>&1 | tee ../../artifacts/cp45/promotion-analytics.log
+          psql "$DATABASE_URL" -c 'CREATE DATABASE vapmart_cp39_cp45_archive'
+          URL='postgres://vapmart_test:disposable_cp45_only@127.0.0.1:5432/vapmart_cp39_cp45_archive'
+          DATABASE_URL="$URL" npm run migrate
+          DATABASE_URL="$URL" npx tsx --test test/integration/archive-conversion.ts 2>&1 | tee ../../artifacts/cp45/archive-conversion.log
+      - name: Catalog, integrity, warehouse, courier and banner regressions
+        working-directory: apps/api
+        run: |
+          set -o pipefail
+          for ENTRY in 'catalog-engine:catalog' 'cp37a-integrity:integrity' 'warehouse-fulfillment:warehouse' 'courier-orchestration:courier'; do
+            TEST=${ENTRY%%:*}; DB="vapmart_cp39_cp45_${ENTRY##*:}"
+            psql "$DATABASE_URL" -c "CREATE DATABASE $DB"
+            URL="postgres://vapmart_test:disposable_cp45_only@127.0.0.1:5432/$DB"
+            DATABASE_URL="$URL" npm run migrate
+            DATABASE_URL="$URL" npx tsx --test "test/integration/$TEST.ts" 2>&1 | tee "../../artifacts/cp45/$TEST.log"
+          done
+          psql "$DATABASE_URL" -c 'CREATE DATABASE vapmart_cp38_cp45'
+          URL='postgres://vapmart_test:disposable_cp45_only@127.0.0.1:5432/vapmart_cp38_cp45'
+          DATABASE_URL="$URL" npm run migrate
+          DATABASE_URL="$URL" HERO_LOCAL_TEST=1 npx tsx --test test/integration/hero-banners.ts 2>&1 | tee ../../artifacts/cp45/hero.log
+      - name: Web production build
+        run: |
+          npm ci --no-audit --no-fund --prefix apps/web
+          npm run build --prefix apps/web
+      - name: Browser tooling
+        run: npm install --no-save --no-audit --no-fund playwright@1.56.0 && npx playwright install --with-deps chromium
+      - name: Existing and CP45 browser lifecycles
+        run: |
+          set -o pipefail
+          psql "$DATABASE_URL" -c 'CREATE DATABASE vapmart_cp39_cp45_browser'
+          export DATABASE_URL='postgres://vapmart_test:disposable_cp45_only@127.0.0.1:5432/vapmart_cp39_cp45_browser'
+          npm run migrate --prefix apps/api
+          node scripts/cp39-fixture-server.cjs > artifacts/cp45/api.log 2>&1 &
+          API_PID=$!
+          (cd apps/web && npm run start) > artifacts/cp45/web.log 2>&1 &
+          WEB_PID=$!
+          trap 'kill "$API_PID" "$WEB_PID" 2>/dev/null || true' EXIT
+          timeout --signal=TERM --kill-after=10s 180s node scripts/cp39-browser.mjs 2>&1 | tee artifacts/cp45/cp39-browser.log
+          timeout --signal=TERM --kill-after=10s 180s node scripts/cp40-browser.mjs 2>&1 | tee artifacts/cp45/cp40-browser.log
+          timeout --signal=TERM --kill-after=10s 180s node scripts/cp41-browser.mjs 2>&1 | tee artifacts/cp45/cp41-browser.log
+          timeout --signal=TERM --kill-after=10s 180s node scripts/cp42-browser.mjs 2>&1 | tee artifacts/cp45/cp42-browser.log
+          timeout --signal=TERM --kill-after=10s 180s node scripts/cp43-browser.mjs 2>&1 | tee artifacts/cp45/cp43-browser.log
+          timeout --signal=TERM --kill-after=10s 180s node scripts/cp44-browser.mjs 2>&1 | tee artifacts/cp45/cp44-browser.log
+          timeout --signal=TERM --kill-after=10s 180s node scripts/cp45-browser.mjs 2>&1 | tee artifacts/cp45/cp45-browser.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cp45-transaction-catalog-integrity-verification
+          path: artifacts/
+          retention-days: 14
+          if-no-files-found: error
