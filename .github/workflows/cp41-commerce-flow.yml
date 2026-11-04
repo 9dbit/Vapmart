@@ -1,0 +1,110 @@
+name: CP41 Commerce Flow Verification
+on:
+  push:
+    branches: [work/cp41-commerce-flow-20261104]
+    paths: ['apps/**','scripts/cp39-browser.mjs','scripts/cp40-browser.mjs','scripts/cp41-browser.mjs','.github/workflows/cp41-commerce-flow.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cp41-commerce-flow
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: vapmart_test
+          POSTGRES_PASSWORD: disposable_cp41_only
+          POSTGRES_DB: vapmart_cp39_cp41
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U vapmart_test -d vapmart_cp39_cp41"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgres://vapmart_test:disposable_cp41_only@127.0.0.1:5432/vapmart_cp39_cp41
+      CP39_LOCAL_TEST: '1'
+      CHECKOUT_ENABLED: 'false'
+      DIGITAL_COMMERCE_ENABLED: 'false'
+      PAYMENT_MODE: disabled
+      SHIPPING_RATE_LOOKUP_ENABLED: 'false'
+      BITESHIP_WEBHOOK_ENABLED: 'false'
+      SHIPPING_FEE_IDR: '15000'
+      API_INTERNAL_URL: http://127.0.0.1:4100
+      NEXT_PUBLIC_SUPABASE_URL: https://auth-fixture.example.invalid
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_fixture_only_not_a_real_key
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Record exact candidate and safety flags
+        run: |
+          mkdir -p artifacts/cp41
+          git rev-parse HEAD | tee artifacts/cp41/verified-source.txt
+          test "$(git grep -n "PAYMENT_MODE.*enabled" -- ':!artifacts' | wc -l)" -eq 0
+          test "$(git grep -n "bookingEnabled:true" -- apps 2>/dev/null | wc -l)" -eq 0
+      - name: Clean installs, API build and unit tests
+        run: |
+          set -o pipefail
+          npm ci --no-audit --no-fund --prefix apps/api
+          npm run build --prefix apps/api
+          npm test --prefix apps/api 2>&1 | tee artifacts/cp41/unit-tests.log
+      - name: Migrate twice and verify CP40 plus CP41 integration on real PostgreSQL
+        working-directory: apps/api
+        run: |
+          set -o pipefail
+          npm run migrate && npm run migrate
+          npx tsx --test test/integration/private-drafts.ts 2>&1 | tee ../../artifacts/cp41/private-drafts-http.log
+          npx tsx --test test/integration/private-draft-constraints.ts 2>&1 | tee ../../artifacts/cp41/database-guards.log
+          npx tsx --test test/integration/checkout-conversion.ts 2>&1 | tee ../../artifacts/cp41/checkout-conversion.log
+      - name: Catalog, integrity, warehouse, courier and banner regressions
+        working-directory: apps/api
+        run: |
+          set -o pipefail
+          for ENTRY in 'catalog-engine:catalog' 'cp37a-integrity:integrity' 'warehouse-fulfillment:warehouse' 'courier-orchestration:courier'; do
+            TEST=${ENTRY%%:*}; DB="vapmart_cp41_${ENTRY##*:}"
+            psql "$DATABASE_URL" -c "CREATE DATABASE $DB"
+            URL="postgres://vapmart_test:disposable_cp41_only@127.0.0.1:5432/$DB"
+            DATABASE_URL="$URL" npm run migrate
+            DATABASE_URL="$URL" npx tsx --test "test/integration/$TEST.ts" 2>&1 | tee "../../artifacts/cp41/$TEST.log"
+          done
+          psql "$DATABASE_URL" -c 'CREATE DATABASE vapmart_cp38_cp41'
+          URL='postgres://vapmart_test:disposable_cp41_only@127.0.0.1:5432/vapmart_cp38_cp41'
+          DATABASE_URL="$URL" npm run migrate
+          DATABASE_URL="$URL" HERO_LOCAL_TEST=1 npx tsx --test test/integration/hero-banners.ts 2>&1 | tee ../../artifacts/cp41/hero.log
+      - name: Web production build
+        run: |
+          npm ci --no-audit --no-fund --prefix apps/web
+          npm run build --prefix apps/web
+      - name: Browser tooling
+        run: npm install --no-save --no-audit --no-fund playwright@1.56.0 && npx playwright install --with-deps chromium
+      - name: Existing and CP41 browser lifecycles
+        run: |
+          set -o pipefail
+          psql "$DATABASE_URL" -c 'CREATE DATABASE vapmart_cp39_cp41_browser'
+          export DATABASE_URL='postgres://vapmart_test:disposable_cp41_only@127.0.0.1:5432/vapmart_cp39_cp41_browser'
+          npm run migrate --prefix apps/api
+          node scripts/cp39-fixture-server.cjs > artifacts/cp41/api.log 2>&1 &
+          API_PID=$!
+          (cd apps/web && npm run start) > artifacts/cp41/web.log 2>&1 &
+          WEB_PID=$!
+          trap 'kill "$API_PID" "$WEB_PID" 2>/dev/null || true' EXIT
+          timeout --signal=TERM --kill-after=10s 180s node scripts/cp39-browser.mjs 2>&1 | tee artifacts/cp41/cp39-browser.log
+          timeout --signal=TERM --kill-after=10s 180s node scripts/cp40-browser.mjs 2>&1 | tee artifacts/cp41/cp40-browser.log
+          timeout --signal=TERM --kill-after=10s 180s node scripts/cp41-browser.mjs 2>&1 | tee artifacts/cp41/cp41-browser.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cp41-commerce-flow-verification
+          path: artifacts/
+          retention-days: 14
+          if-no-files-found: error
