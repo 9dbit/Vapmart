@@ -219,9 +219,6 @@ export class PromotionAnalyticsService {
   }));
   const segmentsOut=segments.rows.map(r=>({segment:r.segment,paidOrders:num(r.paid_orders),
    paidGmvIdr:String(r.paid_gmv_idr),paidDiscountIdr:String(r.paid_discount_idr)}));
-  const mapped=breakdown.rows.map(r=>({id:r.item_key,name:r.item_label,
-   units:String(r.units),paidGmvIdr:String(r.paid_gmv_idr),
-   voucherDiscountIdr:String(r.voucher_discount_idr),promotionDiscountIdr:String(r.promotion_discount_idr)}));
   const paidDiscount=totals.voucherDiscountIdr+totals.promotionDiscountIdr;
   return {
    period:{from:f.from,to:f.to,timezone:'Asia/Jakarta',campaignId:f.campaignId},
