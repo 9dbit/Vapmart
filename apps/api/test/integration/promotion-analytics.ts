@@ -57,16 +57,27 @@ test('CP44 analytics reconciles paid GMV and split discount costs across periods
   assert.equal(updated.status,'draft');
   const pending=await json('/v1/checkout/orders',{items:[{productId:b,quantity:1}],voucherCode:'CP44SAVE10',...buyer,idempotencyKey:randomUUID()},'POST','fixture-buyer');
   assert.equal(pending.voucherDiscountIdr,5000);assert.equal(pending.promotionDiscountIdr,0);
-  await db.query("UPDATE product.orders SET payment_status='paid' WHERE id=ANY($1::uuid[])",[[stacked.id,onlyPromo.id]]);
+  await db.query("UPDATE product.orders SET status='paid',payment_status='paid' WHERE id=ANY($1::uuid[])",[[stacked.id,onlyPromo.id]]);
   await db.query('UPDATE product.orders SET created_at=$2 WHERE id=$1',[stacked.id,dayBefore+'T23:59:59+07:00']);
   await db.query('UPDATE product.orders SET created_at=$2 WHERE id=$1',[pending.id,day+'T00:00:01+07:00']);
   await db.query('UPDATE product.orders SET discount_idr=discount_idr+1 WHERE id=$1',[pending.id]);
+  const beforeVerification=await json(api+'/analytics/summary?'+range);
+  assert.equal(beforeVerification.summary.paidOrders,0,'status-only paid must not be treated as captured funds');
+  assert.equal(beforeVerification.summary.paidGmvIdr,'0');
+  assert.equal(beforeVerification.summary.unverifiedPaidOrders,2);
+  assert.equal(beforeVerification.summary.anomalyOrders,3,'2 unverified flags plus pending arithmetic defect');
+  await db.query("UPDATE product.orders SET payment_provider='cp45_fixture',payment_reference='fixture-confirmation-'||id::text WHERE id=ANY($1::uuid[])",[[stacked.id,onlyPromo.id]]);
+  const adminSummary=await json('/v1/admin/summary');
+  assert.equal(Number(adminSummary.totals.pendingOrders),1,'pending bank transfer order must be counted');
+  assert.equal(Number(adminSummary.totals.bankTransferPending),1);
+  assert.equal(Number(adminSummary.totals.draftOrders),0);
 
   const report=await json(api+'/analytics/summary?'+range);
   assert.equal(report.summary.appliedOrders,3);
   assert.equal(report.summary.paidOrders,2);
   assert.equal(report.summary.pendingOrders,1);
   assert.equal(report.summary.anomalyOrders,1);
+  assert.equal(report.summary.unverifiedPaidOrders,0);
   assert.equal(report.summary.paidGmvIdr,'250000');
   assert.equal(report.summary.voucherDiscountIdr,'15000');
   assert.equal(report.summary.promotionDiscountIdr,'37500');
@@ -80,6 +91,8 @@ test('CP44 analytics reconciles paid GMV and split discount costs across periods
   assert.equal(report.daily[1].paidGmvIdr,'100000');
   assert.equal(report.anomalies[0].orderId,pending.id);
   assert.equal(report.anomalies[0].discountDeltaIdr,'1');
+  assert.equal(report.anomalies[0].lineDeltaIdr,'0');
+  assert.equal(report.anomalies[0].paymentUnverified,false);
   const campaign=report.campaigns.find((x:any)=>x.id===promo.id);
   assert.ok(campaign);assert.equal(campaign.paidOrders,2);
   assert.equal(campaign.paidGmvIdr,'250000');assert.equal(campaign.promotionDiscountIdr,'37500');
@@ -110,12 +123,19 @@ test('CP44 analytics reconciles paid GMV and split discount costs across periods
   assert.ok(csv.body.includes("'=SUM(1,1) CP44 Audit"),'formula-injection protection required');
   assert.equal((csv.body.match(new RegExp(stacked.id,'g'))||[]).length,1);
   assert.equal(csv.body.includes('CP44 Buyer'),false,'CSV must exclude customer PII');
+  assert.match(csv.body,/Line delta IDR/);
+  assert.match(csv.body,/Payment verified/);
   const unauthorized=await request(api+'/analytics/summary?'+range,undefined,'GET','fixture-buyer');
   assert.equal(unauthorized.status,403);
   const invalid=await request(api+'/analytics/summary?from=2026-02-30&to=2026-03-01',undefined,'GET');
   assert.equal(invalid.status,400);
   const unknown=await request(api+'/analytics/ledger?'+range+'&limit=99999',undefined,'GET');
   assert.equal(unknown.status,400);
+  await db.query('UPDATE product.orders SET subtotal_idr=subtotal_idr+20,total_idr=total_idr+20 WHERE id=$1',[pending.id]);
+  const badLines=await json(api+'/analytics/summary?'+range);
+  assert.equal(badLines.summary.anomalyOrders,1);
+  assert.equal(badLines.anomalies[0].lineDeltaIdr,'20','immutable order lines must match order subtotal');
+  await db.query('UPDATE product.orders SET subtotal_idr=subtotal_idr-20,total_idr=total_idr-20 WHERE id=$1',[pending.id]);
   await db.query("UPDATE product.orders SET payment_status='refunded' WHERE id=$1",[onlyPromo.id]);
   const refunded=await json(api+'/analytics/summary?'+range);
   assert.equal(refunded.summary.refundedOrders,1);
@@ -125,6 +145,6 @@ test('CP44 analytics reconciles paid GMV and split discount costs across periods
   console.log('CP44_ANALYTICS_RECONCILED_PASS',JSON.stringify({paidBasis:true,periodWIB:true,
    campaignFilter:true,voucherVsPromo:true,exactProductAndCategoryAllocation:true,
    membershipSegments:true,ledgerPagination:true,csvExport:true,csvFormulaProtection:true,
-   noPII:true,adminGuard:true,anomalyDetection:true,refundsExcluded:true,paymentCaptured:false,productionWrites:false}));
+   noPII:true,adminGuard:true,anomalyDetection:true,refundsExcluded:true,verifiedPaymentOnly:true,unverifiedPaymentDetected:true,itemSubtotalReconciled:true,bankTransferPendingVisible:true,paymentCaptured:false,productionWrites:false}));
  }finally{await app.close()}
 });
