@@ -13,14 +13,14 @@ const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.me
 async function shot(name){await page.evaluate(()=>{scrollTo(0,0);document.activeElement?.blur?.()});const geo=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));assert.ok(geo.scroll<=geo.width+2,JSON.stringify(geo));await page.screenshot({path:OUT+'/'+name+'.png',fullPage:true,animations:'disabled'});return geo;}
 try{
  for(let i=0;i<45;i++){try{if((await fetch(BASE+'/api/health',{signal:AbortSignal.timeout(1000)})).ok)break}catch{}await new Promise(r=>setTimeout(r,1000));}
- await page.goto(BASE+'/product/desk-lamp-cp39');
+ await page.goto(BASE+'/product/desk-organizer-browser');
  await page.getByRole('button',{name:/Tambahkan ke keranjang/i}).waitFor();
  const buy=page.getByRole('button',{name:/Beli sekarang/i});await buy.waitFor();await buy.click();await page.waitForURL('**/checkout');
  await page.getByLabel('Kode voucher',{exact:true}).waitFor();
  const bank=page.getByRole('radio',{name:'Bank Transfer'});assert.equal(await bank.isChecked(),true);
  await page.getByText('Cek estimasi ongkir',{exact:true}).count().catch(()=>0);
  await shot('checkout-desktop');
- const list=await fetch(API+'/v1/admin/catalog/products?q=Organizer%20Set%20CP39',{headers:{authorization:'Bearer fixture-admin'}});
+ const list=await fetch(API+'/v1/admin/catalog/products?q=Storage%20Box%20Browser',{headers:{authorization:'Bearer fixture-admin'}});
  assert.equal(list.status,200);const data=await list.json();const variable=data.items.find(x=>x.product_type==='variable');assert.ok(variable);
  await page.goto(BASE+'/admin/products/'+variable.id);
  await page.locator('.vc-variant-status').first().waitFor();const statuses=await page.locator('.vc-variant-status').allTextContents();assert.ok(statuses.includes('AKTIF'));
