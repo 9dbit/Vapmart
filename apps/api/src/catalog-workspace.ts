@@ -45,8 +45,8 @@ async function stockSave(client:PoolClient,actor:string,id:string,rows:V.StockIn
   const delta=s.onHand-balance.on_hand;
   if(delta){
    if(Math.abs(delta)>100000)throw new BadRequestException('Perubahan stok maksimal 100.000 unit per simpan');
-   if(s.notes.trim().length<6)throw new BadRequestException('Catatan perubahan stok minimal 6 karakter');
-   await writeEvent(client,{row:balance,deltaHand:delta,deltaReserved:0,reason:balance.on_hand===0&&delta>0?'receipt':'adjustment',notes:s.notes,actor,key:randomUUID()});
+   const note=s.notes.trim()||'Penyesuaian stok dari editor produk';
+   await writeEvent(client,{row:balance,deltaHand:delta,deltaReserved:0,reason:balance.on_hand===0&&delta>0?'receipt':'adjustment',notes:note,actor,key:randomUUID()});
   }
  }
  await refreshProductAvailability(client,[id]);
@@ -230,14 +230,14 @@ export class CatalogWorkspaceService{
   return {items:r.rows.map(p=>publicPrice(p as any)),observedAt:new Date().toISOString()};
  }
  async orders(raw:Record<string,unknown>={},customerId?:string){
-  const f=parsePage(raw),r=await this.db.query(`WITH filtered AS(SELECT id,status,payment_status,contact_name,city,province,total_idr::text,created_at,expires_at,payment_method
+  const f=parsePage(raw),r=await this.db.query(`WITH filtered AS(SELECT id,status,payment_status,contact_name,city,province,total_idr::text,discount_idr::text,voucher_code,created_at,expires_at,payment_method
    FROM product.orders WHERE idempotency_key IS NOT NULL AND ($1::uuid IS NULL OR customer_user_id=$1)
    AND ($2='' OR strpos(lower(concat_ws(' ',id::text,contact_name,city)),lower($2))>0)
    AND ($3='' OR status=$3 OR payment_status=$3)),s AS(SELECT * FROM filtered ORDER BY created_at DESC,id DESC LIMIT $4 OFFSET $5)
    SELECT jsonb_build_object('items',coalesce((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.created_at DESC,s.id DESC) FROM s),'[]'::jsonb),'total',(SELECT count(*)::int FROM filtered)) data`,[customerId||null,f.q,f.status,f.pageSize,(f.page-1)*f.pageSize]);const d=r.rows[0].data;return {...pageResult(d.items,d.total,f.page,f.pageSize),paymentEnabled:false};
  }
  async orderDetail(id:string){
-  requireUuid(id,'pesanan');const order=(await this.db.query('SELECT id,status,payment_status,contact_name,contact_email,contact_phone,address_line,city,province,postal_code,subtotal_idr::text,shipping_fee_idr::text,total_idr::text,payment_method,shipping_courier_code,shipping_service_code,created_at,expires_at FROM product.orders WHERE id=$1',[id])).rows[0];if(!order)throw new NotFoundException();
+  requireUuid(id,'pesanan');const order=(await this.db.query('SELECT id,status,payment_status,contact_name,contact_email,contact_phone,address_line,city,province,postal_code,subtotal_idr::text,discount_idr::text,voucher_code,shipping_fee_idr::text,total_idr::text,payment_method,shipping_courier_code,shipping_service_code,created_at,expires_at FROM product.orders WHERE id=$1',[id])).rows[0];if(!order)throw new NotFoundException();
   const lines=await this.db.query('SELECT id,product_id,product_name,sku,quantity,unit_price_idr::text,brand_id FROM product.order_items WHERE order_id=$1 ORDER BY id',[id]);return {order,items:lines.rows,paymentEnabled:false};
  }
 }
