@@ -9,7 +9,7 @@ type LedgerRow={
  id:string;createdAt:string;paymentStatus:string;orderStatus:string;campaignId:string|null;
  campaignTitle:string|null;voucherCode:string|null;subtotalIdr:string;voucherDiscountIdr:string;
  promotionDiscountIdr:string;discountIdr:string;shippingFeeIdr:string;totalIdr:string;
- discountDeltaIdr:string;totalDeltaIdr:string;
+ discountDeltaIdr:string;totalDeltaIdr:string;lineDeltaIdr:string;paymentUnverified:boolean;paymentVerified:boolean;
 };
 const money=(v:unknown)=>BigInt(String(v??'0'));
 const num=(v:unknown)=>Number(v||0);
@@ -38,6 +38,8 @@ function queryFilter(raw:Record<string,unknown>,allowPaging=false):Filter{
  if(id!==null&&(typeof id!=='string'||!uuid.test(id)))throw new BadRequestException('Campaign ID tidak valid');
  return {from:from.day,to:to.day,start:new Date(from.ms).toISOString(),exclusiveEnd:new Date(to.ms+DAY).toISOString(),campaignId:id};
 }
+const VERIFIED="(o.status='paid' AND o.payment_status='paid' AND nullif(o.payment_provider,'') IS NOT NULL AND nullif(o.payment_reference,'') IS NOT NULL)";
+const LINE_TOTAL="(SELECT coalesce(sum(oi.unit_price_idr::numeric*oi.quantity),0) FROM product.order_items oi WHERE oi.order_id=o.id)";
 const SCOPE="o.idempotency_key IS NOT NULL AND (o.promotion_event_id IS NOT NULL OR o.voucher_id IS NOT NULL)"+
  " AND o.created_at >= $1::timestamptz AND o.created_at < $2::timestamptz"+
  " AND ($3::uuid IS NULL OR o.promotion_event_id=$3)";
@@ -45,35 +47,38 @@ const ISSUE="(o.discount_idr<>o.voucher_discount_idr+o.promotion_discount_idr"+
  " OR o.discount_idr>o.subtotal_idr"+
  " OR o.total_idr<>o.subtotal_idr-o.discount_idr+o.shipping_fee_idr"+
  " OR (o.promotion_discount_idr>0 AND o.promotion_event_id IS NULL)"+
- " OR (o.voucher_discount_idr>0 AND o.voucher_id IS NULL))";
+ " OR (o.voucher_discount_idr>0 AND o.voucher_id IS NULL)"+
+ " OR o.subtotal_idr<>"+LINE_TOTAL+
+ " OR (o.payment_status='paid' AND NOT "+VERIFIED+"))";
 const DAILY=[
  "SELECT to_char(o.created_at AT TIME ZONE 'Asia/Jakarta','YYYY-MM-DD') AS day,",
  "count(*)::int applied_orders,",
- "count(*) FILTER(WHERE o.payment_status='paid')::int paid_orders,",
+ "count(*) FILTER(WHERE "+VERIFIED+")::int paid_orders,",
  "count(*) FILTER(WHERE o.payment_status='pending')::int pending_orders,",
  "count(*) FILTER(WHERE o.payment_status='refunded')::int refunded_orders,",
- "count(*) FILTER(WHERE o.payment_status='paid' AND o.promotion_event_id IS NOT NULL)::int paid_campaign_orders,",
- "count(*) FILTER(WHERE o.payment_status='paid' AND o.voucher_id IS NOT NULL)::int paid_voucher_orders,",
- "count(*) FILTER(WHERE o.payment_status='paid' AND o.promotion_event_id IS NOT NULL AND o.voucher_id IS NOT NULL)::int stacked_paid_orders,",
- "coalesce(sum(o.subtotal_idr) FILTER(WHERE o.payment_status='paid'),0)::text paid_gmv_idr,",
- "coalesce(sum(o.voucher_discount_idr) FILTER(WHERE o.payment_status='paid'),0)::text voucher_discount_idr,",
- "coalesce(sum(o.promotion_discount_idr) FILTER(WHERE o.payment_status='paid'),0)::text promotion_discount_idr,",
- "coalesce(sum(o.shipping_fee_idr) FILTER(WHERE o.payment_status='paid'),0)::text paid_shipping_idr,",
- "coalesce(sum(o.total_idr) FILTER(WHERE o.payment_status='paid'),0)::text paid_total_idr,",
- "count(*) FILTER(WHERE "+ISSUE+")::int anomalies",
+ "count(*) FILTER(WHERE "+VERIFIED+" AND o.promotion_event_id IS NOT NULL)::int paid_campaign_orders,",
+ "count(*) FILTER(WHERE "+VERIFIED+" AND o.voucher_id IS NOT NULL)::int paid_voucher_orders,",
+ "count(*) FILTER(WHERE "+VERIFIED+" AND o.promotion_event_id IS NOT NULL AND o.voucher_id IS NOT NULL)::int stacked_paid_orders,",
+ "coalesce(sum(o.subtotal_idr) FILTER(WHERE "+VERIFIED+"),0)::text paid_gmv_idr,",
+ "coalesce(sum(o.voucher_discount_idr) FILTER(WHERE "+VERIFIED+"),0)::text voucher_discount_idr,",
+ "coalesce(sum(o.promotion_discount_idr) FILTER(WHERE "+VERIFIED+"),0)::text promotion_discount_idr,",
+ "coalesce(sum(o.shipping_fee_idr) FILTER(WHERE "+VERIFIED+"),0)::text paid_shipping_idr,",
+ "coalesce(sum(o.total_idr) FILTER(WHERE "+VERIFIED+"),0)::text paid_total_idr,",
+ "count(*) FILTER(WHERE "+ISSUE+")::int anomalies,",
+ "count(*) FILTER(WHERE o.payment_status='paid' AND NOT "+VERIFIED+")::int unverified_paid_orders",
  "FROM product.orders o WHERE "+SCOPE,
  "GROUP BY 1 ORDER BY 1"
 ].join(' ');
 const CAMPAIGNS=[
  "WITH order_usage AS (SELECT o.promotion_event_id id,",
  "count(*)::int applied_orders,",
- "count(*) FILTER(WHERE o.payment_status='paid')::int paid_orders,",
+ "count(*) FILTER(WHERE "+VERIFIED+")::int paid_orders,",
  "count(*) FILTER(WHERE o.payment_status='pending')::int pending_orders,",
  "count(*) FILTER(WHERE o.payment_status='refunded')::int refunded_orders,",
- "count(*) FILTER(WHERE o.payment_status='paid' AND o.voucher_id IS NOT NULL)::int stacked_paid_orders,",
- "coalesce(sum(o.subtotal_idr) FILTER(WHERE o.payment_status='paid'),0)::text paid_gmv_idr,",
- "coalesce(sum(o.promotion_discount_idr) FILTER(WHERE o.payment_status='paid'),0)::text promotion_discount_idr,",
- "coalesce(sum(o.voucher_discount_idr) FILTER(WHERE o.payment_status='paid'),0)::text stacked_voucher_discount_idr",
+ "count(*) FILTER(WHERE "+VERIFIED+" AND o.voucher_id IS NOT NULL)::int stacked_paid_orders,",
+ "coalesce(sum(o.subtotal_idr) FILTER(WHERE "+VERIFIED+"),0)::text paid_gmv_idr,",
+ "coalesce(sum(o.promotion_discount_idr) FILTER(WHERE "+VERIFIED+"),0)::text promotion_discount_idr,",
+ "coalesce(sum(o.voucher_discount_idr) FILTER(WHERE "+VERIFIED+"),0)::text stacked_voucher_discount_idr",
  "FROM product.orders o WHERE "+SCOPE+" AND o.promotion_event_id IS NOT NULL GROUP BY o.promotion_event_id)",
  "SELECT e.id,e.title,e.slug,e.status,e.starts_at,e.ends_at,e.member_only,",
  "coalesce(u.applied_orders,0) applied_orders,coalesce(u.paid_orders,0) paid_orders,",
@@ -88,9 +93,9 @@ const CAMPAIGNS=[
 ].join(' ');
 const SEGMENTS=[
  "SELECT CASE WHEN m.status='ACTIVE' THEN 'active_now' ELSE 'other_or_unknown' END segment,",
- "count(*) FILTER(WHERE o.payment_status='paid')::int paid_orders,",
- "coalesce(sum(o.subtotal_idr) FILTER(WHERE o.payment_status='paid'),0)::text paid_gmv_idr,",
- "coalesce(sum(o.promotion_discount_idr+o.voucher_discount_idr) FILTER(WHERE o.payment_status='paid'),0)::text paid_discount_idr",
+ "count(*) FILTER(WHERE "+VERIFIED+")::int paid_orders,",
+ "coalesce(sum(o.subtotal_idr) FILTER(WHERE "+VERIFIED+"),0)::text paid_gmv_idr,",
+ "coalesce(sum(o.promotion_discount_idr+o.voucher_discount_idr) FILTER(WHERE "+VERIFIED+"),0)::text paid_discount_idr",
  "FROM product.orders o LEFT JOIN membership.accounts m ON m.user_id=o.customer_user_id",
  "WHERE "+SCOPE+" GROUP BY 1 ORDER BY segment"
 ].join(' ');
@@ -110,7 +115,7 @@ const BREAKDOWN=[
  "JOIN product.categories c ON c.id=pc.category_id",
  "WHERE pc.product_id=coalesce(p.parent_product_id,oi.product_id)",
  "ORDER BY c.slug,c.id LIMIT 1) cat ON true",
- "WHERE "+SCOPE+" AND o.payment_status='paid')",
+ "WHERE "+SCOPE+" AND "+VERIFIED+")",
  ",allocated AS (SELECT *,",
  "coalesce(floor(voucher_discount*running/nullif(lines_total,0))-floor(voucher_discount*(running-gross)/nullif(lines_total,0)),0)::bigint voucher_alloc,",
  "coalesce(floor(promotion_discount*running/nullif(lines_total,0))-floor(promotion_discount*(running-gross)/nullif(lines_total,0)),0)::bigint promotion_alloc",
@@ -134,7 +139,9 @@ const BREAKDOWN=[
 const ANOMALIES=[
  "SELECT o.id,o.created_at,o.payment_status,",
  "(o.discount_idr-o.voucher_discount_idr-o.promotion_discount_idr)::text discount_delta_idr,",
- "(o.total_idr-(o.subtotal_idr-o.discount_idr+o.shipping_fee_idr))::text total_delta_idr",
+ "(o.total_idr-(o.subtotal_idr-o.discount_idr+o.shipping_fee_idr))::text total_delta_idr,",
+ " (o.subtotal_idr-"+LINE_TOTAL+")::text line_delta_idr,",
+ " (o.payment_status='paid' AND NOT "+VERIFIED+") payment_unverified",
  "FROM product.orders o WHERE "+SCOPE+" AND "+ISSUE,
  "ORDER BY o.created_at DESC,o.id DESC LIMIT 25"
 ].join(' ');
@@ -145,7 +152,10 @@ const LEDGER_BASE=[
  "o.promotion_discount_idr::text promotion_discount_idr,o.discount_idr::text discount_idr,",
  "o.shipping_fee_idr::text shipping_fee_idr,o.total_idr::text total_idr,",
  "(o.discount_idr-o.voucher_discount_idr-o.promotion_discount_idr)::text discount_delta_idr,",
- "(o.total_idr-(o.subtotal_idr-o.discount_idr+o.shipping_fee_idr))::text total_delta_idr",
+ "(o.total_idr-(o.subtotal_idr-o.discount_idr+o.shipping_fee_idr))::text total_delta_idr,",
+ " (o.subtotal_idr-"+LINE_TOTAL+")::text line_delta_idr,",
+ " (o.payment_status='paid' AND NOT "+VERIFIED+") payment_unverified,",
+ " "+VERIFIED+" payment_verified",
  "FROM product.orders o WHERE "+SCOPE
 ].join(' ');
 const LEDGER_SORT=" ORDER BY o.created_at DESC,o.id DESC";
@@ -155,7 +165,7 @@ function mapLedger(r:any):LedgerRow{return {
  subtotalIdr:String(r.subtotal_idr),voucherDiscountIdr:String(r.voucher_discount_idr),
  promotionDiscountIdr:String(r.promotion_discount_idr),discountIdr:String(r.discount_idr),
  shippingFeeIdr:String(r.shipping_fee_idr),totalIdr:String(r.total_idr),
- discountDeltaIdr:String(r.discount_delta_idr),totalDeltaIdr:String(r.total_delta_idr)
+ discountDeltaIdr:String(r.discount_delta_idr),totalDeltaIdr:String(r.total_delta_idr),lineDeltaIdr:String(r.line_delta_idr),paymentUnverified:Boolean(r.payment_unverified),paymentVerified:Boolean(r.payment_verified)
 };}
 function csvField(value:unknown){
  let s=value===null||value===undefined?'':String(value);
@@ -183,12 +193,15 @@ export class PromotionAnalyticsService {
  constructor(private readonly db:DatabaseService){}
  async overview(raw:Record<string,unknown>={}){
   const f=queryFilter(raw),params=[f.start,f.exclusiveEnd,f.campaignId];
-  const [days,campaigns,segments,breakdown,anomalies]=await Promise.all([
-   this.db.query(DAILY,params),this.db.query(CAMPAIGNS,params),this.db.query(SEGMENTS,params),
-   this.db.query(BREAKDOWN,params),this.db.query(ANOMALIES,params)
-  ]);
+  const [days,campaigns,segments,breakdown,anomalies]=await this.db.transaction(async client=>{
+   await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
+   return Promise.all([
+    client.query(DAILY,params),client.query(CAMPAIGNS,params),client.query(SEGMENTS,params),
+    client.query(BREAKDOWN,params),client.query(ANOMALIES,params)
+   ]);
+  });
   const totals={appliedOrders:0,paidOrders:0,pendingOrders:0,refundedOrders:0,
-   paidCampaignOrders:0,paidVoucherOrders:0,stackedPaidOrders:0,anomalyOrders:0,
+   paidCampaignOrders:0,paidVoucherOrders:0,stackedPaidOrders:0,anomalyOrders:0,unverifiedPaidOrders:0,
    paidGmvIdr:0n,voucherDiscountIdr:0n,promotionDiscountIdr:0n,paidShippingIdr:0n,paidTotalIdr:0n};
   const byDay=new Map<string,any>();
   for(const r of days.rows){
@@ -196,7 +209,7 @@ export class PromotionAnalyticsService {
    totals.appliedOrders+=num(r.applied_orders);totals.paidOrders+=num(r.paid_orders);
    totals.pendingOrders+=num(r.pending_orders);totals.refundedOrders+=num(r.refunded_orders);
    totals.paidCampaignOrders+=num(r.paid_campaign_orders);totals.paidVoucherOrders+=num(r.paid_voucher_orders);
-   totals.stackedPaidOrders+=num(r.stacked_paid_orders);totals.anomalyOrders+=num(r.anomalies);
+   totals.stackedPaidOrders+=num(r.stacked_paid_orders);totals.anomalyOrders+=num(r.anomalies);totals.unverifiedPaidOrders+=num(r.unverified_paid_orders);
    totals.paidGmvIdr+=money(r.paid_gmv_idr);totals.voucherDiscountIdr+=money(r.voucher_discount_idr);
    totals.promotionDiscountIdr+=money(r.promotion_discount_idr);
    totals.paidShippingIdr+=money(r.paid_shipping_idr);totals.paidTotalIdr+=money(r.paid_total_idr);
@@ -233,12 +246,12 @@ export class PromotionAnalyticsService {
    segments:segmentsOut,products:breakdown.rows.filter(r=>r.kind==='product').map(r=>({id:r.item_key,name:r.item_label,units:String(r.units),paidGmvIdr:String(r.paid_gmv_idr),voucherDiscountIdr:String(r.voucher_discount_idr),promotionDiscountIdr:String(r.promotion_discount_idr)})),
    categories:breakdown.rows.filter(r=>r.kind==='category').map(r=>({id:r.item_key,name:r.item_label,units:String(r.units),paidGmvIdr:String(r.paid_gmv_idr),voucherDiscountIdr:String(r.voucher_discount_idr),promotionDiscountIdr:String(r.promotion_discount_idr)})),
    anomalies:anomalies.rows.map(r=>({orderId:r.id,createdAt:new Date(r.created_at).toISOString(),paymentStatus:r.payment_status,
-    discountDeltaIdr:r.discount_delta_idr,totalDeltaIdr:r.total_delta_idr})),
+    discountDeltaIdr:r.discount_delta_idr,totalDeltaIdr:r.total_delta_idr,lineDeltaIdr:r.line_delta_idr,paymentUnverified:Boolean(r.payment_unverified)})),
    definitions:{
     dateGrain:'Tanggal order dibuat, zona Asia/Jakarta; akhir periode inklusif.',
-    revenue:'GMV = subtotal barang dari order dengan payment_status paid. Tidak termasuk ongkir.',
-    discount:'Biaya diskon hanya pada order paid; voucher dan campaign dihitung terpisah dari snapshot order.',
-    paidRate:'Paid orders / attributed orders, bukan conversion dari traffic atau dampak incremental.',
+    revenue:'GMV = subtotal barang dari order paid dengan status order paid dan bukti provider/reference. Tidak termasuk ongkir.',
+    discount:'Biaya diskon hanya pada order pembayaran terverifikasi; voucher dan campaign dihitung terpisah dari snapshot order.',
+    paidRate:'Verified paid orders / attributed orders, bukan conversion dari traffic atau dampak incremental.',
     membership:'Segmen ACTIVE memakai status membership saat laporan dibuka, bukan snapshot saat checkout.',
     categories:'Kategori utama dari katalog saat laporan dibuka; histori kategori tidak disimpan saat order.',
     refunds:'Refunded ditampilkan sebagai status; tidak ada ledger dana refund untuk mengklaim net cashflow.',
@@ -265,13 +278,13 @@ export class PromotionAnalyticsService {
    if(r.rows.length>10000)throw new ConflictException('Lebih dari 10.000 order. Persempit rentang tanggal atau pilih satu campaign untuk ekspor.');
    const cols=['Tanggal dibuat (WIB)','Order ID','Payment status','Order status','Campaign ID','Campaign title','Voucher code',
     'Subtotal IDR','Voucher discount IDR','Promotion discount IDR','Total discount IDR','Shipping IDR','Order total IDR',
-    'Discount delta IDR','Total delta IDR','Paid recognized'];
+    'Discount delta IDR','Total delta IDR','Line delta IDR','Unverified paid flag','Payment verified'];
    const lines=[cols.map(csvField).join(',')];
    for(const rawRow of r.rows){
     const x=mapLedger(rawRow),wib=new Date(Date.parse(x.createdAt)+7*3600000).toISOString().replace('T',' ').slice(0,19);
     const values=[wib,x.id,x.paymentStatus,x.orderStatus,x.campaignId,x.campaignTitle,x.voucherCode,
      x.subtotalIdr,x.voucherDiscountIdr,x.promotionDiscountIdr,x.discountIdr,x.shippingFeeIdr,x.totalIdr,
-     x.discountDeltaIdr,x.totalDeltaIdr,x.paymentStatus==='paid'?'yes':'no'];
+     x.discountDeltaIdr,x.totalDeltaIdr,x.lineDeltaIdr,x.paymentUnverified?'yes':'no',x.paymentVerified?'yes':'no'];
     lines.push(values.map(csvField).join(','));
    }
    return '\uFEFF'+lines.join('\r\n')+'\r\n';
