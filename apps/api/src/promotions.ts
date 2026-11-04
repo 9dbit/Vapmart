@@ -176,10 +176,11 @@ export class PromotionAdminService{
   if(Object.keys(x).some(k=>!allowed.includes(k)))throw new BadRequestException('Kolom campaign tidak dikenali');
   const data=shape(x);
   try{return await this.db.transaction(async client=>{
-   await validateTargets(client,data);
+   const q:Query=(sql,params)=>client.query(sql,params);
+   await validateTargets(q,data);
    const r=await client.query('INSERT INTO promotion.events(slug,title,description,starts_at,ends_at,status,member_only,discount_type,discount_value,minimum_spend_idr,max_uses_per_user,auto_apply,stacking_rule,scope_mode,max_discount_idr,priority,created_by,updated_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$17) RETURNING *',
     [data.slug,data.title,data.description,data.starts_at,data.ends_at,data.status,data.member_only,data.discount_type,data.discount_value,data.minimum_spend_idr,data.max_uses_per_user,data.auto_apply,data.stacking_rule,data.scope_mode,data.max_discount_idr,data.priority,who]);
-   const row=r.rows[0];await saveTargets(client,row.id,data);const targets=await targetSnapshot(client,row.id);const after={...row,...targets};await audit(client,who,row.id,'create',null,after);
+   const row=r.rows[0];await saveTargets(q,row.id,data);const targets=await targetSnapshot(q,row.id);const after={...row,...targets};await audit(client,who,row.id,'create',null,after);
    return mapRow({...row,...targets,used_paid:0,lifecycle:lifecycle(row)});
   });}catch(e:any){if(e?.code==='23505')throw new ConflictException('Slug campaign sudah digunakan');throw e;}
  }
@@ -190,9 +191,10 @@ export class PromotionAdminService{
   if(Object.keys(x).some(k=>!allowed.includes(k)))throw new BadRequestException('Kolom campaign tidak dikenali');
   const expected=integer(x.expectedVersion,'Versi campaign',1,2_000_000_000);
   try{return await this.db.transaction(async client=>{
+   const q:Query=(sql,params)=>client.query(sql,params);
    const current=await client.query('SELECT * FROM promotion.events WHERE id=$1 FOR UPDATE',[id]);const before=current.rows[0];
    if(!before)throw new NotFoundException('Campaign tidak ditemukan');assertVersion(Number(before.edit_version),expected);
-   const beforeTargets=await targetSnapshot(client,id);
+   const beforeTargets=await targetSnapshot(q,id);
    const data=shape(x,{
     slug:before.slug,title:before.title,description:before.description,starts_at:new Date(before.starts_at).toISOString(),ends_at:new Date(before.ends_at).toISOString(),
     status:before.status,member_only:before.member_only,discount_type:before.discount_type,discount_value:Number(before.discount_value),
@@ -200,10 +202,10 @@ export class PromotionAdminService{
     stacking_rule:before.stacking_rule,scope_mode:before.scope_mode,max_discount_idr:before.max_discount_idr===null?null:Number(before.max_discount_idr),
     priority:Number(before.priority),product_ids:beforeTargets.products.map(x=>x.id),category_ids:beforeTargets.categories.map(x=>x.id)
    });
-   await validateTargets(client,data);
+   await validateTargets(q,data);
    const r=await client.query('UPDATE promotion.events SET slug=$2,title=$3,description=$4,starts_at=$5,ends_at=$6,status=$7,member_only=$8,discount_type=$9,discount_value=$10,minimum_spend_idr=$11,max_uses_per_user=$12,auto_apply=$13,stacking_rule=$14,scope_mode=$15,max_discount_idr=$16,priority=$17,updated_by=$18,updated_at=now(),edit_version=edit_version+1 WHERE id=$1 RETURNING *',
     [id,data.slug,data.title,data.description,data.starts_at,data.ends_at,data.status,data.member_only,data.discount_type,data.discount_value,data.minimum_spend_idr,data.max_uses_per_user,data.auto_apply,data.stacking_rule,data.scope_mode,data.max_discount_idr,data.priority,who]);
-   const afterRow=r.rows[0];await saveTargets(client,id,data);const afterTargets=await targetSnapshot(client,id);
+   const afterRow=r.rows[0];await saveTargets(q,id,data);const afterTargets=await targetSnapshot(q,id);
    const action=before.status!==afterRow.status?(afterRow.status==='published'?'publish':afterRow.status==='archived'?'archive':'unpublish'):'update';
    await audit(client,who,id,action,{...before,...beforeTargets},{...afterRow,...afterTargets});
    const usage=await client.query("SELECT count(*)::int n FROM product.orders WHERE promotion_event_id=$1 AND payment_status='paid'",[id]);
