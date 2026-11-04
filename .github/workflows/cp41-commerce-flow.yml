@@ -50,7 +50,10 @@ jobs:
         run: |
           mkdir -p artifacts/cp41
           git rev-parse HEAD | tee artifacts/cp41/verified-source.txt
-          test "$(git grep -n "PAYMENT_MODE.*enabled" -- ':!artifacts' | wc -l)" -eq 0
+          test "$PAYMENT_MODE" = "disabled"
+          test "$CHECKOUT_ENABLED" = "false"
+          test "$SHIPPING_RATE_LOOKUP_ENABLED" = "false"
+          test "$BITESHIP_WEBHOOK_ENABLED" = "false"
           test "$(git grep -n "bookingEnabled:true" -- apps 2>/dev/null | wc -l)" -eq 0
       - name: Clean installs, API build and unit tests
         run: |
