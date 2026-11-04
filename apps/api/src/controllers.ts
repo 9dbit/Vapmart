@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Header, HttpCode, Param, Patch, Post, Query, Req, ServiceUnavailableException, StreamableFile, UseGuards } from '@nestjs/common';
-import { AdminGuard,CustomerGuard,type Principal } from './auth';
+import { AdminGuard,CustomerGuard,SupabaseAuthService,type Principal } from './auth';
 import {BrandsService} from './brands';
 import {MediaService} from './media';
 import {CheckoutService} from './checkout';
@@ -81,12 +81,12 @@ export class MediaController{
 }
 @Controller('v1/checkout')
 export class CheckoutController{
- constructor(private readonly checkout:CheckoutService){}
+ constructor(private readonly checkout:CheckoutService,private readonly auth:SupabaseAuthService){}
  @Get('config')
  config(){return this.checkout.config();}
  @Post('quote')
  @HttpCode(200)
- quote(@Body() body:unknown){return this.checkout.quote(body);}
+ async quote(@Req() req:{headers:{authorization?:string}},@Body() body:unknown){const user=req.headers.authorization?await this.auth.verify(req.headers.authorization):null;return this.checkout.quote(body,user);}
  @Post('orders')
  @UseGuards(CustomerGuard)
  createDraft(@Req() req:{user:Principal},@Body() body:unknown){return this.checkout.createDraft(req.user,body);}
