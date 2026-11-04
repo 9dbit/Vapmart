@@ -114,6 +114,8 @@ export default function AdminPage(){
   return()=>window.removeEventListener('popstate',sync);
  },[]);
  function navigate(section:AdminSection){
+  if(section==='products'){router.push('/admin/products');return;}
+  if(section==='orders'){router.push('/admin/orders');return;}
   if(section==='media'){router.push('/admin/media');return;}
   if(section==='vouchers'){router.push('/admin/vouchers');return;}
   setTab(section);
@@ -129,12 +131,9 @@ export default function AdminPage(){
  const editingProductRecord=products.find(p=>p.id===editingProduct);
  function setP<K extends keyof ProductDraft>(key:K,value:ProductDraft[K]){setProductDraft(p=>({...p,[key]:value}));}
  function setB<K extends keyof BrandDraft>(key:K,value:BrandDraft[K]){setBrandDraft(b=>({...b,[key]:value}));}
- function newProduct(){setEditingProduct(null);setProductDraft({...blankProduct,gallery_urls:[]});navigate('products');setMessage('');}
- function editProduct(p:Product){
-  setProductVersion(p.edit_version??null);setEditingProduct(p.id);setProductDraft({name:p.name,slug:p.slug,sku:p.sku||'',description:p.description,
-   category:p.category,price_idr:String(p.price_idr),stock_qty:String(p.stock_qty),weight_grams:p.weight_grams?String(p.weight_grams):'',length_cm:p.length_cm?String(p.length_cm):'',width_cm:p.width_cm?String(p.width_cm):'',height_cm:p.height_cm?String(p.height_cm):'',brand_id:p.brand_id||'',image_url:p.image_url||'',
-   gallery_urls:[...(p.gallery_urls||[])],is_active:p.is_active});navigate('products');window.requestAnimationFrame(()=>document.querySelector('.vma26-editor')?.scrollIntoView({behavior:'smooth',block:'start'}));
- }
+ function newProduct(){router.push('/admin/products/new');}
+ function editProduct(p:Product){router.push('/admin/products/'+p.id);}
+
  function newBrand(){setEditingBrand(null);setBrandDraft({...blankBrand});navigate('brands');setMessage('');}
  function editBrand(b:Brand){setBrandVersion(b.edit_version??null);setEditingBrand(b.id);setBrandDraft({name:b.name,slug:b.slug,description:b.description,logo_url:b.logo_url||'',is_active:b.is_active});navigate('brands');}
  async function send(path:string,method:'POST'|'PATCH',payload:Record<string,unknown>){
@@ -158,12 +157,8 @@ export default function AdminPage(){
   }catch(error){setMessage(error instanceof Error?error.message:'Tidak dapat menyimpan produk');}
   finally{setBusy(false);}
  }
- async function publish(p:Product){
-  if(!window.confirm(p.is_active?'Sembunyikan produk ini dari storefront?':'Publikasikan produk ini? Pastikan foto, SKU, berat, dan stok sudah terverifikasi.'))return;
-  setBusy(true);setMessage('');
-  try{await send('/api/admin/products/'+p.id,'PATCH',{is_active:!p.is_active,expected_version:p.edit_version});await refreshData();setMessage('Status publikasi produk diperbarui.');}
-  catch(error){setMessage(error instanceof Error?error.message:'Publikasi gagal');}finally{setBusy(false);}
- }
+ async function publish(p:Product){router.push('/admin/products/'+p.id);}
+
  async function saveBrand(event:FormEvent<HTMLFormElement>){
   event.preventDefault();setBusy(true);setMessage('');
   try{
