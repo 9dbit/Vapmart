@@ -26,14 +26,14 @@ try{
  for(let i=0;i<45;i++){try{if((await fetch(BASE+'/api/health',{signal:AbortSignal.timeout(1000)})).ok)break}catch{}await new Promise(r=>setTimeout(r,1000));}
  await page.goto(BASE+'/admin/products/new');await page.getByLabel('Nama produk',{exact:true}).fill('Tas kain CP40 browser');
  await page.getByLabel('Slug',{exact:true}).fill('tas-kain-cp40-browser');await page.getByLabel('SKU',{exact:true}).fill('CP40-UI-BAG');
- await page.getByLabel('Deskripsi',{exact:true}).fill(privateNote);await page.getByLabel('Harga normal',{exact:true}).fill('0');
+ await page.locator('label').filter({hasText:/^Deskripsi/}).locator('textarea').first().fill(privateNote);await page.getByLabel('Harga normal',{exact:true}).fill('0');
  await page.getByLabel('Upload gambar utama dan pendukung',{exact:true}).setInputFiles(OUT+'/accessory.png');await page.locator('.vc-photo img').first().waitFor();
  for(const [label,value] of [['Berat (gram)','100'],['Panjang (cm)','20'],['Lebar (cm)','10'],['Tinggi (cm)','5']])await page.getByLabel(label,{exact:true}).fill(value);
  await page.getByLabel('Stok Gudang Uji A',{exact:true}).fill('2');await page.getByLabel('Catatan stok Gudang Uji A',{exact:true}).fill('CP40 disposable accessory receipt');
  await page.getByRole('button',{name:'Simpan draft',exact:true}).click();await page.waitForURL(u=>/^\/admin\/products\/[a-f0-9-]{36}$/.test(u.pathname));
  await page.getByRole('button',{name:'Simpan perubahan',exact:true}).waitFor();const id=new URL(page.url()).pathname.split('/').at(-1);
  await page.reload();await page.getByRole('button',{name:'Simpan perubahan',exact:true}).waitFor();
- assert.equal(await page.getByLabel('Deskripsi',{exact:true}).inputValue(),privateNote);assert.equal(await page.getByLabel('Harga normal',{exact:true}).inputValue(),'0');
+ assert.equal(await page.locator('label').filter({hasText:/^Deskripsi/}).locator('textarea').first().inputValue(),privateNote);assert.equal(await page.getByLabel('Harga normal',{exact:true}).inputValue(),'0');
  assert.equal((await detail(id)).product.is_active,false);
  assert.equal((await fetch(BASE+'/api/products/tas-kain-cp40-browser')).status,404);
  await page.getByRole('button',{name:'Publikasikan',exact:true}).click();await page.getByRole('alert').filter({hasText:'Konten'}).first().waitFor();
@@ -41,11 +41,11 @@ try{
  await page.getByLabel('SKU',{exact:true}).fill('CP40-VAPE-NOTE');await save();
  await page.reload();await page.getByRole('button',{name:'Simpan perubahan',exact:true}).waitFor();assert.equal(await page.getByLabel('SKU',{exact:true}).inputValue(),'CP40-VAPE-NOTE');
  // Correct the private note for an ordinary accessory and verify the normal publish path.
- await page.getByLabel('SKU',{exact:true}).fill('CP40-UI-BAG');await page.getByLabel('Deskripsi',{exact:true}).fill('Tas kain untuk menyimpan aksesori perjalanan.');await page.getByLabel('Harga normal',{exact:true}).fill('25000');await save();
+ await page.getByLabel('SKU',{exact:true}).fill('CP40-UI-BAG');await page.locator('label').filter({hasText:/^Deskripsi/}).locator('textarea').first().fill('Tas kain untuk menyimpan aksesori perjalanan.');await page.getByLabel('Harga normal',{exact:true}).fill('25000');await save();
  await page.getByRole('button',{name:'Publikasikan',exact:true}).click();await page.getByRole('status').filter({hasText:'Produk dipublikasikan.'}).first().waitFor();assert.equal((await detail(id)).product.is_active,true);
  await page.getByRole('button',{name:'Nonaktifkan',exact:true}).click();await page.getByRole('status').filter({hasText:'Produk disembunyikan.'}).first().waitFor();
- await page.setViewportSize({width:390,height:844});await page.getByLabel('Deskripsi',{exact:true}).fill(privateNote);await page.getByLabel('Harga normal',{exact:true}).fill('0');await save();
- await page.reload();await page.getByRole('button',{name:'Simpan perubahan',exact:true}).waitFor();assert.equal(await page.getByLabel('Harga normal',{exact:true}).inputValue(),'0');assert.equal(await page.getByLabel('Deskripsi',{exact:true}).inputValue(),privateNote);const mobile=await shot('draft-mobile');
+ await page.setViewportSize({width:390,height:844});await page.locator('label').filter({hasText:/^Deskripsi/}).locator('textarea').first().fill(privateNote);await page.getByLabel('Harga normal',{exact:true}).fill('0');await save();
+ await page.reload();await page.getByRole('button',{name:'Simpan perubahan',exact:true}).waitFor();assert.equal(await page.getByLabel('Harga normal',{exact:true}).inputValue(),'0');assert.equal(await page.locator('label').filter({hasText:/^Deskripsi/}).locator('textarea').first().inputValue(),privateNote);const mobile=await shot('draft-mobile');
  const final=await detail(id);assert.equal(final.product.is_active,false);assert.equal(final.product.price_idr,0);assert.deepEqual(errors,[]);
  await writeFile(OUT+'/browser-report.json',JSON.stringify({pass:true,realLocalPostgres:true,fixtureIdentity:true,productionWrites:false,zeroPriceDraft:true,upload:true,reloadPersistence:true,publicationDeniedUntilValidated:true,ordinaryAccessoryPublication:true,deactivation:true,mobile,runtimeErrors:errors},null,2));console.log('CP40_BROWSER_PASS',mobile);
 }catch(e){await page.screenshot({path:OUT+'/failure.png',fullPage:true}).catch(()=>{});await writeFile(OUT+'/failure.txt',String(e));throw e;}finally{await ctx.close();await browser.close();}
