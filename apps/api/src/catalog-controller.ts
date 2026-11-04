@@ -3,11 +3,12 @@ import {AdminGuard,CustomerGuard,type Principal} from './auth';
 import {CatalogWorkspaceService} from './catalog-workspace';
 import {CatalogImportService} from './catalog-import';
 import {CatalogReviewsService} from './catalog-reviews';
+import {VoucherAdminService} from './vouchers';
 type AuthRequest={user:Principal};
 @Controller('v1/admin/catalog')
 @UseGuards(AdminGuard)
 export class CatalogAdminController{
- constructor(private readonly catalog:CatalogWorkspaceService,private readonly imports:CatalogImportService,private readonly reviews:CatalogReviewsService){}
+ constructor(private readonly catalog:CatalogWorkspaceService,private readonly imports:CatalogImportService,private readonly reviews:CatalogReviewsService,private readonly vouchers:VoucherAdminService){}
  @Header('Cache-Control','private, no-store') @Get('lookups') lookups(){return this.catalog.lookups();}
  @Header('Cache-Control','private, no-store') @Get('products') products(@Query() q:Record<string,unknown>){return this.catalog.list(q);}
  @Header('Cache-Control','private, no-store') @Get('products/:id') product(@Param('id') id:string){return this.catalog.detail(id);}
@@ -24,6 +25,10 @@ export class CatalogAdminController{
  @Header('Cache-Control','private, no-store') @Post('imports/preview') preview(@Req() r:AuthRequest,@Body() b:unknown){return this.imports.preview(r.user,b);}
  @Header('Cache-Control','private, no-store') @Get('imports/:id') importReport(@Req() r:AuthRequest,@Param('id') id:string){return this.imports.get(r.user,id);}
  @Header('Cache-Control','private, no-store') @Post('imports/:id/apply') apply(@Req() r:AuthRequest,@Param('id') id:string,@Body() b:unknown){return this.imports.apply(r.user,id,b);}
+ @Header('Cache-Control','private, no-store') @Get('vouchers') voucherList(@Query() q:Record<string,unknown>){return this.vouchers.list(q);}
+ @Header('Cache-Control','private, no-store') @Get('vouchers/:id') voucher(@Param('id') id:string){return this.vouchers.detail(id);}
+ @Header('Cache-Control','private, no-store') @Post('vouchers') voucherCreate(@Req() r:AuthRequest,@Body() b:unknown){return this.vouchers.create(r.user,b);}
+ @Header('Cache-Control','private, no-store') @Patch('vouchers/:id') voucherUpdate(@Req() r:AuthRequest,@Param('id') id:string,@Body() b:unknown){return this.vouchers.update(r.user,id,b);}
  @Header('Cache-Control','private, no-store') @Get('orders') orders(@Query() q:Record<string,unknown>){return this.catalog.orders(q);}
  @Header('Cache-Control','private, no-store') @Get('orders/:id') order(@Param('id') id:string){return this.catalog.orderDetail(id);}
 }
