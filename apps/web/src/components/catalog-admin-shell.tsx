@@ -30,7 +30,7 @@ export function CatalogAdminShell({children,section='products'}:{children:ReactN
   <Context.Provider value={{request,upload}}><div className="vc-root" data-engine="cp39">
    <header className="vc-heading"><div><small>VAPMART / CATALOG & OPERATIONS</small><h1>{section==='products'?'Produk & SKU':section==='orders'?'Pesanan':'Voucher & Promo'}</h1><p>{section==='products'?'Kelola produk, harga, variasi dan stok dari satu workspace.':section==='orders'?'Data pesanan dan pembayaran dari server. Tidak ada penandaan lunas manual.':'Kelola voucher dan campaign promo terjadwal tanpa mengaktifkan payment gateway.'}</p></div><Link href="/" className="vc-button">Lihat website</Link></header>
    {section==='products'&&<nav className="vc-nav" aria-label="Halaman produk">{[['/admin/products','Semua Produk'],['/admin/products/new','Tambah Produk'],['/admin/products/categories','Kategori Produk'],['/admin/products/reviews','Review Pembeli']].map(([href,label])=><Link key={href} href={href} aria-current={path===href?'page':undefined}>{label}</Link>)}</nav>}
-   {section==='vouchers'&&<nav className="vc-nav" aria-label="Voucher dan campaign">{[['/admin/vouchers','Voucher'],['/admin/promotions','Campaign']].map(([href,label])=><Link key={href} href={href} aria-current={path===href?'page':undefined}>{label}</Link>)}</nav>}
+   {section==='vouchers'&&<nav className="vc-nav" aria-label="Voucher dan campaign">{[['/admin/vouchers','Voucher'],['/admin/promotions','Campaign'],['/admin/promotions/analytics','Analytics']].map(([href,label])=><Link key={href} href={href} aria-current={path===href?'page':undefined}>{label}</Link>)}</nav>}
    {children}
   </div></Context.Provider>
  </AdminWorkspace>;
