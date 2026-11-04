@@ -5,7 +5,7 @@ import {useRouter} from 'next/navigation';
 import {AdminBrandLogo} from '@/components/admin-brand-logo';
 import '../app/admin-v27.css';
 
-export type AdminSection='overview'|'products'|'warehouses'|'brands'|'orders'|'fulfillment'|'courier'|'shipping'|'media';
+export type AdminSection='overview'|'products'|'warehouses'|'brands'|'orders'|'vouchers'|'fulfillment'|'courier'|'shipping'|'media';
 const sections:{key:AdminSection;name:string;symbol:string;hint?:string}[]=[
  {key:'overview',name:'Ringkasan',symbol:'▦'},
  {key:'products',name:'Produk & SKU',symbol:'◫'},
@@ -13,13 +13,14 @@ const sections:{key:AdminSection;name:string;symbol:string;hint?:string}[]=[
  {key:'brands',name:'Brand & Akses',symbol:'◇'},
  {key:'warehouses',name:'Gudang & Stok',symbol:'▤'},
  {key:'orders',name:'Pesanan',symbol:'≡'},
+ {key:'vouchers',name:'Voucher & Promo',symbol:'%'}, 
  {key:'fulfillment',name:'Fulfillment',symbol:'◎'},
  {key:'courier',name:'Courier Ops',symbol:'⇥'},
  {key:'shipping',name:'Pengiriman',symbol:'⌁'}
 ];
 export const adminTitles:Record<AdminSection,string>={
  overview:'Dashboard',products:'Produk & SKU',media:'Media & Aset',brands:'Brand & Akses',
- warehouses:'Gudang & Stok',orders:'Pesanan',fulfillment:'Fulfillment',
+ warehouses:'Gudang & Stok',orders:'Pesanan',vouchers:'Voucher & Promo',fulfillment:'Fulfillment',
  courier:'Courier Ops',shipping:'Pengiriman'
 };
 export const adminDescriptions:Record<AdminSection,string>={
@@ -29,6 +30,7 @@ export const adminDescriptions:Record<AdminSection,string>={
  brands:'Kelola identitas brand dan hak akses mitra.',
  warehouses:'Lacak stok fisik, reservasi, dan pergerakan antar lokasi.',
  orders:'Pantau pesanan dan status pembayaran yang terverifikasi.',
+ vouchers:'Buat, jadwalkan, aktifkan, dan pantau penggunaan voucher checkout.',
  fulfillment:'Tindak lanjuti picking, packing, dan persiapan pengiriman.',
  courier:'Siapkan manifest dan tinjau tracking serta retur.',
  shipping:'Konfigurasi pengiriman dan estimasi ongkir yang aman.'
@@ -38,7 +40,7 @@ export function AdminWorkspace({active,onNavigate,onLogout,email,children}:{
 }){
  const [open,setOpen]=useState(false);const router=useRouter();
  useEffect(()=>setOpen(false),[active]);
- const navigate=(s:AdminSection)=>{setOpen(false);if(s==='products'){router.push('/admin/products');return;}if(s==='orders'){router.push('/admin/orders');return;}onNavigate(s);};
+ const navigate=(s:AdminSection)=>{setOpen(false);if(s==='products'){router.push('/admin/products');return;}if(s==='orders'){router.push('/admin/orders');return;}if(s==='vouchers'){router.push('/admin/vouchers');return;}onNavigate(s);};
  return <div className="vma27-workspace">
   <a className="vma27-skip-link" href="#admin-main">Langsung ke konten</a>
   {open&&<button type="button" className="vma27-nav-backdrop" aria-label="Tutup navigasi lewat overlay" onClick={()=>setOpen(false)}/>}
