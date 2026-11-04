@@ -1,6 +1,7 @@
 'use client';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
+import {useRouter} from 'next/navigation';
 import {formatIDR,type Product} from '@/lib/types';
 import type {ProductRecord,ProductRecordResponse,ProductRecordSummary} from '@/lib/admin-product-records';
 import '../app/admin-product-records.css';
@@ -42,8 +43,24 @@ function RecordImage({record,token,large=false}:{record:ProductRecord;token:stri
  </div>;
 }
 
-function RecordDetails({record,token,onClose}:{record:ProductRecord;token:string;onClose:()=>void}){
- const modal=useRef<HTMLDialogElement>(null);
+function RecordDetails({record,token,onClose,onConverted}:{record:ProductRecord;token:string;onClose:()=>void;onConverted:()=>void}){
+ const modal=useRef<HTMLDialogElement>(null),router=useRouter();
+ const [converting,setConverting]=useState(false),[convertError,setConvertError]=useState('');
+ async function convert(){
+  if(record.converted_product_id){router.push('/admin/products/'+record.converted_product_id);return;}
+  if(!window.confirm('Buat draft privat dari arsip ini? Harga akan Rp0, stok 0 dan SKU kosong. Produk tidak otomatis tayang.'))return;
+  setConverting(true);setConvertError('');
+  try{
+   const response=await fetch('/api/admin/product-records/'+encodeURIComponent(record.slug)+'/convert',{
+    method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},
+    body:JSON.stringify({confirm:true}),cache:'no-store'
+   });
+   const result=await response.json();
+   if(!response.ok||typeof result.productId!=='string')throw Error(result.message||'Konversi draft gagal');
+   onConverted();onClose();router.push('/admin/products/'+result.productId);
+  }catch(e){setConvertError(e instanceof Error?e.message:'Konversi gagal');}
+  finally{setConverting(false)}
+ }
  useEffect(()=>{const node=modal.current;if(node&&!node.open)node.showModal();return()=>{if(node?.open)node.close();};},[]);
  const existing=record.record_kind==='existing';
  return <dialog ref={modal} className="vpr-dialog" onCancel={onClose} onClose={onClose} aria-labelledby="product-record-title">
@@ -69,8 +86,12 @@ function RecordDetails({record,token,onClose}:{record:ProductRecord;token:string
    {record.original_path&&<p>Path sumber: <code>{record.original_path}</code></p>}
    <p>Tanggal record: {new Date(record.source_updated_at).toLocaleString('id-ID')}</p>
   </details>
-  {existing&&<p className="vpr-note">Nama, foto, kategori, brand, dan harga di atas dipertahankan dari sumber existing. SKU, stok, varian, deskripsi lengkap, berat, dan harga saat ini belum terverifikasi. Record ini bersifat internal/read-only, tidak dipublikasikan atau dimasukkan ke checkout.</p>}
-  <div className="vpr-dialog-actions"><Link href="/admin/media" className="vma26-btn-light">Buka Media Library</Link>
+  {existing&&<p className="vpr-note">Referensi arsip tetap read-only. Jika dikonversi, sistem membuat draft operasional baru berharga Rp0 dan stok 0; SKU, deskripsi, kategori, dimensi, dan harga jual harus diverifikasi admin sebelum publikasi. Foto disalin setelah validasi integritas. Harga historis bukan harga jual.</p>}
+  {convertError&&<p className="vpr-error" role="alert">{convertError}</p>}
+  <div className="vpr-dialog-actions">
+  {existing&&(record.converted_product_id?<Link className="vma26-btn-dark" href={'/admin/products/'+record.converted_product_id}>Buka draft operasional</Link>:
+   <button type="button" className="vma26-btn-dark" disabled={converting} onClick={()=>void convert()}>{converting?'Membuat draft...':'Jadikan draft operasional'}</button>)}
+  <Link href="/admin/media" className="vma26-btn-light">Buka Media Library</Link>
    <button type="button" className="vma26-btn-dark" onClick={onClose}>Selesai</button></div>
  </dialog>;
 }
@@ -121,8 +142,9 @@ export function AdminProductRecords({token,products,onEdit,onPublish,onNew,onSyn
     <div className="vpr-row-info"><strong>{r.name}</strong><small>{r.brand||'Tanpa brand'} · {r.category}</small>
      <small>SKU: {r.sku||'Belum tersedia'} · Stok: {r.stock_qty===null?'Belum diverifikasi':r.stock_qty}</small>
      <small>{r.record_kind==='existing'?'Harga historis: '+(r.historical_price||'Belum tersedia'):'Harga: '+formatIDR(r.price_idr||0)}</small>
-     <span className="vpr-source-badge">{r.record_kind==='existing'?'Existing · Pemeriksaan internal':r.is_active?'Operasional · Tayang':'Operasional · Draf'}</span></div>
+     <span className="vpr-source-badge">{r.record_kind==='existing'?(r.converted_product_id?'Existing · Sudah dikonversi':'Existing · Pemeriksaan internal'):r.is_active?'Operasional · Tayang':'Operasional · Draf'}</span></div>
     <div className="vpr-row-actions"><button type="button" onClick={()=>setSelected(r)}>Lihat data</button>
+      {r.record_kind==='existing'&&(r.converted_product_id?<Link href={'/admin/products/'+r.converted_product_id}>Buka draft</Link>:<button type="button" onClick={()=>setSelected(r)}>Jadikan draft</button>)}
      {r.record_kind==='managed'&&r.product&&<><button type="button" disabled={busy} onClick={()=>onEdit(r.product!)}>Edit</button>
       <button type="button" disabled={busy} onClick={()=>onPublish(r.product!)}>{r.is_active?'Unpublish':'Publish'}</button></>}
     </div>
@@ -134,6 +156,6 @@ export function AdminProductRecords({token,products,onEdit,onPublish,onNew,onSyn
    <button type="button" disabled={loading||page===1} onClick={()=>setPage(n=>n-1)} aria-label="Halaman produk sebelumnya">←</button>
    <button type="button" disabled={loading||!data.hasMore} onClick={()=>setPage(n=>n+1)} aria-label="Halaman produk berikutnya">→</button></div></footer>}
   {data&&<p className="vpr-provenance-note">Dibaca ulang: {new Date(data.syncedAt).toLocaleString('id-ID')}. Cakupan existing: snapshot halaman yang tersedia, belum bukti ekspor lengkap WooCommerce. Harga historis bukan harga jual saat ini; record existing tidak memiliki aksi publikasi.</p>}
-  {selected&&<RecordDetails record={selected} token={token} onClose={()=>setSelected(null)}/>}
+  {selected&&<RecordDetails record={selected} token={token} onClose={()=>setSelected(null)} onConverted={refresh}/>}
  </section>;
 }
