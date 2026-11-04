@@ -93,7 +93,7 @@ export class CheckoutService{
  private async quoted(items:BasketItem[],query:(sql:string,params:unknown[])=>Promise<{rows:any[]}>,code:string|null=null):Promise<Quote>{
    const rows=await query(`SELECT p.* FROM product.products p WHERE p.id=ANY($1::uuid[]) AND ${sellableSQL}`,[items.map(x=>x.productId)]);
    const base=priceBasket(items,rows.rows);if(!code)return base;
-   const vr=await query(`SELECT v.id,v.code,v.discount_type,v.discount_value,v.max_discount_idr::text,max_discount_idr,v.min_subtotal_idr::text min_subtotal_idr,v.usage_limit
+   const vr=await query(`SELECT v.id,v.code,v.discount_type,v.discount_value,v.max_discount_idr::text AS max_discount_idr,v.min_subtotal_idr::text AS min_subtotal_idr,v.usage_limit
     FROM product.vouchers v WHERE v.code=$1 AND v.is_active AND (v.starts_at IS NULL OR v.starts_at<=now()) AND (v.ends_at IS NULL OR v.ends_at>now()) LIMIT 1`,[code]);
    const v=vr.rows[0];if(!v)throw new ConflictException('Voucher tidak tersedia atau sudah berakhir');
    if(base.subtotalIdr<Number(v.min_subtotal_idr||0))throw new ConflictException('Minimum belanja voucher belum terpenuhi');
@@ -120,7 +120,7 @@ export class CheckoutService{
        return {id:existing.rows[0].id,status:existing.rows[0].status,paymentStatus:existing.rows[0].payment_status,paymentEnabled:false};
      }
      const recent=await client.query<{total:string}>(
-       "SELECT COUNT(*)::text total FROM product.orders WHERE customer_user_id=$1 AND created_at > now() - interval '24 hours' AND payment_status='not_initiated'",
+       "SELECT COUNT(*)::text total FROM product.orders WHERE customer_user_id=$1 AND created_at > now() - interval '24 hours' AND status='draft'",
        [user.id]);
      if(Number(recent.rows[0]?.total||0)>=5)throw new ConflictException('Batas lima draft per hari tercapai');
      const quote=await this.quoted(items,(sql,params)=>client.query(sql,params),details.voucherCode);
