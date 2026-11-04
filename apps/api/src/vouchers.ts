@@ -126,7 +126,7 @@ export class VoucherAdminService{
    const v=shape(data,{
     code:before.code,discount_type:before.discount_type,discount_value:Number(before.discount_value),
     max_discount_idr:before.max_discount_idr===null?null:Number(before.max_discount_idr),min_subtotal_idr:Number(before.min_subtotal_idr),
-    usage_limit:before.usage_limit===null?null:Number(before.usage_limit),starts_at:before.starts_at,ends_at:before.ends_at,is_active:before.is_active
+    usage_limit:before.usage_limit===null?null:Number(before.usage_limit),starts_at:before.starts_at?new Date(before.starts_at).toISOString():null,ends_at:before.ends_at?new Date(before.ends_at).toISOString():null,is_active:before.is_active
    });
    const r=await client.query('UPDATE product.vouchers SET code=$2,discount_type=$3,discount_value=$4,max_discount_idr=$5,'+
     ' min_subtotal_idr=$6,usage_limit=$7,starts_at=$8,ends_at=$9,is_active=$10,updated_by=$11,updated_at=now(),edit_version=edit_version+1'+
