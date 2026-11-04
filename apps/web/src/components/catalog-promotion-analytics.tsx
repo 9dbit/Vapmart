@@ -8,7 +8,7 @@ type Money=string;
 type Period={from:string;to:string;timezone:string;campaignId:string|null};
 type Summary={
  appliedOrders:number;paidOrders:number;pendingOrders:number;refundedOrders:number;
- paidCampaignOrders:number;paidVoucherOrders:number;stackedPaidOrders:number;anomalyOrders:number;
+ paidCampaignOrders:number;paidVoucherOrders:number;stackedPaidOrders:number;anomalyOrders:number;unverifiedPaidOrders:number;
  paidGmvIdr:Money;voucherDiscountIdr:Money;promotionDiscountIdr:Money;paidShippingIdr:Money;paidTotalIdr:Money;
  paidDiscountIdr:Money;netMerchandiseIdr:Money;paidRatePct:number|null;discountRatePct:number|null;
 };
@@ -16,7 +16,7 @@ type Daily={day:string;appliedOrders:number;paidOrders:number;paidGmvIdr:Money;v
 type Campaign={id:string;title:string;slug:string;status:string;startsAt:string;endsAt:string;memberOnly:boolean;appliedOrders:number;paidOrders:number;pendingOrders:number;refundedOrders:number;stackedPaidOrders:number;paidGmvIdr:Money;promotionDiscountIdr:Money;stackedVoucherDiscountIdr:Money;paidRatePct:number|null};
 type Segment={segment:string;paidOrders:number;paidGmvIdr:Money;paidDiscountIdr:Money};
 type Breakdown={id:string;name:string;units:string;paidGmvIdr:Money;voucherDiscountIdr:Money;promotionDiscountIdr:Money};
-type Anomaly={orderId:string;createdAt:string;paymentStatus:string;discountDeltaIdr:Money;totalDeltaIdr:Money};
+type Anomaly={orderId:string;createdAt:string;paymentStatus:string;discountDeltaIdr:Money;totalDeltaIdr:Money;lineDeltaIdr:Money;paymentUnverified:boolean;paymentVerified?:boolean};
 type Overview={period:Period;summary:Summary;daily:Daily[];campaigns:Campaign[];campaignListTruncated:boolean;segments:Segment[];products:Breakdown[];categories:Breakdown[];anomalies:Anomaly[];definitions:Record<string,string>};
 type LedgerItem={id:string;createdAt:string;paymentStatus:string;orderStatus:string;campaignId:string|null;campaignTitle:string|null;voucherCode:string|null;subtotalIdr:Money;voucherDiscountIdr:Money;promotionDiscountIdr:Money;discountIdr:Money;shippingFeeIdr:Money;totalIdr:Money;discountDeltaIdr:Money;totalDeltaIdr:Money};
 type Ledger={items:LedgerItem[];hasMore:boolean;nextCursor:string|null};
@@ -118,16 +118,16 @@ export function CatalogPromotionAnalytics(){
   <CatalogNotice error={error}/>{loading&&!overview&&<p role="status">Menghitung laporan dari order...</p>}
   {overview&&summary&&<>
    <div className="vc-analytics-kpis">
-    <Card label="GMV paid" value={money(summary.paidGmvIdr)} note="Subtotal barang, tanpa ongkir"/>
-    <Card label="Biaya diskon paid" value={money(summary.paidDiscountIdr)} note={'Promo '+money(summary.promotionDiscountIdr)+' · Voucher '+money(summary.voucherDiscountIdr)}/>
+    <Card label="GMV terverifikasi" value={money(summary.paidGmvIdr)} note="Subtotal barang, tanpa ongkir"/>
+    <Card label="Diskon terverifikasi" value={money(summary.paidDiscountIdr)} note={'Promo '+money(summary.promotionDiscountIdr)+' · Voucher '+money(summary.voucherDiscountIdr)}/>
     <Card label="Net barang" value={money(summary.netMerchandiseIdr)} note="GMV dikurangi diskon, belum memperhitungkan biaya lain"/>
     <Card label="Rasio order lunas" value={pct(summary.paidRatePct)} note={count(summary.paidOrders)+' paid / '+count(summary.appliedOrders)+' order berpromo'}/>
     <Card label="Order pending" value={count(summary.pendingOrders)} note="Belum dihitung sebagai penjualan"/>
-    <Card label="Reconciliation exception" value={count(summary.anomalyOrders)} note="Perbedaan formula diskon/total"/>
+    <Card label="Reconciliation exception" value={count(summary.anomalyOrders)} note={'Termasuk selisih item dan '+count(summary.unverifiedPaidOrders)+' status paid tanpa bukti'}/>
    </div>
    <div className="vc-analytics-chartgrid">
-    <section className="vc-panel vc-analytics-panel"><h2>GMV paid harian</h2><p className="vc-muted">Tidak termasuk pembayaran yang masih pending.</p><BarChart rows={overview.daily} kind="gmv"/></section>
-    <section className="vc-panel vc-analytics-panel"><h2>Biaya diskon paid harian</h2><p className="vc-muted">Promo dan voucher terlihat terpisah, termasuk order stacking.</p><BarChart rows={overview.daily} kind="discount"/></section>
+    <section className="vc-panel vc-analytics-panel"><h2>GMV pembayaran terverifikasi</h2><p className="vc-muted">Tidak termasuk pembayaran yang masih pending.</p><BarChart rows={overview.daily} kind="gmv"/></section>
+    <section className="vc-panel vc-analytics-panel"><h2>Diskon pembayaran terverifikasi</h2><p className="vc-muted">Promo dan voucher terlihat terpisah, termasuk order stacking.</p><BarChart rows={overview.daily} kind="discount"/></section>
    </div>
    <section className="vc-panel vc-analytics-panel">
     <div className="vc-analytics-section-title"><div><h2>Kinerja campaign</h2><p className="vc-muted">GMV paid dan redemption berdasarkan campaign yang tercatat di order.</p></div><span className="vc-analytics-meta">Paid stacking: {count(summary.stackedPaidOrders)} order</span></div>
@@ -146,9 +146,9 @@ export function CatalogPromotionAnalytics(){
     {!overview.segments.length&&<p className="vc-empty">Belum ada aktivitas berpromo di periode ini.</p>}
    </section>
    <section className="vc-panel vc-analytics-panel">
-    <h2>Reconciliation exceptions</h2><p className="vc-muted">Memeriksa total diskon vs voucher + campaign, dan total order vs subtotal − diskon + ongkir. Termasuk pending order yang sudah tersimpan.</p>
-    {!summary.anomalyOrders?<div className="vc-analytics-ok">Tidak ada selisih perhitungan pada order yang diperiksa.</div>:
-     <div className="vc-table-wrap"><table className="vc-table"><thead><tr><th>Order</th><th>Waktu WIB</th><th>Pembayaran</th><th>Delta diskon</th><th>Delta total</th></tr></thead><tbody>{overview.anomalies.map(a=><tr key={a.orderId}><td><code>{a.orderId.slice(0,8)}</code></td><td>{new Date(a.createdAt).toLocaleString('id-ID',{timeZone:'Asia/Jakarta'})}</td><td>{a.paymentStatus}</td><td>{money(a.discountDeltaIdr)}</td><td>{money(a.totalDeltaIdr)}</td></tr>)}</tbody></table></div>}
+    <h2>Reconciliation exceptions</h2><p className="vc-muted">Memeriksa diskon, total order, subtotal item, dan status paid tanpa bukti provider/reference; termasuk draft yang tersimpan.</p>
+    {!summary.anomalyOrders?<div className="vc-analytics-ok">{summary.appliedOrders===0?"Belum ada order berpromo untuk direkonsiliasi.":"Tidak ada selisih pada "+count(summary.appliedOrders)+" order berpromo yang diperiksa."}</div>:
+     <div className="vc-table-wrap"><table className="vc-table"><thead><tr><th>Order</th><th>Waktu WIB</th><th>Pembayaran</th><th>Delta diskon</th><th>Delta total</th><th>Delta item</th><th>Bukti paid</th></tr></thead><tbody>{overview.anomalies.map(a=><tr key={a.orderId}><td><code>{a.orderId.slice(0,8)}</code></td><td>{new Date(a.createdAt).toLocaleString('id-ID',{timeZone:'Asia/Jakarta'})}</td><td>{a.paymentStatus}</td><td>{money(a.discountDeltaIdr)}</td><td>{money(a.totalDeltaIdr)}</td><td>{money(a.lineDeltaIdr)}</td><td>{a.paymentUnverified?'Tidak terverifikasi':'—'}</td></tr>)}</tbody></table></div>}
     {summary.anomalyOrders>overview.anomalies.length&&<p className="vc-muted">Menampilkan 25 exception terbaru dari {count(summary.anomalyOrders)}.</p>}
    </section>
    <section className="vc-panel vc-analytics-panel">
@@ -156,7 +156,7 @@ export function CatalogPromotionAnalytics(){
      <button type="button" className="vc-primary" disabled={exportBusy||ledgerLoading} onClick={()=>void exportCsv()}>{exportBusy?'Membuat CSV...':'Export CSV'}</button></div>
     <CatalogNotice error={exportError}/>
     <div className="vc-table-wrap"><table className="vc-table"><thead><tr><th>Order</th><th>Created WIB</th><th>Status</th><th>Campaign / Voucher</th><th>Subtotal</th><th>Diskon promo</th><th>Diskon voucher</th><th>Total</th><th>Reconciliation</th></tr></thead><tbody>
-     {(ledger?.items||[]).map(x=><tr key={x.id}><td><code>{x.id.slice(0,8)}</code></td><td>{new Date(x.createdAt).toLocaleString('id-ID',{timeZone:'Asia/Jakarta'})}</td><td>{x.paymentStatus}</td><td>{x.campaignTitle||'—'}<small className="vc-analytics-subline">{x.voucherCode||''}</small></td><td>{money(x.subtotalIdr)}</td><td>{money(x.promotionDiscountIdr)}</td><td>{money(x.voucherDiscountIdr)}</td><td>{money(x.totalIdr)}</td><td>{BigInt(x.discountDeltaIdr)===BigInt(0)&&BigInt(x.totalDeltaIdr)===BigInt(0)?'OK':'Periksa'}</td></tr>)}
+     {(ledger?.items||[]).map(x=><tr key={x.id}><td><code>{x.id.slice(0,8)}</code></td><td>{new Date(x.createdAt).toLocaleString('id-ID',{timeZone:'Asia/Jakarta'})}</td><td>{x.paymentStatus}</td><td>{x.campaignTitle||'—'}<small className="vc-analytics-subline">{x.voucherCode||''}</small></td><td>{money(x.subtotalIdr)}</td><td>{money(x.promotionDiscountIdr)}</td><td>{money(x.voucherDiscountIdr)}</td><td>{money(x.totalIdr)}</td><td>{BigInt(x.discountDeltaIdr)===BigInt(0)&&BigInt(x.totalDeltaIdr)===BigInt(0)&&BigInt(x.lineDeltaIdr)===BigInt(0)&&!x.paymentUnverified?'OK':'Periksa'}</td></tr>)}
     </tbody></table></div>
     {!ledgerLoading&&!ledger?.items.length&&<p className="vc-empty">Belum ada order berpromo dalam filter ini.</p>}
     {ledgerLoading&&<p role="status">Memuat ledger...</p>}
