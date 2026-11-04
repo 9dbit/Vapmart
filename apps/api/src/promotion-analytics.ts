@@ -233,8 +233,8 @@ export class PromotionAnalyticsService {
     discountRatePct:totals.paidGmvIdr>0n?Number((paidDiscount*10000n)/totals.paidGmvIdr)/100:null
    },
    daily,campaigns:list,campaignListTruncated:campaigns.rows.length>200,
-   segments:segmentsOut,products:mapped.filter(x=>breakdown.rows.find(r=>r.item_key===x.id&&r.item_label===x.name&&r.kind==='product')),
-   categories:mapped.filter(x=>breakdown.rows.find(r=>r.item_key===x.id&&r.item_label===x.name&&r.kind==='category')),
+   segments:segmentsOut,products:breakdown.rows.filter(r=>r.kind==='product').map(r=>({id:r.item_key,name:r.item_label,units:String(r.units),paidGmvIdr:String(r.paid_gmv_idr),voucherDiscountIdr:String(r.voucher_discount_idr),promotionDiscountIdr:String(r.promotion_discount_idr)})),
+   categories:breakdown.rows.filter(r=>r.kind==='category').map(r=>({id:r.item_key,name:r.item_label,units:String(r.units),paidGmvIdr:String(r.paid_gmv_idr),voucherDiscountIdr:String(r.voucher_discount_idr),promotionDiscountIdr:String(r.promotion_discount_idr)})),
    anomalies:anomalies.rows.map(r=>({orderId:r.id,createdAt:new Date(r.created_at).toISOString(),paymentStatus:r.payment_status,
     discountDeltaIdr:r.discount_delta_idr,totalDeltaIdr:r.total_delta_idr})),
    definitions:{
