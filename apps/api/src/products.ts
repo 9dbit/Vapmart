@@ -221,11 +221,16 @@ export class ProductsService {
  }
  async summary(){
   const r=await this.db.query(`SELECT jsonb_build_object(
-   'managed',(SELECT count(*) FROM product.products WHERE slug NOT LIKE 'demo-%'),
-   'published',(SELECT count(*) FROM product.products WHERE slug NOT LIKE 'demo-%' AND is_active),
-   'lowStock',(SELECT count(*) FROM product.products WHERE slug NOT LIKE 'demo-%' AND stock_qty<=5),
+   'managed',(SELECT count(*) FROM product.products WHERE parent_product_id IS NULL AND archived_at IS NULL AND slug NOT LIKE 'demo-%'),
+   'published',(SELECT count(*) FROM product.products WHERE parent_product_id IS NULL AND archived_at IS NULL AND slug NOT LIKE 'demo-%' AND is_active),
+   'lowStock',(SELECT count(*) FROM product.products p LEFT JOIN product.products parent ON parent.id=p.parent_product_id
+      WHERE p.archived_at IS NULL AND p.slug NOT LIKE 'demo-%' AND p.is_active AND p.product_type<>'variable'
+      AND (p.parent_product_id IS NULL OR (parent.is_active AND parent.archived_at IS NULL))
+      AND p.stock_qty<=5),
    'orders',(SELECT count(*) FROM product.orders WHERE idempotency_key IS NOT NULL),
-   'pendingOrders',(SELECT count(*) FROM product.orders WHERE idempotency_key IS NOT NULL AND payment_status='not_initiated'),
+   'draftOrders',(SELECT count(*) FROM product.orders WHERE idempotency_key IS NOT NULL AND payment_status='not_initiated'),
+   'bankTransferPending',(SELECT count(*) FROM product.orders WHERE idempotency_key IS NOT NULL AND payment_status='pending' AND payment_method='bank_transfer'),
+   'pendingOrders',(SELECT count(*) FROM product.orders WHERE idempotency_key IS NOT NULL AND payment_status IN('pending','not_initiated')),
    'brands',(SELECT count(*) FROM product.brands)) AS totals`);
   return {totals:r.rows[0].totals,scope:'database_total',observedAt:new Date().toISOString()};
  }
