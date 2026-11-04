@@ -153,7 +153,7 @@ export class CatalogWorkspaceService{
     if(v.id){if(ids.has(v.id))throw new BadRequestException('ID varian ganda');ids.add(v.id);assertVersion(prev.edit_version,V.version(v.expectedVersion));}
     const opt=V.options(v.option_values,attrs),signature=JSON.stringify(opt);if(combinations.has(signature))throw new BadRequestException('Kombinasi varian ganda');combinations.add(signature);
     if(typeof v.enabled!=='boolean')throw new BadRequestException('Status varian diperlukan');
-    const vp={...root,...V.priceFields(v),...dimensions({...root,...v}),...media({image_url:v.image_url||root.image_url,gallery_urls:v.gallery_urls??root.gallery_urls}),
+    const vp={...root,...V.priceFields(v),...dimensions(Object.fromEntries(['weight_grams','length_cm','width_cm','height_cm'].map(k=>[k,v[k]===null||v[k]===undefined||v[k]===''?root[k]:v[k]]))),...media({image_url:v.image_url||root.image_url,gallery_urls:v.gallery_urls??root.gallery_urls}),
      name:(root.name+' - '+Object.values(opt).join(' / ')).slice(0,140),slug:prev?.slug||root.slug.slice(0,72)+'-v-'+randomUUID().slice(0,18),sku:V.sku(v.sku),product_type:'variation',attributes:[],option_values:opt};
     if(saved.is_active&&v.enabled)V.safeCatalogTerms(vp.name,vp.sku,opt);
     const row=await persist(client,who,vp,prev,id!,v.enabled);
