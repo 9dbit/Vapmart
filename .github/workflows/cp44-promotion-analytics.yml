@@ -1,7 +1,7 @@
 name: CP44 Promotion Analytics and Reconciliation Verification
 on:
   push:
-    branches: [work/cp44-promo-campaigns-20261104]
+    branches: [work/cp44-promotion-analytics-20261104]
     paths: ['apps/**','scripts/cp39-browser.mjs','scripts/cp40-browser.mjs','scripts/cp41-browser.mjs','scripts/cp42-browser.mjs','scripts/cp43-browser.mjs','scripts/cp44-browser.mjs','.github/workflows/cp44-promotion-analytics.yml']
   workflow_dispatch:
 permissions:
