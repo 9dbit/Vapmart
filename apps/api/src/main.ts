@@ -5,7 +5,7 @@ import { AppModule } from './module';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true, rawBody: true });
-  app.useBodyParser('json',{limit:'3mb'});
+  app.useBodyParser('json',{limit:'13mb'});
   app.enableCors({
     origin: process.env.WEB_ORIGIN ? process.env.WEB_ORIGIN.split(',').map(s => s.trim()) : false,
     methods: ['GET', 'POST', 'PATCH'],

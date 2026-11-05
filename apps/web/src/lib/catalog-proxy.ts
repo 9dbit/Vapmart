@@ -1,5 +1,5 @@
 import {NextRequest,NextResponse} from 'next/server';
-const privatePattern=/^(lookups|products(?:\/[0-9a-f-]{36}(?:\/(?:quick|state))?)?|categories(?:\/[0-9a-f-]{36}(?:\/archive)?)?|reviews(?:\/[0-9a-f-]{36}\/moderate)?|imports\/(?:preview|[0-9a-f-]{36}(?:\/apply)?)|orders(?:\/[0-9a-f-]{36})?|vouchers(?:\/[0-9a-f-]{36})?|promotions(?:\/[0-9a-f-]{36})?|analytics\/(?:summary|ledger(?:\.csv)?))$/i;
+const privatePattern=/^(lookups|products(?:\/[0-9a-f-]{36}(?:\/(?:quick|state))?)?|categories(?:\/[0-9a-f-]{36}(?:\/archive)?)?|reviews(?:\/[0-9a-f-]{36}\/moderate)?|imports\/(?:columns|preview|[0-9a-f-]{36}(?:\/apply)?)|orders(?:\/(?:products|[0-9a-f-]{36}(?:\/(?:rates|preview|status|invoice))?))?|vouchers(?:\/[0-9a-f-]{36})?|promotions(?:\/[0-9a-f-]{36})?|analytics\/(?:summary|ledger(?:\.csv)?))$/i;
 export async function catalogProxy(req:NextRequest,segments:string[],scope:'admin'|'public'|'customer'){
  const path=segments.join('/');
  const allowed=scope==='admin'?privatePattern.test(path):scope==='public'?/^(categories|selection|reviews\/[a-z0-9-]{1,120})$/.test(path):/^(review-eligible|reviews|orders)$/.test(path);
@@ -8,7 +8,7 @@ export async function catalogProxy(req:NextRequest,segments:string[],scope:'admi
  const base=process.env.API_INTERNAL_URL;if(!base)return NextResponse.json({message:'Layanan belum dikonfigurasi'},{status:503});
  const authorization=req.headers.get('authorization')||'';
  if(scope!=='public'&&!/^Bearer [A-Za-z0-9._~+/=-]+$/.test(authorization))return NextResponse.json({message:'Silakan masuk kembali'},{status:401});
- const limit=2900000;let body:Uint8Array|undefined;
+ const limit=path.startsWith('imports/')?13*1024*1024:2900000;let body:Uint8Array|undefined;
  if(req.method!=='GET'){
   if(!req.headers.get('content-type')?.startsWith('application/json'))return NextResponse.json({message:'JSON diperlukan'},{status:415});
   const reader=req.body?.getReader(),chunks:Uint8Array[]=[];let size=0;

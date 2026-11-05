@@ -1,4 +1,5 @@
 'use client';
+import {orderStatuses,orderStatus} from '@/lib/order-status';
 import {useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
 import {BuyerReviewForm} from '@/components/catalog-public-reviews';
@@ -6,7 +7,7 @@ import {useParams} from 'next/navigation';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {formatIDR} from '@/lib/types';
 import '../../checkout-v26.css';
-type Order={id:string;status:string;payment_status:string;payment_method:string;subtotal_idr:string;discount_idr:string;voucher_discount_idr:string;voucher_code:string|null;promotion_discount_idr:string;promotion_event_id:string|null;promotion_title:string|null;shipping_fee_idr:string;total_idr:string;shipping_provider:string|null;shipping_courier_code:string|null;shipping_service_code:string|null;contact_name:string;city:string;province:string;created_at:string};
+type Order={id:string;status:string;operational_status?:string;additional_fee_idr?:string;payment_status:string;payment_method:string;subtotal_idr:string;discount_idr:string;voucher_discount_idr:string;voucher_code:string|null;promotion_discount_idr:string;promotion_event_id:string|null;promotion_title:string|null;shipping_fee_idr:string;total_idr:string;shipping_provider:string|null;shipping_courier_code:string|null;shipping_service_code:string|null;contact_name:string;city:string;province:string;created_at:string};
 type Line={product_id:string;product_name:string;sku:string|null;quantity:number;unit_price_idr:string};
 type TrackingBatch={batch_id:string;brand_name:string;state:string;origin_city:string;events:{state:string;at:string}[]|null};
 type CourierUpdate={batch_id:string;carrier_state:string|null;provider_status:string|null;tracking_number:string|null;
@@ -62,11 +63,12 @@ export default function OrderPage(){
     <div className="vco26-order-badge">{detail.order.payment_status==='paid'?'Pembayaran terverifikasi':detail.order.payment_status==='pending'?'Menunggu pembayaran':'Draft · Belum dibayar'}</div>
     <h2>Nomor pesanan</h2><p className="vco26-id">{detail.order.id}</p>
     <p>{detail.order.payment_status==='paid'?'Status pembayaran dan pengiriman mengikuti catatan backend terverifikasi.':detail.order.payment_method==='bank_transfer'?'Pesanan sudah masuk dashboard dan menunggu verifikasi pembayaran manual. Instruksi rekening tidak diterbitkan dari halaman test ini.':'Pesanan tersimpan sebagai draft. Metode gateway belum dapat memproses pembayaran.'}</p>
-    <div className="vco26-order-grid"><div><span>Penerima</span><strong>{detail.order.contact_name}</strong></div><div><span>Pengiriman</span><strong>{detail.order.city}, {detail.order.province}</strong></div><div><span>Preferensi pembayaran</span><strong>{paymentNames[detail.order.payment_method]||detail.order.payment_method}</strong></div><div><span>Status pembayaran</span><strong>{detail.order.payment_status==='not_initiated'?'Belum dimulai':detail.order.payment_status}</strong></div></div>
+    <p>Status pesanan: <strong>{orderStatuses[orderStatus(detail.order)]||detail.order.status}</strong></p><div className="vco26-order-grid"><div><span>Penerima</span><strong>{detail.order.contact_name}</strong></div><div><span>Pengiriman</span><strong>{detail.order.city}, {detail.order.province}</strong></div><div><span>Preferensi pembayaran</span><strong>{paymentNames[detail.order.payment_method]||detail.order.payment_method}</strong></div><div><span>Status pembayaran</span><strong>{detail.order.payment_status==='not_initiated'?'Belum dimulai':detail.order.payment_status}</strong></div></div>
     <h2>Barang</h2>{detail.items.map(x=><div className="vco26-receipt-row" key={x.product_id}><span>{x.product_name} · {x.quantity} pcs</span><strong>{formatIDR(Number(x.unit_price_idr)*x.quantity)}</strong></div>)}
     {Number(detail.order.voucher_discount_idr||0)>0&&<div className="vco26-receipt-row"><span>Voucher {detail.order.voucher_code||''}</span><strong>-{formatIDR(Number(detail.order.voucher_discount_idr))}</strong></div>}
     {Number(detail.order.promotion_discount_idr||0)>0&&<div className="vco26-receipt-row"><span>Promo otomatis {detail.order.promotion_title||''}</span><strong>-{formatIDR(Number(detail.order.promotion_discount_idr))}</strong></div>}
     <div className="vco26-receipt-row"><span>{detail.order.shipping_courier_code?('Ongkir '+detail.order.shipping_courier_code.toUpperCase()+' · '+detail.order.shipping_service_code):'Ongkos kirim (estimasi)'}</span><strong>{formatIDR(Number(detail.order.shipping_fee_idr))}</strong></div>
+    {Number(detail.order.additional_fee_idr||0)>0&&<div className="vco26-receipt-row"><span>Biaya tambahan</span><strong>{formatIDR(Number(detail.order.additional_fee_idr))}</strong></div>}
     <div className="vco26-receipt-row vco26-total"><span>Total estimasi</span><strong>{formatIDR(Number(detail.order.total_idr))}</strong></div>
     <div style={{marginTop:26,paddingTop:18,borderTop:'1px solid #eee5f0'}}>
     <h2>Fulfillment & tracking</h2>

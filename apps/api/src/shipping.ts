@@ -36,7 +36,7 @@ export function normalizeCourierRates(raw:unknown):CourierRate[]{
 export class ShippingService{
  constructor(private readonly db:DatabaseService,private readonly jubelio:JubelioShipmentClient){}
  config(){return shippingConfig();}
- async rates(user:Principal,body:unknown){
+ async rates(user:Principal,body:unknown,adminOrder?:{customerId:string;prices:Map<string,number>}){
   if(!user.emailVerified)throw new ForbiddenException('Verifikasi email diperlukan untuk cek ongkir');
   const {items,destinationPostalCode,destinationAreaId}=parseShippingRequest(body),config=this.config();
   const key=process.env.BITESHIP_API_KEY,origin=process.env.SHIPPING_ORIGIN_POSTAL_CODE;
@@ -50,7 +50,7 @@ export class ShippingService{
    if(!p||!p.is_active||p.slug.startsWith('demo-')||p.stock_qty<i.quantity)throw new ConflictException('Stok atau produk tidak tersedia');
    if(!Number.isSafeInteger(p.weight_grams)||!p.weight_grams||p.weight_grams<=0)
     throw new ConflictException('Berat produk belum dilengkapi');
-   const value=effectivePrice(p);
+   const value=adminOrder?.prices.get(p.id)??effectivePrice(p);
    if(!Number.isSafeInteger(value)||value<0)throw new ConflictException('Harga produk belum valid');
    fingerprintItems.push({productId:i.productId,quantity:i.quantity,unitPriceIdr:value,weightGrams:p.weight_grams,lengthCm:p.length_cm,widthCm:p.width_cm,heightCm:p.height_cm});
    return {name:p.name,value,weight:p.weight_grams,quantity:i.quantity,
@@ -78,7 +78,7 @@ export class ShippingService{
    for(const r of rates){
     const inserted=await client.query<{id:string;expires_at:string}>(
      "INSERT INTO product.shipping_rate_quotes(customer_user_id,cart_fingerprint,origin_postal_code,destination_postal_code,provider,courier_code,service_code,courier_name,service_name,amount_idr,expires_at,origin_area_id,destination_area_id,destination_region,provider_service_id,base_amount_idr,insurance_amount_idr) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,now()+interval '15 minutes',$11,$12,$13::jsonb,$14,$15,$16) RETURNING id,expires_at",
-     [user.id,fingerprint,origin,destinationPostalCode,shippingSnapshotProvider(),r.courierCode,r.serviceCode,r.courierName,r.serviceName,r.priceIdr,
+     [adminOrder?.customerId||user.id,fingerprint,origin,destinationPostalCode,shippingSnapshotProvider(),r.courierCode,r.serviceCode,r.courierName,r.serviceName,r.priceIdr,
       config.provider==='jubelio'?process.env.JUBELIO_SHIPMENT_ORIGIN_AREA_ID:null,destination?.areaId||null,destination?JSON.stringify(destination):null,
       'providerServiceId' in r?r.providerServiceId:null,'basePriceIdr' in r?r.basePriceIdr:r.priceIdr,'insuranceIdr' in r?r.insuranceIdr:0]);
     options.push({...r,quoteId:inserted.rows[0].id,expiresAt:inserted.rows[0].expires_at});

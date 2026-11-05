@@ -29,7 +29,7 @@ export class CatalogImportService{
   for(const [header,id] of Object.entries(warehouseColumns)){if(!parsed.headers.includes(header))throw new BadRequestException('Kolom stok tidak ditemukan');requireUuid(id,'gudang');}
   const finger=createHash('sha256').update(JSON.stringify({csv:x.csv,mapping,sourceKey,mode:x.mode,warehouseId,warehouseColumns})).digest('hex');
   const replay=(await this.db.query("SELECT * FROM product.catalog_imports WHERE actor_id=$1 AND fingerprint=$2 AND (state='applied' OR expires_at>now())",[who,finger])).rows[0];if(replay)return {...this.receipt(replay),replayed:true};
-  const errors:Issue[]=[],warnings:Issue[]=[],display:any[]=[],groups:any[]=[];
+  const errors:Issue[]=[],warnings:Issue[]=[...parsed.warnings],display:any[]=[],groups:any[]=[];
   const get=(row:Record<string,string>,key:string)=>mapping[key]?row[mapping[key]]?.trim()||'':'';
   const input=parsed.rows.map((raw,i)=>({raw,row:i+2,type:(get(raw,'type')||'simple').toLowerCase(),sourceId:get(raw,'id')||'sku:'+get(raw,'sku').toUpperCase(),sku:get(raw,'sku').toUpperCase(),name:get(raw,'name'),parent:get(raw,'parent')}));
   const sourceIds=new Set<string>(),skus=new Set<string>();

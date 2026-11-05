@@ -1,0 +1,93 @@
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {resolve} from 'node:path';
+import test from 'node:test';
+const {ProductsService}=require('../../dist/products');
+const {WarehouseService}=require('../../dist/warehouses');
+const {JubelioShipmentClient}=require('../../dist/jubelio-shipment');
+const {OrderManagementService}=require('../../dist/order-management');
+const {FulfillmentService}=require('../../dist/fulfillment');
+const {CourierEventService}=require('../../dist/courier-events');
+const {createFixture}=require(resolve('../../scripts/cp39-fixture-server.cjs'));
+
+test('Order editor: authorization, concurrency, discounts, invoice revisions, quote binding and status locks',async()=>{
+ const {app,db,base,users}=await createFixture(),admin=users['fixture-admin'];
+ const call=async(path:string,body?:unknown,method='POST',token='fixture-admin')=>{const r=await fetch(base+path,{method:body===undefined?'GET':method,headers:{authorization:'Bearer '+token,'content-type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});return {status:r.status,data:await r.json()};};
+ const ok=async(path:string,body?:unknown,method='POST',token='fixture-admin')=>{const r=await call(path,body,method,token);assert.ok(r.status<300,JSON.stringify({path,...r}));return r.data;};
+ const api='/v1/admin/catalog';
+ try{
+  const suffix=randomUUID().slice(0,8),products=app.get(ProductsService),warehouses=app.get(WarehouseService),manager=app.get(OrderManagementService),fulfill=app.get(FulfillmentService);
+  const wh=(await db.query("SELECT id FROM product.warehouses WHERE code='CP39-A'")).rows[0];
+  const p=await products.create({name:'Travel Case '+suffix,slug:'case-'+suffix,sku:'CASE-'+suffix.toUpperCase(),category:'home',description:'Travel case with verified parcel dimensions.',image_url:'https://example.invalid/case.webp',price_idr:100000,stock_qty:0,weight_grams:500,length_cm:20,width_cm:10,height_cm:5},admin);
+  await warehouses.adjust(admin,{warehouseId:wh.id,productId:p.id,delta:50,reason:'receipt',notes:'Disposable inventory fixture',idempotencyKey:randomUUID()});
+  await db.query('UPDATE product.products SET is_active=true WHERE id=$1',[p.id]);
+  const code='ORD'+suffix.toUpperCase();await db.query("INSERT INTO product.vouchers(code,discount_type,discount_value,min_subtotal_idr,is_active) VALUES($1,'percent',10,100000,true)",[code]);
+  const order=await ok('/v1/checkout/orders',{items:[{productId:p.id,quantity:2}],name:'Order Fixture',phone:'081234567890',address:'Jalan Test Nomor 25',city:'KOTA BANDUNG',province:'JAWA BARAT',postalCode:'40115',paymentMethod:'bank_transfer',voucherCode:code,idempotencyKey:randomUUID()},'POST','fixture-buyer');
+  const path=api+'/orders/'+order.id;let detail=await ok(path);assert.equal(detail.order.operational_status,'pending_payment');
+  assert.equal((await call(path,undefined,'GET','fixture-buyer')).status,403);
+  const original=await ok(path+'/invoice',{});assert.equal(original.snapshot.order.total_idr,'195000');
+  const payload=()=>({expectedVersion:detail.order.edit_version,notes:'Requested customer item correction',contact:{name:'Order Fixture',phone:'081234567890',address:'Jalan Test Nomor 25',city:'KOTA BANDUNG',province:'JAWA BARAT',postalCode:'40115',areaId:null},items:[{productId:p.id,quantity:3,unitPriceIdr:80000}],fees:[{label:'Kemasan',amountIdr:5000}],voucherCode:code,shippingQuoteId:null});
+  const edit=payload(),preview=await ok(path+'/preview',edit);assert.equal(preview.totalIdr,236000);assert.equal(preview.voucherDiscountIdr,24000);
+  const writes=await Promise.all([call(path,{...edit,previewHash:preview.previewHash},'PATCH'),call(path,{...edit,previewHash:preview.previewHash},'PATCH')]);
+  assert.deepEqual(writes.map(x=>x.status).sort(),[200,409]);
+  detail=await ok(path);assert.equal(detail.order.edit_version,edit.expectedVersion+1);assert.equal(detail.events.length,1);
+  const invoices=await Promise.all([ok(path+'/invoice',{}),ok(path+'/invoice',{})]);assert.equal(invoices[0].id,invoices[1].id);assert.equal(invoices[0].snapshot.order.total_idr,'236000');assert.equal(invoices[0].invoice_number,original.invoice_number);
+  assert.equal((await ok(path+'/invoice',{revision:original.order_version})).snapshot.order.total_idr,'195000');
+  assert.equal((await call(path+'/status',{expectedVersion:detail.order.edit_version,status:'processing',notes:'Try invalid unpaid transition'})).status,409);
+  assert.equal((await call(path+'/preview',{...payload(),items:[{productId:p.id,quantity:1,unitPriceIdr:80000}]})).status,409,'voucher threshold must be rechecked');
+  // Test real rate service with a local provider adapter; no carrier network call.
+  Object.assign(process.env,{SHIPPING_PROVIDER:'jubelio',SHIPPING_RATE_LOOKUP_ENABLED:'true',JUBELIO_SHIPMENT_CLIENT_ID:'fixture',JUBELIO_SHIPMENT_CLIENT_SECRET:'fixture',SHIPPING_ORIGIN_POSTAL_CODE:'40115',JUBELIO_SHIPMENT_ORIGIN_AREA_ID:'3273091003'});
+  const region={areaId:'3273091003',postalCode:'40115',label:'Citarum',city:'KOTA BANDUNG',province:'JAWA BARAT',district:'Bandung Wetan',area:'Citarum'};
+  const client=app.get(JubelioShipmentClient);client.destination=async()=>region;client.rates=async(_region:any,goods:any[])=>{assert.equal(goods[0].value,80000);return [{courierCode:'24',courierName:'Lion Parcel',serviceCode:'jagopack',serviceName:'JAGOPACK',priceIdr:12000,basePriceIdr:11500,insuranceIdr:500,providerServiceId:2453,duration:'2 hari'}]};
+  let next={...payload(),contact:{...payload().contact,areaId:region.areaId,address:'Jalan Tujuan Baru Nomor 123'}};
+  assert.equal((await ok(path+'/preview',next)).shippingNeeded,true);
+  const rates=await ok(path+'/rates',next);assert.equal(rates.rates.length,1);
+  const quoteId=rates.rates[0].quoteId;
+  assert.equal((await call(path+'/preview',{...next,shippingQuoteId:quoteId,fees:[]})).status,409,'quote cannot be reused for a different edit');
+  const beforeVersion=detail.order.edit_version;
+  const quoted={...next,shippingQuoteId:quoteId},review=await ok(path+'/preview',quoted);assert.equal(review.totalIdr,233000);
+  await ok(path,{...quoted,previewHash:review.previewHash},'PATCH');detail=await ok(path);assert.equal(detail.order.edit_version,beforeVersion+1);assert.equal(detail.order.shipping_quote_id,quoteId);
+  const hold=await ok(path+'/status',{expectedVersion:detail.order.edit_version,status:'on_hold',notes:'Waiting for confirmation from buyer'});assert.equal(hold.status,'on_hold');
+  await db.query("UPDATE product.orders SET status='paid',payment_status='paid',payment_provider='fixture',payment_reference=$2 WHERE id=$1",[order.id,randomUUID()]);
+  detail=await ok(path);assert.equal(detail.order.operational_status,'on_hold','payment must not clear a manual hold');
+  await assert.rejects(()=>fulfill.prepare(admin,order.id,{idempotencyKey:randomUUID()}),/Cannot reserve/);
+  assert.equal((await call(path+'/preview',payload())).status,409,'paid orders cannot be repriced');
+  const processed=await ok(path+'/status',{expectedVersion:detail.order.edit_version,status:'processing',notes:'Verified payment and resume order'});assert.equal(processed.status,'processing');
+  const prepared=await fulfill.prepare(admin,order.id,{idempotencyKey:randomUUID()});assert.equal(prepared.batches.length,1);
+  detail=await ok(path);assert.ok(detail.order.processing_started_at);assert.ok(detail.editBlocker);
+  const cancelled=await ok(path+'/status',{expectedVersion:detail.order.edit_version,status:'cancelled',notes:'Customer cancelled before warehouse picking'});assert.equal(cancelled.status,'cancelled');
+  let stock=(await db.query('SELECT reserved FROM product.warehouse_stock WHERE warehouse_id=$1 AND product_id=$2',[wh.id,p.id])).rows[0];assert.equal(stock.reserved,3,'paid cancellation retains stock until verified refund');
+  await db.query("UPDATE product.orders SET payment_status='refunded' WHERE id=$1",[order.id]);
+  await fulfill.release(admin,prepared.batches[0].id,{notes:'Verified external refund before stock release'});
+  stock=(await db.query('SELECT reserved FROM product.warehouse_stock WHERE warehouse_id=$1 AND product_id=$2',[wh.id,p.id])).rows[0];assert.equal(stock.reserved,0);
+  // Import preview must round-trip descriptions, inches, weights and dimensions.
+  const csv='ID;Type;SKU;Name;Regular price;Description;Weight (g);Length (cm);Width (cm);Height (cm)\n'+suffix+';simple;CSV-'+suffix+';Speaker 15";150000;"Description with; semicolon";500;20;10;5';
+  const columns=await ok(api+'/imports/columns',{csv});assert.equal(columns.delimiter,';');
+  const imported=await ok(api+'/imports/preview',{csv,sourceKey:'order-upgrade-'+suffix,mode:'create',mapping:{}});assert.equal(imported.errors.length,0);assert.ok(imported.warnings.some((w:any)=>w.field==='Name'));
+  await ok(api+'/imports/'+imported.id+'/apply',{confirm:true});
+  const row=(await db.query('SELECT name,description,weight_grams,length_cm,width_cm,height_cm,is_active FROM product.products WHERE sku=$1',['CSV-'+suffix.toUpperCase()])).rows[0];assert.equal(row.name,'Speaker 15"');assert.equal(row.description,'Description with; semicolon');assert.equal(row.weight_grams,500);assert.equal(row.length_cm,20);assert.equal(row.is_active,false);
+  assert.equal((await ok(api+'/imports/'+imported.id+'/apply',{confirm:true})).replayed,true);
+  const whB=(await db.query("SELECT id FROM product.warehouses WHERE code='CP39-B'")).rows[0];
+  await warehouses.adjust(admin,{warehouseId:whB.id,productId:p.id,delta:20,reason:'receipt',notes:'Multi parcel test inventory',idempotencyKey:randomUUID()});
+  const splitId=randomUUID();
+  await db.query("INSERT INTO product.orders(id,customer_user_id,status,payment_status,payment_provider,payment_reference) VALUES($1,$2,'paid','paid','fixture',$3)",[splitId,users['fixture-buyer'].id,randomUUID()]);
+  await db.query("INSERT INTO product.order_items(order_id,product_id,quantity,unit_price_idr,product_name,sku,ownership_scope) VALUES($1,$2,60,100000,$3,$4,'platform')",[splitId,p.id,p.name,p.sku]);
+  const split=await fulfill.prepare(admin,splitId,{idempotencyKey:randomUUID()});assert.equal(split.batches.length,2);
+  const tracking=app.get(CourierEventService),providerIds:string[]=[];
+  for(const b of split.batches){
+   for(const state of ['picking','packed','ready_for_carrier'])await fulfill.transition(admin,b.id,{state,notes:'Ready for fixture carrier handover'});
+   const providerId='split-'+randomUUID();providerIds.push(providerId);
+   await db.query("INSERT INTO product.shipments(order_id,provider,state,provider_shipment_id,fulfillment_batch_id) VALUES($1,'biteship_test','booked',$2,$3)",[splitId,providerId,b.id]);
+  }
+  const deliver=(providerOrderId:string)=>tracking.applyVerified({event:'order.status',providerOrderId,status:'delivered',waybill:null,priceIdr:null},['biteship_test']);
+  await deliver(providerIds[0]);assert.equal((await manager.detail(splitId)).order.operational_status,'processing');
+  await deliver(providerIds[1]);assert.equal((await manager.detail(splitId)).order.operational_status,'completed');
+  assert.equal((await deliver(providerIds[1])).replayed,true);
+  assert.equal((await db.query("SELECT count(*)::int n FROM product.order_events WHERE order_id=$1 AND action='status'",[splitId])).rows[0].n,1);
+  process.env.ORDER_MANAGEMENT_ENABLED='false';
+  assert.ok((await manager.detail(splitId)).editBlocker.includes('dinonaktifkan'));
+  assert.equal((await call(path+'/status',{expectedVersion:detail.order.edit_version,status:'on_hold',notes:'Paused rollout check'})).status,503);
+  delete process.env.ORDER_MANAGEMENT_ENABLED;
+  console.log('ORDER_UPGRADE_INTEGRATION_PASS');
+ }finally{await app.close()}
+});

@@ -1,0 +1,3 @@
+export const orderStatuses:Record<string,string>={draft:'Draft',pending_payment:'Pending payment',processing:'Processing',completed:'Selesai',on_hold:'On hold',cancelled:'Cancelled',refunded:'Refunded',failed:'Failed',pre_order:'Pre-order'};
+export function orderStatus(order:{operational_status?:string;status:string}){return order.operational_status||({paid:'processing',pending:'pending_payment',fulfilled:'completed'} as Record<string,string>)[order.status]||order.status;}
+export function orderDate(value:string){return new Date(value).toLocaleString('id-ID',{timeZone:'Asia/Jakarta',dateStyle:'medium',timeStyle:'short'})+' WIB';}

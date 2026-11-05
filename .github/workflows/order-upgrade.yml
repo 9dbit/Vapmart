@@ -1,0 +1,74 @@
+name: Order and import upgrade
+on:
+  push:
+    branches: [feat/order-import-upgrade-20261105]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: vapmart_test
+          POSTGRES_PASSWORD: disposable_orders_only
+          POSTGRES_DB: vapmart_cp39_orders
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U vapmart_test -d vapmart_cp39_orders"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgres://vapmart_test:disposable_orders_only@127.0.0.1:5432/vapmart_cp39_orders
+      CP39_LOCAL_TEST: '1'
+      CHECKOUT_ENABLED: 'false'
+      DIGITAL_COMMERCE_ENABLED: 'false'
+      SHIPPING_RATE_LOOKUP_ENABLED: 'false'
+      PAYMENT_MODE: disabled
+      SHIPPING_FEE_IDR: '15000'
+      NEXT_TELEMETRY_DISABLED: '1'
+      API_INTERNAL_URL: http://127.0.0.1:4100
+      NEXT_PUBLIC_SUPABASE_URL: https://fixture.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: fixture-public-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund --prefix apps/api
+      - run: npm run build --prefix apps/api
+      - run: npm test --prefix apps/api
+      - name: Migrations and transactional regressions
+        working-directory: apps/api
+        run: |
+          npm run migrate
+          npm run migrate
+          npx tsx --test test/integration/order-management.ts
+          npx tsx --test test/integration/checkout-conversion.ts
+          npx tsx --test test/integration/jubelio-dispatch.ts
+          npx tsx --test test/integration/courier-orchestration.ts
+      - run: npm ci --no-audit --no-fund --prefix apps/web
+      - run: npm run build --prefix apps/web
+      - name: Browser tooling
+        run: npm install --no-save --no-audit --no-fund playwright@1.56.0 && npx playwright install --with-deps chromium
+      - name: Desktop, mobile, invoice and import browser flow
+        run: |
+          mkdir -p artifacts/order-upgrade
+          node scripts/cp39-fixture-server.cjs > artifacts/order-upgrade/api.log 2>&1 &
+          API_PID=$!
+          (cd apps/web && npm run start) > artifacts/order-upgrade/web.log 2>&1 &
+          WEB_PID=$!
+          trap 'kill "$API_PID" "$WEB_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:3000/api/health >/dev/null && break
+            sleep 1
+          done
+          node scripts/order-upgrade-browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: order-upgrade-verification
+          path: artifacts/order-upgrade/
+          retention-days: 7

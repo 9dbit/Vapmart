@@ -1,8 +1,8 @@
 import {BadRequestException,ConflictException,ForbiddenException,Injectable,NotFoundException,ServiceUnavailableException} from '@nestjs/common';
 import {DatabaseService} from './database';
 import type {Principal} from './auth';
-import {paidOrderVerified} from './fulfillment';
-import {requireUuid} from './warehouses';
+import {paidOrderVerified,fulfillmentOrderEligible} from './fulfillment';
+import {requireUuid,inventoryLock} from './warehouses';
 import {parseManifestRequest} from './courier-protocol';
 import {buildBiteshipOrderPayload} from './courier-adapter';
 import {shippingProvider,jubelioConfigured} from './shipping-config';
@@ -10,7 +10,7 @@ const bookingEnabled=()=>shippingProvider()==='jubelio'&&jubelioConfigured()&&pr
 
 export type BatchRow={
  id:string;order_id:string;brand_id:string|null;warehouse_id:string;state:string;
- status:string;payment_status:string;payment_provider:string|null;payment_reference:string|null;
+ status:string;operational_status?:string;payment_status:string;payment_provider:string|null;payment_reference:string|null;
  shipping_quote_id:string|null;shipping_courier_code:string|null;shipping_service_code:string|null;
  contact_name:string|null;contact_phone:string|null;contact_email:string|null;address_line:string|null;
  city:string|null;province:string|null;postal_code:string|null;
@@ -21,7 +21,7 @@ export type BatchRow={
 export type GoodsRow={order_item_id:string;product_id:string;quantity:number;name:string;sku:string|null;
  price_idr:string;weight_grams:number|null;length_cm:number|null;width_cm:number|null;height_cm:number|null};
 export const batchSql=`SELECT f.id,f.order_id,f.brand_id,f.warehouse_id,f.state,
- o.status,o.payment_status,o.payment_provider,o.payment_reference,
+ o.status,o.operational_status,o.payment_status,o.payment_provider,o.payment_reference,
  o.shipping_quote_id,o.shipping_courier_code,o.shipping_service_code,
  o.contact_name,o.contact_phone,o.contact_email,o.address_line,o.city,o.province,o.postal_code,
  w.name AS warehouse_name,w.address_line AS origin_address,w.city AS origin_city,w.province AS origin_province,
@@ -37,6 +37,7 @@ export const goodsSql=`SELECT l.order_item_id,l.product_id,l.quantity,p.name,p.s
 export function manifestBlockers(batch:BatchRow,goods:GoodsRow[],splitCount:number,quote:{origin_postal_code:string;destination_postal_code:string;provider:string}|null){
  const blockers:string[]=[];
  if(!paidOrderVerified(batch))blockers.push('VERIFIED_PAYMENT_REQUIRED');
+ if(batch.operational_status&&batch.operational_status!=='processing')blockers.push('ORDER_NOT_PROCESSING');
  if(batch.state!=='ready_for_carrier')blockers.push('PACKING_NOT_READY');
  if(!batch.is_active||!batch.is_dispatch_enabled||batch.is_system_hold)blockers.push('WAREHOUSE_DISPATCH_NOT_VERIFIED');
  if(!batch.origin_postal_code||!/^\d{5}$/.test(batch.origin_postal_code)||!batch.origin_address?.trim()||!batch.origin_city?.trim())
@@ -123,7 +124,8 @@ export class CourierManifestService{
   if(!actor.emailVerified)throw new ForbiddenException('Verified admin required');
   requireUuid(batchId,'batch');const req=parseManifestRequest(raw);
   return this.db.transaction(async client=>{
-   const b=await client.query<BatchRow>(batchSql+' FOR UPDATE OF f',[batchId]);
+   await inventoryLock(client);
+   const b=await client.query<BatchRow>(batchSql+' FOR UPDATE OF f,o',[batchId]);
    const row=b.rows[0];if(!row)throw new NotFoundException('Batch not found');
    const prior=await client.query<{id:string;request_key:string;notes:string;pickup_method:string;pickup_date:string|null;pickup_time:string|null}>(
     'SELECT id,request_key,notes,pickup_method,pickup_date::text,pickup_time FROM product.courier_manifests WHERE batch_id=$1 FOR UPDATE',[batchId]);
@@ -134,7 +136,7 @@ export class CourierManifestService{
      throw new ConflictException('Manifest already prepared under different request');
     return {manifestId:old.id,batchId,replayed:true,externalBookingEnabled:bookingEnabled(),awb:null};
    }
-   if(!paidOrderVerified(row)||row.state!=='ready_for_carrier')
+   if(!fulfillmentOrderEligible(row)||row.state!=='ready_for_carrier')
     throw new ConflictException('Verified paid order must be packed and ready before manifest');
    if(!row.is_active||!row.is_dispatch_enabled||row.is_system_hold)throw new ConflictException('Dispatch warehouse not verified');
    const goods=await client.query<GoodsRow>(goodsSql,[batchId]);

@@ -230,10 +230,10 @@ export class CatalogWorkspaceService{
   return {items:r.rows.map(p=>publicPrice(p as any)),observedAt:new Date().toISOString()};
  }
  async orders(raw:Record<string,unknown>={},customerId?:string){
-  const f=parsePage(raw),r=await this.db.query(`WITH filtered AS(SELECT id,status,payment_status,contact_name,city,province,total_idr::text,discount_idr::text,voucher_discount_idr::text,voucher_code,promotion_discount_idr::text,promotion_event_id,promotion_title,created_at,expires_at,payment_method
+  const f=parsePage(raw),r=await this.db.query(`WITH filtered AS(SELECT id,status,operational_status,invoice_number,shipping_courier_code,shipping_service_code,(SELECT coalesce(jsonb_agg(jsonb_build_object('trackingNumber',s.tracking_number,'state',s.state) ORDER BY s.created_at,s.id),'[]'::jsonb) FROM product.shipments s WHERE s.order_id=product.orders.id) AS shipments,payment_status,contact_name,city,province,total_idr::text,discount_idr::text,voucher_discount_idr::text,voucher_code,promotion_discount_idr::text,promotion_event_id,promotion_title,created_at,expires_at,payment_method
    FROM product.orders WHERE idempotency_key IS NOT NULL AND ($1::uuid IS NULL OR customer_user_id=$1)
    AND ($2='' OR strpos(lower(concat_ws(' ',id::text,contact_name,city)),lower($2))>0)
-   AND ($3='' OR status=$3 OR payment_status=$3)),s AS(SELECT * FROM filtered ORDER BY created_at DESC,id DESC LIMIT $4 OFFSET $5)
+   AND ($3='' OR operational_status=$3 OR ($3 IN ('paid','fulfilled','not_initiated','pending') AND (status=$3 OR payment_status=$3)))),s AS(SELECT * FROM filtered ORDER BY created_at DESC,id DESC LIMIT $4 OFFSET $5)
    SELECT jsonb_build_object('items',coalesce((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.created_at DESC,s.id DESC) FROM s),'[]'::jsonb),'total',(SELECT count(*)::int FROM filtered)) data`,[customerId||null,f.q,f.status,f.pageSize,(f.page-1)*f.pageSize]);const d=r.rows[0].data;return {...pageResult(d.items,d.total,f.page,f.pageSize),paymentEnabled:false};
  }
  async orderDetail(id:string){

@@ -6,6 +6,7 @@ import {ensureBalance,inventoryLock,refreshProductAvailability,requireUuid,write
 export function paidOrderVerified(order:{status:string;payment_status:string;payment_provider:string|null;payment_reference:string|null}):boolean{
  return order.status==='paid'&&order.payment_status==='paid'&&!!order.payment_provider&&!!order.payment_reference;
 }
+export function fulfillmentOrderEligible(order:Parameters<typeof paidOrderVerified>[0]&{operational_status?:string}){return paidOrderVerified(order)&&(!order.operational_status||order.operational_status==='processing');}
 export function parseFulfillmentRequest(raw:unknown){
  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new BadRequestException('Fulfillment request required');
  const obj=raw as Record<string,unknown>;
@@ -22,7 +23,7 @@ export function parseFulfillmentStatus(raw:unknown){
  return {state:b.state as 'picking'|'packed'|'ready_for_carrier',notes:b.notes.trim()};
 }
 const nextStates:Record<string,string>={reserved:'picking',picking:'packed',packed:'ready_for_carrier'};
-type Order={id:string;status:string;payment_status:string;payment_provider:string|null;payment_reference:string|null};
+type Order={id:string;operational_status?:string;status:string;payment_status:string;payment_provider:string|null;payment_reference:string|null};
 type OrderLine={id:string;product_id:string;quantity:number;brand_id:string|null;ownership_scope:string;slug:string};
 type Place={warehouse_id:string;on_hand:number;reserved:number;code:string};
 @Injectable()
@@ -41,7 +42,7 @@ export class FulfillmentService {
  async plan(orderId:string){
   requireUuid(orderId,'order');
   const [order,items]=await Promise.all([
-   this.db.query<Order>('SELECT id,status,payment_status,payment_provider,payment_reference FROM product.orders WHERE id=$1',[orderId]),
+   this.db.query<Order>('SELECT id,operational_status,status,payment_status,payment_provider,payment_reference FROM product.orders WHERE id=$1',[orderId]),
    this.db.query<{id:string;product_id:string;brand_id:string|null;quantity:number;product_name:string;sku:string|null}>(
     'SELECT oi.id,oi.product_id,oi.brand_id,oi.ownership_scope,oi.quantity,oi.product_name,oi.sku FROM product.order_items oi JOIN product.products p ON p.id=oi.product_id WHERE oi.order_id=$1 ORDER BY brand_id,oi.id',[orderId])
   ]);
@@ -52,14 +53,14 @@ export class FulfillmentService {
   const availability=new Map<string,{warehouseCode:string;available:number}[]>();
   for(const x of warehouseStock.rows){const rows=availability.get(x.product_id)||[];rows.push({warehouseCode:x.warehouse_code,available:x.available});availability.set(x.product_id,rows);}
   const lines=items.rows.map(x=>({...x,locations:availability.get(x.product_id)||[]}));
-  return {orderId,eligible:paidOrderVerified(order.rows[0]),lines,courierBookingEnabled:false,requiresVerifiedPayment:true};
+  return {orderId,eligible:fulfillmentOrderEligible(order.rows[0]),lines,courierBookingEnabled:false,requiresVerifiedPayment:true};
  }
  async prepare(actor:Principal,orderId:string,body:unknown){
   if(!actor.emailVerified)throw new ForbiddenException('Verified administrator required');
   requireUuid(orderId,'order');const {idempotencyKey}=parseFulfillmentRequest(body);
   return this.db.transaction(async client=>{
    await inventoryLock(client);
-   const r=await client.query<Order>('SELECT id,status,payment_status,payment_provider,payment_reference FROM product.orders WHERE id=$1 FOR UPDATE',[orderId]);
+   const r=await client.query<Order>('SELECT id,operational_status,status,payment_status,payment_provider,payment_reference FROM product.orders WHERE id=$1 FOR UPDATE',[orderId]);
    const order=r.rows[0];if(!order)throw new NotFoundException('Order not found');
    const previous=await client.query<{request_key:string}>('SELECT request_key FROM product.fulfillment_preparations WHERE order_id=$1',[orderId]);
    if(previous.rows[0]){
@@ -67,7 +68,7 @@ export class FulfillmentService {
     const rows=await client.query('SELECT id,brand_id,warehouse_id,state FROM product.fulfillment_batches WHERE order_id=$1 ORDER BY brand_id,warehouse_id',[orderId]);
     return {orderId,batches:rows.rows,replayed:true,courierBookingEnabled:false};
    }
-   if(!paidOrderVerified(order))throw new ConflictException('Cannot reserve a draft or unverified payment');
+   if(!fulfillmentOrderEligible(order))throw new ConflictException('Cannot reserve a draft or unverified payment');
    const lines=await client.query<OrderLine>(
     `SELECT oi.id,oi.product_id,oi.quantity,oi.brand_id,oi.ownership_scope,p.slug
     FROM product.order_items oi JOIN product.products p ON p.id=oi.product_id
@@ -119,14 +120,15 @@ export class FulfillmentService {
   if(authorizedBrandId)requireUuid(authorizedBrandId,'brand');
   requireUuid(batchId,'batch');const change=parseFulfillmentStatus(body);
   return this.db.transaction(async client=>{
+   await inventoryLock(client);
    if(authorizedBrandId){
     const access=await client.query('SELECT 1 FROM product.brand_memberships m JOIN product.brands b ON b.id=m.brand_id WHERE m.brand_id=$1 AND m.user_id=$2 AND m.is_active=true AND m.role IN (\'owner\',\'manager\') AND b.is_active=true FOR SHARE OF m',[authorizedBrandId,actor.id]);
     if(!access.rows[0])throw new ForbiddenException('Akses memproses brand sudah dicabut atau tidak berlaku');
    }
-   const r=await client.query<{id:string;state:string;status:string;payment_status:string;payment_provider:string|null;payment_reference:string|null}>(
-    'SELECT f.id,f.state,o.status,o.payment_status,o.payment_provider,o.payment_reference FROM product.fulfillment_batches f JOIN product.orders o ON o.id=f.order_id WHERE f.id=$1 AND ($2::uuid IS NULL OR f.brand_id=$2::uuid) FOR UPDATE OF f',[batchId,authorizedBrandId||null]);
+   const r=await client.query<{id:string;state:string;status:string;operational_status?:string;payment_status:string;payment_provider:string|null;payment_reference:string|null}>(
+    'SELECT f.id,f.state,o.status,o.operational_status,o.payment_status,o.payment_provider,o.payment_reference FROM product.fulfillment_batches f JOIN product.orders o ON o.id=f.order_id WHERE f.id=$1 AND ($2::uuid IS NULL OR f.brand_id=$2::uuid) FOR UPDATE OF f,o',[batchId,authorizedBrandId||null]);
    const b=r.rows[0];if(!b)throw new NotFoundException('Fulfillment batch not found');
-   if(!paidOrderVerified(b))throw new ConflictException('Order is no longer paid and active; processing is blocked');
+   if(!fulfillmentOrderEligible(b))throw new ConflictException('Order is no longer paid and active; processing is blocked');
    if(b.state===change.state)return {id:b.id,state:b.state,replayed:true,carrierBookingEnabled:false};
    if(nextStates[b.state]!==change.state)throw new ConflictException('Invalid fulfillment transition');
    await client.query('UPDATE product.fulfillment_batches SET state=$2,updated_at=now() WHERE id=$1',[batchId,change.state]);

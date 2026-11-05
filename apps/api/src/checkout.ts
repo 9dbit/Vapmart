@@ -96,9 +96,9 @@ export function parseDraftOrder(raw:unknown){
 export class CheckoutService{
  constructor(private readonly db:DatabaseService){}
  config(){return {paymentEnabled:false,providerConnected:false,methods:PAYMENT_METHODS,shippingFeeIdr:shippingAmount(),shippingMode:shippingConfig().rateLookupEnabled?'courier_select':'fixed_estimate',ordersMode:'draft_only'};}
- private async quoted(items:BasketItem[],query:(sql:string,params:unknown[])=>Promise<{rows:any[]}>,code:string|null=null,userId:string|null=null):Promise<Quote>{
+ async quoted(items:BasketItem[],query:(sql:string,params:unknown[])=>Promise<{rows:any[]}>,code:string|null=null,userId:string|null=null,overrides?:Map<string,number>):Promise<Quote>{
    const rows=await query(`SELECT p.* FROM product.products p WHERE p.id=ANY($1::uuid[]) AND ${sellableSQL}`,[items.map(x=>x.productId)]);
-   let quote=priceBasket(items,rows.rows);
+   let quote=priceBasket(items,rows.rows.map(p=>overrides?.has(p.id)?{...p,price_idr:overrides.get(p.id),sale_price_idr:null}:p));
    if(code){
     const vr=await query(`SELECT v.id,v.code,v.discount_type,v.discount_value,v.max_discount_idr::text AS max_discount_idr,v.min_subtotal_idr::text AS min_subtotal_idr,v.usage_limit
      FROM product.vouchers v WHERE v.code=$1 AND v.is_active AND (v.starts_at IS NULL OR v.starts_at<=now()) AND (v.ends_at IS NULL OR v.ends_at>now()) LIMIT 1`,[code]);
@@ -183,7 +183,7 @@ export class CheckoutService{
  async getOrder(user:Principal,id:string){
    if(!uuid.test(id))throw new BadRequestException('ID pesanan tidak valid');
    const order=await this.db.query(
-     'SELECT id,status,payment_status,payment_method,shipping_provider,shipping_courier_code,shipping_service_code,subtotal_idr::text,discount_idr::text,voucher_discount_idr::text,voucher_code,promotion_discount_idr::text,promotion_event_id,promotion_title,shipping_fee_idr::text,total_idr::text,contact_name,city,province,created_at,expires_at FROM product.orders WHERE id=$1 AND customer_user_id=$2',
+     'SELECT id,status,operational_status,invoice_number,additional_fee_idr::text,payment_status,payment_method,shipping_provider,shipping_courier_code,shipping_service_code,subtotal_idr::text,discount_idr::text,voucher_discount_idr::text,voucher_code,promotion_discount_idr::text,promotion_event_id,promotion_title,shipping_fee_idr::text,total_idr::text,contact_name,city,province,created_at,expires_at FROM product.orders WHERE id=$1 AND customer_user_id=$2',
      [id,user.id]);
    if(!order.rows[0])throw new NotFoundException('Pesanan tidak ditemukan');
    const lines=await this.db.query(
@@ -193,12 +193,12 @@ export class CheckoutService{
  async adminOrders(raw:Record<string,unknown>={}){
   const f=parsePage(raw);
   const r=await this.db.query(`WITH filtered AS (
-   SELECT id,status,payment_status,(payment_provider IS NOT NULL AND payment_reference IS NOT NULL) AS payment_verified,
+   SELECT id,status,operational_status,invoice_number,payment_status,(payment_provider IS NOT NULL AND payment_reference IS NOT NULL) AS payment_verified,
     contact_name,contact_email,city,province,shipping_provider,shipping_courier_code,shipping_service_code,
     subtotal_idr::text,discount_idr::text,voucher_discount_idr::text,voucher_code,promotion_discount_idr::text,promotion_event_id,promotion_title,shipping_fee_idr::text,total_idr::text,payment_method,created_at
    FROM product.orders WHERE idempotency_key IS NOT NULL
     AND ($1::text='' OR strpos(lower(concat_ws(' ',id::text,contact_name,contact_email,city)),lower($1))>0)
-    AND ($2::text='' OR status=$2 OR payment_status=$2)
+    AND ($2::text='' OR operational_status=$2 OR status=$2 OR payment_status=$2)
    ), selected AS (SELECT * FROM filtered ORDER BY created_at DESC,id DESC LIMIT $3 OFFSET $4)
    SELECT jsonb_build_object('items',coalesce((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.created_at DESC,s.id DESC) FROM selected s),'[]'::jsonb),
     'total',(SELECT count(*)::integer FROM filtered)) AS data`,[f.q,f.status,f.pageSize,(f.page-1)*f.pageSize]);

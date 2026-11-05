@@ -18,7 +18,7 @@ async function createFixture(port=0){
  class TestModule{}
  const providers=Reflect.getMetadata('providers',AppModule).map(p=>p===SupabaseAuthService?{provide:SupabaseAuthService,useValue:{verify:async(a)=>{const u=users[(a||'').replace(/^Bearer /,'')];if(!u)throw new UnauthorizedException();return u;}}}:p);
  Module({controllers:Reflect.getMetadata('controllers',AppModule),providers})(TestModule);
- const app=await NestFactory.create(TestModule,{logger:false,rawBody:true});app.useBodyParser('json',{limit:'3mb'});
+ const app=await NestFactory.create(TestModule,{logger:false,rawBody:true});app.useBodyParser('json',{limit:'13mb'});
  const db=app.get(DatabaseService);await db.query("INSERT INTO public.staff_roles(user_id,role,is_active) VALUES($1,'admin',true) ON CONFLICT(user_id,role) DO UPDATE SET is_active=true",[users['fixture-admin'].id]);
  const wh=app.get(WarehouseService);for(const [code,name] of [['CP39-A','Gudang Uji A'],['CP39-B','Gudang Uji B']]){let w=(await db.query('SELECT id FROM product.warehouses WHERE code=$1',[code])).rows[0];if(!w)w=(await wh.create(users['fixture-admin'],{code,name,address:'Jalan Pengujian Nomor 39',city:'Bandung',province:'Jawa Barat',postalCode:'40115'})).warehouse;await wh.update(users['fixture-admin'],w.id,{dispatchEnabled:true});}
  await app.listen(port,'127.0.0.1');return {app,db,users,base:await app.getUrl()};

@@ -5,7 +5,7 @@ import {paidOrderVerified} from './fulfillment';
 import {courierRanks,courierState,normalizeBiteshipWebhook,providerEventHash,verifyWebhookHeader} from './courier-protocol';
 import type {ProviderEvent} from './courier-protocol';
 type Shipment={
- id:string;fulfillment_batch_id:string;provider:string;provider_shipment_id:string;
+ id:string;order_id:string;fulfillment_batch_id:string;provider:string;provider_shipment_id:string;
  state:string;provider_status:string|null;status_rank:number;tracking_number:string|null;
  warehouse_id:string;batch_state:string;carrier_handover_at:string|null;
  status:string;payment_status:string;payment_provider:string|null;payment_reference:string|null
@@ -37,7 +37,7 @@ export class CourierEventService{
    const result=await client.query<Shipment>(
     `SELECT s.id,s.fulfillment_batch_id,s.provider,s.provider_shipment_id,s.state,s.provider_status,
     s.status_rank,s.tracking_number,f.warehouse_id,f.state AS batch_state,
-    f.carrier_handover_at,o.status,o.payment_status,o.payment_provider,o.payment_reference
+    f.carrier_handover_at,f.order_id,o.status,o.payment_status,o.payment_provider,o.payment_reference
     FROM product.shipments s JOIN product.fulfillment_batches f ON f.id=s.fulfillment_batch_id
     JOIN product.orders o ON o.id=f.order_id
     WHERE s.provider_shipment_id=$1 AND s.provider=ANY($2::text[]) FOR UPDATE OF s,f,o`,
@@ -98,6 +98,12 @@ export class CourierEventService{
       }
      }
     }
+   }
+   if(applied&&evt.status==='delivered'){
+    const done=await client.query(`UPDATE product.orders o SET operational_status='completed',status='fulfilled'
+     WHERE o.id=$1 AND o.operational_status='processing' AND o.payment_status='paid' AND o.payment_provider IS NOT NULL AND o.payment_reference IS NOT NULL
+     AND NOT EXISTS(SELECT 1 FROM product.fulfillment_batches f LEFT JOIN product.shipments s ON s.fulfillment_batch_id=f.id WHERE f.order_id=o.id AND f.state<>'cancelled' AND (s.state IS NULL OR s.state<>'delivered')) RETURNING o.edit_version`,[shipment.order_id]);
+    if(done.rows[0])await client.query(`INSERT INTO product.order_events(order_id,action,notes,before_data,after_data) VALUES($1,'status','Seluruh paket diterima; dikonfirmasi tracking kurir',$2::jsonb,$3::jsonb)`,[shipment.order_id,JSON.stringify({status:'processing'}),JSON.stringify({status:'completed',version:done.rows[0].edit_version})]);
    }
    await client.query('UPDATE product.courier_tracking_events SET is_applied=$2 WHERE id=$1',[eventId,applied]);
    return {accepted:true,replayed:false,eventId,applied,needsReview,reconcilePrice,
