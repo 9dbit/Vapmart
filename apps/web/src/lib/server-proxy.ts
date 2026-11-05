@@ -1,6 +1,6 @@
 import {NextRequest,NextResponse} from 'next/server';
 type Method='GET'|'POST'|'PATCH';
-export async function proxyJson(request:NextRequest,path:string,method:Method,options:{requireAuth?:boolean;maxChars?:number}={}):Promise<Response>{
+export async function proxyJson(request:NextRequest,path:string,method:Method,options:{requireAuth?:boolean;maxChars?:number;timeoutMs?:number}={}):Promise<Response>{
  const base=process.env.API_INTERNAL_URL;
  if(!base)return NextResponse.json({code:'API_NOT_CONFIGURED',message:'API belum dikonfigurasi'},{status:503});
  const bearer=request.headers.get('authorization')||'';
@@ -17,7 +17,7 @@ export async function proxyJson(request:NextRequest,path:string,method:Method,op
  try{
   const response=await fetch(new URL(path,base),{
    method,headers:{...(options.requireAuth?{authorization:bearer}:{}),...(body===undefined?{}:{'content-type':'application/json'})},
-   ...(body===undefined?{}:{body}),cache:'no-store',signal:AbortSignal.timeout(10000)
+   ...(body===undefined?{}:{body}),cache:'no-store',signal:AbortSignal.timeout(options.timeoutMs??10000)
   });
   return new Response(await response.text(),{status:response.status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
  }catch{

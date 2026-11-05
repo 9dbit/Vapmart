@@ -1,0 +1,48 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {resolve} from 'node:path';
+import sharp from 'sharp';
+const {createFixture}=require(resolve('../../scripts/cp39-fixture-server.cjs'));
+const {JubelioShipmentClient}=require(resolve('dist/jubelio-shipment'));
+test('Jubelio rates persist through authenticated checkout with insurance, area and parcel integrity',async()=>{
+ Object.assign(process.env,{SHIPPING_PROVIDER:'jubelio',SHIPPING_RATE_LOOKUP_ENABLED:'true',SHIPPING_ORIGIN_POSTAL_CODE:'10150',JUBELIO_SHIPMENT_ORIGIN_AREA_ID:'3171011002',JUBELIO_SHIPMENT_CLIENT_ID:'fixture-only',JUBELIO_SHIPMENT_CLIENT_SECRET:'fixture-only'});
+ const {app,db,base}=await createFixture();
+ const region={areaId:'3273091003',postalCode:'40115',label:'Citarum, Bandung',city:'KOTA BANDUNG',province:'JAWA BARAT',district:'Bandung Wetan',area:'Citarum'};
+ const client=app.get(JubelioShipmentClient);let externalCalls=0;
+ client.regions=async()=>[region];
+ client.request=async(path:string,body:any)=>{externalCalls++;assert.equal(path,'/webstore/rates/all');assert.equal(body.origin.area_id,'3171011002');assert.equal(body.weight,500);assert.equal(body.total_value,200000);
+  return [{courier_id:24,courier_name:'Lion Parcel',courier_service_id:2453,courier_service_code:'jagopack',courier_service_name:'JAGOPACK',rates:9500,shipping_insurance:300,final_rates:5000}];};
+ const call=async(path:string,body?:any,token='fixture-admin')=>{
+  const r=await fetch(base+path,{method:body===undefined?'GET':'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});return {status:r.status,data:await r.json()};};
+ const ok=async(path:string,body?:any,token='fixture-admin')=>{const r=await call(path,body,token);assert.ok(r.status>=200&&r.status<300,JSON.stringify(r));return r.data;};
+ try{
+  const cfg=await ok('/v1/shipping/config');assert.equal(cfg.provider,'jubelio');assert.equal(cfg.rateLookupEnabled,true);assert.equal(cfg.bookingEnabled,false);assert.equal(cfg.paymentEnabled,false);assert.ok(!JSON.stringify(cfg).includes('fixture-only'));
+  assert.equal((await call('/v1/shipping/regions?q=40115',undefined,'')).status,401);
+  assert.equal((await call('/v1/shipping/connection',undefined,'fixture-buyer')).status,403);
+  const lookups=await ok('/v1/admin/catalog/lookups'),warehouse=lookups.warehouses.find((w:any)=>w.is_active&&!w.is_system_hold),category=lookups.categories.find((c:any)=>c.slug==='other');
+  const png=await sharp({create:{width:96,height:96,channels:3,background:'#7842b8'}}).png().toBuffer();
+  const asset=await ok('/v1/admin/media',{filename:'jubelio-fixture.png',mimeType:'image/png',base64:png.toString('base64')});
+  const product={name:'Travel Pouch Shipping Test',slug:'travel-pouch-shipping-test',sku:'SHIP-TEST-POUCH',description:'Travel pouch for everyday accessories.',categoryIds:[category.id],brand_id:null,fulfillment_owner_brand_id:null,image_url:'/api/media/'+asset.id,gallery_urls:[],price_idr:100000,sale_price_idr:null,sale_starts_at:null,sale_ends_at:null,weight_grams:250,length_cm:20,width_cm:12,height_cm:4,product_type:'simple',attributes:[]};
+  const saved=await ok('/v1/admin/catalog/products',{requestKey:randomUUID(),product,variants:[],warehouseStocks:[{warehouseId:warehouse.id,onHand:10,expectedOnHand:0,expectedReserved:0,notes:''}]});
+  await ok('/v1/admin/catalog/products/'+saved.product.id+'/state',{expectedVersion:saved.product.edit_version,active:true});
+  const basket={items:[{productId:saved.product.id,quantity:2}],destinationPostalCode:'40115',destinationAreaId:region.areaId};
+  const quote=await ok('/v1/shipping/rates',basket,'fixture-buyer');assert.equal(quote.rates[0].priceIdr,9800);assert.equal(quote.rates[0].insuranceIdr,300);assert.equal(quote.canBook,false);
+  const draft={items:basket.items,name:'Fixture Buyer',phone:'081234567890',address:'Jalan Test Paket Nomor 46',city:region.city,province:region.province,postalCode:'40115',destinationAreaId:region.areaId,paymentMethod:'bank_transfer',shippingQuoteId:quote.rates[0].quoteId,idempotencyKey:randomUUID()};
+  assert.equal((await call('/v1/checkout/orders',draft,'fixture-other')).status,409,'another user cannot use the quote');
+  assert.equal((await call('/v1/checkout/orders',{...draft,destinationAreaId:'3273091004'},'fixture-buyer')).status,409);
+  assert.equal((await call('/v1/checkout/orders',{...draft,city:'Different City'},'fixture-buyer')).status,409);
+  await db.query('UPDATE product.products SET height_cm=5 WHERE id=$1',[saved.product.id]);
+  assert.equal((await call('/v1/checkout/orders',draft,'fixture-buyer')).status,409,'dimensions invalidate volumetric quote');
+  await db.query('UPDATE product.products SET height_cm=4 WHERE id=$1',[saved.product.id]);
+  const order=await ok('/v1/checkout/orders',draft,'fixture-buyer');assert.equal(order.totalIdr,209800);assert.equal(order.paymentStatus,'pending');
+  const row=(await db.query('SELECT shipping_provider,shipping_fee_idr::int,payment_status FROM product.orders WHERE id=$1',[order.id])).rows[0];assert.equal(row.shipping_provider,'jubelio');assert.equal(row.shipping_fee_idr,9800);assert.equal(row.payment_status,'pending');
+  const replay=await ok('/v1/checkout/orders',draft,'fixture-buyer');assert.equal(replay.id,order.id);
+  const expired=await ok('/v1/shipping/rates',basket,'fixture-buyer');await db.query("UPDATE product.shipping_rate_quotes SET created_at=now()-interval '30 minutes',expires_at=now()-interval '1 minute' WHERE id=$1",[expired.rates[0].quoteId]);
+  assert.equal((await call('/v1/checkout/orders',{...draft,shippingQuoteId:expired.rates[0].quoteId,idempotencyKey:randomUUID()},'fixture-buyer')).status,409);
+  assert.equal((await call('/v1/shipping/rates',basket,'fixture-unverified')).status,403);
+  assert.equal((await call('/v1/admin/courier/batches/'+randomUUID()+'/book',{})).status,503);
+  assert.equal(Number((await db.query("SELECT count(*) n FROM product.shipments WHERE provider='jubelio'")).rows[0].n),0);
+  assert.equal(externalCalls,2);console.log('JUBELIO_CHECKOUT_INTEGRATION_PASS');
+ }finally{await app.close();}
+});

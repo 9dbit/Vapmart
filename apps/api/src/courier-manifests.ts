@@ -5,6 +5,7 @@ import {paidOrderVerified} from './fulfillment';
 import {requireUuid} from './warehouses';
 import {parseManifestRequest} from './courier-protocol';
 import {buildBiteshipOrderPayload} from './courier-adapter';
+import {shippingProvider} from './shipping-config';
 
 type BatchRow={
  id:string;order_id:string;brand_id:string|null;warehouse_id:string;state:string;
@@ -48,7 +49,8 @@ export function manifestBlockers(batch:BatchRow,goods:GoodsRow[],splitCount:numb
  if(!quote||quote.provider!=='biteship_test'||quote.origin_postal_code!==batch.origin_postal_code||
     quote.destination_postal_code!==batch.postal_code)blockers.push('WAREHOUSE_SPECIFIC_COURIER_QUOTE_REQUIRED');
  if(!batch.shipping_courier_code||!batch.shipping_service_code)blockers.push('COURIER_SERVICE_NOT_SELECTED');
- // No approved payment-gateway cutover or Biteship booking credentials. Do not silently enable.
+ if(quote?.provider==='jubelio')blockers.push('JUBELIO_BOOKING_NOT_ENABLED');
+ // The rate integration does not activate chargeable carrier bookings.
  blockers.push('EXTERNAL_BOOKING_DISABLED');
  return blockers;
 }
@@ -56,10 +58,10 @@ export function manifestBlockers(batch:BatchRow,goods:GoodsRow[],splitCount:numb
 export class CourierManifestService{
  constructor(private readonly db:DatabaseService){}
  config(){
-  return {provider:'biteship',manifestsEnabled:true,internalPickupPlanEnabled:true,
+  return {provider:shippingProvider(),manifestsEnabled:true,internalPickupPlanEnabled:true,
    externalBookingEnabled:false,externalCancellationEnabled:false,
    awbGenerated:false,paymentEnabled:false,returnShipmentBookingEnabled:false,
-   webhookEnabled:process.env.BITESHIP_WEBHOOK_ENABLED==='true'&&Boolean(process.env.BITESHIP_WEBHOOK_HEADER_SECRET),
+   webhookEnabled:shippingProvider()==='biteship'&&process.env.BITESHIP_WEBHOOK_ENABLED==='true'&&Boolean(process.env.BITESHIP_WEBHOOK_HEADER_SECRET),
    labelType:'internal_packing_slip_only'};
  }
  async list(){
@@ -73,7 +75,7 @@ export class CourierManifestService{
    LEFT JOIN product.courier_manifests m ON m.batch_id=f.id
    LEFT JOIN product.shipments s ON s.fulfillment_batch_id=f.id
    ORDER BY f.created_at DESC LIMIT 200`);
-  return {items:r.rows,externalBookingEnabled:false,provider:'biteship',labelType:'packing_slip'};
+  return {items:r.rows,externalBookingEnabled:false,provider:shippingProvider(),labelType:'packing_slip'};
  }
  async preview(batchId:string){
   requireUuid(batchId,'batch');
@@ -90,7 +92,7 @@ export class CourierManifestService{
   const weight=goods.rows.reduce((a,g)=>a+(g.weight_grams||0)*g.quantity,0);
   const blockers=manifestBlockers(row,goods.rows,count.rows[0]?.n||0,quote.rows[0]||null);
   let providerPayloadReady=false;
-  if(blockers.length===1&&blockers[0]==='EXTERNAL_BOOKING_DISABLED'){
+  if(shippingProvider()==='biteship'&&blockers.length===1&&blockers[0]==='EXTERNAL_BOOKING_DISABLED'){
    try{
     // Validate the documented request body with server data, but NEVER POST it to Biteship.
     buildBiteshipOrderPayload({

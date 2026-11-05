@@ -1,0 +1,48 @@
+name: Jubelio Shipment integration
+on:
+  push:
+    branches: [feat/jubelio-shipment-20261105]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: vapmart_test
+          POSTGRES_PASSWORD: disposable_shipping_only
+          POSTGRES_DB: vapmart_cp39_shipping
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U vapmart_test -d vapmart_cp39_shipping"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgres://vapmart_test:disposable_shipping_only@127.0.0.1:5432/vapmart_cp39_shipping
+      CP39_LOCAL_TEST: '1'
+      CHECKOUT_ENABLED: 'false'
+      DIGITAL_COMMERCE_ENABLED: 'false'
+      SHIPPING_RATE_LOOKUP_ENABLED: 'false'
+      PAYMENT_MODE: disabled
+      SHIPPING_FEE_IDR: '15000'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund --prefix apps/api
+      - run: npm run build --prefix apps/api
+      - run: npm test --prefix apps/api
+      - name: Apply migrations twice and verify database checkout flow
+        working-directory: apps/api
+        run: |
+          npm run migrate
+          npm run migrate
+          npx tsx --test test/integration/jubelio-shipment.ts
+          npx tsx --test test/integration/checkout-conversion.ts
+      - run: npm ci --no-audit --no-fund --prefix apps/web
+      - run: npm run build --prefix apps/web

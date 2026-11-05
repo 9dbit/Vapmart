@@ -5,7 +5,8 @@ import {BadRequestException,ConflictException,ForbiddenException,Injectable,NotF
 import {DatabaseService} from './database';
 import type {Principal} from './auth';
 import {parsePage,pageResult} from './data-integrity';
-import {shippingFingerprint} from './shipping-fingerprint';
+import {shippingFingerprint,shippingParcelFingerprint} from './shipping-fingerprint';
+import {shippingSnapshotProvider,shippingConfig} from './shipping-config';
 import {bestAutomaticPromotion} from './promotions';
 
 type BasketItem={productId:string;quantity:number};
@@ -59,7 +60,7 @@ export function priceBasket(items:BasketItem[],rows:Array<{id:string;sku:string|
  return {items:priced,subtotalIdr,discountIdr:0,voucherDiscountIdr:0,voucherCode:null,voucherId:null,promotionDiscountIdr:0,promotionEventId:null,promotionTitle:null,shippingFeeIdr,totalIdr:shippingFeeIdr===null?null:subtotalIdr+shippingFeeIdr,
   currency:'IDR',shippingEstimate:true,paymentEnabled:false,paymentMethods:[...PAYMENT_METHODS]};
 }
-type Address={name:string;phone:string;address:string;city:string;province:string;postalCode:string;paymentMethod:typeof PAYMENT_METHODS[number];idempotencyKey:string;shippingQuoteId:string|null;voucherCode:string|null};
+type Address={name:string;phone:string;address:string;city:string;province:string;postalCode:string;paymentMethod:typeof PAYMENT_METHODS[number];idempotencyKey:string;shippingQuoteId:string|null;voucherCode:string|null;destinationAreaId?:string};
 function addressString(raw:unknown,label:string,min:number,max:number):string{
  if(typeof raw!=='string'||raw.trim().length<min||raw.trim().length>max)throw new BadRequestException(label+' wajib diisi dengan benar');
  return raw.trim();
@@ -67,7 +68,7 @@ function addressString(raw:unknown,label:string,min:number,max:number):string{
 export function parseDraftOrder(raw:unknown){
  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new BadRequestException('Data checkout tidak valid');
  const data=raw as Record<string,unknown>;
- if(Object.keys(data).some(k=>!['items','name','phone','address','city','province','postalCode','paymentMethod','idempotencyKey','shippingQuoteId','voucherCode'].includes(k)))
+ if(Object.keys(data).some(k=>!['items','name','phone','address','city','province','postalCode','paymentMethod','idempotencyKey','shippingQuoteId','voucherCode','destinationAreaId'].includes(k)))
    throw new BadRequestException('Kolom checkout tidak dikenali');
  const items=parseBasket({items:data.items});
  const name=addressString(data.name,'Nama penerima',2,100);
@@ -85,12 +86,16 @@ export function parseDraftOrder(raw:unknown){
  if(data.shippingQuoteId!==undefined&&data.shippingQuoteId!==null&&(typeof data.shippingQuoteId!=='string'||!uuid.test(data.shippingQuoteId)))
    throw new BadRequestException('Shipping quote ID tidak valid');
  const details:Address={name,phone,address,city,province,postalCode,paymentMethod:data.paymentMethod as Address['paymentMethod'],idempotencyKey:data.idempotencyKey,shippingQuoteId:typeof data.shippingQuoteId==='string'?data.shippingQuoteId:null,voucherCode:voucherCode(data.voucherCode)};
+ if(data.destinationAreaId!==undefined){
+  if(typeof data.destinationAreaId!=='string'||!/^\d{10}$/.test(data.destinationAreaId))throw new BadRequestException('Wilayah tujuan tidak valid');
+  details.destinationAreaId=data.destinationAreaId;
+ }
  return {items,details};
 }
 @Injectable()
 export class CheckoutService{
  constructor(private readonly db:DatabaseService){}
- config(){return {paymentEnabled:false,providerConnected:false,methods:PAYMENT_METHODS,shippingFeeIdr:shippingAmount(),shippingMode:process.env.SHIPPING_RATE_LOOKUP_ENABLED==='true'?'sandbox_select':'fixed_estimate',ordersMode:'draft_only'};}
+ config(){return {paymentEnabled:false,providerConnected:false,methods:PAYMENT_METHODS,shippingFeeIdr:shippingAmount(),shippingMode:shippingConfig().rateLookupEnabled?'courier_select':'fixed_estimate',ordersMode:'draft_only'};}
  private async quoted(items:BasketItem[],query:(sql:string,params:unknown[])=>Promise<{rows:any[]}>,code:string|null=null,userId:string|null=null):Promise<Quote>{
    const rows=await query(`SELECT p.* FROM product.products p WHERE p.id=ANY($1::uuid[]) AND ${sellableSQL}`,[items.map(x=>x.productId)]);
    let quote=priceBasket(items,rows.rows);
@@ -133,22 +138,26 @@ export class CheckoutService{
      let shippingFee=quote.shippingFeeIdr;
      let service:{provider:string;courier_code:string;service_code:string}|null=null;
      if(details.shippingQuoteId){
-      const r=await client.query<{cart_fingerprint:string;destination_postal_code:string;origin_postal_code:string;provider:string;courier_code:string;service_code:string;amount_idr:string;expires_at:string;applied_order_id:string|null}>(
-       'SELECT cart_fingerprint,destination_postal_code,origin_postal_code,provider,courier_code,service_code,amount_idr::text,expires_at,applied_order_id FROM product.shipping_rate_quotes WHERE id=$1 AND customer_user_id=$2 FOR UPDATE',
+      const r=await client.query<{cart_fingerprint:string;destination_postal_code:string;origin_postal_code:string;provider:string;courier_code:string;service_code:string;amount_idr:string;expires_at:string;applied_order_id:string|null;origin_area_id:string|null;destination_area_id:string|null;destination_region:{city:string;province:string}|null}>(
+       'SELECT cart_fingerprint,destination_postal_code,origin_postal_code,provider,courier_code,service_code,amount_idr::text,expires_at,applied_order_id,origin_area_id,destination_area_id,destination_region FROM product.shipping_rate_quotes WHERE id=$1 AND customer_user_id=$2 FOR UPDATE',
        [details.shippingQuoteId,user.id]);
       const stored=r.rows[0];
       if(!stored||stored.applied_order_id||Date.parse(stored.expires_at)<=Date.now()||
         stored.destination_postal_code!==details.postalCode||stored.origin_postal_code!==process.env.SHIPPING_ORIGIN_POSTAL_CODE||
-        stored.provider!=='biteship_test')throw new ConflictException('Pilihan ongkir habis masa berlaku, silakan cek ulang');
-      const live=await client.query<{id:string;weight_grams:number|null}&PriceInput>(
+        stored.provider!==shippingSnapshotProvider())throw new ConflictException('Pilihan ongkir habis masa berlaku, silakan cek ulang');
+      if(stored.provider==='jubelio'&&(stored.origin_area_id!==process.env.JUBELIO_SHIPMENT_ORIGIN_AREA_ID||stored.destination_area_id!==details.destinationAreaId||
+       stored.destination_region?.city!==details.city||stored.destination_region?.province!==details.province))
+       throw new ConflictException('Wilayah pengiriman berubah, silakan pilih wilayah dan cek ongkir ulang');
+      const live=await client.query<{id:string;weight_grams:number|null;length_cm:number|null;width_cm:number|null;height_cm:number|null}&PriceInput>(
        `SELECT p.* FROM product.products p WHERE p.id=ANY($1::uuid[]) AND ${sellableSQL}`,
        [items.map(i=>i.productId)]);
       const byId=new Map(live.rows.map(p=>[p.id,p]));
-      const signature=shippingFingerprint(items.map(i=>{
+      const fingerprintItems=items.map(i=>{
        const p=byId.get(i.productId);
        if(!p||!p.weight_grams||!Number.isSafeInteger(Number(p.price_idr)))throw new ConflictException('Harga atau berat produk tidak tersedia, mohon cek ongkir ulang');
-       return {productId:i.productId,quantity:i.quantity,unitPriceIdr:effectivePrice(p),weightGrams:p.weight_grams};
-      }));
+       return {productId:i.productId,quantity:i.quantity,unitPriceIdr:effectivePrice(p),weightGrams:p.weight_grams,lengthCm:p.length_cm,widthCm:p.width_cm,heightCm:p.height_cm};
+      });
+      const signature=stored.provider==='jubelio'?shippingParcelFingerprint(fingerprintItems):shippingFingerprint(fingerprintItems);
       if(signature!==stored.cart_fingerprint)throw new ConflictException('Harga, berat, atau isi keranjang berubah; mohon cek ongkir ulang');
       shippingFee=Number(stored.amount_idr);
       service={provider:stored.provider,courier_code:stored.courier_code,service_code:stored.service_code};

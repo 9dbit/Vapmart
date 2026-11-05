@@ -147,8 +147,8 @@ export function CourierOpsPanel({token}:{token:string|null}){
     <div className="vm-fulfillment-timeline">{events.map(e=><div key={e.id}><strong>{e.event_type} · {e.provider_status||'—'}</strong>
       <small>{e.waybill_id||''} {e.observed_fee_idr?' · Koreksi tarif '+new Intl.NumberFormat('id-ID').format(Number(e.observed_fee_idr))+' perlu review':''}</small>
       <small>{new Date(e.received_at).toLocaleString('id-ID')} · {e.is_applied?'Teraplikasi':'Audit saja / diabaikan'}</small></div>)}</div>
-    {!events.length&&<p className="vm-ops-hint">Belum ada event provider terverifikasi. Webhook Biteship tidak diaktifkan.</p>}
-    <p className="vm-ops-hint">Nomor resi dan label resmi hanya berasal dari Biteship/kurir. Fitur booking membutuhkan persetujuan terpisah.</p>
+    {!events.length&&<p className="vm-ops-hint">Belum ada event provider terverifikasi. Webhook pelacakan belum diaktifkan.</p>}
+    <p className="vm-ops-hint">Nomor resi dan label resmi hanya berasal dari provider pengiriman. Fitur booking membutuhkan persetujuan terpisah.</p>
     <button type="button" className="vm-ops-secondary" disabled>Booking Kurir · OFF</button>
    </section>
   </div>

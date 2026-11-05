@@ -6,12 +6,13 @@ import {useCart} from '@/lib/cart';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {isDigitalProduct} from '@/lib/digital-products';
 import {formatIDR} from '@/lib/types';
+import {ShippingRegionPicker,type ShippingRegion} from '@/components/shipping-region-picker';
 import '../checkout-v26.css';
 
 type QuoteItem={productId:string;sku:string|null;name:string;unitPriceIdr:number;quantity:number;lineTotalIdr:number;stockQty:number};
 type Quote={items:QuoteItem[];subtotalIdr:number;discountIdr:number;voucherDiscountIdr:number;voucherCode:string|null;promotionDiscountIdr:number;promotionEventId:string|null;promotionTitle:string|null;shippingFeeIdr:number|null;totalIdr:number|null;shippingEstimate:boolean;paymentEnabled:boolean;paymentMethods:string[]};
-type ShippingOption={quoteId:string;expiresAt:string;courierCode:string;courierName:string;serviceCode:string;serviceName:string;priceIdr:number;duration:string};
-type ShippingConfig={rateLookupEnabled:boolean;bookingEnabled:boolean;paymentEnabled:boolean;rateType:string};
+type ShippingOption={quoteId:string;expiresAt:string;courierCode:string;courierName:string;serviceCode:string;serviceName:string;priceIdr:number;duration:string;insuranceIdr?:number};
+type ShippingConfig={rateLookupEnabled:boolean;bookingEnabled:boolean;paymentEnabled:boolean;rateType:string;requiresArea?:boolean;provider?:string;originLabel?:string};
 type DraftForm={name:string;phone:string;address:string;city:string;province:string;postalCode:string;paymentMethod:'bank_transfer'|'qris'|'virtual_account'|'ewallet'};
 const initial:DraftForm={name:'',phone:'',address:'',city:'',province:'',postalCode:'',paymentMethod:'bank_transfer'};
 const methods=[{id:'bank_transfer',name:'Bank Transfer',hint:'Buat pesanan sekarang; pembayaran diverifikasi manual oleh admin'},{id:'qris',name:'QRIS',hint:'Menunggu integrasi payment gateway'},{id:'virtual_account',name:'Virtual Account',hint:'Menunggu integrasi payment gateway'},{id:'ewallet',name:'E-Wallet',hint:'Menunggu integrasi payment gateway'}] as const;
@@ -25,6 +26,7 @@ export default function CheckoutPage(){
  const [quote,setQuote]=useState<Quote|null>(null);
  const [shippingConfig,setShippingConfig]=useState<ShippingConfig|null>(null);
  const [shippingRates,setShippingRates]=useState<ShippingOption[]>([]);
+ const [destination,setDestination]=useState<ShippingRegion|null>(null);
  const [selectedQuoteId,setSelectedQuoteId]=useState('');
  const [shippingLoading,setShippingLoading]=useState(false);
  const [quoting,setQuoting]=useState(false);
@@ -32,6 +34,7 @@ export default function CheckoutPage(){
  const [error,setError]=useState('');
  const [order,setOrder]=useState<{id:string;status:string;paymentStatus:string}|null>(null);
  const requestKey=useRef<string|null>(null);
+ const shippingRequest=useRef(0);
  const physical=useMemo(()=>items.filter(x=>!isDigitalProduct(x.product)),[items]);
  const includesDigital=items.some(x=>isDigitalProduct(x.product));
  const requestItems=useMemo(()=>physical.map(x=>({productId:x.product.id,quantity:x.quantity})),[physical]);
@@ -43,7 +46,7 @@ export default function CheckoutPage(){
  useEffect(()=>{
   if(includesDigital||requestItems.length===0){setQuote(null);setError('');return;}
   const controller=new AbortController();
-  requestKey.current=null;setQuoting(true);setError('');setQuote(null);setShippingRates([]);setSelectedQuoteId('');
+  requestKey.current=null;shippingRequest.current++;setShippingLoading(false);setQuoting(true);setError('');setQuote(null);setShippingRates([]);setSelectedQuoteId('');
   fetch('/api/checkout/quote',{method:'POST',headers:{'content-type':'application/json',...(auth.accessToken?{authorization:'Bearer '+auth.accessToken}:{})},body:JSON.stringify({items:requestItems,...(appliedVoucher?{voucherCode:appliedVoucher}:{})}),signal:controller.signal,cache:'no-store'})
    .then(async response=>{
     const result=await response.json();
@@ -57,21 +60,24 @@ export default function CheckoutPage(){
  },[key,includesDigital,auth.accessToken]);
  const change=(name:keyof DraftForm,value:string)=>{
   setForm(previous=>({...previous,[name]:value}));setOrder(null);requestKey.current=null;
-  if(name==='postalCode'){setShippingRates([]);setSelectedQuoteId('');}
+  if(['postalCode','city','province'].includes(name)){shippingRequest.current++;setShippingLoading(false);setShippingRates([]);setSelectedQuoteId('');if(name==='postalCode')setDestination(null);}
  };
  async function loadShippingRates(){
   if(!auth.accessToken){setError('Login dan verifikasi email untuk cek ongkir.');return;}
-  if(!shippingConfig?.rateLookupEnabled){setError('API ongkir sandbox belum diaktifkan.');return;}
+  if(!shippingConfig?.rateLookupEnabled){setError('Cek ongkir belum diaktifkan.');return;}
   if(!/^[0-9]{5}$/.test(form.postalCode)){setError('Masukkan kode pos tujuan 5 angka.');return;}
+  if(shippingConfig.requiresArea&&!destination){setError('Pilih kelurahan tujuan terlebih dahulu.');return;}
+  const sequence=++shippingRequest.current;
   setShippingLoading(true);setError('');setShippingRates([]);setSelectedQuoteId('');
   try{
    const response=await fetch('/api/shipping/rates',{method:'POST',headers:{authorization:'Bearer '+auth.accessToken,'content-type':'application/json'},
-    body:JSON.stringify({items:requestItems,destinationPostalCode:form.postalCode})});
+    body:JSON.stringify({items:requestItems,destinationPostalCode:form.postalCode,...(destination?{destinationAreaId:destination.areaId}:{})})});
    const data=await response.json();if(!response.ok)throw Error(data?.message||data?.code||'Tarif kurir belum tersedia');
+   if(sequence!==shippingRequest.current)return;
    setShippingRates(Array.isArray(data.rates)?data.rates:[]);
    if(!data.rates?.length)setError('Tidak ada tarif kurir untuk kombinasi alamat dan produk ini.');
-  }catch(e){setError(e instanceof Error?e.message:'Tidak dapat cek ongkir');}
-  finally{setShippingLoading(false);}
+  }catch(e){if(sequence===shippingRequest.current)setError(e instanceof Error?e.message:'Tidak dapat cek ongkir');}
+  finally{if(sequence===shippingRequest.current)setShippingLoading(false);}
  }
  const submit=async(event:FormEvent<HTMLFormElement>)=>{
   event.preventDefault();setError('');
@@ -81,7 +87,7 @@ export default function CheckoutPage(){
   try{
    requestKey.current??=crypto.randomUUID();
    const response=await fetch('/api/checkout/orders',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+auth.accessToken},
-    body:JSON.stringify({...form,items:requestItems,idempotencyKey:requestKey.current,...(appliedVoucher?{voucherCode:appliedVoucher}:{}),...(selectedShipping?{shippingQuoteId:selectedShipping.quoteId}:{})})});
+    body:JSON.stringify({...form,items:requestItems,idempotencyKey:requestKey.current,...(appliedVoucher?{voucherCode:appliedVoucher}:{}),...(selectedShipping?{shippingQuoteId:selectedShipping.quoteId}:{}),...(destination?{destinationAreaId:destination.areaId}:{})})});
    const result=await response.json();
    if(!response.ok)throw new Error(typeof result?.message==='string'?result.message:result?.code||'Gagal menyimpan draft pesanan');
    setOrder({id:result.id,status:result.status,paymentStatus:result.paymentStatus});
@@ -103,14 +109,15 @@ export default function CheckoutPage(){
     <label>Nama lengkap<input value={form.name} onChange={e=>change('name',e.target.value)} minLength={2} maxLength={100} required autoComplete="name" placeholder="Nama penerima"/></label>
     <label>Nomor telepon<input value={form.phone} onChange={e=>change('phone',e.target.value)} minLength={9} maxLength={22} required inputMode="tel" autoComplete="tel" placeholder="08xxxxxxxxxx"/></label>
     <label>Alamat lengkap<textarea value={form.address} onChange={e=>change('address',e.target.value)} minLength={8} maxLength={300} required rows={3} placeholder="Jalan, nomor, RT/RW, kecamatan"/></label>
-    <div className="vco26-fields"><label>Kota / Kabupaten<input value={form.city} onChange={e=>change('city',e.target.value)} maxLength={90} required/></label><label>Provinsi<input value={form.province} onChange={e=>change('province',e.target.value)} maxLength={90} required/></label></div>
+    <div className="vco26-fields"><label>Kota / Kabupaten<input readOnly={shippingConfig?.requiresArea} value={form.city} onChange={e=>change('city',e.target.value)} maxLength={90} required/></label><label>Provinsi<input readOnly={shippingConfig?.requiresArea} value={form.province} onChange={e=>change('province',e.target.value)} maxLength={90} required/></label></div>
     <label>Kode pos<input value={form.postalCode} onChange={e=>change('postalCode',e.target.value)} pattern="[0-9]{5}" inputMode="numeric" maxLength={5} required placeholder="40115"/></label>
+    {shippingConfig?.requiresArea&&<ShippingRegionPicker postalCode={form.postalCode} token={auth.accessToken} value={destination?.areaId||''} onChange={r=>{setDestination(r);shippingRequest.current++;setShippingLoading(false);setShippingRates([]);setSelectedQuoteId('');requestKey.current=null;if(r)setForm(f=>({...f,city:r.city,province:r.province}));}}/>}
     <div className="vco26-card-heading vco26-payment-head"><span>02</span><div><h2>Kurir & Ongkos Kirim</h2><p>Lihat estimasi biaya dan waktu kirim sebelum membuat pesanan. Belum ada booking kurir maupun resi.</p></div></div>
     {shippingConfig?.rateLookupEnabled?<div style={{display:'grid',gap:12,marginBottom:24}}>
-     <button type="button" className="vco26-button" disabled={!auth.user||shippingLoading||!/^[0-9]{5}$/.test(form.postalCode)||!requestItems.length} onClick={loadShippingRates}>{shippingLoading?'Memeriksa tarif...':'Cek estimasi ongkir'}</button>
+     <button type="button" className="vco26-button" disabled={!auth.user||shippingLoading||!/^[0-9]{5}$/.test(form.postalCode)||!requestItems.length||(shippingConfig.requiresArea&&!destination)} onClick={loadShippingRates}>{shippingLoading?'Memeriksa tarif...':'Cek estimasi ongkir'}</button>
      {shippingRates.map(r=><label key={r.quoteId} className={'vco26-method'+(selectedQuoteId===r.quoteId?' selected':'')}>
       <input type="radio" name="shippingRate" value={r.quoteId} checked={selectedQuoteId===r.quoteId} onChange={()=>{setSelectedQuoteId(r.quoteId);requestKey.current=null;}}/>
-      <span><strong>{r.courierName} · {r.serviceName}</strong><small>{r.duration||'Estimasi waktu belum tersedia'} · Berlaku 15 menit</small></span>
+      <span><strong>{r.courierName} · {r.serviceName}</strong><small>{r.duration||'Estimasi waktu belum tersedia'} · Berlaku 15 menit{r.insuranceIdr!==undefined?' · termasuk asuransi':''}</small></span>
       <em>{formatIDR(r.priceIdr)}</em>
      </label>)}
     </div>:<p className="vco26-disclaimer">Pilihan jasa kurir live belum diaktifkan. Estimasi tarif standar tetap ditampilkan bila tersedia.</p>}
@@ -142,7 +149,7 @@ export default function CheckoutPage(){
       <div><span>{selectedShipping?selectedShipping.courierName+' · '+selectedShipping.serviceName:'Ongkir standar (estimasi)'}</span><b>{shippingPrice===null?'Belum tersedia':formatIDR(shippingPrice)}</b></div>
       <div className="vco26-total"><span>Total estimasi</span><strong>{totalPreview===null?'Belum tersedia':formatIDR(totalPreview)}</strong></div>
     </div>:<p className="vco26-quiet">Harga aktual hanya tampil setelah diverifikasi oleh server.</p>}
-    <p className="vco26-footnote">Tarif pilihan sandbox disimpan sebagai snapshot draft, tidak menciptakan resi atau memesan kurir. Ongkir final, pajak, dan biaya tambahan harus diverifikasi sebelum pembayaran sungguhan diaktifkan.</p>
+    <p className="vco26-footnote">{shippingConfig?.provider==='jubelio'?'Tarif dari Jubelio Shipment termasuk asuransi, belum termasuk promo bersyarat. ':'Tarif disimpan untuk pesanan. '}Pilihan ongkir berlaku 15 menit. Pembuatan resi dan pembayaran belum diaktifkan.</p>
     <Link href="/keranjang-2" className="vco26-secondary">← Edit keranjang</Link>
    </aside>
   </div>}

@@ -10,3 +10,7 @@ export function shippingFingerprint(items:FingerprintItem[]){
  }).sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
  return createHash('sha256').update(JSON.stringify(normalized)).digest('hex');
 }
+export function shippingParcelFingerprint(items:Array<FingerprintItem&{lengthCm:number|null;widthCm:number|null;heightCm:number|null}>){
+ const dimensions=items.map(i=>[i.productId,i.lengthCm,i.widthCm,i.heightCm]).sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
+ return createHash('sha256').update(JSON.stringify([shippingFingerprint(items),dimensions])).digest('hex');
+}
