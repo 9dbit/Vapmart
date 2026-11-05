@@ -32,7 +32,7 @@ test('Jubelio: durable booking, ambiguous result recovery, authoritative webhook
   async function batch(){
    const id=randomUUID();
    await db.query("INSERT INTO product.orders(id,customer_user_id,status,payment_status,payment_provider,payment_reference,contact_name,contact_phone,address_line,city,province,postal_code,shipping_courier_code,shipping_service_code) VALUES($1,$2,'paid','paid','fixture-only',$3,'Fixture Receiver','081222222222','Jalan Receiver 456','Bandung','Jawa Barat','40115','24','jagopack')",[id,customer,'verified-'+id]);
-   await db.query('INSERT INTO product.order_items(order_id,product_id,quantity,unit_price_idr,product_name,sku) VALUES($1,$2,2,50000,$3,$4)',[id,p.id,p.name,p.sku]);
+   await db.query('INSERT INTO product.order_items(order_id,product_id,quantity,unit_price_idr,product_name,sku,ownership_scope) VALUES($1,$2,2,50000,$3,$4,\'platform\')',[id,p.id,p.name,p.sku]);
    const q=(await db.query(`INSERT INTO product.shipping_rate_quotes(customer_user_id,cart_fingerprint,origin_postal_code,destination_postal_code,provider,courier_code,service_code,courier_name,service_name,amount_idr,expires_at,applied_order_id,origin_area_id,destination_area_id,destination_region,provider_service_id,base_amount_idr,insurance_amount_idr)
     VALUES($1,$2,'40115','40115','jubelio','24','jagopack','Lion Parcel','JAGOPACK',9800,now()+interval '15 minutes',$3,'3273091003','3273091003',$4,2453,9500,300) RETURNING id`,[customer,'a'.repeat(64),id,JSON.stringify(region)])).rows[0];
    await db.query('UPDATE product.orders SET shipping_quote_id=$2 WHERE id=$1',[id,q.id]);
