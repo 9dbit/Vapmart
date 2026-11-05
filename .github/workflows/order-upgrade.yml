@@ -7,11 +7,16 @@ permissions:
   contents: read
 jobs:
   verify:
+    name: PostgreSQL ${{ matrix.postgres }}
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: [16, 18]
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
       postgres:
-        image: postgres:16
+        image: postgres:${{ matrix.postgres }}
         env:
           POSTGRES_USER: vapmart_test
           POSTGRES_PASSWORD: disposable_orders_only
@@ -69,6 +74,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: order-upgrade-verification
+          name: order-upgrade-verification-pg${{ matrix.postgres }}
           path: artifacts/order-upgrade/
           retention-days: 7
