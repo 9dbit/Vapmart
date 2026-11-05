@@ -30,7 +30,7 @@ export function FulfillmentPanel({token,orders}:{token:string|null;orders:Fulfil
  const selected=batches.find(b=>b.id===batchId);
  return <section className="vm-fulfillment">
   <header className="vm-fulfillment-heading"><div><span className="vma26-eyebrow">CP35 / FULFILLMENT</span><h2>Fulfillment per Brand</h2>
-  <p>Alokasi dan tracking internal. Stok hanya direserve setelah pembayaran terverifikasi; kurir tetap OFF.</p></div>
+  <p>Alokasi dan packing setelah pembayaran terverifikasi. Lanjutkan booking resi dan pickup melalui menu Courier.</p></div>
   <button className="vm-ops-secondary" type="button" disabled={busy} onClick={()=>action(refresh)}>↻ Refresh</button></header>
   <div className="vm-ops-stats">
    <div><small>Batch</small><strong>{batches.length}</strong></div><div><small>Reserved</small><strong>{batches.filter(x=>x.state==='reserved').length}</strong></div>

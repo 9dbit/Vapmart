@@ -65,7 +65,7 @@ export class JubelioDispatchService{
   if(!rate)throw new ConflictException('Layanan kurir pesanan tidak tersedia. Periksa tarif dan pesanan sebelum booking.');
   const payload={ref_no:'vapmart-'+batchId,courier_id:Number(rate.courierCode),courier_service_id:rate.providerServiceId,
    shipping_insurance:rate.insuranceIdr,is_insurance:rate.insuranceIdr>0,is_cod:false,cod_amount:0,
-   origin:{name:row.origin_contact_name,email:'',phone:row.origin_contact_phone,address:row.origin_address,area_id:origin.areaId,coordinate:'',zipcode:origin.postalCode},
+   origin:{name:row.origin_contact_name,email:process.env.SHIPPING_SENDER_EMAIL||'hello@vapmart.id',phone:row.origin_contact_phone,address:row.origin_address,area_id:origin.areaId,coordinate:'',zipcode:origin.postalCode},
    destination:{name:row.contact_name,email:row.contact_email||'',phone:row.contact_phone,address:row.address_line,area_id:destination.areaId,coordinate:'',zipcode:destination.postalCode},
    items:goods.map(g=>({item_code:g.sku||g.product_id,item_name:g.name,category:'-',quantity:g.quantity,value:Number(g.price_idr),weight:g.weight_grams,length:g.length_cm,width:g.width_cm,height:g.height_cm}))};
   return {...context,rate,payload,fingerprint:hash({snapshotHash:context.snapshotHash,payload,fee:rate.priceIdr})};
@@ -106,7 +106,9 @@ export class JubelioDispatchService{
    // Never expose provider messages (may contain PII/tokens); never auto-retry.
    await this.db.query("UPDATE product.jubelio_bookings SET state='uncertain',updated_at=now() WHERE batch_id=$1 AND state='pending'",[batchId]);
   }
-  return this.result(batchId);
+  const result=await this.result(batchId);
+  if(result.state==='booked'){try{await this.sync(batchId);}catch{/* Booking remains successful; webhook/manual sync retries tracking. */}}
+  return result;
  }
  private async finish(batchId:string,shipment:ReturnType<typeof providerShipment>){
   return this.db.transaction(async client=>{

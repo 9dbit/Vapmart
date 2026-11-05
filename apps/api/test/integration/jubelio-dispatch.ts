@@ -20,7 +20,7 @@ test('Jubelio: durable booking, ambiguous result recovery, authoritative webhook
  const region={areaId:'3273091003',postalCode:'40115',label:'Citarum',city:'KOTA BANDUNG',province:'JAWA BARAT',district:'Bandung Wetan',area:'Citarum'};
  client.destination=async()=>region;
  client.rates=async()=>[{courierCode:'24',courierName:'Lion Parcel',serviceCode:'jagopack',serviceName:'JAGOPACK',priceIdr:fee,basePriceIdr:9500,insuranceIdr:fee-9500,providerServiceId:2453,duration:'2 hari'}];
- client.createShipment=async(raw:any)=>{calls++;const s={shipment_id:10000+calls,ref_no:raw.ref_no,awb:'TEST-AWB-'+calls,courier_service_id:2453,destination_area_id:region.areaId,latest_status:latest,price:fee};created.set(raw.ref_no,s);if(failCreate)throw Error('timeout after provider accepted');return s;};
+ client.createShipment=async(raw:any)=>{assert.equal(raw.origin.email,'hello@vapmart.id');calls++;const s={shipment_id:10000+calls,ref_no:raw.ref_no,awb:'TEST-AWB-'+calls,courier_service_id:2453,destination_area_id:region.areaId,latest_status:latest,price:fee};created.set(raw.ref_no,s);if(failCreate)throw Error('timeout after provider accepted');return s;};
  client.shipment=async(id:string)=>{reads++;const s=[...created.values()].find(v=>String(v.shipment_id)===id);assert.ok(s);return {...s,latest_status:latest,price_bill:12000};};
  client.findShipment=async(ref:string)=>created.has(ref)?[created.get(ref)]:[];
  client.shippingLabel=async()=>({file_url:'https://shipment.jubelio.com/fixture-label.pdf'});
