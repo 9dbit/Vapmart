@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseCSV,csvInteger,plainDescription,generatedImportSlug} from '../src/catalog-csv';
+import {parseCSV,csvInteger,csvMeasurement,csvStock,plainDescription,generatedImportSlug} from '../src/catalog-csv';
 import {effectivePrice} from '../src/catalog-pricing';
-import {attributes,options,priceFields,stockInputs,imageUrl,safeCatalogTerms,slug} from '../src/catalog-validation';
+import {attributes,options,priceFields,stockInputs,imageUrl,safeCatalogTerms,slug,sku} from '../src/catalog-validation';
+import {cleanProduct} from '../src/products';
+import {publicationMissing} from '../src/data-integrity';
 import {CatalogAdminController,CatalogCustomerController} from '../src/catalog-controller';
 import {AdminGuard,CustomerGuard} from '../src/auth';
 import {GUARDS_METADATA} from '@nestjs/common/constants';
@@ -21,6 +23,18 @@ test('CSV generated slugs remain valid when a long name is cut at a word boundar
   assert.notEqual(value,generatedImportSlug(name,'csv-regression','43'));
  }
  assert.equal(generatedImportSlug('Desk Lamp','csv-regression','42').startsWith('desk-lamp-'),true);
+});
+test('legacy SKU and decimal dimensions keep their values across catalog validators',()=>{
+ for(const code of ['M 60 BT','G-21/G-22','AK-301 / AK301','ITEM-BATIK A'])assert.equal(sku(code),code);
+ assert.notEqual(sku('PART A/B'),sku('PART-A-B'),'legacy codes must not be normalized into collisions');
+ for(const code of ['<script>','A\tBC','A'.repeat(65)])assert.throws(()=>sku(code));
+ const name='Travel organizer '.repeat(10).trim();
+ assert.equal(cleanProduct({name,sku:'ITEM / BLUE',length_cm:34.6,width_cm:36.2,height_cm:70.5},true).name,name);
+ assert.equal(csvMeasurement('48.8','height_cm'),48.8);assert.equal(csvMeasurement('0','height_cm'),null);
+ for(const value of ['1,000','-1','Infinity','NaN','1000.1','0.5'])assert.throws(()=>csvMeasurement(value,'length_cm'));
+ assert.throws(()=>csvMeasurement('500.5','weight_grams'));assert.equal(csvMeasurement('500.0','weight_grams'),500);
+ assert.equal(csvStock('-27'),-27);assert.equal(csvStock('0'),0);assert.throws(()=>csvStock('-1.5'));assert.throws(()=>csvStock('100000001'));
+ assert.deepEqual(publicationMissing({sku:'ITEM / BLUE',description:'Organizer',image_url:'https://example.invalid/a.png',price_idr:100,weight_grams:500,length_cm:34.6,width_cm:36.2,height_cm:70.5}),[]);
 });
 test('CP39 authoritative promo has explicit start/end boundaries',()=>{
  const p={price_idr:'100000',sale_price_idr:'80000',sale_starts_at:'2026-11-03T00:00:00Z',sale_ends_at:'2026-11-04T00:00:00Z'};

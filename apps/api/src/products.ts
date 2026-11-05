@@ -70,13 +70,13 @@ export function cleanProduct(body: unknown, partial = false): Partial<Product> {
     const sku=input.sku;
     if(sku===null || sku==='')out.sku=null;
     else {
-      if(typeof sku!=='string'||!/^[A-Z0-9][A-Z0-9._-]{2,63}$/.test(sku))
+      if(typeof sku!=='string'||!/^[A-Z0-9][A-Z0-9._ /-]{2,63}$/.test(sku))
         throw new BadRequestException('Invalid SKU');
       out.sku=sku;
     }
   }
   if ('name' in input) {
-    if (typeof input.name !== 'string' || input.name.trim().length < 2 || input.name.length > 140)
+    if (typeof input.name !== 'string' || input.name.trim().length < 2 || input.name.length > 255)
       throw new BadRequestException('Invalid name');
     out.name = input.name.trim();
   }
@@ -102,7 +102,7 @@ export function cleanProduct(body: unknown, partial = false): Partial<Product> {
   }
   for (const attr of ['weight_grams','length_cm','width_cm','height_cm'] as const){
     if(attr in input){const v=input[attr];if(v===null){out[attr]=null;continue;}
-      if(typeof v!=='number'||!Number.isSafeInteger(v)||v<1||v>(attr==='weight_grams'?1000000:1000))throw new BadRequestException('Invalid '+attr);
+      if(typeof v!=='number'||!(attr==='weight_grams'?Number.isSafeInteger(v):Number.isFinite(v))||v<1||v>(attr==='weight_grams'?1000000:1000))throw new BadRequestException('Invalid '+attr);
       out[attr]=v;
     }
   }

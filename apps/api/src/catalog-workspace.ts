@@ -33,7 +33,7 @@ function media(x:Record<string,any>){
  return {image_url,gallery_urls};
 }
 function dimensions(x:Record<string,any>){
- const o:Record<string,number|null>={};for(const k of ['weight_grams','length_cm','width_cm','height_cm'])o[k]=x[k]===null||x[k]===undefined||x[k]===''?null:V.integer(x[k],k,1,k==='weight_grams'?1000000:1000);return o;
+ const o:Record<string,number|null>={};for(const k of ['weight_grams','length_cm','width_cm','height_cm'])o[k]=x[k]===null||x[k]===undefined||x[k]===''?null:V.measurement(x[k],k);return o;
 }
 async function stockSave(client:PoolClient,actor:string,id:string,rows:V.StockInput[]){
  for(const s of [...rows].sort((a,b)=>a.warehouseId.localeCompare(b.warehouseId))){
@@ -129,7 +129,7 @@ export class CatalogWorkspaceService{
   if(before&&type!==before.product_type)throw new ConflictException('Tipe produk tersimpan tidak dapat diubah; buat produk baru agar riwayat SKU tetap utuh');
   const attrs=V.attributes(p.attributes??[]);if(type==='simple'&&attrs.length||type==='variable'&&attrs.length===0)throw new BadRequestException('Produk variasi membutuhkan 1-3 atribut');
   const cats=await categoryIds(client,p);
-  const root:Record<string,any>={name:V.text(p.name,'Nama produk',2,140),slug:V.slug(p.slug),sku:V.sku(p.sku),description:V.text(p.description??'','Deskripsi',0,20000),category:cats.slug,
+  const root:Record<string,any>={name:V.text(p.name,'Nama produk',2,255),slug:V.slug(p.slug),sku:V.sku(p.sku),description:V.text(p.description??'','Deskripsi',0,20000),category:cats.slug,
    brand_id:p.brand_id?requireUuid(p.brand_id,'brand'):null,fulfillment_owner_brand_id:p.fulfillment_owner_brand_id?requireUuid(p.fulfillment_owner_brand_id,'pengelola'):null,...media(p),...V.priceFields(p),...dimensions(p),product_type:type,attributes:attrs,option_values:{}};
   if(before?.is_active)V.safeCatalogTerms(root.name,root.description,root.slug,root.sku,attrs);
   if(root.fulfillment_owner_brand_id&&!(await client.query('SELECT 1 FROM product.brands WHERE id=$1 AND is_active',[root.fulfillment_owner_brand_id])).rows.length)throw new BadRequestException('Pengelola partner tidak aktif');
@@ -154,7 +154,7 @@ export class CatalogWorkspaceService{
     const opt=V.options(v.option_values,attrs),signature=JSON.stringify(opt);if(combinations.has(signature))throw new BadRequestException('Kombinasi varian ganda');combinations.add(signature);
     if(typeof v.enabled!=='boolean')throw new BadRequestException('Status varian diperlukan');
     const vp={...root,...V.priceFields(v),...dimensions(Object.fromEntries(['weight_grams','length_cm','width_cm','height_cm'].map(k=>[k,v[k]===null||v[k]===undefined||v[k]===''?root[k]:v[k]]))),...media({image_url:v.image_url||root.image_url,gallery_urls:v.gallery_urls??root.gallery_urls}),
-     name:(root.name+' - '+Object.values(opt).join(' / ')).slice(0,140),slug:prev?.slug||root.slug.slice(0,72)+'-v-'+randomUUID().slice(0,18),sku:V.sku(v.sku),product_type:'variation',attributes:[],option_values:opt};
+     name:(root.name+' - '+Object.values(opt).join(' / ')).slice(0,255),slug:prev?.slug||root.slug.slice(0,72).replace(/-+$/,'')+'-v-'+randomUUID().slice(0,18),sku:V.sku(v.sku),product_type:'variation',attributes:[],option_values:opt};
     if(saved.is_active&&v.enabled)V.safeCatalogTerms(vp.name,vp.sku,opt);
     const row=await persist(client,who,vp,prev,id!,v.enabled);
     await linkCategories(client,row.id,cats.ids);await stockSave(client,who,row.id,V.stockInputs(v.warehouseStocks));

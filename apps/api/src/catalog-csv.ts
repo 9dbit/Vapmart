@@ -1,5 +1,6 @@
 import {BadRequestException} from '@nestjs/common';
 import {createHash} from 'node:crypto';
+import {measurement} from './catalog-validation';
 export const MAX_CSV_BYTES=2*1024*1024;
 // RFC4180-style quoted records, including embedded newlines and escaped quotes.
 export function parseCSV(text:string) {
@@ -37,6 +38,15 @@ export function csvInteger(value:string,label:string,nullable=false):number|null
  if(!value.trim()&&nullable)return null;
  if(!/^\d+(?:\.0+)?$/.test(value.trim()))throw new BadRequestException(label+' harus angka bulat tanpa pemisah ribuan');
  const n=Number(value);if(!Number.isSafeInteger(n)||n<0||n>2000000000)throw new BadRequestException(label+' di luar batas');return n;
+}
+export function csvMeasurement(value:string,field:string):number|null{
+ if(!value.trim())return null;
+ if(!/^\d+(?:\.\d+)?$/.test(value.trim()))throw new BadRequestException(field+' harus angka dengan titik desimal tanpa pemisah ribuan');
+ const n=Number(value);return n===0?null:measurement(n,field);
+}
+export function csvStock(value:string):number{
+ if(!/^-?\d+(?:\.0+)?$/.test(value.trim()))throw new BadRequestException('Stok harus angka bulat tanpa pemisah ribuan');
+ const n=Number(value);if(!Number.isSafeInteger(n)||Math.abs(n)>100000000)throw new BadRequestException('Stok di luar batas');return n;
 }
 export function plainDescription(value:string){return value.replace(/<(script|style)[\s\S]*?<\/\1\s*>/gi,'').replace(/<\/?(?:p|div|br|li|h[1-6])\b[^>]*>/gi,'\n').replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#(?:0*39|x27);/gi,"'").replace(/&quot;/g,'"').replace(/\n{3,}/g,'\n\n').trim();}
 export function slugify(value:string){return value.toLowerCase().normalize('NFKD').replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');}

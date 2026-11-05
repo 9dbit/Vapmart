@@ -14,10 +14,14 @@ export function text(v:unknown,label:string,min=0,max=140):string{
 export function integer(v:unknown,label:string,min=0,max=2000000000):number{
  if(typeof v!=='number'||!Number.isSafeInteger(v)||v<min||v>max)throw new BadRequestException(label+' tidak valid');return v;
 }
+export function measurement(v:unknown,label:string):number{
+ if(label==='weight_grams')return integer(v,label,1,1000000);
+ if(typeof v!=='number'||!Number.isFinite(v)||v<1||v>1000)throw new BadRequestException(label+' harus angka 1–1000 cm (desimal diperbolehkan)');return v;
+}
 export function slug(v:unknown):string{const s=text(v,'Slug',1,120);if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s))throw new BadRequestException('Slug hanya huruf kecil, angka dan tanda hubung');return s;}
 export function sku(v:unknown):string|null{
  if(v===null||v===''||v===undefined)return null;
- const s=text(v,'SKU',3,64).toUpperCase();if(!/^[A-Z0-9][A-Z0-9._-]{2,63}$/.test(s))throw new BadRequestException('SKU tidak valid');return s;
+ const s=text(v,'SKU',3,64).toUpperCase();if(!/^[A-Z0-9][A-Z0-9._ /-]{2,63}$/.test(s))throw new BadRequestException('SKU harus 3–64 karakter: huruf, angka, spasi, titik, garis bawah, garis miring atau tanda hubung');return s;
 }
 export function imageUrl(v:unknown):string|null{
  if(v===null||v===''||v===undefined)return null;

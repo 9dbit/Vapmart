@@ -89,7 +89,7 @@ test('ordinary accessory publication still accepts complete validated data',asyn
 });
 
 test('private draft flexibility does not remove SKU, price or actor validation',async()=>{
- for(const change of [{sku:'bad code'},{price_idr:-1},{price_idr:0.5}]){
+ for(const change of [{sku:'bad!code'},{price_idr:-1},{price_idr:0.5}]){
   const {db,state}=repository();await assert.rejects(()=>new CatalogWorkspaceService(db).save(actor,null,payload({...input(),...change})));assert.equal(state.row,null);
  }
  const {db}=repository();await assert.rejects(()=>new CatalogWorkspaceService(db).save({...actor,emailVerified:false},null,payload(input())),(e:any)=>e.getStatus()===403);

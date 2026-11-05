@@ -26,7 +26,7 @@ test('CP36: provider events, manifest, handover ledger, customer returns and res
     ['Courier Test '+suffix,'cp36-brand-'+suffix.toLowerCase()])).rows[0];
   const p=await products.create({name:'Foldable Organizer '+suffix,slug:'cp36-organizer-'+suffix.toLowerCase(),
     sku:'CP36-'+suffix,category:'home',description:'Non restricted household utility',price_idr:50000,stock_qty:0,
-    brand_id:brand.id,weight_grams:300,length_cm:10,width_cm:10,height_cm:10},admin);
+    brand_id:brand.id,weight_grams:300,length_cm:34.6,width_cm:36.2,height_cm:70.5},admin);
   const w=(await warehouse.create(admin,{code:'CP36-'+suffix,name:'Courier Test Warehouse',
    address:'Jalan Warehouse Demo 123',city:'Bandung',province:'Jawa Barat',postalCode:'40115'})).warehouse;
   await db.query('UPDATE product.warehouses SET contact_name=$2,contact_phone=$3 WHERE id=$1',[w.id,'Warehouse Operator','081234567890']);
@@ -51,6 +51,8 @@ test('CP36: provider events, manifest, handover ledger, customer returns and res
   const command={idempotencyKey:randomUUID(),notes:'Verified packing list and pickup request',pickupMethod:'pickup' as const,
    pickupDate:null,pickupTime:null};
   const created=await manifest.prepare(admin,batch.id,command);
+  const dimensions=(await db.query('SELECT length_cm,width_cm,height_cm FROM product.courier_manifest_items WHERE manifest_id=$1',[created.manifestId])).rows[0];
+  assert.deepEqual(dimensions,{length_cm:34.6,width_cm:36.2,height_cm:70.5},'courier snapshot must preserve decimal catalog dimensions');
   const repeated=await manifest.prepare(admin,batch.id,command);
   assert.equal(created.replayed,false);assert.equal(repeated.replayed,true);
   assert.equal(created.manifestId,repeated.manifestId);

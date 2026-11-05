@@ -25,7 +25,7 @@ export function publicationMissing(p:Record<string,unknown>):string[]{
  for(const k of ['sku','description'])if(typeof p[k]!=='string'||!String(p[k]).trim())missing.push(k);
  if(typeof p.image_url!=='string'||!/^https:\/\/|^\/api\/media\/[0-9a-f-]{36}$/i.test(p.image_url))missing.push('image_url');
  if(!Number.isSafeInteger(Number(p.price_idr))||Number(p.price_idr)<=0)missing.push('price_idr');
- for(const k of ['weight_grams','length_cm','width_cm','height_cm'])if(!Number.isSafeInteger(p[k])||Number(p[k])<=0)missing.push(k);
+ for(const k of ['weight_grams','length_cm','width_cm','height_cm'])if(typeof p[k]!=='number'||!(k==='weight_grams'?Number.isSafeInteger(p[k]):Number.isFinite(p[k]))||Number(p[k])<1||Number(p[k])>(k==='weight_grams'?1000000:1000))missing.push(k);
  return missing;
 }
 export function parsePage(raw:Record<string,unknown>={}){

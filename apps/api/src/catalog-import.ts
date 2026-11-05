@@ -6,7 +6,7 @@ import type {Principal} from './auth';
 import {requireActor} from './data-integrity';
 import {inventoryLock,requireUuid} from './warehouses';
 import {CatalogWorkspaceService,catalogAudit,family} from './catalog-workspace';
-import {parseCSV,importFields,csvInteger,plainDescription,slugify,generatedImportSlug} from './catalog-csv';
+import {parseCSV,importFields,csvInteger,csvMeasurement,csvStock,plainDescription,slugify,generatedImportSlug} from './catalog-csv';
 import * as V from './catalog-validation';
 type Issue={row:number;field:string;message:string};
 function message(e:unknown){return e instanceof Error?e.message:'Data tidak valid';}
@@ -15,7 +15,7 @@ function existingVariant(v:any){return {id:v.id,expectedVersion:v.edit_version,s
 @Injectable()
 export class CatalogImportService{
  constructor(private readonly db:DatabaseService,private readonly catalog:CatalogWorkspaceService){}
- private receipt(row:any){const p=row.plan;return {id:row.id,state:row.state,expiresAt:row.expires_at,report:row.report,columns:p.columns,mapping:p.mapping,summary:p.summary,errors:p.errors,warnings:p.warnings,rows:p.rows,newProductsAreDraft:true,existingStatusPreserved:true,blankStockIgnored:true};}
+ private receipt(row:any){const p=row.plan;return {id:row.id,state:row.state,expiresAt:row.expires_at,report:row.report,columns:p.columns,mapping:p.mapping,summary:p.summary,errors:p.errors,warnings:p.warnings,rows:p.rows,newProductsAreDraft:true,existingStatusPreserved:true,blankStockIgnored:true,negativeStockIgnored:true,skippedStocks:p.skippedStocks??[]};}
  async get(actor:Principal,id:string){requireUuid(id,'impor');const r=(await this.db.query('SELECT * FROM product.catalog_imports WHERE id=$1 AND actor_id=$2',[id,requireActor(actor)])).rows[0];if(!r)throw new NotFoundException();return this.receipt(r);}
  async preview(actor:Principal,raw:unknown){
   const who=requireActor(actor),x=V.record(raw,['csv','mapping','sourceKey','mode','warehouseId','warehouseColumns']);
@@ -27,10 +27,16 @@ export class CatalogImportService{
   const warehouseId=x.warehouseId?requireUuid(x.warehouseId,'gudang impor'):null,warehouseColumns=V.record(x.warehouseColumns??{});
   if(Object.keys(warehouseColumns).length>50)throw new BadRequestException('Terlalu banyak kolom gudang');
   for(const [header,id] of Object.entries(warehouseColumns)){if(!parsed.headers.includes(header))throw new BadRequestException('Kolom stok tidak ditemukan');requireUuid(id,'gudang');}
-  const finger=createHash('sha256').update(JSON.stringify({csv:x.csv,mapping,sourceKey,mode:x.mode,warehouseId,warehouseColumns})).digest('hex');
+  const finger=createHash('sha256').update(JSON.stringify({validationVersion:2,csv:x.csv,mapping,sourceKey,mode:x.mode,warehouseId,warehouseColumns})).digest('hex');
   const replay=(await this.db.query("SELECT * FROM product.catalog_imports WHERE actor_id=$1 AND fingerprint=$2 AND (state='applied' OR expires_at>now())",[who,finger])).rows[0];if(replay)return {...this.receipt(replay),replayed:true};
-  const errors:Issue[]=[],warnings:Issue[]=[...parsed.warnings],display:any[]=[],groups:any[]=[];
+  const errors:Issue[]=[],warnings:Issue[]=[...parsed.warnings],display:any[]=[],groups:any[]=[],skippedStocks:{row:number;sourceId:string;sku:string;field:string;warehouseId:string|null;sourceValue:number}[]=[];
   const get=(row:Record<string,string>,key:string)=>mapping[key]?row[mapping[key]]?.trim()||'':'';
+  const imagesFor=(row:{raw:Record<string,string>;row:number})=>{
+   const source=get(row.raw,'images');if(!source)return null;
+   const urls=source.split(',').map(s=>V.imageUrl(s.trim())).filter((s):s is string=>!!s),unique=[...new Set(urls)];
+   if(unique.length!==urls.length)warnings.push({row:row.row,field:'images',message:'URL gambar berulang digabung; urutan gambar pertama dipertahankan'});
+   if(unique.length>21)throw new BadRequestException('Maksimal satu gambar utama dan 20 pendukung');return unique;
+  };
   const input=parsed.rows.map((raw,i)=>({raw,row:i+2,type:(get(raw,'type')||'simple').toLowerCase(),sourceId:get(raw,'id')||'sku:'+get(raw,'sku').toUpperCase(),sku:get(raw,'sku').toUpperCase(),name:get(raw,'name'),parent:get(raw,'parent')}));
   const sourceIds=new Set<string>(),skus=new Set<string>();
   for(const row of input){
@@ -65,28 +71,36 @@ export class CatalogImportService{
     const definitions=V.attributes(attrs.length?attrs:before?.attributes??[]);
     if(row.type==='variable'&&!definitions.length)throw new BadRequestException('Produk variable memerlukan definisi atribut');
     if(row.type==='simple'&&definitions.length)warnings.push({row:row.row,field:'attributes',message:'Atribut deskriptif simple tidak membentuk varian; detail sumber tetap di preview'});
-    const gallery=get(row.raw,'images')?get(row.raw,'images').split(',').map(s=>V.imageUrl(s.trim())).filter(Boolean):null;
-    if(gallery&&gallery.length>21)throw new BadRequestException('Maksimal satu gambar utama dan 20 pendukung');
+    const gallery=imagesFor(row);
     const paths=get(row.raw,'categories').split(',').filter(s=>s.trim()).map(s=>s.split('>').map(p=>V.text(p.trim(),'Kategori',2,100)));
     if(paths.some(p=>p.length>5)||paths.length>15)throw new BadRequestException('Kategori maksimal lima tingkat dan 15 pilihan');paths.forEach(p=>V.safeCatalogTerms(p));
     const brandName=get(row.raw,'brand'),brand=brandName?brands.find(b=>b.name.toLowerCase()===brandName.toLowerCase()):null;
     if(brandName&&!brand)warnings.push({row:row.row,field:'brand',message:'Brand sumber belum cocok. Produk tidak otomatis dikaitkan ke mitra; brand lama dipertahankan atau kosong.'});
     const price=get(row.raw,'regularPrice')?csvInteger(get(row.raw,'regularPrice'),'Harga normal'):before?Number(before.price_idr):row.type==='variable'?0:null;
     if(price===null)throw new BadRequestException('Harga normal produk simple belum diisi');
-    const product:any={name:V.text(row.name,'Nama',2,140),slug:before?.slug||get(row.raw,'slug')||generatedImportSlug(row.name,sourceKey,row.sourceId),
+    const product:any={name:V.text(row.name,'Nama',2,255),slug:before?.slug||get(row.raw,'slug')||generatedImportSlug(row.name,sourceKey,row.sourceId),
      sku:V.sku(row.sku||before?.sku),description:plainDescription(get(row.raw,'description')||get(row.raw,'shortDescription')||before?.description||''),
      categoryIds:before?.category_ids??[],brand_id:brand?.id||before?.brand_id||null,fulfillment_owner_brand_id:before?.fulfillment_owner_brand_id??null,product_type:row.type,attributes:row.type==='variable'?definitions:[],
      image_url:gallery?.[0]||before?.image_url||null,gallery_urls:gallery?gallery.slice(1):before?.gallery_urls??[],price_idr:price,sale_price_idr:mapping.salePrice?csvInteger(get(row.raw,'salePrice'),'Harga promo',true):before?.sale_price_idr==null?null:Number(before.sale_price_idr),sale_starts_at:mapping.saleStart?dt(get(row.raw,'saleStart')):before?.sale_starts_at??null,sale_ends_at:mapping.saleEnd?dt(get(row.raw,'saleEnd')):before?.sale_ends_at??null};
-    for(const [field,key] of [['weight_grams','weight'],['length_cm','length'],['width_cm','width'],['height_cm','height']] as const)product[field]=get(row.raw,key)?(csvInteger(get(row.raw,key),key)||null):before?.[field]??null;
+    for(const [field,key] of [['weight_grams','weight'],['length_cm','length'],['width_cm','width'],['height_cm','height']] as const)product[field]=get(row.raw,key)?csvMeasurement(get(row.raw,key),field):before?.[field]??null;
     V.slug(product.slug);V.text(product.description,'Deskripsi',0,20000);V.priceFields(product);V.safeCatalogTerms(product.name,product.description,product.slug,product.sku,product.attributes);
     const stocksFor=(r:typeof row,productId:string|null)=>{
-     const values:Record<string,number>={};const rawStock=get(r.raw,'stock');
-     if(rawStock!==''){if(!warehouseId)throw new BadRequestException('Pilih gudang tujuan untuk kolom Stock, atau kosongkan pemetaan Stock');values[warehouseId]=csvInteger(rawStock,'Stok')!;}
-     for(const [header,wid] of Object.entries(warehouseColumns))if(r.raw[header].trim()!==''){
-      if(Object.hasOwn(values,String(wid)))throw new BadRequestException('Dua kolom mengisi gudang yang sama');values[String(wid)]=csvInteger(r.raw[header],'Stok')!;
-     }
-     if(!Object.keys(values).length)warnings.push({row:r.row,field:'stock',message:'Stok kosong: saldo tidak diubah dan tidak dianggap hasil hitung fisik'});
+     const values:Record<string,number>={},targets=new Set<string>();let specified=false;
+     const add=(value:string,wid:string|null,field:string)=>{
+      if(!value.trim())return;specified=true;
+      if(wid&&targets.has(wid))throw new BadRequestException('Dua kolom mengisi gudang yang sama');if(wid)targets.add(wid);
+      const n=csvStock(value);
+      if(n<0){
+       skippedStocks.push({row:r.row,sourceId:r.sourceId,sku:r.sku,field,warehouseId:wid,sourceValue:n});
+       warnings.push({row:r.row,field,message:`Stok sumber ${n} dilewati: saldo gudang tidak diubah. Rekonsiliasi hasil hitung fisik sebelum publikasi produk baru.`});return;
+      }
+      if(!wid)throw new BadRequestException('Pilih gudang tujuan untuk kolom Stock, atau kosongkan pemetaan Stock');values[wid]=n;
+     };
+     add(get(r.raw,'stock'),warehouseId,mapping.stock||'Stock');
+     for(const [header,wid] of Object.entries(warehouseColumns))add(r.raw[header],String(wid),header);
+     if(!specified)warnings.push({row:r.row,field:'stock',message:'Stok kosong: saldo tidak diubah dan tidak dianggap hasil hitung fisik'});
      return Object.entries(values).map(([wid,onHand])=>{const w=allWarehouses.find(w=>w.id===wid);if(!w?.is_active||w.is_system_hold)throw new BadRequestException('Gudang impor harus fisik dan aktif');const old=stock.find(s=>s.product_id===productId&&s.warehouse_id===wid);
+      if(Math.abs(onHand-(old?.on_hand??0))>100000)throw new BadRequestException('Perubahan stok maksimal 100.000 unit per simpan');
       if(onHand<(old?.reserved??0))throw new BadRequestException('Stok tidak boleh kurang dari reservasi');return {warehouseId:wid,onHand,expectedOnHand:old?.on_hand??0,expectedReserved:old?.reserved??0,notes:'Impor '+sourceKey+' record '+r.sourceId};});
     };
     const variants:any[]=oldVariants.map(existingVariant),refs:any[]=[{sourceId:row.sourceId,variantOptions:null,expectedId:before?.id??null}];
@@ -96,14 +110,13 @@ export class CatalogImportService{
       const normalized=V.options(opt,definitions),mappedChild=mapped.get(child.sourceId),oldBySku=child.sku?knownBySku.get(child.sku):null;
       if(mappedChild&&oldBySku&&mappedChild!==oldBySku.id)throw new ConflictException('ID dan SKU varian berbeda');
       const oldId=mappedChild||oldBySku?.id,old=oldId?oldVariants.find(v=>v.id===oldId):null;if(oldId&&!old)throw new ConflictException('Varian sudah terkait dengan produk lain');
-      const pics=get(child.raw,'images')?get(child.raw,'images').split(',').map(s=>V.imageUrl(s.trim())):null;
-      if(pics&&pics.length>21)throw new BadRequestException('Maksimal 21 gambar varian');
+      const pics=imagesFor(child);
       const vp:any={id:old?.id,expectedVersion:old?.edit_version,sku:V.sku(child.sku||old?.sku),option_values:normalized,enabled:old?.is_active??true,
        price_idr:get(child.raw,'regularPrice')?csvInteger(get(child.raw,'regularPrice'),'Harga varian'):old?Number(old.price_idr):null,
        sale_price_idr:mapping.salePrice?csvInteger(get(child.raw,'salePrice'),'Harga promo varian',true):old?.sale_price_idr==null?null:Number(old.sale_price_idr),sale_starts_at:mapping.saleStart?dt(get(child.raw,'saleStart')):old?.sale_starts_at??null,sale_ends_at:mapping.saleEnd?dt(get(child.raw,'saleEnd')):old?.sale_ends_at??null,
        image_url:pics?.[0]||old?.image_url||product.image_url,gallery_urls:pics?pics.slice(1):old?.gallery_urls??product.gallery_urls,warehouseStocks:stocksFor(child,old?.id??null)};
       if(vp.price_idr===null)throw new BadRequestException('Harga varian belum diisi');V.priceFields(vp);V.safeCatalogTerms(vp.sku,normalized);
-      for(const [field,key] of [['weight_grams','weight'],['length_cm','length'],['width_cm','width'],['height_cm','height']] as const)vp[field]=get(child.raw,key)?(csvInteger(get(child.raw,key),key)||null):old?.[field]??product[field];
+      for(const [field,key] of [['weight_grams','weight'],['length_cm','length'],['width_cm','width'],['height_cm','height']] as const)vp[field]=get(child.raw,key)?csvMeasurement(get(child.raw,key),field):old?.[field]??product[field];
       const index=old?variants.findIndex(v=>v.id===old.id):-1;if(index>=0)variants[index]=vp;else variants.push(vp);
       refs.push({sourceId:child.sourceId,variantOptions:normalized,expectedId:old?.id??null});display.push({row:child.row,type:'variation',name:child.name,sku:vp.sku,action:old?'update':'create',stockSpecified:vp.warehouseStocks.length>0});
      }catch(e){errors.push({row:child.row,field:'variant',message:message(e)});}
@@ -120,7 +133,7 @@ export class CatalogImportService{
     display.push({row:row.row,type:row.type,name:product.name,sku:product.sku,action:before?'update':'create',stockSpecified:warehouseStocks.length>0});
    }catch(e){errors.push({row:row.row,field:'product',message:message(e)});}
   }
-  const plan={columns:parsed.headers,mapping,sourceKey,mode:x.mode,groups,errors,warnings,rows:display.sort((a,b)=>a.row-b.row),summary:{rows:input.length,products:roots.length,variants:input.length-roots.length,create:display.filter(r=>r.action==='create').length,update:display.filter(r=>r.action==='update').length,errors:errors.length,warnings:warnings.length}};
+  const plan={columns:parsed.headers,mapping,sourceKey,mode:x.mode,groups,errors,warnings,skippedStocks,rows:display.map(r=>({...r,stockSkipped:skippedStocks.some(s=>s.row===r.row)})).sort((a,b)=>a.row-b.row),summary:{rows:input.length,products:roots.length,variants:input.length-roots.length,create:display.filter(r=>r.action==='create').length,update:display.filter(r=>r.action==='update').length,errors:errors.length,warnings:warnings.length,skippedStocks:skippedStocks.length}};
   const saved=(await this.db.query(`INSERT INTO product.catalog_imports(actor_id,fingerprint,source_key,mode,plan) VALUES($1,$2,$3,$4,$5::jsonb)
  ON CONFLICT(actor_id,fingerprint) DO UPDATE SET plan=CASE WHEN product.catalog_imports.state='preview' THEN EXCLUDED.plan ELSE product.catalog_imports.plan END,expires_at=CASE WHEN product.catalog_imports.state='preview' THEN now()+interval '30 minutes' ELSE product.catalog_imports.expires_at END RETURNING *`,[who,finger,sourceKey,x.mode,JSON.stringify(plan)])).rows[0];return this.receipt(saved);
  }
@@ -144,7 +157,7 @@ export class CatalogImportService{
   try{return await this.db.transaction(async client=>{await inventoryLock(client);
    const job=(await client.query('SELECT * FROM product.catalog_imports WHERE id=$1 AND actor_id=$2 FOR UPDATE',[id,who])).rows[0];if(!job)throw new NotFoundException();if(job.state==='applied')return {report:job.report,replayed:true};
    if(new Date(job.expires_at).valueOf()<=Date.now())throw new ConflictException('Preview kedaluwarsa; buat preview baru');if(job.plan.errors.length)throw new ConflictException('Perbaiki seluruh error sebelum impor');
-   const report={productsCreated:0,productsUpdated:0,variantsCreated:0,variantsUpdated:0,stockChanges:0,rows:[] as any[],paymentEnabled:false};
+   const report={productsCreated:0,productsUpdated:0,variantsCreated:0,variantsUpdated:0,stockChanges:0,skippedStocks:job.plan.skippedStocks??[],rows:[] as any[],paymentEnabled:false};
    for(const g of job.plan.groups){
     for(const ref of g.sourceRefs){const current=(await client.query('SELECT product_id FROM product.catalog_source_rows WHERE source_key=$1 AND source_id=$2 FOR UPDATE',[job.source_key,ref.sourceId])).rows[0];if(current&&current.product_id!==ref.expectedId)throw new ConflictException('Sumber sudah diimpor oleh proses lain. Muat ulang preview.');}
     g.product.categoryIds=await this.resolveCategories(client,who,g.categoryPaths,g.product.categoryIds);

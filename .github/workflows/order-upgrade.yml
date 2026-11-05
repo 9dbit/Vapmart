@@ -50,6 +50,7 @@ jobs:
         run: |
           npm run migrate
           npm run migrate
+          npx tsx --test test/integration/catalog-import-compatibility.ts
           npx tsx --test test/integration/order-management.ts
           npx tsx --test test/integration/checkout-conversion.ts
           npx tsx --test test/integration/jubelio-dispatch.ts
