@@ -107,7 +107,7 @@ export class JubelioDispatchService{
    await this.db.query("UPDATE product.jubelio_bookings SET state='uncertain',updated_at=now() WHERE batch_id=$1 AND state='pending'",[batchId]);
   }
   const result=await this.result(batchId);
-  if(result.state==='booked'){try{await this.sync(batchId);}catch{/* Booking remains successful; webhook/manual sync retries tracking. */}}
+  if(result.pickupRequested){try{await this.sync(batchId);}catch{/* Booking remains successful; webhook/manual sync retries tracking. */}}
   return result;
  }
  private async finish(batchId:string,shipment:ReturnType<typeof providerShipment>){
