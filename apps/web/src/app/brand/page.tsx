@@ -55,7 +55,7 @@ export default function BrandPortalPage(){
    const refresh=await fetch('/api/brand-portal/'+encodeURIComponent(selected)+'/fulfillment',{headers:{authorization:'Bearer '+auth.accessToken},cache:'no-store'});
    if(!refresh.ok)throw Error('Status diperbarui tetapi penyegaran gagal');
    const updated=await refresh.json();setFulfillments(updated.items||[]);
-   setActivityNote('');setActivityMessage('Status picking/packing brand diperbarui. Booking kurir tetap OFF.');
+   setActivityNote('');setActivityMessage('Status picking/packing brand diperbarui. Booking kurir diproses admin melalui Courier Ops.');
   }catch(e){setActivityMessage(e instanceof Error?e.message:'Operasi tidak tersedia');}
   finally{setActivityBusy(false);}
  }
