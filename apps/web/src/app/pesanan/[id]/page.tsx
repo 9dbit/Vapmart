@@ -66,7 +66,7 @@ export default function OrderPage(){
     <h2>Barang</h2>{detail.items.map(x=><div className="vco26-receipt-row" key={x.product_id}><span>{x.product_name} · {x.quantity} pcs</span><strong>{formatIDR(Number(x.unit_price_idr)*x.quantity)}</strong></div>)}
     {Number(detail.order.voucher_discount_idr||0)>0&&<div className="vco26-receipt-row"><span>Voucher {detail.order.voucher_code||''}</span><strong>-{formatIDR(Number(detail.order.voucher_discount_idr))}</strong></div>}
     {Number(detail.order.promotion_discount_idr||0)>0&&<div className="vco26-receipt-row"><span>Promo otomatis {detail.order.promotion_title||''}</span><strong>-{formatIDR(Number(detail.order.promotion_discount_idr))}</strong></div>}
-    <div className="vco26-receipt-row"><span>{detail.order.shipping_courier_code?('Ongkir '+detail.order.shipping_courier_code.toUpperCase()+' · '+detail.order.shipping_service_code+' (sandbox)'):'Ongkos kirim (estimasi)'}</span><strong>{formatIDR(Number(detail.order.shipping_fee_idr))}</strong></div>
+    <div className="vco26-receipt-row"><span>{detail.order.shipping_courier_code?('Ongkir '+detail.order.shipping_courier_code.toUpperCase()+' · '+detail.order.shipping_service_code):'Ongkos kirim (estimasi)'}</span><strong>{formatIDR(Number(detail.order.shipping_fee_idr))}</strong></div>
     <div className="vco26-receipt-row vco26-total"><span>Total estimasi</span><strong>{formatIDR(Number(detail.order.total_idr))}</strong></div>
     <div style={{marginTop:26,paddingTop:18,borderTop:'1px solid #eee5f0'}}>
     <h2>Fulfillment & tracking</h2>
