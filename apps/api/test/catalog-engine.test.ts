@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseCSV,csvInteger,plainDescription} from '../src/catalog-csv';
+import {parseCSV,csvInteger,plainDescription,generatedImportSlug} from '../src/catalog-csv';
 import {effectivePrice} from '../src/catalog-pricing';
-import {attributes,options,priceFields,stockInputs,imageUrl,safeCatalogTerms} from '../src/catalog-validation';
+import {attributes,options,priceFields,stockInputs,imageUrl,safeCatalogTerms,slug} from '../src/catalog-validation';
 import {CatalogAdminController,CatalogCustomerController} from '../src/catalog-controller';
 import {AdminGuard,CustomerGuard} from '../src/auth';
 import {GUARDS_METADATA} from '@nestjs/common/constants';
@@ -10,6 +10,17 @@ test('CP39 CSV parses quotes, BOM, newlines and rejects malformed structure',()=
  const p=parseCSV('\uFEFFID,Name,Description\r\n1,"Desk, light","First line\nSecond ""quoted"" line"\r\n');assert.equal(p.rows.length,1);assert.equal(p.rows[0].Name,'Desk, light');assert.match(p.rows[0].Description,/"quoted"/);
  for(const text of ['A,A\n1,2','A,B\n1','A\n"unclosed','A,B\n"hello"x,2'])assert.throws(()=>parseCSV(text));
  assert.equal(csvInteger('','Stock',true),null);assert.equal(csvInteger('0','Stock',true),0);assert.throws(()=>csvInteger('1,000','Stock'));assert.throws(()=>csvInteger('-2','Stock'));
+});
+test('CSV generated slugs remain valid when a long name is cut at a word boundary',()=>{
+ const longName='A'.repeat(99)+' Desk Lamp';
+ for(const name of [longName,'収納箱']){
+  const value=generatedImportSlug(name,'csv-regression','42');
+  assert.equal(slug(value),value);
+  assert.ok(value.length<=120);
+  assert.equal(value,generatedImportSlug(name,'csv-regression','42'));
+  assert.notEqual(value,generatedImportSlug(name,'csv-regression','43'));
+ }
+ assert.equal(generatedImportSlug('Desk Lamp','csv-regression','42').startsWith('desk-lamp-'),true);
 });
 test('CP39 authoritative promo has explicit start/end boundaries',()=>{
  const p={price_idr:'100000',sale_price_idr:'80000',sale_starts_at:'2026-11-03T00:00:00Z',sale_ends_at:'2026-11-04T00:00:00Z'};

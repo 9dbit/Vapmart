@@ -1,4 +1,5 @@
 import {BadRequestException} from '@nestjs/common';
+import {createHash} from 'node:crypto';
 export const MAX_CSV_BYTES=2*1024*1024;
 // RFC4180-style quoted records, including embedded newlines and escaped quotes.
 export function parseCSV(text:string) {
@@ -39,3 +40,7 @@ export function csvInteger(value:string,label:string,nullable=false):number|null
 }
 export function plainDescription(value:string){return value.replace(/<(script|style)[\s\S]*?<\/\1\s*>/gi,'').replace(/<\/?(?:p|div|br|li|h[1-6])\b[^>]*>/gi,'\n').replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#(?:0*39|x27);/gi,"'").replace(/&quot;/g,'"').replace(/\n{3,}/g,'\n\n').trim();}
 export function slugify(value:string){return value.toLowerCase().normalize('NFKD').replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');}
+export function generatedImportSlug(name:string,sourceKey:string,sourceId:string){
+ const prefix=slugify(name).slice(0,100).replace(/-+$/,'')||'product';
+ return prefix+'-'+createHash('sha256').update(sourceKey+':'+sourceId).digest('hex').slice(0,10);
+}

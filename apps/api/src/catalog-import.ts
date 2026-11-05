@@ -6,7 +6,7 @@ import type {Principal} from './auth';
 import {requireActor} from './data-integrity';
 import {inventoryLock,requireUuid} from './warehouses';
 import {CatalogWorkspaceService,catalogAudit,family} from './catalog-workspace';
-import {parseCSV,importFields,csvInteger,plainDescription,slugify} from './catalog-csv';
+import {parseCSV,importFields,csvInteger,plainDescription,slugify,generatedImportSlug} from './catalog-csv';
 import * as V from './catalog-validation';
 type Issue={row:number;field:string;message:string};
 function message(e:unknown){return e instanceof Error?e.message:'Data tidak valid';}
@@ -73,7 +73,7 @@ export class CatalogImportService{
     if(brandName&&!brand)warnings.push({row:row.row,field:'brand',message:'Brand sumber belum cocok. Produk tidak otomatis dikaitkan ke mitra; brand lama dipertahankan atau kosong.'});
     const price=get(row.raw,'regularPrice')?csvInteger(get(row.raw,'regularPrice'),'Harga normal'):before?Number(before.price_idr):row.type==='variable'?0:null;
     if(price===null)throw new BadRequestException('Harga normal produk simple belum diisi');
-    const product:any={name:V.text(row.name,'Nama',2,140),slug:before?.slug||get(row.raw,'slug')||slugify(row.name).slice(0,100)+'-'+createHash('sha256').update(sourceKey+':'+row.sourceId).digest('hex').slice(0,10),
+    const product:any={name:V.text(row.name,'Nama',2,140),slug:before?.slug||get(row.raw,'slug')||generatedImportSlug(row.name,sourceKey,row.sourceId),
      sku:V.sku(row.sku||before?.sku),description:plainDescription(get(row.raw,'description')||get(row.raw,'shortDescription')||before?.description||''),
      categoryIds:before?.category_ids??[],brand_id:brand?.id||before?.brand_id||null,fulfillment_owner_brand_id:before?.fulfillment_owner_brand_id??null,product_type:row.type,attributes:row.type==='variable'?definitions:[],
      image_url:gallery?.[0]||before?.image_url||null,gallery_urls:gallery?gallery.slice(1):before?.gallery_urls??[],price_idr:price,sale_price_idr:mapping.salePrice?csvInteger(get(row.raw,'salePrice'),'Harga promo',true):before?.sale_price_idr==null?null:Number(before.sale_price_idr),sale_starts_at:mapping.saleStart?dt(get(row.raw,'saleStart')):before?.sale_starts_at??null,sale_ends_at:mapping.saleEnd?dt(get(row.raw,'saleEnd')):before?.sale_ends_at??null};
