@@ -5,9 +5,10 @@ import {paidOrderVerified} from './fulfillment';
 import {requireUuid} from './warehouses';
 import {parseManifestRequest} from './courier-protocol';
 import {buildBiteshipOrderPayload} from './courier-adapter';
-import {shippingProvider} from './shipping-config';
+import {shippingProvider,jubelioConfigured} from './shipping-config';
+const bookingEnabled=()=>shippingProvider()==='jubelio'&&jubelioConfigured()&&process.env.JUBELIO_BOOKING_ENABLED==='true';
 
-type BatchRow={
+export type BatchRow={
  id:string;order_id:string;brand_id:string|null;warehouse_id:string;state:string;
  status:string;payment_status:string;payment_provider:string|null;payment_reference:string|null;
  shipping_quote_id:string|null;shipping_courier_code:string|null;shipping_service_code:string|null;
@@ -17,9 +18,9 @@ type BatchRow={
  origin_postal_code:string|null;origin_contact_name:string|null;origin_contact_phone:string|null;
  is_active:boolean;is_dispatch_enabled:boolean;is_system_hold:boolean;
 };
-type GoodsRow={order_item_id:string;product_id:string;quantity:number;name:string;sku:string|null;
+export type GoodsRow={order_item_id:string;product_id:string;quantity:number;name:string;sku:string|null;
  price_idr:string;weight_grams:number|null;length_cm:number|null;width_cm:number|null;height_cm:number|null};
-const batchSql=`SELECT f.id,f.order_id,f.brand_id,f.warehouse_id,f.state,
+export const batchSql=`SELECT f.id,f.order_id,f.brand_id,f.warehouse_id,f.state,
  o.status,o.payment_status,o.payment_provider,o.payment_reference,
  o.shipping_quote_id,o.shipping_courier_code,o.shipping_service_code,
  o.contact_name,o.contact_phone,o.contact_email,o.address_line,o.city,o.province,o.postal_code,
@@ -28,7 +29,7 @@ const batchSql=`SELECT f.id,f.order_id,f.brand_id,f.warehouse_id,f.state,
  w.is_active,w.is_dispatch_enabled,w.is_system_hold
  FROM product.fulfillment_batches f JOIN product.orders o ON o.id=f.order_id
  JOIN product.warehouses w ON w.id=f.warehouse_id WHERE f.id=$1`;
-const goodsSql=`SELECT l.order_item_id,l.product_id,l.quantity,p.name,p.sku,
+export const goodsSql=`SELECT l.order_item_id,l.product_id,l.quantity,p.name,p.sku,
  oi.unit_price_idr::text AS price_idr,p.weight_grams,p.length_cm,p.width_cm,p.height_cm
  FROM product.fulfillment_lines l JOIN product.products p ON p.id=l.product_id
  JOIN product.order_items oi ON oi.id=l.order_item_id
@@ -59,23 +60,24 @@ export class CourierManifestService{
  constructor(private readonly db:DatabaseService){}
  config(){
   return {provider:shippingProvider(),manifestsEnabled:true,internalPickupPlanEnabled:true,
-   externalBookingEnabled:false,externalCancellationEnabled:false,
+   externalBookingEnabled:bookingEnabled(),externalCancellationEnabled:false,
    awbGenerated:false,paymentEnabled:false,returnShipmentBookingEnabled:false,
-   webhookEnabled:shippingProvider()==='biteship'&&process.env.BITESHIP_WEBHOOK_ENABLED==='true'&&Boolean(process.env.BITESHIP_WEBHOOK_HEADER_SECRET),
-   labelType:'internal_packing_slip_only'};
+   webhookEnabled:shippingProvider()==='jubelio'?process.env.JUBELIO_WEBHOOK_ENABLED==='true'&&Boolean(process.env.JUBELIO_WEBHOOK_TOKEN):shippingProvider()==='biteship'&&process.env.BITESHIP_WEBHOOK_ENABLED==='true'&&Boolean(process.env.BITESHIP_WEBHOOK_HEADER_SECRET),
+   labelType:bookingEnabled()?'provider_label_and_internal_slip':'internal_packing_slip_only'};
  }
  async list(){
   const r=await this.db.query(
    `SELECT f.id AS batch_id,f.order_id,b.name AS brand_name,w.code AS warehouse_code,f.state,
    m.id AS manifest_id,m.state AS manifest_state,m.pickup_method,m.pickup_date,m.pickup_time,m.total_weight_grams,
-   s.id AS shipment_id,s.state AS carrier_state,s.provider_status,s.tracking_number,s.provider_shipment_id,
+   jb.state AS booking_state,s.id AS shipment_id,s.state AS carrier_state,s.provider_status,s.tracking_number,s.provider_shipment_id,
    (SELECT count(*)::integer FROM product.courier_tracking_events ev WHERE ev.shipment_id=s.id) AS provider_events
    FROM product.fulfillment_batches f LEFT JOIN product.brands b ON b.id=f.brand_id
    JOIN product.warehouses w ON w.id=f.warehouse_id
    LEFT JOIN product.courier_manifests m ON m.batch_id=f.id
    LEFT JOIN product.shipments s ON s.fulfillment_batch_id=f.id
+   LEFT JOIN product.jubelio_bookings jb ON jb.batch_id=f.id
    ORDER BY f.created_at DESC LIMIT 200`);
-  return {items:r.rows,externalBookingEnabled:false,provider:shippingProvider(),labelType:'packing_slip'};
+  return {items:r.rows,externalBookingEnabled:bookingEnabled(),provider:shippingProvider(),labelType:'packing_slip'};
  }
  async preview(batchId:string){
   requireUuid(batchId,'batch');
@@ -90,7 +92,7 @@ export class CourierManifestService{
   ]);
   const row=b.rows[0];if(!row)throw new NotFoundException('Fulfillment batch not found');
   const weight=goods.rows.reduce((a,g)=>a+(g.weight_grams||0)*g.quantity,0);
-  const blockers=manifestBlockers(row,goods.rows,count.rows[0]?.n||0,quote.rows[0]||null);
+  const blockers=manifestBlockers(row,goods.rows,count.rows[0]?.n||0,quote.rows[0]||null).filter(x=>!(bookingEnabled()&&['JUBELIO_BOOKING_NOT_ENABLED','EXTERNAL_BOOKING_DISABLED','WAREHOUSE_SPECIFIC_COURIER_QUOTE_REQUIRED'].includes(x)));
   let providerPayloadReady=false;
   if(shippingProvider()==='biteship'&&blockers.length===1&&blockers[0]==='EXTERNAL_BOOKING_DISABLED'){
    try{
@@ -130,7 +132,7 @@ export class CourierManifestService{
     if(old.request_key!==req.idempotencyKey||old.notes!==req.notes||old.pickup_method!==req.pickupMethod||
       old.pickup_date!==req.pickupDate||old.pickup_time!==req.pickupTime)
      throw new ConflictException('Manifest already prepared under different request');
-    return {manifestId:old.id,batchId,replayed:true,externalBookingEnabled:false,awb:null};
+    return {manifestId:old.id,batchId,replayed:true,externalBookingEnabled:bookingEnabled(),awb:null};
    }
    if(!paidOrderVerified(row)||row.state!=='ready_for_carrier')
     throw new ConflictException('Verified paid order must be packed and ready before manifest');
@@ -148,7 +150,7 @@ export class CourierManifestService{
      'INSERT INTO product.courier_manifest_items(manifest_id,order_item_id,product_id,quantity,weight_grams,unit_value_idr,length_cm,width_cm,height_cm) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',
      [manifest.rows[0].id,g.order_item_id,g.product_id,g.quantity,g.weight_grams,g.price_idr,g.length_cm,g.width_cm,g.height_cm]);
    }
-   return {manifestId:manifest.rows[0].id,batchId,replayed:false,externalBookingEnabled:false,awb:null,
+   return {manifestId:manifest.rows[0].id,batchId,replayed:false,externalBookingEnabled:bookingEnabled(),awb:null,
     totalWeightGrams:total,pickupPlanInternalOnly:true};
   });
  }

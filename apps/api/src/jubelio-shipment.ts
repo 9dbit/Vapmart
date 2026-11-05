@@ -106,6 +106,40 @@ export class JubelioShipmentClient{
   if(this.regionsCache.size>=200)this.regionsCache.delete(this.regionsCache.keys().next().value!);
   this.regionsCache.set(key,{items,expires:Date.now()+300000});return items;
  }
+ // Create is deliberately single-shot. A timeout, invalid response or 5xx may
+ // follow a successful charge: the durable booking record must be reconciled.
+ async createShipment(payload:unknown):Promise<unknown>{
+  const token=await this.accessToken();
+  const r=await this.json('/shipments/create',{method:'POST',headers:{authorization:'Bearer '+token},body:JSON.stringify(payload)},20000);
+  if(r.status<200||r.status>=300)throw new ServiceUnavailableException('Hasil booking perlu diperiksa di Jubelio; jangan membuat booking ulang.');
+  return r.data;
+ }
+ async shipment(id:string){
+  if(!/^\d{1,18}$/.test(id))throw new BadRequestException('Invalid shipment ID');
+  return this.dispatchRead('/shipments/'+id);
+ }
+ async findShipment(reference:string){
+  if(!/^vapmart-[a-f0-9-]{36}$/.test(reference))throw new BadRequestException('Invalid shipment reference');
+  const data=object(await this.dispatchRead('/shipments?q='+encodeURIComponent(reference)+'&page=1&page_size=100'));
+  if(!Array.isArray(data.data))throw new ServiceUnavailableException('Daftar shipment Jubelio tidak valid');
+  return data.data.map(object).filter(x=>x.ref_no===reference);
+ }
+ async shippingLabel(id:string){
+  if(!/^\d{1,18}$/.test(id))throw new BadRequestException('Invalid shipment ID');
+  const token=await this.accessToken();
+  const r=await this.json('/shipments/generate-shipping-label',{method:'POST',headers:{authorization:'Bearer '+token},body:JSON.stringify({shipment_ids:[Number(id)]})},20000);
+  if(r.status<200||r.status>=300)throw new ServiceUnavailableException('Label Jubelio belum tersedia');
+  return r.data;
+ }
+ private async dispatchRead(path:string){
+  for(let attempt=0;attempt<2;attempt++){
+   const token=await this.accessToken(),r=await this.json(path,{headers:{authorization:'Bearer '+token}},12000);
+   if(r.status===401&&attempt===0){this.token=null;continue;}
+   if(r.status<200||r.status>=300)throw new ServiceUnavailableException('Status shipment Jubelio belum tersedia');
+   return r.data;
+  }
+  throw new ServiceUnavailableException('Koneksi Jubelio perlu diperiksa');
+ }
  async destination(postalCode:string,areaId?:string){
   const regions=(await this.regions(postalCode)).filter(r=>r.postalCode===postalCode);
   const chosen=areaId?regions.find(r=>r.areaId===areaId):regions.length===1?regions[0]:undefined;

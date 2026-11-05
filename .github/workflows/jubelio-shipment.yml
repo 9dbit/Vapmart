@@ -1,7 +1,7 @@
 name: Jubelio Shipment integration
 on:
   push:
-    branches: [feat/jubelio-shipment-20261105]
+    branches: [feat/jubelio-shipment-20261105, feat/jubelio-dispatch-20261105]
   workflow_dispatch:
 permissions:
   contents: read
@@ -44,5 +44,7 @@ jobs:
           npm run migrate
           npx tsx --test test/integration/jubelio-shipment.ts
           npx tsx --test test/integration/checkout-conversion.ts
+          npx tsx --test test/integration/jubelio-dispatch.ts
+          npx tsx --test test/integration/courier-orchestration.ts
       - run: npm ci --no-audit --no-fund --prefix apps/web
       - run: npm run build --prefix apps/web

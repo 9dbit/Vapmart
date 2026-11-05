@@ -3,11 +3,12 @@ import {AdminGuard,CustomerGuard,type Principal} from './auth';
 import {CourierManifestService} from './courier-manifests';
 import {CourierEventService} from './courier-events';
 import {CourierReturnService} from './courier-returns';
+import {JubelioDispatchService} from './jubelio-dispatch';
 
 @Controller('v1/admin/courier')
 @UseGuards(AdminGuard)
 export class CourierAdminController {
- constructor(private readonly manifest:CourierManifestService,private readonly events:CourierEventService){}
+ constructor(private readonly manifest:CourierManifestService,private readonly events:CourierEventService,private readonly dispatch:JubelioDispatchService){}
  @Get('config') config(){return this.manifest.config();}
  @Get('batches') list(){return this.manifest.list();}
  @Get('batches/:batchId/preview') preview(@Param('batchId') id:string){return this.manifest.preview(id);}
@@ -16,10 +17,12 @@ export class CourierAdminController {
  }
  @Get('batches/:batchId/packing-slip') packingSlip(@Param('batchId') id:string){return this.manifest.packingSlip(id);}
  @Get('batches/:batchId/events') timeline(@Param('batchId') id:string){return this.events.adminEvents(id);}
- @Post('batches/:batchId/book') book(){
-  // Not a live Biteship call. The administrator must not use this to bypass payment verification.
-  return this.manifest.blockBooking();
- }
+ @Get('batches/:batchId/booking-preview') bookingPreview(@Param('batchId') id:string){return this.dispatch.preview(id);}
+ @Post('batches/:batchId/book') book(@Req() req:{user:Principal},@Param('batchId') id:string,@Body() body:unknown){return this.dispatch.book(req.user,id,body);}
+ @Post('batches/:batchId/reconcile') reconcile(@Param('batchId') id:string){return this.dispatch.reconcile(id);}
+ @Post('batches/:batchId/sync') sync(@Param('batchId') id:string){return this.dispatch.sync(id);}
+ @Post('batches/:batchId/label') label(@Param('batchId') id:string){return this.dispatch.label(id);}
+
 }
 @Controller('v1/webhooks/biteship')
 export class BiteshipWebhookController {
@@ -59,4 +62,11 @@ export class CourierTrackingCustomerController {
  @Get('orders/:orderId') tracking(@Req() req:{user:Principal},@Param('orderId') id:string){
   return this.events.customerEvents(req.user.id,id);
  }
+}
+
+@Controller('v1/webhooks/jubelio')
+export class JubelioWebhookController {
+ constructor(private readonly dispatch:JubelioDispatchService){}
+ @Post(':token') @HttpCode(200)
+ ingest(@Param('token') token:string,@Req() req:{rawBody?:Buffer}){return this.dispatch.webhook(token,req.rawBody);}
 }

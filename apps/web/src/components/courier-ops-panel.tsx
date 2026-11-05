@@ -3,7 +3,10 @@ import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import '../app/warehouse-ops.css';
 type Batch={batch_id:string;order_id:string;brand_name:string;warehouse_code:string;state:string;manifest_id:string|null;
  manifest_state:string|null;pickup_method:string|null;pickup_date:string|null;pickup_time:string|null;
- total_weight_grams:number|null;carrier_state:string|null;provider_status:string|null;tracking_number:string|null;provider_events:number};
+ booking_state:string|null;total_weight_grams:number|null;carrier_state:string|null;provider_status:string|null;tracking_number:string|null;provider_events:number};
+type DispatchPreview={canBook:boolean;blockers:string[];fingerprint?:string;feeIdr?:number;originalFeeIdr?:number;service?:string;origin?:string;destination?:string;
+ attempt?:{state:string;message:string;tracking_number:string|null}|null};
+const rupiah=(v:number)=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(v);
 type ReturnRow={id:string;batch_id:string;order_id:string;status:string;reason:string;brand_name:string;origin_warehouse:string;review_note:string|null;received_warehouse_id:string|null};
 type Location={id:string;code:string;name:string;is_system_hold:boolean;is_active:boolean};
 type Preview={batchId:string;state:string;bookingBlockers:string[];weightGrams:number;manifest:{id:string}|null;
@@ -24,7 +27,7 @@ const explain:Record<string,string>={
  SPLIT_ORIGIN_RATES_REQUIRED:'Diperlukan ongkir per gudang untuk pesanan gabungan',
  WAREHOUSE_SPECIFIC_COURIER_QUOTE_REQUIRED:'Quote ongkir dari gudang aktual belum tersedia',
  COURIER_SERVICE_NOT_SELECTED:'Layanan kurir belum dipilih',
- EXTERNAL_BOOKING_DISABLED:'Booking eksternal dinonaktifkan sampai persetujuan'};
+ EXTERNAL_BOOKING_DISABLED:'Booking belum aktif',JUBELIO_BOOKING_DISABLED:'Booking Jubelio belum aktif',MANIFEST_REQUIRED:'Siapkan manifest terlebih dahulu',IMMEDIATE_PICKUP_REQUIRED:'Booking Jubelio mendukung pickup segera. Manifest dengan jadwal internal atau drop-off perlu diperiksa.'};
 export function CourierOpsPanel({token}:{token:string|null}){
  const [batches,setBatches]=useState<Batch[]>([]),[rmas,setRmas]=useState<ReturnRow[]>([]),
   [locations,setLocations]=useState<Location[]>([]);
@@ -34,6 +37,8 @@ export function CourierOpsPanel({token}:{token:string|null}){
   [manifestNotes,setManifestNotes]=useState('');
  const [note,setNote]=useState(''),[decision,setDecision]=useState<'approved'|'rejected'>('approved'),
   [warehouseId,setWarehouseId]=useState('');
+ const [dispatchPreview,setDispatchPreview]=useState<DispatchPreview|null>(null),[labelUrl,setLabelUrl]=useState('');
+ const bookingKeys=useRef<Record<string,string>>({});
  const [busy,setBusy]=useState(false),[message,setMessage]=useState('');
  const manifestKey=useRef<string|null>(null),restockKeys=useRef<Record<string,string>>({});
  const current=batches.find(x=>x.batch_id===selected);
@@ -61,7 +66,7 @@ export function CourierOpsPanel({token}:{token:string|null}){
   try{await task();}catch(e){setMessage(e instanceof Error?e.message:'Operasi gagal');}finally{setBusy(false);}
  }
  async function show(batchId:string){
-  setSelected(batchId);setPreview(null);setSlip(null);setEvents([]);
+  setSelected(batchId);setPreview(null);setSlip(null);setEvents([]);setDispatchPreview(null);setLabelUrl('');
   await act(async()=>{
    const [p,e]=await Promise.all([api('/api/admin/courier/batches/'+batchId+'/preview'),
     api('/api/admin/courier/batches/'+batchId+'/events')]);
@@ -85,6 +90,27 @@ export function CourierOpsPanel({token}:{token:string|null}){
   if(!selected)return;await act(async()=>{
    setSlip(await api('/api/admin/courier/batches/'+selected+'/packing-slip'));
    setMessage('Packing slip internal, bukan AWB atau label resmi kurir.');
+  });
+ }
+ async function checkBooking(){
+  await act(async()=>{setDispatchPreview(await api('/api/admin/courier/batches/'+selected+'/booking-preview'));});
+ }
+ async function book(){
+  if(!dispatchPreview?.canBook||dispatchPreview.feeIdr===undefined)return;
+  if(!window.confirm('Buat resi dan minta pickup sekarang dengan estimasi biaya '+rupiah(dispatchPreview.feeIdr)+' dari saldo Jubelio? Tagihan akhir dapat berubah setelah pengukuran kurir.'))return;
+  await act(async()=>{
+   const key=bookingKeys.current[selected]??crypto.randomUUID();bookingKeys.current[selected]=key;
+   const r=await api('/api/admin/courier/batches/'+selected+'/book','POST',{idempotencyKey:key,fingerprint:dispatchPreview.fingerprint,acceptedFeeIdr:dispatchPreview.feeIdr});
+   setDispatchPreview({canBook:false,blockers:[],attempt:r});setMessage(r.message);await reload();
+  });
+ }
+ async function dispatchAction(action:'reconcile'|'sync'|'label'){
+  await act(async()=>{
+   const r=await api('/api/admin/courier/batches/'+selected+'/'+action,'POST',{});
+   if(action==='label'){setLabelUrl(r.url);setMessage('Label resmi tersedia. Klik Buka label kurir.');return;}
+   await reload();setEvents((await api('/api/admin/courier/batches/'+selected+'/events')).items||[]);
+   if(action==='reconcile')setDispatchPreview({canBook:false,blockers:[],attempt:r});
+   setMessage(r.message||'Tracking diperiksa langsung ke Jubelio.');
   });
  }
  async function review(r:ReturnRow){
@@ -117,14 +143,14 @@ export function CourierOpsPanel({token}:{token:string|null}){
   returns:rmas.filter(x=>x.status==='requested').length
  }),[batches,rmas]);
  return <section className="vm-courier-ops vm-fulfillment">
-  <header className="vm-fulfillment-heading"><div><span className="vma26-eyebrow">CP36 / COURIER OPERATIONS</span>
-   <h2>Courier & Order Automation</h2><p>Manifest, jadwal pickup internal, tracking terpercaya, serta return management. Booking dan payment OFF.</p></div>
+  <header className="vm-fulfillment-heading"><div><span className="vma26-eyebrow">JUBELIO / COURIER OPERATIONS</span>
+   <h2>Courier & Order Automation</h2><p>Booking resi, permintaan pickup, label kurir, tracking, dan pengelolaan retur.</p></div>
    <button type="button" className="vm-ops-secondary" disabled={busy} onClick={()=>act(reload)}>↻ Refresh</button></header>
   <div className="vm-ops-stats"><div><small>Manifest</small><strong>{count.manifests}</strong></div><div><small>Siap dibuat</small><strong>{count.noManifests}</strong></div>
    <div><small>AWB terverifikasi</small><strong>{count.waybills}</strong></div><div><small>Return requests</small><strong>{count.returns}</strong></div></div>
   <div className="vm-ops-panels">
    <section className="vma26-panel vm-ops-form"><span className="vma26-eyebrow">PARCEL PREPARATION</span><h3>Manifest per batch</h3>
-    <label>Fulfillment batch<select value={selected} onChange={e=>{setSelected(e.target.value);setPreview(null);setEvents([]);setSlip(null);manifestKey.current=null;}}>
+    <label>Fulfillment batch<select value={selected} onChange={e=>{setSelected(e.target.value);setPreview(null);setEvents([]);setSlip(null);setDispatchPreview(null);setLabelUrl('');manifestKey.current=null;}}>
      {batches.map(b=><option key={b.batch_id} value={b.batch_id}>{b.brand_name} · {b.warehouse_code} · {b.order_id.slice(0,8)}</option>)}</select></label>
     <div className="vm-fulfillment-actions"><button type="button" disabled={!selected||busy} onClick={()=>show(selected)}>Periksa kesiapan & events</button>
      {current?.manifest_id&&<button type="button" disabled={busy} onClick={slipPreview}>Lihat packing slip</button>}</div>
@@ -133,23 +159,33 @@ export function CourierOpsPanel({token}:{token:string|null}){
      <strong>Booking blockers</strong><div className="vm-courier-blockers">{preview.bookingBlockers.map(v=><span key={v}>{explain[v]||v}</span>)}</div>
     </div>}
     {current?.state==='ready_for_carrier'&&!current.manifest_id&&<form onSubmit={prepare} className="vm-ops-form">
-      <label>Penyerahan<select value={mode} onChange={e=>{setMode(e.target.value);manifestKey.current=null;}}>
-        <option value="pickup">Rencana pickup</option><option value="drop_off">Rencana drop-off</option></select></label>
-      <div className="vm-ops-input-grid"><label>Tanggal internal<input type="date" value={pickupDate} onChange={e=>{setPickupDate(e.target.value);manifestKey.current=null;}}/></label>
-        <label>Jam internal<input type="time" value={pickupTime} onChange={e=>{setPickupTime(e.target.value);manifestKey.current=null;}}/></label></div>
+      <p className="vm-ops-hint">Pickup diminta setelah tombol booking resi dikonfirmasi. Waktu kedatangan mengikuti konfirmasi kurir.</p>
       <label>Catatan paket<textarea required rows={2} minLength={6} maxLength={300} value={manifestNotes} onChange={e=>{setManifestNotes(e.target.value);manifestKey.current=null;}} placeholder="Nomor packing checklist, jumlah koli, bukti timbang"/></label>
       <button className="vm-ops-primary" type="submit" disabled={busy||manifestNotes.trim().length<6||(Boolean(pickupDate)!==Boolean(pickupTime))}>Buat manifest internal</button>
      </form>}
    </section>
    <section className="vma26-panel vm-ops-form"><span className="vma26-eyebrow">REAL COURIER EVENTS</span><h3>AWB & tracking</h3>
-    <p className="vm-ops-hint">Resi hanya muncul setelah event provider untuk shipment yang sudah terdaftar. Tidak bisa mengisi AWB secara manual.</p>
-    {current&&<><p><strong>{current.tracking_number||'Belum ada resi resmi'}</strong></p><span className="vm-fulfillment-state">{current.provider_status||current.carrier_state||'Booking OFF'}</span></>}
+    <p className="vm-ops-hint">Resi dan label berasal dari Jubelio. Status pickup diperbarui setelah dikonfirmasi kurir.</p>
+    {current&&<><p><strong>{current.tracking_number||'Belum ada resi resmi'}</strong></p><span className="vm-fulfillment-state">{current.provider_status||current.carrier_state||'Belum dipesan'}</span></>}
     <div className="vm-fulfillment-timeline">{events.map(e=><div key={e.id}><strong>{e.event_type} · {e.provider_status||'—'}</strong>
       <small>{e.waybill_id||''} {e.observed_fee_idr?' · Koreksi tarif '+new Intl.NumberFormat('id-ID').format(Number(e.observed_fee_idr))+' perlu review':''}</small>
       <small>{new Date(e.received_at).toLocaleString('id-ID')} · {e.is_applied?'Teraplikasi':'Audit saja / diabaikan'}</small></div>)}</div>
-    {!events.length&&<p className="vm-ops-hint">Belum ada event provider terverifikasi. Webhook pelacakan belum diaktifkan.</p>}
-    <p className="vm-ops-hint">Nomor resi dan label resmi hanya berasal dari provider pengiriman. Fitur booking membutuhkan persetujuan terpisah.</p>
-    <button type="button" className="vm-ops-secondary" disabled>Booking Kurir · OFF</button>
+    {!events.length&&<p className="vm-ops-hint">Belum ada event tracking untuk paket ini.</p>}
+    <div className="vm-fulfillment-actions">
+     {!current?.booking_state&&<button type="button" disabled={busy||!selected} onClick={checkBooking}>Periksa tarif & pickup</button>}
+     {current?.booking_state&&current.booking_state!=='booked'&&<button type="button" disabled={busy} onClick={()=>dispatchAction('reconcile')}>Periksa hasil booking</button>}
+     {current?.booking_state==='booked'&&<><button type="button" disabled={busy} onClick={()=>dispatchAction('sync')}>Perbarui tracking</button><button type="button" disabled={busy} onClick={()=>dispatchAction('label')}>Ambil label kurir</button></>}
+    </div>
+    {dispatchPreview&&<div className="vm-ops-form">
+     {dispatchPreview.blockers.map(v=><p key={v} className="vm-ops-hint">{explain[v]||v}</p>)}
+     {dispatchPreview.attempt&&<p role="status">{dispatchPreview.attempt.message}</p>}
+     {dispatchPreview.canBook&&<><strong>{dispatchPreview.service} · {rupiah(dispatchPreview.feeIdr||0)}</strong>
+      <p>{dispatchPreview.origin} → {dispatchPreview.destination}</p>
+      <p className="vm-ops-hint">Ongkir pada pesanan: {rupiah(dispatchPreview.originalFeeIdr||0)}. Biaya booking memakai saldo Jubelio; selisih tidak ditagihkan otomatis kepada pelanggan.</p>
+      <button type="button" className="vm-ops-primary" disabled={busy} onClick={book}>Buat resi & minta pickup</button></>}
+    </div>}
+    {labelUrl&&<a href={labelUrl} target="_blank" rel="noopener noreferrer" className="vm-ops-primary">Buka label kurir</a>}
+
    </section>
   </div>
   <section className="vma26-panel"><h3>Parcels by brand & warehouse</h3>
@@ -174,7 +210,7 @@ export function CourierOpsPanel({token}:{token:string|null}){
   </section>
   {slip&&<div className="vma26-panel vm-internal-packing-slip">
     <p className="vma26-eyebrow">VAPMART · INTERNAL ONLY</p><h2>PACKING SLIP</h2>
-    <p><strong>BUKAN LABEL KURIR. AWB BELUM ADA.</strong></p>
+    <p><strong>PACKING SLIP INTERNAL · Gunakan label kurir untuk pengiriman.</strong></p>
     <p>Manifest {slip.slip.manifest_id.slice(0,8)} · Order {slip.slip.order_id.slice(0,8)}</p>
     <p><strong>Brand:</strong> {slip.slip.brand_name}</p>
     <div className="vm-ops-panels"><div><h3>Pengirim</h3><p>{slip.slip.warehouse_name}</p><p>{slip.slip.warehouse_address}</p>
@@ -183,7 +219,7 @@ export function CourierOpsPanel({token}:{token:string|null}){
       <p>{slip.slip.receiver_city}, {slip.slip.receiver_province} {slip.slip.receiver_postal_code}</p></div></div>
     <div className="vm-ops-table"><table><thead><tr><th>SKU</th><th>Produk</th><th>Qty</th><th>Berat</th></tr></thead>
     <tbody>{slip.items.map((x,i)=><tr key={i}><td>{x.sku||'—'}</td><td>{x.name}</td><td>{x.quantity}</td><td>{x.weight_grams}g</td></tr>)}</tbody></table></div>
-    <p>Total berat: {slip.slip.total_weight_grams} gram. Booking kurir belum dibuat.</p>
+    <p>Total berat: {slip.slip.total_weight_grams} gram.</p>
     <div className="vm-courier-print-actions"><button type="button" className="vm-ops-primary" onClick={()=>window.print()}>Cetak packing slip internal</button></div>
   </div>}
   {message&&<p className="vm-ops-feedback" role="status">{message}</p>}

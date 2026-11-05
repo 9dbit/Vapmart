@@ -8,6 +8,6 @@ export function shippingConfig(){
  return {provider,rateLookupEnabled:process.env.SHIPPING_RATE_LOOKUP_ENABLED==='true'&&originReady&&credentialsReady,
   credentialsConfigured:credentialsReady,originConfigured:originReady,requiresArea:provider==='jubelio',
   originPostalCode:postal,originLabel:process.env.SHIPPING_ORIGIN_LABEL||'',
-  bookingEnabled:false,paymentEnabled:false,insuranceIncluded:provider==='jubelio',
+  bookingEnabled:provider==='jubelio'&&credentialsReady&&process.env.JUBELIO_BOOKING_ENABLED==='true',paymentEnabled:false,insuranceIncluded:provider==='jubelio',
   rateType:provider==='jubelio'?'live_quote':'sandbox_snapshot',ttlMinutes:15};
 }

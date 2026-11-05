@@ -3,6 +3,7 @@ import {DatabaseService} from './database';
 import {inventoryLock,ensureBalance,writeEvent,refreshProductAvailability,requireUuid} from './warehouses';
 import {paidOrderVerified} from './fulfillment';
 import {courierRanks,courierState,normalizeBiteshipWebhook,providerEventHash,verifyWebhookHeader} from './courier-protocol';
+import type {ProviderEvent} from './courier-protocol';
 type Shipment={
  id:string;fulfillment_batch_id:string;provider:string;provider_shipment_id:string;
  state:string;provider_status:string|null;status_rank:number;tracking_number:string|null;
@@ -26,7 +27,11 @@ export class CourierEventService{
   let body:unknown;try{body=JSON.parse(rawBody.toString('utf8'));}catch{
    throw new BadRequestException('Malformed courier event JSON');
   }
-  const evt=normalizeBiteshipWebhook(body),hash=providerEventHash(evt);
+  return this.applyVerified(normalizeBiteshipWebhook(body),['biteship','biteship_test']);
+ }
+ // This method accepts only events obtained by a trusted server-side adapter.
+ async applyVerified(evt:ProviderEvent,providers:string[]){
+  const hash=providerEventHash(evt);
   return this.db.transaction(async client=>{
    await inventoryLock(client);
    const result=await client.query<Shipment>(
@@ -35,8 +40,8 @@ export class CourierEventService{
     f.carrier_handover_at,o.status,o.payment_status,o.payment_provider,o.payment_reference
     FROM product.shipments s JOIN product.fulfillment_batches f ON f.id=s.fulfillment_batch_id
     JOIN product.orders o ON o.id=f.order_id
-    WHERE s.provider_shipment_id=$1 AND s.provider IN('biteship','biteship_test') FOR UPDATE OF s,f`,
-    [evt.providerOrderId]);
+    WHERE s.provider_shipment_id=$1 AND s.provider=ANY($2::text[]) FOR UPDATE OF s,f,o`,
+    [evt.providerOrderId,providers]);
    const shipment=result.rows[0];
    if(!shipment)throw new NotFoundException('Provider shipment not registered');
    const inserted=await client.query<{id:string}>(
@@ -62,7 +67,7 @@ export class CourierEventService{
     if(evt.event==='order.status'&&evt.status){
      const decision=trackingDecision(shipment.status_rank,evt.status);
      needsReview=decision.needsReview;
-     if(decision.canAdvance){
+     if(decision.canAdvance&&!(shipment.provider==='jubelio'&&['cancelled','rejected'].includes(shipment.provider_status||''))){
       const physicalHandover=decision.rank>=3&&evt.status!=='return_in_transit'&&evt.status!=='returned';
       if(physicalHandover&&!shipment.carrier_handover_at){
        if(shipment.batch_state!=='ready_for_carrier'||!paidOrderVerified(shipment))
@@ -76,7 +81,7 @@ export class CourierEventService{
         const bal=await ensureBalance(client,shipment.warehouse_id,line.product_id);
         if(bal.reserved<line.quantity)throw new ConflictException('Reserved quantity no longer matches handover');
         await writeEvent(client,{row:bal,deltaHand:-line.quantity,deltaReserved:-line.quantity,
-         reason:'fulfilled',notes:'Biteship pickup-confirmed order '+evt.providerOrderId,
+         reason:'fulfilled',notes:shipment.provider+' pickup-confirmed order '+evt.providerOrderId,
          actor:null,batchId:shipment.fulfillment_batch_id});
         touched.push(line.product_id);
        }

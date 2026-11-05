@@ -1,0 +1,83 @@
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import test from 'node:test';
+import {DatabaseService} from '../../src/database';
+import {ProductsService} from '../../src/products';
+import {WarehouseService} from '../../src/warehouses';
+import {FulfillmentService} from '../../src/fulfillment';
+import {CourierManifestService} from '../../src/courier-manifests';
+import {CourierEventService} from '../../src/courier-events';
+import {JubelioShipmentClient} from '../../src/jubelio-shipment';
+import {JubelioDispatchService} from '../../src/jubelio-dispatch';
+
+test('Jubelio: durable booking, ambiguous result recovery, authoritative webhook and exactly-once inventory',async()=>{
+ if(!process.env.DATABASE_URL?.includes('127.0.0.1')||!process.env.DATABASE_URL.includes('vapmart_cp39_'))throw Error('Disposable local database required');
+ Object.assign(process.env,{SHIPPING_PROVIDER:'jubelio',JUBELIO_BOOKING_ENABLED:'true',JUBELIO_SHIPMENT_CLIENT_ID:'fixture',JUBELIO_SHIPMENT_CLIENT_SECRET:'fixture',SHIPPING_ORIGIN_POSTAL_CODE:'40115',JUBELIO_SHIPMENT_ORIGIN_AREA_ID:'3273091003',JUBELIO_WEBHOOK_ENABLED:'true',JUBELIO_WEBHOOK_TOKEN:'disposable-webhook-token-for-jubelio-ci-only-123456'});
+ const db=new DatabaseService(),products=new ProductsService(db),warehouse=new WarehouseService(db),fulfill=new FulfillmentService(db),manifest=new CourierManifestService(db),events=new CourierEventService(db),client=new JubelioShipmentClient(),dispatch=new JubelioDispatchService(db,client,events);
+ const admin={id:randomUUID(),email:'dispatch-admin@example.invalid',emailVerified:true},customer=randomUUID(),suffix=randomUUID().slice(0,7).toUpperCase();
+ let calls=0,reads=0,failCreate=false,fee=9800,latest='WAITING';
+ const created=new Map<string,any>();
+ const region={areaId:'3273091003',postalCode:'40115',label:'Citarum',city:'KOTA BANDUNG',province:'JAWA BARAT',district:'Bandung Wetan',area:'Citarum'};
+ client.destination=async()=>region;
+ client.rates=async()=>[{courierCode:'24',courierName:'Lion Parcel',serviceCode:'jagopack',serviceName:'JAGOPACK',priceIdr:fee,basePriceIdr:9500,insuranceIdr:fee-9500,providerServiceId:2453,duration:'2 hari'}];
+ client.createShipment=async(raw:any)=>{calls++;const s={shipment_id:10000+calls,ref_no:raw.ref_no,awb:'TEST-AWB-'+calls,courier_service_id:2453,destination_area_id:region.areaId,latest_status:latest,price:fee};created.set(raw.ref_no,s);if(failCreate)throw Error('timeout after provider accepted');return s;};
+ client.shipment=async(id:string)=>{reads++;const s=[...created.values()].find(v=>String(v.shipment_id)===id);assert.ok(s);return {...s,latest_status:latest,price_bill:12000};};
+ client.findShipment=async(ref:string)=>created.has(ref)?[created.get(ref)]:[];
+ client.shippingLabel=async()=>({file_url:'https://shipment.jubelio.com/fixture-label.pdf'});
+ try{
+  const p=await products.create({name:'Travel Organizer '+suffix,slug:'dispatch-organizer-'+suffix.toLowerCase(),sku:'DISPATCH-'+suffix,category:'home',description:'Travel accessory test',price_idr:50000,stock_qty:0,weight_grams:300,length_cm:10,width_cm:10,height_cm:10},admin);
+  const w=(await warehouse.create(admin,{code:'DSP-'+suffix,name:'Dispatch Test',address:'Jalan Warehouse 123',city:'Bandung',province:'Jawa Barat',postalCode:'40115',contactName:'Fixture Sender',contactPhone:'081234567890'})).warehouse;
+  await warehouse.adjust(admin,{warehouseId:w.id,productId:p.id,delta:20,reason:'receipt',notes:'Disposable test stock receipt',idempotencyKey:randomUUID()});
+  await warehouse.update(admin,w.id,{dispatchEnabled:true});
+  async function batch(){
+   const id=randomUUID();
+   await db.query("INSERT INTO product.orders(id,customer_user_id,status,payment_status,payment_provider,payment_reference,contact_name,contact_phone,address_line,city,province,postal_code,shipping_courier_code,shipping_service_code) VALUES($1,$2,'paid','paid','fixture-only',$3,'Fixture Receiver','081222222222','Jalan Receiver 456','Bandung','Jawa Barat','40115','24','jagopack')",[id,customer,'verified-'+id]);
+   await db.query('INSERT INTO product.order_items(order_id,product_id,quantity,unit_price_idr,product_name,sku) VALUES($1,$2,2,50000,$3,$4)',[id,p.id,p.name,p.sku]);
+   const q=(await db.query(`INSERT INTO product.shipping_rate_quotes(customer_user_id,cart_fingerprint,origin_postal_code,destination_postal_code,provider,courier_code,service_code,courier_name,service_name,amount_idr,expires_at,applied_order_id,origin_area_id,destination_area_id,destination_region,provider_service_id,base_amount_idr,insurance_amount_idr)
+    VALUES($1,$2,'40115','40115','jubelio','24','jagopack','Lion Parcel','JAGOPACK',9800,now()+interval '15 minutes',$3,'3273091003','3273091003',$4,2453,9500,300) RETURNING id`,[customer,'a'.repeat(64),id,JSON.stringify(region)])).rows[0];
+   await db.query('UPDATE product.orders SET shipping_quote_id=$2 WHERE id=$1',[id,q.id]);
+   const b=(await fulfill.prepare(admin,id,{idempotencyKey:randomUUID()})).batches[0];
+   for(const state of ['picking','packed','ready_for_carrier'])await fulfill.transition(admin,b.id,{state,notes:'Verified fixture parcel transition'});
+   await manifest.prepare(admin,b.id,{idempotencyKey:randomUUID(),notes:'Verified parcel and weight',pickupMethod:'pickup'});
+   return {id,batchId:b.id};
+  }
+  const first=await batch();
+  await db.query("UPDATE product.orders SET payment_status='pending' WHERE id=$1",[first.id]);
+  assert.ok((await dispatch.preview(first.batchId)).blockers.includes('VERIFIED_PAYMENT_REQUIRED'));
+  await db.query("UPDATE product.orders SET payment_status='paid' WHERE id=$1",[first.id]);
+  let preview=await dispatch.preview(first.batchId);assert.equal(preview.canBook,true);
+  const command=()=>({idempotencyKey:randomUUID(),fingerprint:preview.fingerprint,acceptedFeeIdr:preview.feeIdr});
+  fee=10000;await assert.rejects(()=>dispatch.book(admin,first.batchId,command()),/Tarif atau isi pesanan berubah/);assert.equal(calls,0);fee=9800;
+  preview=await dispatch.preview(first.batchId);
+  await assert.rejects(()=>dispatch.book({...admin,emailVerified:false},first.batchId,command()),/Verified admin/);
+  const cmd=command();await Promise.all([dispatch.book(admin,first.batchId,cmd),dispatch.book(admin,first.batchId,cmd)]);
+  assert.equal(calls,1,'concurrent clicks must create one shipment');
+  assert.equal((await dispatch.result(first.batchId)).state,'booked');assert.equal((await dispatch.book(admin,first.batchId,command())).state,'booked');assert.equal(calls,1);
+  assert.ok((await dispatch.label(first.batchId)).url.endsWith('.pdf'));
+  client.shippingLabel=async()=>({file_url:'http://127.0.0.1/private'});await assert.rejects(()=>dispatch.label(first.batchId),/Alamat label/);
+  const token=process.env.JUBELIO_WEBHOOK_TOKEN!;
+  const notification=Buffer.from(JSON.stringify({shipment_id:10001,latest_status:'DELIVERED',price:1}));
+  await assert.rejects(()=>dispatch.webhook('wrong',notification),/Untrusted/);
+  const beforeReads=reads;await dispatch.webhook(token,Buffer.from('{"shipment_id":999999}'));assert.equal(reads,beforeReads);
+  await dispatch.webhook(token,notification);
+  assert.equal((await db.query('SELECT state FROM product.shipments WHERE fulfillment_batch_id=$1',[first.batchId])).rows[0].state,'booked','untrusted body cannot claim delivery');
+  latest='PICKED_UP';await Promise.all([dispatch.webhook(token,notification),dispatch.webhook(token,notification)]);
+  const stock=(await db.query('SELECT on_hand,reserved FROM product.warehouse_stock WHERE warehouse_id=$1 AND product_id=$2',[w.id,p.id])).rows[0];assert.equal(stock.on_hand,18);assert.equal(stock.reserved,0);
+  latest='DELIVERED';await dispatch.sync(first.batchId);latest='CONFIRMED_BY_COURIER';await dispatch.webhook(token,notification);
+  const final=(await db.query('SELECT state,actual_shipping_fee_idr FROM product.shipments WHERE fulfillment_batch_id=$1',[first.batchId])).rows[0];assert.equal(final.state,'delivered');assert.equal(Number(final.actual_shipping_fee_idr),12000);
+  assert.equal(Number((await db.query("SELECT count(*) n FROM product.warehouse_stock_events WHERE batch_id=$1 AND reason='fulfilled'",[first.batchId])).rows[0].n),1);
+  assert.equal((await events.customerEvents(customer,first.id)).externalTrackingConnected,true);await assert.rejects(()=>events.customerEvents(randomUUID(),first.id),/Order not found/);
+  const second=await batch();latest='WAITING';failCreate=true;preview=await dispatch.preview(second.batchId);
+  assert.equal((await dispatch.book(admin,second.batchId,command())).state,'uncertain');assert.equal(calls,2);
+  await dispatch.book(admin,second.batchId,command());assert.equal(calls,2,'timeout must never cause repeat POST');
+  await db.query("UPDATE product.jubelio_bookings SET created_at=now()-interval '1 minute' WHERE batch_id=$1",[second.batchId]);
+  assert.equal((await dispatch.reconcile(second.batchId)).state,'booked');assert.equal(calls,2);
+  latest='CANCELED';await dispatch.sync(second.batchId);latest='ON_DELIVERY';await dispatch.sync(second.batchId);
+  assert.equal((await db.query('SELECT state FROM product.shipments WHERE fulfillment_batch_id=$1',[second.batchId])).rows[0].state,'cancelled','cancelled shipment must not resurrect');
+  const third=await batch();preview=await dispatch.preview(third.batchId);await dispatch.book(admin,third.batchId,command());created.delete('vapmart-'+third.batchId);
+  await db.query("UPDATE product.jubelio_bookings SET created_at=now()-interval '1 minute' WHERE batch_id=$1",[third.batchId]);
+  await assert.rejects(()=>dispatch.reconcile(third.batchId),/Shipment belum ditemukan/);assert.equal(calls,3);
+  await dispatch.book(admin,third.batchId,command());assert.equal(calls,3);
+  console.log('JUBELIO_DISPATCH_INTEGRATION_PASS: booking, pickup, recovery, webhook, stock and ownership');
+ }finally{await db.onModuleDestroy();}
+});
