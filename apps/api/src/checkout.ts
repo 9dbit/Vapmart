@@ -138,15 +138,20 @@ export class CheckoutService{
      let shippingFee=quote.shippingFeeIdr;
      let service:{provider:string;courier_code:string;service_code:string}|null=null;
      if(details.shippingQuoteId){
-      const r=await client.query<{cart_fingerprint:string;destination_postal_code:string;origin_postal_code:string;provider:string;courier_code:string;service_code:string;amount_idr:string;expires_at:string;applied_order_id:string|null;origin_area_id:string|null;destination_area_id:string|null;destination_region:{city:string;province:string}|null}>(
-       'SELECT cart_fingerprint,destination_postal_code,origin_postal_code,provider,courier_code,service_code,amount_idr::text,expires_at,applied_order_id,origin_area_id,destination_area_id,destination_region FROM product.shipping_rate_quotes WHERE id=$1 AND customer_user_id=$2 FOR UPDATE',
+      const r=await client.query<{cart_fingerprint:string;destination_postal_code:string;origin_postal_code:string;provider:string;courier_code:string;service_code:string;provider_service_id:number|null;amount_idr:string;expires_at:string;applied_order_id:string|null;origin_area_id:string|null;destination_area_id:string|null;destination_region:{city:string;province:string}|null}>(
+       'SELECT cart_fingerprint,destination_postal_code,origin_postal_code,provider,courier_code,service_code,provider_service_id,amount_idr::text,expires_at,applied_order_id,origin_area_id,destination_area_id,destination_region FROM product.shipping_rate_quotes WHERE id=$1 AND customer_user_id=$2 FOR UPDATE',
        [details.shippingQuoteId,user.id]);
       const stored=r.rows[0];
       if(!stored||stored.applied_order_id||Date.parse(stored.expires_at)<=Date.now()||
         stored.destination_postal_code!==details.postalCode||stored.origin_postal_code!==process.env.SHIPPING_ORIGIN_POSTAL_CODE||
         stored.provider!==shippingSnapshotProvider())throw new ConflictException('Pilihan ongkir habis masa berlaku, silakan cek ulang');
-      const allowed=(await client.query<{courier_codes:string[]}>('SELECT courier_codes FROM product.shipping_courier_visibility WHERE provider=$1',[stored.provider==='jubelio'?'jubelio':'biteship'])).rows[0]?.courier_codes;
-      if(allowed&&!allowed.includes(stored.courier_code))throw new ConflictException('Kurir pesanan telah dinonaktifkan oleh admin. Pilih ulang layanan pengiriman.');
+      const policy=(await client.query<{courier_codes:string[];service_keys:string[]|null}>(
+       'SELECT courier_codes,service_keys FROM product.shipping_courier_visibility WHERE provider=$1',
+       [stored.provider==='jubelio'?'jubelio':'biteship'])).rows[0];
+      const serviceKey=stored.courier_code+':'+String(stored.provider==='jubelio'?stored.provider_service_id:stored.service_code);
+      if(policy&&(!policy.courier_codes.includes(stored.courier_code)||
+        (policy.service_keys!==null&&!policy.service_keys.includes(serviceKey))))
+       throw new ConflictException('Layanan kurir sudah dinonaktifkan oleh admin. Pilih ulang pengiriman.');
       if(stored.provider==='jubelio'&&(stored.origin_area_id!==process.env.JUBELIO_SHIPMENT_ORIGIN_AREA_ID||stored.destination_area_id!==details.destinationAreaId||
        stored.destination_region?.city!==details.city||stored.destination_region?.province!==details.province))
        throw new ConflictException('Wilayah pengiriman berubah, silakan pilih wilayah dan cek ongkir ulang');
