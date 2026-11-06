@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import '../app/warehouse-ops.css';
-type Batch={batch_id:string;order_id:string;brand_name:string;warehouse_code:string;state:string;manifest_id:string|null;
+type Batch={batch_id:string;order_id:string;brand_name:string;warehouse_code:string;state:string;shipping_provider?:string|null;shipping_courier_code?:string|null;shipping_service_code?:string|null;shipping_courier_name?:string|null;shipping_service_name?:string|null;shipping_fee_idr?:string|null;manifest_id:string|null;
  manifest_state:string|null;pickup_method:string|null;pickup_date:string|null;pickup_time:string|null;
  booking_state:string|null;total_weight_grams:number|null;carrier_state:string|null;provider_status:string|null;tracking_number:string|null;provider_events:number};
 type DispatchPreview={canBook:boolean;blockers:string[];fingerprint?:string;feeIdr?:number;originalFeeIdr?:number;service?:string;origin?:string;destination?:string;
@@ -9,10 +9,11 @@ type DispatchPreview={canBook:boolean;blockers:string[];fingerprint?:string;feeI
 const rupiah=(v:number)=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(v);
 type ReturnRow={id:string;batch_id:string;order_id:string;status:string;reason:string;brand_name:string;origin_warehouse:string;review_note:string|null;received_warehouse_id:string|null};
 type Location={id:string;code:string;name:string;is_system_hold:boolean;is_active:boolean};
+type CourierConfig={provider:string;externalBookingEnabled:boolean;webhookEnabled:boolean;webhookRegistrationRequired?:boolean;labelType:string};
 type Preview={batchId:string;state:string;bookingBlockers:string[];weightGrams:number;manifest:{id:string}|null;
  items:{sku:string|null;name:string;quantity:number;weightGrams:number|null;dimensionsCm:(number|null)[]}[];
  origin:{warehouse:string;city:string;postalCode:string|null};destination:{city:string;postalCode:string|null};
- courier:{code:string|null;service:string|null}};
+ courier:{provider?:string|null;code:string|null;service:string|null;name?:string|null;serviceName?:string|null;priceIdr?:number|null}};
 type Slip={type:string;awb:null;slip:{manifest_id:string;brand_name:string;order_id:string;warehouse_name:string;warehouse_address:string;warehouse_city:string;warehouse_province:string;warehouse_postal_code:string;
  receiver_name:string;receiver_phone:string;receiver_address:string;receiver_city:string;receiver_province:string;receiver_postal_code:string;
  total_weight_grams:number;pickup_date:string|null;pickup_time:string|null};items:{name:string;sku:string|null;quantity:number;weight_grams:number}[]};
@@ -31,7 +32,7 @@ const explain:Record<string,string>={
 export function CourierOpsPanel({token}:{token:string|null}){
  const [batches,setBatches]=useState<Batch[]>([]),[rmas,setRmas]=useState<ReturnRow[]>([]),
   [locations,setLocations]=useState<Location[]>([]);
- const [selected,setSelected]=useState(''),[preview,setPreview]=useState<Preview|null>(null),[slip,setSlip]=useState<Slip|null>(null),
+ const [selected,setSelected]=useState(''),[preview,setPreview]=useState<Preview|null>(null),[slip,setSlip]=useState<Slip|null>(null),[config,setConfig]=useState<CourierConfig|null>(null),
   [events,setEvents]=useState<CarrierEvent[]>([]);
  const [mode,setMode]=useState('pickup'),[pickupDate,setPickupDate]=useState(''),[pickupTime,setPickupTime]=useState(''),
   [manifestNotes,setManifestNotes]=useState('');
@@ -49,14 +50,14 @@ export function CourierOpsPanel({token}:{token:string|null}){
   const x=await r.json();if(!r.ok)throw Error(Array.isArray(x?.message)?x.message.join(', '):x?.message||x?.code||'HTTP '+r.status);return x;
  }
  async function reload(){
-  const [a,b,c]=await Promise.all([api('/api/admin/courier/batches'),api('/api/admin/courier-returns'),api('/api/admin/warehouses')]);
-  setBatches(a.items||[]);setRmas(b.items||[]);setLocations((c.warehouses||[]).filter((w:Location)=>w.is_active&&!w.is_system_hold));
+  const [a,b,c,d]=await Promise.all([api('/api/admin/courier/batches'),api('/api/admin/courier-returns'),api('/api/admin/warehouses'),api('/api/admin/courier/config')]);
+  setBatches(a.items||[]);setRmas(b.items||[]);setLocations((c.warehouses||[]).filter((w:Location)=>w.is_active&&!w.is_system_hold));setConfig(d);
  }
  useEffect(()=>{if(!token)return;let active=true;
-  Promise.all(['/api/admin/courier/batches','/api/admin/courier-returns','/api/admin/warehouses'].map(path=>
+  Promise.all(['/api/admin/courier/batches','/api/admin/courier-returns','/api/admin/warehouses','/api/admin/courier/config'].map(path=>
    fetch(path,{headers:{authorization:'Bearer '+token},cache:'no-store'}).then(async r=>{const x=await r.json();if(!r.ok)throw Error(x?.message||path);return x;})))
-   .then(([a,b,c])=>{if(active){setBatches(a.items||[]);setRmas(b.items||[]);
-    setLocations((c.warehouses||[]).filter((w:Location)=>w.is_active&&!w.is_system_hold));}})
+   .then(([a,b,c,d])=>{if(active){setBatches(a.items||[]);setRmas(b.items||[]);
+    setLocations((c.warehouses||[]).filter((w:Location)=>w.is_active&&!w.is_system_hold));setConfig(d);}})
    .catch(e=>{if(active)setMessage(e instanceof Error?e.message:'Data tidak tersedia');});
   return()=>{active=false;};
  },[token]);
@@ -102,6 +103,8 @@ export function CourierOpsPanel({token}:{token:string|null}){
    const key=bookingKeys.current[selected]??crypto.randomUUID();bookingKeys.current[selected]=key;
    const r=await api('/api/admin/courier/batches/'+selected+'/book','POST',{idempotencyKey:key,fingerprint:dispatchPreview.fingerprint,acceptedFeeIdr:dispatchPreview.feeIdr});
    setDispatchPreview({canBook:false,blockers:[],attempt:r});setMessage(r.message);await reload();
+   setPreview(await api('/api/admin/courier/batches/'+selected+'/preview'));
+   setEvents((await api('/api/admin/courier/batches/'+selected+'/events')).items||[]);
   });
  }
  async function dispatchAction(action:'reconcile'|'sync'|'label'){
@@ -143,9 +146,10 @@ export function CourierOpsPanel({token}:{token:string|null}){
   returns:rmas.filter(x=>x.status==='requested').length
  }),[batches,rmas]);
  return <section className="vm-courier-ops vm-fulfillment">
-  <header className="vm-fulfillment-heading"><div><span className="vma26-eyebrow">JUBELIO / COURIER OPERATIONS</span>
+  <header className="vm-fulfillment-heading"><div><span className="vma26-eyebrow">{config?.provider==='jubelio'?'JUBELIO SHIPMENT':'COURIER'} / OPERATIONS</span>
    <h2>Courier & Order Automation</h2><p>Booking resi, permintaan pickup, label kurir, tracking, dan pengelolaan retur.</p></div>
    <button type="button" className="vm-ops-secondary" disabled={busy} onClick={()=>act(reload)}>↻ Refresh</button></header>
+  <div className="vm-ops-connection"><div><small>Provider</small><strong>{config?.provider==='jubelio'?'Jubelio Shipment':config?.provider||'Memuat...'}</strong></div><div><small>Booking AWB</small><strong>{config?.externalBookingEnabled?'Aktif':'Belum aktif'}</strong></div><div><small>Webhook API</small><strong>{config?.webhookEnabled?'Endpoint aktif':'Belum aktif'}</strong></div><p>Alur resi: pembayaran terverifikasi → paket siap dikirim → buat manifest → periksa tarif → konfirmasi booking. Status endpoint tidak membuktikan webhook sudah didaftarkan di dashboard Jubelio.</p></div>
   <div className="vm-ops-stats"><div><small>Manifest</small><strong>{count.manifests}</strong></div><div><small>Siap dibuat</small><strong>{count.noManifests}</strong></div>
    <div><small>AWB terverifikasi</small><strong>{count.waybills}</strong></div><div><small>Return requests</small><strong>{count.returns}</strong></div></div>
   <div className="vm-ops-panels">
@@ -155,6 +159,7 @@ export function CourierOpsPanel({token}:{token:string|null}){
     <div className="vm-fulfillment-actions"><button type="button" disabled={!selected||busy} onClick={()=>show(selected)}>Periksa kesiapan & events</button>
      {current?.manifest_id&&<button type="button" disabled={busy} onClick={slipPreview}>Lihat packing slip</button>}</div>
     {preview&&<div><p><strong>{preview.weightGrams.toLocaleString('id-ID')} gram</strong> · {preview.origin.warehouse}, {preview.origin.city} → {preview.destination.city}</p>
+     <p><strong>Kurir pilihan:</strong> {preview.courier.name||preview.courier.code||'Belum dipilih'} · {preview.courier.serviceName||preview.courier.service||'Layanan belum dipilih'}{preview.courier.priceIdr!==null&&preview.courier.priceIdr!==undefined?' · '+rupiah(preview.courier.priceIdr):''}</p>
      <div className="vm-ops-table"><table><thead><tr><th>SKU</th><th>Produk</th><th>Qty</th><th>Berat/unit</th></tr></thead><tbody>{preview.items.map((x,i)=><tr key={i}><td>{x.sku||'—'}</td><td>{x.name}</td><td>{x.quantity}</td><td>{x.weightGrams||'Belum ada'}</td></tr>)}</tbody></table></div>
      <strong>Booking blockers</strong><div className="vm-courier-blockers">{preview.bookingBlockers.map(v=><span key={v}>{explain[v]||v}</span>)}</div>
     </div>}
@@ -189,9 +194,9 @@ export function CourierOpsPanel({token}:{token:string|null}){
    </section>
   </div>
   <section className="vma26-panel"><h3>Parcels by brand & warehouse</h3>
-    <div className="vm-ops-table"><table><thead><tr><th>Brand</th><th>Gudang</th><th>Order</th><th>Fulfillment</th><th>Manifest</th><th>Kurir</th></tr></thead>
+    <div className="vm-ops-table"><table><thead><tr><th>Brand</th><th>Gudang</th><th>Order</th><th>Fulfillment</th><th>Manifest</th><th>Kurir / layanan</th><th>Status / AWB</th></tr></thead>
     <tbody>{batches.map(b=><tr key={b.batch_id}><td>{b.brand_name}</td><td>{b.warehouse_code}</td><td>{b.order_id.slice(0,8)}</td>
-     <td>{b.state}</td><td>{b.manifest_id?'Prepared':'Pending'}</td><td>{b.provider_status||'Tidak dipesan'}</td></tr>)}</tbody></table>
+     <td>{b.state}</td><td>{b.manifest_id?'Prepared':'Pending'}</td><td><strong>{b.shipping_courier_name||b.shipping_courier_code||'Belum dipilih'}</strong><small>{b.shipping_service_name||b.shipping_service_code||''}</small></td><td><strong>{b.tracking_number||'AWB belum terbit'}</strong><small>{b.provider_status||b.carrier_state||'Belum dipesan'}</small></td></tr>)}</tbody></table>
     {batches.length===0&&<p>Belum ada batch fulfilled. Tidak ada shipment sintetis dibuat.</p>}</div></section>
   <section className="vma26-panel vm-ops-form"><span className="vma26-eyebrow">RETURN MANAGEMENT</span><h3>Retur & pemeriksaan fisik</h3>
     <p className="vm-ops-hint">Retur hanya dapat diminta pelanggan jika shipment benar-benar delivered. Refund, retur berbayar, dan reverse booking tetap OFF.</p>
