@@ -35,6 +35,18 @@ test('Store profile and manual transfers: authorization, immutable invoices, exa
   assert.match(d.statusBlockers.completed,/paket/);
   for(const [method,state] of [['qris','pending'],['bank_transfer','refunded'],['bank_transfer','paid']]){const invalid=await makeOrder(method,state);assert.equal((await call('/orders/'+invalid+'/confirm-payment',{...body,idempotencyKey:randomUUID(),reference:randomUUID(),expectedVersion:1})).status,409);}
   const closed=await makeOrder();await db.query("UPDATE product.orders SET status='cancelled',operational_status='cancelled' WHERE id=$1",[closed]);const closedDetail=await ok('/orders/'+closed);assert.equal((await call('/orders/'+closed+'/confirm-payment',{...body,idempotencyKey:randomUUID(),reference:randomUUID(),expectedVersion:closedDetail.order.edit_version})).status,409);
+
+  const quick=await makeOrder(),quickPath='/orders/'+quick,approve={approve:true,expectedVersion:1,idempotencyKey:randomUUID()};
+  assert.equal((await call(quickPath+'/confirm-payment',approve,'POST','fixture-buyer')).status,403);
+  assert.equal((await call(quickPath+'/confirm-payment',{...approve,amountIdr:1})).status,400,'approval cannot override server amount');
+  assert.equal((await call(quickPath+'/confirm-payment',{...approve,expectedVersion:99})).status,409);
+  const approvals=await Promise.all([call(quickPath+'/confirm-payment',approve),call(quickPath+'/confirm-payment',approve)]);
+  assert.ok(approvals.every(r=>r.status===201));assert.equal(approvals.filter(r=>r.data.replayed).length,1);
+  const approved=await ok(quickPath);assert.equal(approved.order.payment_status,'paid');assert.equal(approved.order.operational_status,'processing');
+  assert.equal(approved.paymentConfirmations.length,1);const receipt=approved.paymentConfirmations[0];assert.equal(Number(receipt.amount_idr),100000);assert.equal(receipt.verification_method,'admin_approval');assert.equal(receipt.paid_at,null);assert.equal(receipt.bank_name,null);assert.equal(receipt.account_number,null);assert.match(receipt.reference,/^ADMIN-/);assert.equal(receipt.actor_id,users['fixture-admin'].id);
+  assert.equal((await call(quickPath+'/confirm-payment',{...approve,idempotencyKey:randomUUID()})).status,409);
+  const stale=await makeOrder();await db.query('UPDATE product.orders SET total_idr=110000 WHERE id=$1',[stale]);assert.equal((await call('/orders/'+stale+'/confirm-payment',{...approve,idempotencyKey:randomUUID()})).status,409);
+  console.log('ORDER_APPROVAL_PASS');
   console.log('STORE_MANUAL_PAYMENT_PASS');
  }finally{await app.close()}
 });

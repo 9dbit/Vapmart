@@ -37,13 +37,12 @@ try{
  for(const [label,value] of [['Nama toko','Browser Store'],['Alamat lengkap','Jalan Browser Nomor 27'],['Kota / kabupaten','Bandung'],['Provinsi','Jawa Barat'],['Kode pos','40115'],['Telepon / WhatsApp','081234567890'],['Email','store@example.invalid']])await page.getByLabel(label,{exact:true}).fill(value);
  await page.getByRole('button',{name:'Simpan profil toko',exact:true}).click();await page.getByRole('status').filter({hasText:'Profil toko tersimpan'}).waitFor();await shot('store-profile-mobile');
  await page.reload();await page.getByLabel('Nama toko',{exact:true}).waitFor();assert.equal(await page.getByLabel('Nama toko',{exact:true}).inputValue(),'Browser Store');
- await page.goto(BASE+'/admin/orders/'+order.id);await page.getByRole('button',{name:'Konfirmasi pembayaran',exact:true}).click();
- await page.getByLabel('Nominal diterima (Rp)',{exact:true}).fill('50000');await page.getByLabel('Tanggal pembayaran (WIB)',{exact:true}).fill('2026-11-05T10:00');
- for(const [label,value] of [['Bank penerima','BCA'],['Nomor rekening penerima','1234567890'],['Nama pemilik rekening','Browser Store'],['Referensi transaksi','BROWSER-'+randomUUID()],['Catatan verifikasi','Dana masuk cocok dengan mutasi rekening']])await page.getByLabel(label,{exact:true}).fill(value);
- await page.getByLabel('Saya sudah memverifikasi dana masuk ke rekening penerima.').check();assert.equal(await page.getByRole('button',{name:'Konfirmasi dana diterima',exact:true}).isEnabled(),false);
- await shot('manual-payment-mismatch-mobile');await page.getByLabel('Nominal diterima (Rp)',{exact:true}).fill('57500');
- await page.setViewportSize({width:1440,height:1000});await shot('manual-payment-desktop');
- await page.getByRole('button',{name:'Konfirmasi dana diterima',exact:true}).click();await page.getByRole('status').filter({hasText:'Pembayaran terverifikasi'}).waitFor();
+
+ await page.goto(BASE+'/admin/orders');await page.getByLabel('Cari ID / nama pelanggan / kota').fill(order.id);await page.getByRole('button',{name:'Cari',exact:true}).click();await page.waitForFunction(()=>document.querySelectorAll('.vc-table tbody tr').length===1);
+ await page.getByRole('button',{name:'Pilih pembayaran',exact:true}).click();const approval=page.getByRole('region',{name:'Konfirmasi transfer',exact:true});await approval.waitFor();assert.equal(await approval.locator('input,textarea,select').count(),0);assert.match(await approval.innerText(),/57.500/);await shot('payment-approval-mobile');
+ await page.setViewportSize({width:1440,height:1000});await shot('payment-approval-desktop');
+ await approval.getByRole('button',{name:'Konfirmasi pembayaran',exact:true}).click();await page.getByRole('status').filter({hasText:'Pembayaran terkonfirmasi'}).waitFor();
+ await page.goto(BASE+'/admin/orders/'+order.id);await page.getByRole('link',{name:'Invoice',exact:true}).waitFor();assert.equal(await page.getByRole('button',{name:'Konfirmasi pembayaran',exact:true}).count(),0);
  detail=await request('/v1/admin/catalog/orders/'+order.id);assert.equal(detail.order.payment_status,'paid');assert.equal(detail.order.operational_status,'processing');
  await page.getByRole('link',{name:'Invoice',exact:true}).click();await page.locator('.vm-invoice').waitFor();const invoiceText=await page.locator('.vm-invoice').innerText();assert.match(invoiceText,/LUNAS TERVERIFIKASI/);assert.match(invoiceText,/Browser Store/);assert.doesNotMatch(invoiceText,/Revisi/);await shot('paid-invoice');await page.pdf({path:OUT+'/paid-invoice.pdf',format:'A4',printBackground:true});
  assert.equal(errors.length,0,errors.join('\n'));await writeFile(OUT+'/result.json',JSON.stringify({passed:true,desktop:true,mobile:true,invoicePdf:true,editSaved:true,statusSaved:true,csvPreview:true,orderId:order.id,runtimeErrors:errors},null,2));console.log('ORDER_UPGRADE_BROWSER_PASS');

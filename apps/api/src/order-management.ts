@@ -37,7 +37,7 @@ export class OrderManagementService{
    // A consistent snapshot, including order items, even while another admin saves.
    const o=await this.order(client,id,true),items=await this.lines(client,id),shipments=await this.batches(client,id);
    const q=o.shipping_quote_id?(await client.query('SELECT destination_area_id,destination_region FROM product.shipping_rate_quotes WHERE id=$1',[o.shipping_quote_id])).rows[0]:null;
-   const paymentConfirmations=(await client.query('SELECT id,amount_idr,paid_at,bank_name,account_number,account_name,reference,notes,actor_id,created_at FROM product.manual_payment_confirmations WHERE order_id=$1',[id])).rows;
+   const paymentConfirmations=(await client.query('SELECT id,verification_method,amount_idr,paid_at,bank_name,account_number,account_name,reference,notes,actor_id,created_at FROM product.manual_payment_confirmations WHERE order_id=$1',[id])).rows;
    const events=(await client.query('SELECT id,actor_id,action,notes,before_data,after_data,created_at FROM product.order_events WHERE order_id=$1 ORDER BY created_at DESC,id DESC LIMIT 100',[id])).rows;
    const invoices=(await client.query('SELECT id,invoice_number,order_version,created_at FROM product.order_invoices WHERE order_id=$1 ORDER BY order_version DESC',[id])).rows;
    return {order:o,items,shipments,events,invoices,paymentConfirmations,manualPaymentBlocker:process.env.ORDER_MANAGEMENT_ENABLED==='false'?'Perubahan pesanan sementara dinonaktifkan.':manualPaymentBlocker(o),statusBlockers:Object.fromEntries(Object.keys(orderStatuses).map(target=>{try{if(process.env.ORDER_MANAGEMENT_ENABLED==='false')return [target,'Perubahan pesanan sementara dinonaktifkan.'];validateTransition(o,target as OrderStatus);if(['cancelled','refunded','failed'].includes(target)&&shipments.some(b=>b.booking_state||b.carrier_handover_at||b.carrier_state||!['reserved','cancelled'].includes(b.state)))return [target,'Selesaikan pembatalan/retur melalui Courier Ops terlebih dahulu.'];if(target==='completed'&&(!shipments.some(b=>b.state!=='cancelled')||shipments.some(b=>b.state!=='cancelled'&&b.carrier_state!=='delivered')))return [target,'Seluruh paket harus sudah diterima.'];return [target,null];}catch(e){return [target,e instanceof Error?e.message:'Tidak tersedia'];}})),destinationAreaId:q?.destination_area_id||null,editBlocker:process.env.ORDER_MANAGEMENT_ENABLED==='false'?'Perubahan pesanan sementara dinonaktifkan.':editBlocker(o,shipments.length>0),statusOptions:process.env.ORDER_MANAGEMENT_ENABLED==='false'?[]:statusOptions(o),statusLabels:orderStatuses,paymentEnabled:false};
@@ -137,18 +137,20 @@ export class OrderManagementService{
   });
  }
  async confirmPayment(actor:Principal,id:string,raw:unknown){
-  this.writable();const who=requireActor(actor),x=parseManualPayment(raw),hash=orderHash({...x,expectedVersion:undefined,idempotencyKey:undefined});
+  this.writable();const who=requireActor(actor),input=parseManualPayment(raw),hash=orderHash({...input,expectedVersion:undefined,idempotencyKey:undefined});
   try{return await this.db.transaction(async c=>{
    await inventoryLock(c);const o=await this.order(c,id,true);
-   const previous=(await c.query('SELECT * FROM product.manual_payment_confirmations WHERE idempotency_key=$1 OR order_id=$2',[x.idempotencyKey,id])).rows[0];
-   if(previous){if(previous.order_id===id&&previous.idempotency_key===x.idempotencyKey&&previous.request_hash===hash)return {id,confirmationId:previous.id,replayed:true};throw new ConflictException('Pembayaran sudah dikonfirmasi atau kunci permintaan sudah digunakan. Muat ulang pesanan.');}
-   assertVersion(o.edit_version,x.expectedVersion);const blocker=manualPaymentBlocker(o);if(blocker)throw new ConflictException(blocker);
+   const previous=(await c.query('SELECT * FROM product.manual_payment_confirmations WHERE idempotency_key=$1 OR order_id=$2',[input.idempotencyKey,id])).rows[0];
+   if(previous){if(previous.order_id===id&&previous.idempotency_key===input.idempotencyKey&&previous.request_hash===hash)return {id,confirmationId:previous.id,replayed:true};throw new ConflictException('Pembayaran sudah dikonfirmasi atau kunci permintaan sudah digunakan. Muat ulang pesanan.');}
+   assertVersion(o.edit_version,input.expectedVersion);const blocker=manualPaymentBlocker(o);if(blocker)throw new ConflictException(blocker);
    if((await this.batches(c,id)).some(b=>b.state!=='cancelled'))throw new ConflictException('Pesanan memiliki proses gudang aktif. Tinjau terlebih dahulu.');
+   const x=input.mode==='admin_approval'?{amountIdr:Number(o.total_idr),paidAt:null,bankName:null,accountNumber:null,accountName:null,reference:'ADMIN-'+input.idempotencyKey.toUpperCase(),referenceKey:orderHash(['admin_approval',id]),notes:'Admin menyetujui penerimaan pembayaran penuh untuk pesanan ini.'}:input;
+   if(!Number.isSafeInteger(x.amountIdr)||x.amountIdr<=0)throw new ConflictException('Total tagihan harus lebih besar dari nol.');
    if(x.amountIdr!==Number(o.total_idr))throw new ConflictException({code:'PAYMENT_AMOUNT_MISMATCH',message:'Nominal tidak sama dengan total tagihan. Selesaikan selisih sebelum konfirmasi.',differenceIdr:x.amountIdr-Number(o.total_idr)});
-   const confirmation=(await c.query(`INSERT INTO product.manual_payment_confirmations(order_id,idempotency_key,request_hash,amount_idr,paid_at,bank_name,account_number,account_name,reference,reference_key,notes,actor_id)
-    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,[id,x.idempotencyKey,hash,x.amountIdr,x.paidAt,x.bankName,x.accountNumber,x.accountName,x.reference,x.referenceKey,x.notes,who])).rows[0];
+   const confirmation=(await c.query(`INSERT INTO product.manual_payment_confirmations(order_id,idempotency_key,request_hash,amount_idr,paid_at,bank_name,account_number,account_name,reference,reference_key,notes,actor_id,verification_method)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,[id,input.idempotencyKey,hash,x.amountIdr,x.paidAt,x.bankName,x.accountNumber,x.accountName,x.reference,x.referenceKey,x.notes,who,input.mode])).rows[0];
    const after=(await c.query("UPDATE product.orders SET payment_status='paid',payment_provider='manual_bank_transfer',payment_reference=$2,status='paid',operational_status='processing',operational_hold=false WHERE id=$1 RETURNING *",[id,x.reference])).rows[0];
-   await this.audit(c,who,id,'payment_confirmed',x.notes,{paymentStatus:o.payment_status,status:o.operational_status},{paymentStatus:after.payment_status,status:after.operational_status,confirmationId:confirmation.id,amountIdr:x.amountIdr,paidAt:x.paidAt,reference:x.reference});
+   await this.audit(c,who,id,'payment_confirmed',x.notes,{paymentStatus:o.payment_status,status:o.operational_status},{paymentStatus:after.payment_status,status:after.operational_status,confirmationId:confirmation.id,amountIdr:x.amountIdr,paidAt:x.paidAt,verificationMethod:input.mode,reference:x.reference});
    return {id,confirmationId:confirmation.id,paymentStatus:'paid',status:'processing',version:after.edit_version};
   });}catch(e){if((e as {code?:string}).code==='23505')throw new ConflictException('Referensi transaksi atau konfirmasi ini sudah digunakan. Periksa riwayat pembayaran.');throw e;}
  }
