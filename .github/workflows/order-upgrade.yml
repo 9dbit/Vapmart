@@ -59,7 +59,14 @@ jobs:
       - run: npm ci --no-audit --no-fund --prefix apps/web
       - run: npm run build --prefix apps/web
       - name: Browser tooling
-        run: npm install --no-save --no-audit --no-fund playwright@1.56.0 && npx playwright install --with-deps chromium
+        timeout-minutes: 5
+        run: |
+          npm install --no-save --no-audit --no-fund --fetch-timeout=30000 --fetch-retries=1 playwright@1.56.0
+          if command -v google-chrome >/dev/null || command -v google-chrome-stable >/dev/null; then
+            echo 'ORDER_QA_BROWSER_CHANNEL=chrome' >> "$GITHUB_ENV"
+          else
+            npx playwright install --with-deps chromium
+          fi
       - name: Desktop, mobile, invoice and import browser flow
         run: |
           mkdir -p artifacts/order-upgrade

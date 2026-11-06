@@ -9,7 +9,7 @@ const request=async(path,body,token='fixture-admin')=>{const r=await fetch(API+p
 const p=(await request('/v1/admin/catalog/orders/products?q=Travel')).items.find(p=>p.stock_qty>=2);assert.ok(p);
 const order=await request('/v1/checkout/orders',{items:[{productId:p.id,quantity:1}],name:'Browser Fixture',phone:'081234567890',address:'Jalan Browser Test Nomor 25',city:'KOTA BANDUNG',province:'JAWA BARAT',postalCode:'40115',paymentMethod:'bank_transfer',idempotencyKey:randomUUID()},'fixture-buyer');
 const session={access_token:'fixture-admin',refresh_token:'fixture-refresh',token_type:'bearer',expires_in:7200,expires_at:Math.floor(Date.now()/1000)+7200,user:{id:'39000000-0000-4000-8000-000000009999',aud:'authenticated',role:'authenticated',email:'catalog-admin@example.invalid',email_confirmed_at:'2026-11-05T00:00:00Z',created_at:'2026-11-05T00:00:00Z',app_metadata:{},user_metadata:{}}};
-const browser=await chromium.launch({headless:true}),context=await browser.newContext({viewport:{width:1440,height:1000}});context.setDefaultTimeout(20000);
+const browser=await chromium.launch({headless:true,...(process.env.ORDER_QA_BROWSER_CHANNEL?{channel:process.env.ORDER_QA_BROWSER_CHANNEL}:{})}),context=await browser.newContext({viewport:{width:1440,height:1000}});context.setDefaultTimeout(20000);
 await context.addInitScript(s=>localStorage.setItem('vapmart-customer-auth-v1',JSON.stringify(s)),session);
 await context.route('**/api/shipping/regions?*',r=>r.fulfill({json:{regions:[{areaId:'3273091003',postalCode:'40115',label:'Citarum, Bandung Wetan',province:'JAWA BARAT',city:'KOTA BANDUNG',district:'Bandung Wetan',area:'Citarum'}]}}));
 const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
