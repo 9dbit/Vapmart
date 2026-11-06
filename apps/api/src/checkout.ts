@@ -183,7 +183,7 @@ export class CheckoutService{
  async getOrder(user:Principal,id:string){
    if(!uuid.test(id))throw new BadRequestException('ID pesanan tidak valid');
    const order=await this.db.query(
-     'SELECT id,status,operational_status,invoice_number,additional_fee_idr::text,payment_status,payment_method,shipping_provider,shipping_courier_code,shipping_service_code,subtotal_idr::text,discount_idr::text,voucher_discount_idr::text,voucher_code,promotion_discount_idr::text,promotion_event_id,promotion_title,shipping_fee_idr::text,total_idr::text,contact_name,city,province,created_at,expires_at FROM product.orders WHERE id=$1 AND customer_user_id=$2',
+     'SELECT o.id,o.status,o.operational_status,o.invoice_number,o.additional_fee_idr::text,o.payment_status,o.payment_method,o.shipping_provider,o.shipping_courier_code,o.shipping_service_code,q.courier_name AS shipping_courier_name,q.service_name AS shipping_service_name,q.provider AS shipping_quote_provider,o.subtotal_idr::text,o.discount_idr::text,o.voucher_discount_idr::text,o.voucher_code,o.promotion_discount_idr::text,o.promotion_event_id,o.promotion_title,o.shipping_fee_idr::text,o.total_idr::text,o.contact_name,o.city,o.province,o.created_at,o.expires_at FROM product.orders o LEFT JOIN product.shipping_rate_quotes q ON q.id=o.shipping_quote_id WHERE o.id=$1 AND o.customer_user_id=$2',
      [id,user.id]);
    if(!order.rows[0])throw new NotFoundException('Pesanan tidak ditemukan');
    const lines=await this.db.query(
@@ -193,12 +193,13 @@ export class CheckoutService{
  async adminOrders(raw:Record<string,unknown>={}){
   const f=parsePage(raw);
   const r=await this.db.query(`WITH filtered AS (
-   SELECT id,status,operational_status,invoice_number,payment_status,(payment_provider IS NOT NULL AND payment_reference IS NOT NULL) AS payment_verified,
-    contact_name,contact_email,city,province,shipping_provider,shipping_courier_code,shipping_service_code,
-    subtotal_idr::text,discount_idr::text,voucher_discount_idr::text,voucher_code,promotion_discount_idr::text,promotion_event_id,promotion_title,shipping_fee_idr::text,total_idr::text,payment_method,created_at
-   FROM product.orders WHERE idempotency_key IS NOT NULL
-    AND ($1::text='' OR strpos(lower(concat_ws(' ',id::text,contact_name,contact_email,city)),lower($1))>0)
-    AND ($2::text='' OR operational_status=$2 OR status=$2 OR payment_status=$2)
+   SELECT o.id,o.status,o.operational_status,o.invoice_number,o.payment_status,(o.payment_provider IS NOT NULL AND o.payment_reference IS NOT NULL) AS payment_verified,
+    o.contact_name,o.contact_email,o.city,o.province,o.shipping_provider,o.shipping_courier_code,o.shipping_service_code,
+    q.courier_name AS shipping_courier_name,q.service_name AS shipping_service_name,
+    o.subtotal_idr::text,o.discount_idr::text,o.voucher_discount_idr::text,o.voucher_code,o.promotion_discount_idr::text,o.promotion_event_id,o.promotion_title,o.shipping_fee_idr::text,o.total_idr::text,o.payment_method,o.created_at
+   FROM product.orders o LEFT JOIN product.shipping_rate_quotes q ON q.id=o.shipping_quote_id WHERE o.idempotency_key IS NOT NULL
+    AND ($1::text='' OR strpos(lower(concat_ws(' ',o.id::text,o.contact_name,o.contact_email,o.city)),lower($1))>0)
+    AND ($2::text='' OR o.operational_status=$2 OR o.status=$2 OR o.payment_status=$2)
    ), selected AS (SELECT * FROM filtered ORDER BY created_at DESC,id DESC LIMIT $3 OFFSET $4)
    SELECT jsonb_build_object('items',coalesce((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.created_at DESC,s.id DESC) FROM selected s),'[]'::jsonb),
     'total',(SELECT count(*)::integer FROM filtered)) AS data`,[f.q,f.status,f.pageSize,(f.page-1)*f.pageSize]);
