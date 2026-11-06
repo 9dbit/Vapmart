@@ -7,7 +7,8 @@ test('Store profile and manual transfers: authorization, immutable invoices, exa
  const {app,db,base,users}=await createFixture();
  const call=async(path:string,body?:unknown,method='POST',token='fixture-admin')=>{const r=await fetch(base+'/v1/admin/catalog'+path,{method:body===undefined?'GET':method,headers:{authorization:'Bearer '+token,'content-type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});return {status:r.status,data:await r.json()};};
  const ok=async(path:string,body?:unknown,method='POST')=>{const r=await call(path,body,method);assert.ok(r.status<300,JSON.stringify(r));return r.data;};
- const makeOrder=async(method='bank_transfer',state='pending')=>{const id=randomUUID();await db.query("INSERT INTO product.orders(id,customer_user_id,status,payment_method,payment_status,total_idr,subtotal_idr,contact_name) VALUES($1,$2,'draft',$3,$4,100000,100000,'Payment test')",[id,users['fixture-buyer'].id,method,state]);return id;};
+ const paymentTestBuyer=randomUUID();
+ const makeOrder=async(method='bank_transfer',state='pending')=>{const id=randomUUID();await db.query("INSERT INTO product.orders(id,customer_user_id,status,payment_method,payment_status,total_idr,subtotal_idr,contact_name) VALUES($1,$2,'draft',$3,$4,100000,100000,'Payment test')",[id,paymentTestBuyer,method,state]);return id;};
  try{
   const initial=await ok('/store-profile'),id=await makeOrder(),path='/orders/'+id;
   assert.equal((await call('/store-profile',undefined,'GET','fixture-buyer')).status,403);
