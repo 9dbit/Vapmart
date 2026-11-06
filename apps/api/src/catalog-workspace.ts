@@ -230,14 +230,18 @@ export class CatalogWorkspaceService{
   return {items:r.rows.map(p=>publicPrice(p as any)),observedAt:new Date().toISOString()};
  }
  async orders(raw:Record<string,unknown>={},customerId?:string){
-  const f=parsePage(raw),r=await this.db.query(`WITH filtered AS(SELECT id,status,operational_status,invoice_number,shipping_courier_code,shipping_service_code,(SELECT coalesce(jsonb_agg(jsonb_build_object('trackingNumber',s.tracking_number,'state',s.state) ORDER BY s.created_at,s.id),'[]'::jsonb) FROM product.shipments s WHERE s.order_id=product.orders.id) AS shipments,payment_status,contact_name,city,province,total_idr::text,discount_idr::text,voucher_discount_idr::text,voucher_code,promotion_discount_idr::text,promotion_event_id,promotion_title,created_at,expires_at,payment_method
-   FROM product.orders WHERE idempotency_key IS NOT NULL AND ($1::uuid IS NULL OR customer_user_id=$1)
-   AND ($2='' OR strpos(lower(concat_ws(' ',id::text,contact_name,city)),lower($2))>0)
-   AND ($3='' OR operational_status=$3 OR ($3 IN ('paid','fulfilled','not_initiated','pending') AND (status=$3 OR payment_status=$3)))),s AS(SELECT * FROM filtered ORDER BY created_at DESC,id DESC LIMIT $4 OFFSET $5)
+  const f=parsePage(raw),r=await this.db.query(`WITH filtered AS(SELECT o.id,o.status,o.operational_status,o.invoice_number,o.shipping_courier_code,o.shipping_service_code,
+   q.courier_name AS shipping_courier_name,q.service_name AS shipping_service_name,o.shipping_provider,
+   (SELECT coalesce(jsonb_agg(jsonb_build_object('trackingNumber',s.tracking_number,'state',s.state) ORDER BY s.created_at,s.id),'[]'::jsonb) FROM product.shipments s WHERE s.order_id=o.id) AS shipments,
+   o.payment_status,o.contact_name,o.city,o.province,o.total_idr::text,o.discount_idr::text,o.voucher_discount_idr::text,o.voucher_code,o.promotion_discount_idr::text,o.promotion_event_id,o.promotion_title,o.created_at,o.expires_at,o.payment_method
+   FROM product.orders o LEFT JOIN product.shipping_rate_quotes q ON q.id=o.shipping_quote_id
+   WHERE o.idempotency_key IS NOT NULL AND ($1::uuid IS NULL OR o.customer_user_id=$1)
+   AND ($2='' OR strpos(lower(concat_ws(' ',o.id::text,o.contact_name,o.city)),lower($2))>0)
+   AND ($3='' OR o.operational_status=$3 OR ($3 IN ('paid','fulfilled','not_initiated','pending') AND (o.status=$3 OR o.payment_status=$3)))),s AS(SELECT * FROM filtered ORDER BY created_at DESC,id DESC LIMIT $4 OFFSET $5)
    SELECT jsonb_build_object('items',coalesce((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.created_at DESC,s.id DESC) FROM s),'[]'::jsonb),'total',(SELECT count(*)::int FROM filtered)) data`,[customerId||null,f.q,f.status,f.pageSize,(f.page-1)*f.pageSize]);const d=r.rows[0].data;return {...pageResult(d.items,d.total,f.page,f.pageSize),paymentEnabled:false};
  }
  async orderDetail(id:string){
-  requireUuid(id,'pesanan');const order=(await this.db.query('SELECT id,status,payment_status,contact_name,contact_email,contact_phone,address_line,city,province,postal_code,subtotal_idr::text,discount_idr::text,voucher_discount_idr::text,voucher_code,promotion_discount_idr::text,promotion_event_id,promotion_title,shipping_fee_idr::text,total_idr::text,payment_method,shipping_courier_code,shipping_service_code,created_at,expires_at FROM product.orders WHERE id=$1',[id])).rows[0];if(!order)throw new NotFoundException();
+  requireUuid(id,'pesanan');const order=(await this.db.query(`SELECT o.id,o.status,o.payment_status,o.contact_name,o.contact_email,o.contact_phone,o.address_line,o.city,o.province,o.postal_code,o.subtotal_idr::text,o.discount_idr::text,o.voucher_discount_idr::text,o.voucher_code,o.promotion_discount_idr::text,o.promotion_event_id,o.promotion_title,o.shipping_fee_idr::text,o.total_idr::text,o.payment_method,o.shipping_courier_code,o.shipping_service_code,q.courier_name AS shipping_courier_name,q.service_name AS shipping_service_name,o.shipping_provider,o.created_at,o.expires_at FROM product.orders o LEFT JOIN product.shipping_rate_quotes q ON q.id=o.shipping_quote_id WHERE o.id=$1`,[id])).rows[0];if(!order)throw new NotFoundException();
   const lines=await this.db.query('SELECT id,product_id,product_name,sku,quantity,unit_price_idr::text,brand_id FROM product.order_items WHERE order_id=$1 ORDER BY id',[id]);return {order,items:lines.rows,paymentEnabled:false};
  }
 }
