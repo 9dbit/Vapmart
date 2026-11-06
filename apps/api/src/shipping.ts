@@ -5,7 +5,7 @@ import type {Principal} from './auth';
 import {parseBasket} from './checkout';
 import {shippingFingerprint,shippingParcelFingerprint} from './shipping-fingerprint';
 import {shippingConfig,shippingSnapshotProvider} from './shipping-config';
-import {CourierVisibilityService,filterVisibleCouriers} from './courier-visibility';
+import {CourierVisibilityService,filterVisibleShippingRates} from './courier-visibility';
 import {JubelioShipmentClient,type ShippingRegion,type JubelioRate} from './jubelio-shipment';
 
 type ShippingRequest={items:{productId:string;quantity:number}[];destinationPostalCode:string;destinationAreaId?:string};
@@ -75,7 +75,7 @@ export class ShippingService{
   }
   // Apply the admin's explicit carrier selection before persisting checkout quotes.
   // A missing preference row preserves prior behavior until the first admin save.
-  rates=filterVisibleCouriers(rates,await this.visibility.selectedCodes(config.provider));
+  rates=filterVisibleShippingRates(rates,await this.visibility.selection(config.provider));
   const fingerprint=config.provider==='jubelio'?shippingParcelFingerprint(fingerprintItems):shippingFingerprint(fingerprintItems);
   const saved=await this.db.transaction(async client=>{
    const options=[];
