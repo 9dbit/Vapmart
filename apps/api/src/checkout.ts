@@ -145,6 +145,8 @@ export class CheckoutService{
       if(!stored||stored.applied_order_id||Date.parse(stored.expires_at)<=Date.now()||
         stored.destination_postal_code!==details.postalCode||stored.origin_postal_code!==process.env.SHIPPING_ORIGIN_POSTAL_CODE||
         stored.provider!==shippingSnapshotProvider())throw new ConflictException('Pilihan ongkir habis masa berlaku, silakan cek ulang');
+      const allowed=(await client.query<{courier_codes:string[]}>('SELECT courier_codes FROM product.shipping_courier_visibility WHERE provider=$1',[stored.provider==='jubelio'?'jubelio':'biteship'])).rows[0]?.courier_codes;
+      if(allowed&&!allowed.includes(stored.courier_code))throw new ConflictException('Kurir pesanan telah dinonaktifkan oleh admin. Pilih ulang layanan pengiriman.');
       if(stored.provider==='jubelio'&&(stored.origin_area_id!==process.env.JUBELIO_SHIPMENT_ORIGIN_AREA_ID||stored.destination_area_id!==details.destinationAreaId||
        stored.destination_region?.city!==details.city||stored.destination_region?.province!==details.province))
        throw new ConflictException('Wilayah pengiriman berubah, silakan pilih wilayah dan cek ongkir ulang');
