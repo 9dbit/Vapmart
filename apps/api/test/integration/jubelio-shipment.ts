@@ -14,9 +14,11 @@ test('Jubelio rates persist through authenticated checkout with insurance, area 
  client.request=async(path:string,body:any)=>{
   if(path==='/courier-services/list')return [
    {courier_id:24,courier_name:'Lion Parcel',courier_service_id:2453,courier_service_name:'JAGOPACK'},
+   {courier_id:24,courier_name:'Lion Parcel',courier_service_id:2454,courier_service_name:'REGULER'},
    {courier_id:31,courier_name:'Sentral Cargo',courier_service_id:3101,courier_service_name:'Regular'}];
   externalCalls++;assert.equal(path,'/webstore/rates/all');assert.equal(body.origin.area_id,'3171011002');assert.equal(body.weight,500);assert.equal(body.total_value,200000);
   return [{courier_id:24,courier_name:'Lion Parcel',courier_service_id:2453,courier_service_code:'jagopack',courier_service_name:'JAGOPACK',rates:9500,shipping_insurance:300,final_rates:5000},
+   {courier_id:24,courier_name:'Lion Parcel',courier_service_id:2454,courier_service_code:'regular',courier_service_name:'REGULER',rates:10500,shipping_insurance:300},
    {courier_id:31,courier_name:'Sentral Cargo',courier_service_id:3101,courier_service_code:'NEDLL',courier_service_name:'Regular',rates:12500,shipping_insurance:300}];
  };
  const call=async(path:string,body?:any,token='fixture-admin')=>{
@@ -35,20 +37,22 @@ test('Jubelio rates persist through authenticated checkout with insurance, area 
   const carrierList=await ok('/v1/admin/shipping/couriers');
   assert.equal(carrierList.configured,false);
   assert.deepEqual(carrierList.available.map((x:any)=>x.code),['24','31']);
+  assert.deepEqual(carrierList.availableServices.map((x:any)=>x.key).sort(),['24:2453','24:2454','31:3101']);
   assert.equal((await call('/v1/admin/shipping/couriers',undefined,'fixture-buyer')).status,403);
-  const patchCouriers=async(selectedCodes:string[])=>{
-   const response=await fetch(base+'/v1/admin/shipping/couriers',{method:'PATCH',headers:{authorization:'Bearer fixture-admin','content-type':'application/json'},body:JSON.stringify({selectedCodes})});
+  const patchCouriers=async(selectedServices:string[])=>{
+   const response=await fetch(base+'/v1/admin/shipping/couriers',{method:'PATCH',headers:{authorization:'Bearer fixture-admin','content-type':'application/json'},body:JSON.stringify({selectedServices})});
    const data=await response.json();assert.equal(response.status,200,JSON.stringify(data));return data;
   };
-  assert.equal((await patchCouriers(['24'])).configured,true);
+  const carrierPrefs=await patchCouriers(['24:2453']);assert.equal(carrierPrefs.configured,true);
+  assert.deepEqual(carrierPrefs.selectedServices,['24:2453']);
   const basket={items:[{productId:saved.product.id,quantity:2}],destinationPostalCode:'40115',destinationAreaId:region.areaId};
   const quote=await ok('/v1/shipping/rates',basket,'fixture-buyer');assert.equal(quote.rates.length,1);assert.equal(quote.rates[0].courierCode,'24');assert.equal(quote.rates[0].priceIdr,9800);assert.equal(quote.rates[0].insuranceIdr,300);assert.equal(quote.canBook,false);
   const draft={items:basket.items,name:'Fixture Buyer',phone:'081234567890',address:'Jalan Test Paket Nomor 46',city:region.city,province:region.province,postalCode:'40115',destinationAreaId:region.areaId,paymentMethod:'bank_transfer',shippingQuoteId:quote.rates[0].quoteId,idempotencyKey:randomUUID()};
-  await patchCouriers(['31']);
+  await patchCouriers(['31:3101']);
   assert.equal((await call('/v1/checkout/orders',draft,'fixture-buyer')).status,409,'a deactivated courier quote cannot create a new order');
   const sentral=await ok('/v1/shipping/rates',basket,'fixture-buyer');
   assert.equal(sentral.rates.length,1);assert.equal(sentral.rates[0].courierName,'Sentral Cargo');
-  await patchCouriers(['24']);
+  await patchCouriers(['24:2453']);
   assert.equal((await call('/v1/checkout/orders',draft,'fixture-other')).status,409,'another user cannot use the quote');
   assert.equal((await call('/v1/checkout/orders',{...draft,destinationAreaId:'3273091004'},'fixture-buyer')).status,409);
   assert.equal((await call('/v1/checkout/orders',{...draft,city:'Different City'},'fixture-buyer')).status,409);
