@@ -15,14 +15,14 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_USER: vapmart_test
-          POSTGRES_DB: vapmart_cp46_shipping
+          POSTGRES_DB: vapmart_cp39_cp46_shipping
           POSTGRES_HOST_AUTH_METHOD: trust
         ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U vapmart_test -d vapmart_cp46_shipping"
+          --health-cmd "pg_isready -U vapmart_test -d vapmart_cp39_cp46_shipping"
           --health-interval 5s --health-timeout 5s --health-retries 12
     env:
-      DATABASE_URL: postgres://vapmart_test@127.0.0.1:5432/vapmart_cp46_shipping
+      DATABASE_URL: postgres://vapmart_test@127.0.0.1:5432/vapmart_cp39_cp46_shipping
       CP39_LOCAL_TEST: '1'
       CHECKOUT_ENABLED: 'false'
       DIGITAL_COMMERCE_ENABLED: 'false'
