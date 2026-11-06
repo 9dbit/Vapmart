@@ -43,8 +43,8 @@ test('Jubelio rates persist through authenticated checkout with insurance, area 
    const response=await fetch(base+'/v1/admin/shipping/couriers',{method:'PATCH',headers:{authorization:'Bearer fixture-admin','content-type':'application/json'},body:JSON.stringify({selectedServices})});
    const data=await response.json();assert.equal(response.status,200,JSON.stringify(data));return data;
   };
-  const saved=await patchCouriers(['24:2453']);assert.equal(saved.configured,true);
-  assert.deepEqual(saved.selectedServices,['24:2453']);
+  const carrierPrefs=await patchCouriers(['24:2453']);assert.equal(carrierPrefs.configured,true);
+  assert.deepEqual(carrierPrefs.selectedServices,['24:2453']);
   const basket={items:[{productId:saved.product.id,quantity:2}],destinationPostalCode:'40115',destinationAreaId:region.areaId};
   const quote=await ok('/v1/shipping/rates',basket,'fixture-buyer');assert.equal(quote.rates.length,1);assert.equal(quote.rates[0].courierCode,'24');assert.equal(quote.rates[0].priceIdr,9800);assert.equal(quote.rates[0].insuranceIdr,300);assert.equal(quote.canBook,false);
   const draft={items:basket.items,name:'Fixture Buyer',phone:'081234567890',address:'Jalan Test Paket Nomor 46',city:region.city,province:region.province,postalCode:'40115',destinationAreaId:region.areaId,paymentMethod:'bank_transfer',shippingQuoteId:quote.rates[0].quoteId,idempotencyKey:randomUUID()};
