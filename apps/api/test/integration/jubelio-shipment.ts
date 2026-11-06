@@ -11,8 +11,14 @@ test('Jubelio rates persist through authenticated checkout with insurance, area 
  const region={areaId:'3273091003',postalCode:'40115',label:'Citarum, Bandung',city:'KOTA BANDUNG',province:'JAWA BARAT',district:'Bandung Wetan',area:'Citarum'};
  const client=app.get(JubelioShipmentClient);let externalCalls=0;
  client.regions=async()=>[region];
- client.request=async(path:string,body:any)=>{externalCalls++;assert.equal(path,'/webstore/rates/all');assert.equal(body.origin.area_id,'3171011002');assert.equal(body.weight,500);assert.equal(body.total_value,200000);
-  return [{courier_id:24,courier_name:'Lion Parcel',courier_service_id:2453,courier_service_code:'jagopack',courier_service_name:'JAGOPACK',rates:9500,shipping_insurance:300,final_rates:5000}];};
+ client.request=async(path:string,body:any)=>{
+  if(path==='/courier-services/list')return [
+   {courier_id:24,courier_name:'Lion Parcel',courier_service_id:2453,courier_service_name:'JAGOPACK'},
+   {courier_id:31,courier_name:'Sentral Cargo',courier_service_id:3101,courier_service_name:'Regular'}];
+  externalCalls++;assert.equal(path,'/webstore/rates/all');assert.equal(body.origin.area_id,'3171011002');assert.equal(body.weight,500);assert.equal(body.total_value,200000);
+  return [{courier_id:24,courier_name:'Lion Parcel',courier_service_id:2453,courier_service_code:'jagopack',courier_service_name:'JAGOPACK',rates:9500,shipping_insurance:300,final_rates:5000},
+   {courier_id:31,courier_name:'Sentral Cargo',courier_service_id:3101,courier_service_code:'NEDLL',courier_service_name:'Regular',rates:12500,shipping_insurance:300}];
+ };
  const call=async(path:string,body?:any,token='fixture-admin')=>{
   const r=await fetch(base+path,{method:body===undefined?'GET':'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});return {status:r.status,data:await r.json()};};
  const ok=async(path:string,body?:any,token='fixture-admin')=>{const r=await call(path,body,token);assert.ok(r.status>=200&&r.status<300,JSON.stringify(r));return r.data;};
@@ -26,9 +32,23 @@ test('Jubelio rates persist through authenticated checkout with insurance, area 
   const product={name:'Travel Pouch Shipping Test',slug:'travel-pouch-shipping-test',sku:'SHIP-TEST-POUCH',description:'Travel pouch for everyday accessories.',categoryIds:[category.id],brand_id:null,fulfillment_owner_brand_id:null,image_url:'/api/media/'+asset.id,gallery_urls:[],price_idr:100000,sale_price_idr:null,sale_starts_at:null,sale_ends_at:null,weight_grams:250,length_cm:20,width_cm:12,height_cm:4,product_type:'simple',attributes:[]};
   const saved=await ok('/v1/admin/catalog/products',{requestKey:randomUUID(),product,variants:[],warehouseStocks:[{warehouseId:warehouse.id,onHand:10,expectedOnHand:0,expectedReserved:0,notes:''}]});
   await ok('/v1/admin/catalog/products/'+saved.product.id+'/state',{expectedVersion:saved.product.edit_version,active:true});
+  const carrierList=await ok('/v1/admin/shipping/couriers');
+  assert.equal(carrierList.configured,false);
+  assert.deepEqual(carrierList.available.map((x:any)=>x.code),['24','31']);
+  assert.equal((await call('/v1/admin/shipping/couriers',undefined,'fixture-buyer')).status,403);
+  const patchCouriers=async(selectedCodes:string[])=>{
+   const response=await fetch(base+'/v1/admin/shipping/couriers',{method:'PATCH',headers:{authorization:'Bearer fixture-admin','content-type':'application/json'},body:JSON.stringify({selectedCodes})});
+   const data=await response.json();assert.equal(response.status,200,JSON.stringify(data));return data;
+  };
+  assert.equal((await patchCouriers(['24'])).configured,true);
   const basket={items:[{productId:saved.product.id,quantity:2}],destinationPostalCode:'40115',destinationAreaId:region.areaId};
-  const quote=await ok('/v1/shipping/rates',basket,'fixture-buyer');assert.equal(quote.rates[0].priceIdr,9800);assert.equal(quote.rates[0].insuranceIdr,300);assert.equal(quote.canBook,false);
+  const quote=await ok('/v1/shipping/rates',basket,'fixture-buyer');assert.equal(quote.rates.length,1);assert.equal(quote.rates[0].courierCode,'24');assert.equal(quote.rates[0].priceIdr,9800);assert.equal(quote.rates[0].insuranceIdr,300);assert.equal(quote.canBook,false);
   const draft={items:basket.items,name:'Fixture Buyer',phone:'081234567890',address:'Jalan Test Paket Nomor 46',city:region.city,province:region.province,postalCode:'40115',destinationAreaId:region.areaId,paymentMethod:'bank_transfer',shippingQuoteId:quote.rates[0].quoteId,idempotencyKey:randomUUID()};
+  await patchCouriers(['31']);
+  assert.equal((await call('/v1/checkout/orders',draft,'fixture-buyer')).status,409,'a deactivated courier quote cannot create a new order');
+  const sentral=await ok('/v1/shipping/rates',basket,'fixture-buyer');
+  assert.equal(sentral.rates.length,1);assert.equal(sentral.rates[0].courierName,'Sentral Cargo');
+  await patchCouriers(['24']);
   assert.equal((await call('/v1/checkout/orders',draft,'fixture-other')).status,409,'another user cannot use the quote');
   assert.equal((await call('/v1/checkout/orders',{...draft,destinationAreaId:'3273091004'},'fixture-buyer')).status,409);
   assert.equal((await call('/v1/checkout/orders',{...draft,city:'Different City'},'fixture-buyer')).status,409);
@@ -43,6 +63,6 @@ test('Jubelio rates persist through authenticated checkout with insurance, area 
   assert.equal((await call('/v1/shipping/rates',basket,'fixture-unverified')).status,403);
   assert.equal((await call('/v1/admin/courier/batches/'+randomUUID()+'/book',{})).status,503);
   assert.equal(Number((await db.query("SELECT count(*) n FROM product.shipments WHERE provider='jubelio'")).rows[0].n),0);
-  assert.equal(externalCalls,2);console.log('JUBELIO_CHECKOUT_INTEGRATION_PASS');
+  assert.equal(externalCalls,3);console.log('JUBELIO_COURIER_VISIBILITY_AND_CHECKOUT_PASS');
  }finally{await app.close();}
 });
