@@ -16,6 +16,12 @@ test('Jubelio quote includes insurance without promising an unreserved promotion
  assert.equal(normalizeJubelioRates([{...rate,courier_service_category:'INSTANT'}]).length,0);
  assert.throws(()=>normalizeJubelioRates({error:'failure'}));
 });
+test('Sentral Cargo display names stay separate from provider courier and service codes',()=>{
+ const sentral={...rate,courier_id:31,courier_name:'Sentral Cargo',courier_service_id:3101,courier_service_code:'NEDLL',courier_service_name:'Regular',courier_service_category:'REGULER'};
+ const [r]=normalizeJubelioRates([sentral]);
+ assert.equal(r.courierName,'Sentral Cargo');assert.equal(r.courierCode,'31');
+ assert.equal(r.serviceName,'Regular');assert.equal(r.serviceCode,'NEDLL');assert.equal(r.providerServiceId,3101);
+});
 test('regions reject malformed IDs and postal codes; package payload uses grams and totals quantities',()=>{
  assert.equal(normalizeJubelioRegions([rawRegion,{...rawRegion,area_id:'x'}]).length,1);
  assert.equal(normalizeJubelioRegions([{...rawRegion,zipcode:40115}]).length,0);

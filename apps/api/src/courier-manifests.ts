@@ -63,22 +63,25 @@ export class CourierManifestService{
   return {provider:shippingProvider(),manifestsEnabled:true,internalPickupPlanEnabled:true,
    externalBookingEnabled:bookingEnabled(),externalCancellationEnabled:false,
    awbGenerated:false,paymentEnabled:false,returnShipmentBookingEnabled:false,
-   webhookEnabled:shippingProvider()==='jubelio'?process.env.JUBELIO_WEBHOOK_ENABLED==='true'&&Boolean(process.env.JUBELIO_WEBHOOK_TOKEN):shippingProvider()==='biteship'&&process.env.BITESHIP_WEBHOOK_ENABLED==='true'&&Boolean(process.env.BITESHIP_WEBHOOK_HEADER_SECRET),
+   webhookEnabled:shippingProvider()==='jubelio'?process.env.JUBELIO_WEBHOOK_ENABLED==='true'&&(process.env.JUBELIO_WEBHOOK_TOKEN||'').length>=40:shippingProvider()==='biteship'&&process.env.BITESHIP_WEBHOOK_ENABLED==='true'&&Boolean(process.env.BITESHIP_WEBHOOK_HEADER_SECRET),
+   webhookRegistrationRequired:shippingProvider()==='jubelio',
    labelType:bookingEnabled()?'provider_label_and_internal_slip':'internal_packing_slip_only'};
  }
  async list(){
   const r=await this.db.query(
    `SELECT f.id AS batch_id,f.order_id,b.name AS brand_name,w.code AS warehouse_code,f.state,
+   o.shipping_provider,o.shipping_courier_code,o.shipping_service_code,q.courier_name AS shipping_courier_name,q.service_name AS shipping_service_name,q.amount_idr::text AS shipping_fee_idr,
    m.id AS manifest_id,m.state AS manifest_state,m.pickup_method,m.pickup_date,m.pickup_time,m.total_weight_grams,
    jb.state AS booking_state,s.id AS shipment_id,s.state AS carrier_state,s.provider_status,s.tracking_number,s.provider_shipment_id,
    (SELECT count(*)::integer FROM product.courier_tracking_events ev WHERE ev.shipment_id=s.id) AS provider_events
    FROM product.fulfillment_batches f LEFT JOIN product.brands b ON b.id=f.brand_id
-   JOIN product.warehouses w ON w.id=f.warehouse_id
+   JOIN product.warehouses w ON w.id=f.warehouse_id JOIN product.orders o ON o.id=f.order_id
+   LEFT JOIN product.shipping_rate_quotes q ON q.id=o.shipping_quote_id
    LEFT JOIN product.courier_manifests m ON m.batch_id=f.id
    LEFT JOIN product.shipments s ON s.fulfillment_batch_id=f.id
    LEFT JOIN product.jubelio_bookings jb ON jb.batch_id=f.id
    ORDER BY f.created_at DESC LIMIT 200`);
-  return {items:r.rows,externalBookingEnabled:bookingEnabled(),provider:shippingProvider(),labelType:'packing_slip'};
+  return {items:r.rows,externalBookingEnabled:bookingEnabled(),provider:shippingProvider(),labelType:bookingEnabled()?'provider_label_and_internal_slip':'internal_packing_slip_only'};
  }
  async preview(batchId:string){
   requireUuid(batchId,'batch');
@@ -87,7 +90,7 @@ export class CourierManifestService{
    this.db.query<GoodsRow>(goodsSql,[batchId]),
    this.db.query<{n:number}>(`SELECT count(*)::integer AS n FROM product.fulfillment_batches WHERE order_id=(SELECT order_id FROM product.fulfillment_batches WHERE id=$1)`,[batchId]),
    this.db.query('SELECT id,state,pickup_method,pickup_date,pickup_time,total_weight_grams FROM product.courier_manifests WHERE batch_id=$1',[batchId]),
-   this.db.query<{origin_postal_code:string;destination_postal_code:string;provider:string}>(`SELECT q.origin_postal_code,q.destination_postal_code,q.provider FROM product.shipping_rate_quotes q
+   this.db.query<{origin_postal_code:string;destination_postal_code:string;provider:string;courier_code:string;service_code:string;courier_name:string;service_name:string;amount_idr:string}>(`SELECT q.origin_postal_code,q.destination_postal_code,q.provider,q.courier_code,q.service_code,q.courier_name,q.service_name,q.amount_idr::text AS amount_idr FROM product.shipping_rate_quotes q
      JOIN product.orders o ON o.shipping_quote_id=q.id JOIN product.fulfillment_batches f ON f.order_id=o.id
      WHERE f.id=$1`,[batchId])
   ]);
@@ -114,11 +117,11 @@ export class CourierManifestService{
   return {batchId,orderId:row.order_id,brandId:row.brand_id,state:row.state,
    origin:{warehouse:row.warehouse_name,city:row.origin_city,postalCode:row.origin_postal_code},
    destination:{city:row.city,province:row.province,postalCode:row.postal_code},
-   courier:{code:row.shipping_courier_code,service:row.shipping_service_code},
+   courier:{provider:quote.rows[0]?.provider||null,code:row.shipping_courier_code,service:row.shipping_service_code,name:quote.rows[0]?.courier_name||null,serviceName:quote.rows[0]?.service_name||null,priceIdr:quote.rows[0]?.amount_idr?Number(quote.rows[0].amount_idr):null},
    weightGrams:weight,items:goods.rows.map(g=>({sku:g.sku,name:g.name,quantity:g.quantity,
     weightGrams:g.weight_grams,dimensionsCm:[g.length_cm,g.width_cm,g.height_cm]})),
    manifest:m.rows[0]||null,bookingBlockers:blockers,providerPayloadReady,
-   bookingEnabled:false,providerCallPerformed:false};
+   bookingEnabled:bookingEnabled(),providerCallPerformed:false};
  }
  async prepare(actor:Principal,batchId:string,raw:unknown){
   if(!actor.emailVerified)throw new ForbiddenException('Verified admin required');

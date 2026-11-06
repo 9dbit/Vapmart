@@ -7,3 +7,21 @@ html[data-vapmart-color-mode=dark] .vco26-root{color:#f2eef7}html[data-vapmart-c
 .vco26-voucher input{margin:0!important}
 .vco26-voucher .vco26-secondary{margin:0;border:0;background:#f0e8f8;border-radius:999px;padding:12px 16px;justify-content:center}
 @media(max-width:600px){.vco26-voucher{grid-template-columns:1fr}.vco26-voucher .vco26-secondary{width:100%}}
+
+/* CP46: automatic shipping quote and compact solid courier selector */
+.vco26-shipping-picker{display:grid;gap:10px;margin:0 0 24px}
+.vco26-shipping-status{margin:0;padding:12px 15px;border-radius:16px;background:#f1e9f8;color:#694b7d;font-size:12px;line-height:1.55}
+.vco26-courier-select{display:grid;gap:8px;font-size:12px;font-weight:800;color:#4b3a56}
+.vco26-courier-select select{appearance:none;width:100%;min-height:52px;padding:14px 44px 14px 16px;border:0;border-radius:18px;background-color:#eee4f7;color:#292033;font-size:13px;font-weight:750;outline:none;background-image:linear-gradient(45deg,transparent 50%,#7c2fc0 50%),linear-gradient(135deg,#7c2fc0 50%,transparent 50%);background-position:calc(100% - 21px) 22px,calc(100% - 15px) 22px;background-size:6px 6px,6px 6px;background-repeat:no-repeat}
+.vco26-courier-select select:focus{box-shadow:0 0 0 3px #a264db30}
+.vco26-shipping-selected{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:18px;background:#f4eef9;color:#32263c}
+.vco26-shipping-selected>div{display:grid;gap:5px;min-width:0}.vco26-shipping-selected strong{font-size:13px}.vco26-shipping-selected span{font-size:11px;color:#7c6a88;line-height:1.45}.vco26-shipping-selected>strong{white-space:nowrap;color:#7729be}
+.vco26-shipping-error{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:16px;background:#fdecef;color:#a52a49}
+.vco26-shipping-error p{margin:0;font-size:12px;line-height:1.5}.vco26-shipping-error button{border:0;border-radius:99px;background:#a52a49;color:#fff;padding:9px 14px;font-size:11px;font-weight:800;white-space:nowrap;cursor:pointer}
+html[data-vapmart-color-mode=dark] .vco26-shipping-status{background:#30263a;color:#ddc8ef}
+html[data-vapmart-color-mode=dark] .vco26-courier-select{color:#e8def0}
+html[data-vapmart-color-mode=dark] .vco26-courier-select select{background-color:#30263a;color:#f3eafa;background-image:linear-gradient(45deg,transparent 50%,#d1a6f0 50%),linear-gradient(135deg,#d1a6f0 50%,transparent 50%)}
+html[data-vapmart-color-mode=dark] .vco26-shipping-selected{background:#30263a;color:#f4ebfa}
+html[data-vapmart-color-mode=dark] .vco26-shipping-selected span{color:#c4b0d2}
+html[data-vapmart-color-mode=dark] .vco26-shipping-error{background:#452530;color:#ffdbe5}
+@media(max-width:600px){.vco26-shipping-error{align-items:stretch;flex-direction:column}.vco26-shipping-error button{width:100%}.vco26-shipping-selected{align-items:flex-start;flex-direction:column}}
