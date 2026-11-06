@@ -38,7 +38,8 @@ const transitions:Record<OrderStatus,OrderStatus[]>={
  completed:['refunded'],cancelled:['refunded'],refunded:[],failed:['draft','pending_payment','cancelled']
 };
 export function validateTransition(o:any,target:OrderStatus){
- if(!(target in orderStatuses)||!transitions[o.operational_status as OrderStatus]?.includes(target))throw new ConflictException('Perubahan status ini tidak diizinkan. Muat ulang pesanan.');
+ if(target===o.operational_status)throw new ConflictException('Ini status pesanan saat ini.');
+ if(!(target in orderStatuses)||!transitions[o.operational_status as OrderStatus]?.includes(target))throw new ConflictException('Perpindahan dari status saat ini tidak diizinkan.');
  if(['processing','completed'].includes(target)&&!(o.payment_status==='paid'&&o.payment_provider&&o.payment_reference))throw new ConflictException('Processing memerlukan pembayaran yang telah terverifikasi.');
  if(target==='refunded'&&!(o.payment_status==='refunded'&&o.payment_provider&&o.payment_reference))throw new ConflictException('Refund harus sudah tercatat dan diverifikasi sebelum memilih Refunded.');
  if(['draft','pending_payment','pre_order','failed'].includes(target)&&(o.processing_started_at||o.payment_status==='paid'))throw new ConflictException('Pesanan yang sudah diproses atau dibayar tidak dapat dikembalikan ke tahap awal.');

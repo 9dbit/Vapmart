@@ -1,3 +1,4 @@
+import {StoreProfileService} from './store-profile';
 import {Body,Controller,Get,Header,Param,Patch,Post,Query,Req,UseGuards} from '@nestjs/common';
 import {AdminGuard,CustomerGuard,type Principal} from './auth';
 import {OrderManagementService} from './order-management';
@@ -12,7 +13,10 @@ type AuthRequest={user:Principal};
 @Controller('v1/admin/catalog')
 @UseGuards(AdminGuard)
 export class CatalogAdminController{
- constructor(private readonly catalog:CatalogWorkspaceService,private readonly imports:CatalogImportService,private readonly reviews:CatalogReviewsService,private readonly vouchers:VoucherAdminService,private readonly promotions:PromotionAdminService,private readonly analytics:PromotionAnalyticsService,private readonly orderManagement:OrderManagementService){}
+ constructor(private readonly storeProfile:StoreProfileService,private readonly catalog:CatalogWorkspaceService,private readonly imports:CatalogImportService,private readonly reviews:CatalogReviewsService,private readonly vouchers:VoucherAdminService,private readonly promotions:PromotionAdminService,private readonly analytics:PromotionAnalyticsService,private readonly orderManagement:OrderManagementService){}
+ @Header('Cache-Control','private, no-store') @Get('store-profile') store(){return this.storeProfile.get();}
+ @Header('Cache-Control','private, no-store') @Patch('store-profile') saveStore(@Req() r:AuthRequest,@Body() b:unknown){return this.storeProfile.save(r.user,b);}
+ @Header('Cache-Control','private, no-store') @Post('orders/:id/confirm-payment') confirmPayment(@Req() r:AuthRequest,@Param('id') id:string,@Body() b:unknown){return this.orderManagement.confirmPayment(r.user,id,b);}
  @Header('Cache-Control','private, no-store') @Get('lookups') lookups(){return this.catalog.lookups();}
  @Header('Cache-Control','private, no-store') @Get('products') products(@Query() q:Record<string,unknown>){return this.catalog.list(q);}
  @Header('Cache-Control','private, no-store') @Get('products/:id') product(@Param('id') id:string){return this.catalog.detail(id);}
@@ -52,7 +56,7 @@ export class CatalogAdminController{
 }
 @Controller('v1/catalog')
 export class CatalogPublicController{
- constructor(private readonly catalog:CatalogWorkspaceService,private readonly reviews:CatalogReviewsService){}
+ constructor(private readonly storeProfile:StoreProfileService,private readonly catalog:CatalogWorkspaceService,private readonly reviews:CatalogReviewsService){}
  @Header('Cache-Control','private, no-store') @Get('categories') categories(){return this.catalog.categories(true);}
  @Header('Cache-Control','private, no-store') @Get('selection') selection(@Query('ids') ids:unknown){return this.catalog.selection(ids);}
  @Header('Cache-Control','private, no-store') @Get('reviews/:slug') reviewList(@Param('slug') slug:string,@Query() q:Record<string,unknown>){return this.reviews.publicList(slug,q);}
@@ -60,7 +64,7 @@ export class CatalogPublicController{
 @Controller('v1/customer/catalog')
 @UseGuards(CustomerGuard)
 export class CatalogCustomerController{
- constructor(private readonly catalog:CatalogWorkspaceService,private readonly reviews:CatalogReviewsService){}
+ constructor(private readonly storeProfile:StoreProfileService,private readonly catalog:CatalogWorkspaceService,private readonly reviews:CatalogReviewsService){}
  @Header('Cache-Control','private, no-store') @Get('review-eligible') eligible(@Req() r:AuthRequest){return this.reviews.eligible(r.user);}
  @Header('Cache-Control','private, no-store') @Post('reviews') review(@Req() r:AuthRequest,@Body() b:unknown){return this.reviews.create(r.user,b);}
  @Header('Cache-Control','private, no-store') @Get('orders') orders(@Req() r:AuthRequest,@Query() q:Record<string,unknown>){return this.catalog.orders(q,r.user.id);}

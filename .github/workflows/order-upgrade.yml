@@ -1,7 +1,7 @@
 name: Order and import upgrade
 on:
   push:
-    branches: [feat/order-import-upgrade-20261105]
+    branches: [feat/order-import-upgrade-20261105, feat/store-manual-payment-20261106]
   workflow_dispatch:
 permissions:
   contents: read
@@ -52,6 +52,7 @@ jobs:
           npm run migrate
           npx tsx --test test/integration/catalog-import-compatibility.ts
           npx tsx --test test/integration/order-management.ts
+          npx tsx --test test/integration/store-manual-payment.ts
           npx tsx --test test/integration/checkout-conversion.ts
           npx tsx --test test/integration/jubelio-dispatch.ts
           npx tsx --test test/integration/courier-orchestration.ts

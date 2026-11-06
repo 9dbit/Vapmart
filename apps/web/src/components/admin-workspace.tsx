@@ -5,8 +5,9 @@ import {useRouter} from 'next/navigation';
 import {AdminBrandLogo} from '@/components/admin-brand-logo';
 import '../app/admin-v27.css';
 
-export type AdminSection='overview'|'products'|'warehouses'|'brands'|'orders'|'vouchers'|'fulfillment'|'courier'|'shipping'|'media';
+export type AdminSection='overview'|'products'|'warehouses'|'brands'|'orders'|'vouchers'|'fulfillment'|'courier'|'shipping'|'media'|'settings';
 const sections:{key:AdminSection;name:string;symbol:string;hint?:string}[]=[
+ {key:'settings',name:'Pengaturan',symbol:'⚙'},
  {key:'overview',name:'Ringkasan',symbol:'▦'},
  {key:'products',name:'Produk & SKU',symbol:'◫'},
  {key:'media',name:'Media & Aset',symbol:'▧'},
@@ -19,11 +20,12 @@ const sections:{key:AdminSection;name:string;symbol:string;hint?:string}[]=[
  {key:'shipping',name:'Pengiriman',symbol:'⌁'}
 ];
 export const adminTitles:Record<AdminSection,string>={
- overview:'Dashboard',products:'Produk & SKU',media:'Media & Aset',brands:'Brand & Akses',
+ settings:'Pengaturan',overview:'Dashboard',products:'Produk & SKU',media:'Media & Aset',brands:'Brand & Akses',
  warehouses:'Gudang & Stok',orders:'Pesanan',vouchers:'Voucher & Promo',fulfillment:'Fulfillment',
  courier:'Courier Ops',shipping:'Pengiriman'
 };
 export const adminDescriptions:Record<AdminSection,string>={
+ settings:'Kelola profil dan identitas toko.',
  overview:'Seluruh aktivitas toko dalam satu tampilan.',
  products:'Kelola SKU, informasi, foto, dan publikasi secara terukur.',
  media:'Tinjau dan atur media asli dari sumber yang terlindungi.',
@@ -40,7 +42,7 @@ export function AdminWorkspace({active,onNavigate,onLogout,email,children}:{
 }){
  const [open,setOpen]=useState(false);const router=useRouter();
  useEffect(()=>setOpen(false),[active]);
- const navigate=(s:AdminSection)=>{setOpen(false);if(s==='products'){router.push('/admin/products');return;}if(s==='orders'){router.push('/admin/orders');return;}if(s==='vouchers'){router.push('/admin/vouchers');return;}onNavigate(s);};
+ const navigate=(s:AdminSection)=>{setOpen(false);if(s==='settings'){router.push('/admin/settings');return;}if(s==='products'){router.push('/admin/products');return;}if(s==='orders'){router.push('/admin/orders');return;}if(s==='vouchers'){router.push('/admin/vouchers');return;}onNavigate(s);};
  return <div className="vma27-workspace">
   <a className="vma27-skip-link" href="#admin-main">Langsung ke konten</a>
   {open&&<button type="button" className="vma27-nav-backdrop" aria-label="Tutup navigasi lewat overlay" onClick={()=>setOpen(false)}/>}
