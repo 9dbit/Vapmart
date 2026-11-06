@@ -5,6 +5,7 @@ import type {Principal} from './auth';
 import {parseBasket} from './checkout';
 import {shippingFingerprint,shippingParcelFingerprint} from './shipping-fingerprint';
 import {shippingConfig,shippingSnapshotProvider} from './shipping-config';
+import {CourierVisibilityService,filterVisibleCouriers} from './courier-visibility';
 import {JubelioShipmentClient,type ShippingRegion,type JubelioRate} from './jubelio-shipment';
 
 type ShippingRequest={items:{productId:string;quantity:number}[];destinationPostalCode:string;destinationAreaId?:string};
@@ -34,7 +35,7 @@ export function normalizeCourierRates(raw:unknown):CourierRate[]{
 }
 @Injectable()
 export class ShippingService{
- constructor(private readonly db:DatabaseService,private readonly jubelio:JubelioShipmentClient){}
+ constructor(private readonly db:DatabaseService,private readonly jubelio:JubelioShipmentClient,private readonly visibility:CourierVisibilityService){}
  config(){return shippingConfig();}
  async rates(user:Principal,body:unknown,adminOrder?:{customerId:string;prices:Map<string,number>}){
   if(!user.emailVerified)throw new ForbiddenException('Verifikasi email diperlukan untuk cek ongkir');
@@ -72,6 +73,9 @@ export class ShippingService{
   }catch{throw new ServiceUnavailableException({code:'SHIPPING_PROVIDER_UNAVAILABLE'});}
    rates=normalizeCourierRates(data).slice(0,12).filter(r=>r.priceIdr<=10000000);
   }
+  // Apply the admin's explicit carrier selection before persisting checkout quotes.
+  // A missing preference row preserves prior behavior until the first admin save.
+  rates=filterVisibleCouriers(rates,await this.visibility.selectedCodes(config.provider));
   const fingerprint=config.provider==='jubelio'?shippingParcelFingerprint(fingerprintItems):shippingFingerprint(fingerprintItems);
   const saved=await this.db.transaction(async client=>{
    const options=[];
