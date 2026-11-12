@@ -1,0 +1,56 @@
+name: CP48 Direct Order AWB QA
+on:
+  push:
+    branches: [feat/vapmart-order-awb-modal-20261112]
+  pull_request:
+    branches: [release/vapmart-stable]
+permissions:
+  contents: read
+jobs:
+  api-web-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: vapmart_test
+          POSTGRES_PASSWORD: fixture_only_cp48
+          POSTGRES_DB: vapmart_cp39_cp48_airwaybill
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U vapmart_test -d vapmart_cp39_cp48_airwaybill"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgres://vapmart_test:fixture_only_cp48@127.0.0.1:5432/vapmart_cp39_cp48_airwaybill
+      CP39_LOCAL_TEST: '1'
+      CHECKOUT_ENABLED: 'false'
+      DIGITAL_COMMERCE_ENABLED: 'false'
+      SHIPPING_RATE_LOOKUP_ENABLED: 'false'
+      PAYMENT_MODE: disabled
+      SHIPPING_FEE_IDR: '15000'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install API
+        run: npm ci --no-audit --no-fund --prefix apps/api
+      - name: Build API
+        run: npm run build --prefix apps/api
+      - name: Unit tests
+        run: npm test --prefix apps/api
+      - name: Migrate & verify PostgreSQL fixtures
+        working-directory: apps/api
+        run: |
+          npm run migrate
+          npm run migrate
+          npx tsx --test test/integration/jubelio-shipment.ts
+          npx tsx --test test/integration/checkout-conversion.ts
+          npx tsx --test test/integration/jubelio-dispatch.ts
+          npx tsx --test test/integration/courier-orchestration.ts
+      - name: Install web
+        run: npm ci --no-audit --no-fund --prefix apps/web
+      - name: Build Next.js admin + storefront
+        run: npm run build --prefix apps/web

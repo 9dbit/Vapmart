@@ -42,6 +42,17 @@ test('Jubelio: durable booking, ambiguous result recovery, authoritative webhook
    return {id,batchId:b.id};
   }
   const first=await batch();
+  const orderOverview=await manifest.orderBatches(first.id);
+  assert.equal(orderOverview.orderId,first.id);
+  assert.equal(orderOverview.order.paymentVerified,true);
+  assert.equal(orderOverview.batches.length,1);
+  assert.equal(orderOverview.batches[0].batch_id,first.batchId);
+  assert.equal(orderOverview.batches[0].state,'ready_for_carrier');
+  assert.ok(orderOverview.batches[0].manifest_id);
+  assert.equal(orderOverview.batches[0].booking_state,null);
+  await assert.rejects(()=>manifest.orderBatches(randomUUID()),/Pesanan tidak ditemukan/);
+  await assert.rejects(()=>manifest.orderBatches('not-a-uuid'),/order|UUID|Invalid/i);
+
   await db.query("UPDATE product.orders SET payment_status='pending' WHERE id=$1",[first.id]);
   assert.ok((await dispatch.preview(first.batchId)).blockers.includes('VERIFIED_PAYMENT_REQUIRED'));
   await db.query("UPDATE product.orders SET payment_status='paid' WHERE id=$1",[first.id]);
@@ -53,6 +64,10 @@ test('Jubelio: durable booking, ambiguous result recovery, authoritative webhook
   const cmd=command();await Promise.all([dispatch.book(admin,first.batchId,cmd),dispatch.book(admin,first.batchId,cmd)]);
   assert.equal(calls,1,'concurrent clicks must create one shipment');
   assert.equal((await dispatch.result(first.batchId)).state,'booked');assert.equal((await dispatch.book(admin,first.batchId,command())).state,'booked');assert.equal(calls,1);
+  const issued=await manifest.orderBatches(first.id);
+  assert.equal(issued.batches[0].booking_state,'booked');
+  assert.equal(issued.batches[0].tracking_number,'TEST-AWB-1');
+
   assert.ok((await dispatch.label(first.batchId)).url.endsWith('.pdf'));
   client.shippingLabel=async()=>({file_url:'http://127.0.0.1/private'});await assert.rejects(()=>dispatch.label(first.batchId),/Alamat label/);
   const token=process.env.JUBELIO_WEBHOOK_TOKEN!;

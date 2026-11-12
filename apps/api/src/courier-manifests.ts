@@ -83,6 +83,37 @@ export class CourierManifestService{
    ORDER BY f.created_at DESC LIMIT 200`);
   return {items:r.rows,externalBookingEnabled:bookingEnabled(),provider:shippingProvider(),labelType:bookingEnabled()?'provider_label_and_internal_slip':'internal_packing_slip_only'};
  }
+ async orderBatches(orderId:string){
+  requireUuid(orderId,'order');
+  const orderResult=await this.db.query<{
+   id:string;status:string;payment_status:string;operational_status:string;
+   payment_provider:string|null;payment_reference:string|null;
+   courier_name:string|null;service_name:string|null;
+  }>(`SELECT o.id,o.status,o.payment_status,o.operational_status,o.payment_provider,o.payment_reference,
+     q.courier_name,q.service_name FROM product.orders o
+     LEFT JOIN product.shipping_rate_quotes q ON q.id=o.shipping_quote_id WHERE o.id=$1`,[orderId]);
+  const order=orderResult.rows[0];
+  if(!order)throw new NotFoundException('Pesanan tidak ditemukan');
+  const result=await this.db.query(`SELECT f.id AS batch_id,f.order_id,b.name AS brand_name,
+   w.code AS warehouse_code,f.state,m.id AS manifest_id,m.state AS manifest_state,
+   m.pickup_method,m.pickup_date,m.pickup_time,
+   jb.state AS booking_state,jb.created_at AS booking_created_at,
+   s.state AS carrier_state,s.provider_status,s.tracking_number,s.provider_shipment_id,
+   (SELECT count(*)::integer FROM product.courier_tracking_events ev WHERE ev.shipment_id=s.id) AS provider_events
+   FROM product.fulfillment_batches f
+   LEFT JOIN product.brands b ON b.id=f.brand_id
+   JOIN product.warehouses w ON w.id=f.warehouse_id
+   LEFT JOIN product.courier_manifests m ON m.batch_id=f.id
+   LEFT JOIN product.jubelio_bookings jb ON jb.batch_id=f.id
+   LEFT JOIN product.shipments s ON s.fulfillment_batch_id=f.id
+   WHERE f.order_id=$1 ORDER BY f.created_at,f.id`,[orderId]);
+  const paymentVerified=paidOrderVerified(order);
+  return {orderId,order:{id:order.id,status:order.status,paymentStatus:order.payment_status,
+    operationalStatus:order.operational_status,paymentVerified,
+    courierName:order.courier_name,serviceName:order.service_name},
+    batches:result.rows,canPrepare:paymentVerified&&order.operational_status==='processing'&&!result.rows.length,
+    provider:shippingProvider(),bookingEnabled:bookingEnabled()};
+ }
  async preview(batchId:string){
   requireUuid(batchId,'batch');
   const [b,goods,count,m,quote]=await Promise.all([
