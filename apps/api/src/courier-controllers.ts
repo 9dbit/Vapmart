@@ -11,6 +11,7 @@ export class CourierAdminController {
  constructor(private readonly manifest:CourierManifestService,private readonly events:CourierEventService,private readonly dispatch:JubelioDispatchService){}
  @Get('config') config(){return this.manifest.config();}
  @Get('batches') list(){return this.manifest.list();}
+ @Get('orders/:orderId') orderBatches(@Param('orderId') id:string){return this.manifest.orderBatches(id);}
  @Get('batches/:batchId/preview') preview(@Param('batchId') id:string){return this.manifest.preview(id);}
  @Post('batches/:batchId/manifest') manifestCreate(@Req() req:{user:Principal},@Param('batchId') id:string,@Body() body:unknown){
   return this.manifest.prepare(req.user,id,body);
