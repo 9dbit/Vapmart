@@ -62,6 +62,8 @@ export function OrderAirwaybillDialog({orderId,onClose,onUpdated}:{
  const [previews,setPreviews]=useState<Record<string,BookingPreview>>({});
  const [labels,setLabels]=useState<Record<string,string>>({});
  const requestKeys=useRef<Record<string,string>>({});
+ const manifestKeys=useRef<Record<string,string>>({});
+ const reserveKey=useRef<string|null>(null);
  const closeRef=useRef<HTMLButtonElement>(null);
  async function api<T>(path:string,method:'GET'|'POST'='GET',body?:unknown):Promise<T>{
   if(!token)throw Error('Sesi admin telah berakhir. Silakan masuk kembali.');
@@ -122,7 +124,7 @@ export function OrderAirwaybillDialog({orderId,onClose,onUpdated}:{
   if(!window.confirm('Konfirmasi paket sudah benar-benar siap di gudang dan akan dijemput segera? Ini baru membuat manifest internal, bukan memesan kurir.'))return;
   void action(async()=>{
    await api('/api/admin/courier/batches/'+batch.batch_id+'/manifest','POST',{
-    idempotencyKey:crypto.randomUUID(),notes:notes.trim(),pickupMethod:'pickup',pickupDate:null,pickupTime:null
+    idempotencyKey:(manifestKeys.current[batch.batch_id]??=crypto.randomUUID()),notes:notes.trim(),pickupMethod:'pickup',pickupDate:null,pickupTime:null
    });
    setNotes('');return 'Manifest siap. Sekarang periksa tarif dan kesiapan booking Jubelio.';
   });
@@ -131,7 +133,7 @@ export function OrderAirwaybillDialog({orderId,onClose,onUpdated}:{
   if(!data?.canPrepare)return;
   if(!window.confirm('Reservasi stok fisik pesanan ini? Pastikan pembayaran terverifikasi dan stok gudang tersedia.'))return;
   void action(async()=>{
-   await api('/api/admin/fulfillment/orders/'+orderId+'/prepare','POST',{idempotencyKey:crypto.randomUUID()});
+   await api('/api/admin/fulfillment/orders/'+orderId+'/prepare','POST',{idempotencyKey:(reserveKey.current??=crypto.randomUUID())});
    return 'Stok berhasil direservasi. Lanjutkan picking dan packing sebelum meminta AWB.';
   });
  }
@@ -175,6 +177,7 @@ export function OrderAirwaybillDialog({orderId,onClose,onUpdated}:{
    return 'Label resmi tersedia. Buka dokumen untuk mencetaknya.';
   },false);
  }
+ const orderReady=data?.order.paymentVerified&&data.order.operationalStatus==='processing';
  return <div className="vawb-overlay" role="presentation">
   <section className="vawb-dialog" role="dialog" aria-modal="true" aria-labelledby="vawb-title">
    <header className="vawb-header"><div><small>VAPMART / SHIPPING</small><h2 id="vawb-title">Airwaybill Pesanan #{orderId.slice(0,8).toUpperCase()}</h2>
@@ -229,15 +232,15 @@ export function OrderAirwaybillDialog({orderId,onClose,onUpdated}:{
          {next&&<div className="vawb-next">
           <p>Tahap berikutnya: <strong>{next.label}</strong>. Pastikan pekerjaan gudang selesai secara fisik sebelum konfirmasi.</p>
           <label>Catatan operator (wajib minimal 6 karakter)<textarea rows={2} minLength={6} maxLength={300} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Catatan pemeriksaan fisik, packing atau kesiapan pickup"/></label>
-          <button type="button" disabled={busy||notes.trim().length<6} onClick={()=>nextStep(batch)}>{next.label}</button>
+          <button type="button" disabled={!orderReady||busy||notes.trim().length<6} onClick={()=>nextStep(batch)}>{next.label}</button>
          </div>}
          {batch.state==='ready_for_carrier'&&!batch.manifest_id&&<div className="vawb-next">
           <p>Barang siap kirim. Buat manifest internal untuk pickup segera sebelum meminta resi.</p>
           <label>Catatan manifest (wajib minimal 6 karakter)<textarea rows={2} minLength={6} maxLength={300} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Paket diperiksa, barang lengkap, siap pickup segera"/></label>
-          <button type="button" disabled={busy||notes.trim().length<6} onClick={()=>createManifest(batch)}>Buat manifest pickup segera</button>
+          <button type="button" disabled={!orderReady||busy||notes.trim().length<6} onClick={()=>createManifest(batch)}>Buat manifest pickup segera</button>
          </div>}
          {batch.manifest_id&&<div className="vawb-ready"><p>Manifest sudah disiapkan. <strong>Pickup: {batch.pickup_method||'belum diketahui'}</strong></p>
-          <button type="button" disabled={busy} onClick={()=>checkBooking(batch)}>Periksa kesiapan & tarif Jubelio</button>
+          <button type="button" disabled={!orderReady||busy} onClick={()=>checkBooking(batch)}>Periksa kesiapan & tarif Jubelio</button>
          </div>}
          {attempt&&<div className="vawb-preflight">
           {attempt.attempt?<p>{attempt.attempt.message||'Booking sebelumnya terdeteksi. Periksa hasil booking.'}</p>:<>
