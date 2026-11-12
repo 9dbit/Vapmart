@@ -1,0 +1,55 @@
+/* CP48: single-order Airwaybill workflow. Solid surfaces, rounded controls. */
+.vawb-overlay{position:fixed;inset:0;z-index:3000;display:grid;place-items:center;padding:16px;background:rgba(16,12,24,.72);backdrop-filter:blur(5px)}
+.vawb-dialog{display:flex;flex-direction:column;width:min(960px,100%);max-height:min(94dvh,960px);overflow:hidden;border-radius:26px;background:#f8f6fb;color:#332b3d;box-shadow:0 28px 100px #100c1866}
+.vawb-header{display:flex;justify-content:space-between;align-items:flex-start;gap:22px;padding:24px 28px;background:#eae0f5}
+.vawb-header small,.vawb-batch-head small,.vawb-booked small,.vawb-summary small{font-size:10px;letter-spacing:.08em;font-weight:800;color:#7a668b}
+.vawb-header h2{font-size:22px;margin:8px 0;color:#352144}
+.vawb-header p{font-size:12px;line-height:1.55;margin:0;max-width:630px;color:#72647b}
+.vawb-close{border:0;border-radius:99px;padding:10px 16px;background:#fff;color:#4e336b;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+.vawb-content{overflow:auto;padding:20px 28px 30px;display:grid;gap:15px}
+.vawb-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.vawb-summary>div{background:#eee6f7;border-radius:18px;padding:14px;min-width:0;display:grid;gap:8px}
+.vawb-summary strong{font-size:13px;line-height:1.35;overflow-wrap:anywhere}
+.vawb-warning,.vawb-error,.vawb-info{border-radius:16px;padding:12px 16px;font-size:12px;line-height:1.6;margin:0}
+.vawb-warning{background:#ffeddb;color:#805020}.vawb-error{background:#fde6eb;color:#942a48}.vawb-info{background:#e8def5;color:#593179}
+.vawb-warning p{margin:0 0 10px}.vawb-warning small{display:block;margin-top:9px}
+.vawb-batches{display:grid;gap:13px}.vawb-batch{background:#ede7f3;padding:18px;border-radius:22px;display:grid;gap:15px}
+.vawb-batch-head{display:flex;gap:16px;align-items:flex-start;justify-content:space-between}
+.vawb-batch-head h3{font-size:16px;color:#392a47;margin:6px 0 0}.vawb-batch-head h3 span{font-size:12px;color:#7f6b91;font-weight:650}
+.vawb-state{background:#d7c3ec;color:#5d3184;border-radius:99px;font-size:11px;font-weight:800;padding:7px 11px;text-align:center;max-width:170px}
+.vawb-empty,.vawb-next,.vawb-ready,.vawb-preflight,.vawb-booked{border-radius:18px;padding:16px;background:#fff;display:grid;gap:11px}
+.vawb-empty h3,.vawb-preflight h4{margin:0;font-size:16px}.vawb-empty p,.vawb-next p,.vawb-ready p,.vawb-preflight p,.vawb-booked p{margin:0;font-size:13px;line-height:1.55}
+.vawb-next label{display:grid;gap:7px;font-size:12px;color:#624d74;font-weight:700}
+.vawb-next textarea{resize:vertical;min-height:68px;width:100%;border:0;border-radius:14px;background:#f2ecf8;color:#34233f;padding:12px;outline:none;box-sizing:border-box;font:inherit}
+.vawb-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.vawb-dialog button:not(.vawb-close),.vawb-dialog a.vawb-link{padding:10px 16px;border:0;border-radius:99px;background:#e0ccef;color:#5f288e;font-size:12px;font-weight:850;cursor:pointer;text-align:center;text-decoration:none}
+.vawb-dialog button.vawb-primary,.vawb-dialog a.vawb-primary{background:#7629b9;color:#fff}
+.vawb-dialog button:disabled{opacity:.5;cursor:not-allowed}
+.vawb-preflight ul{margin:0;padding:12px 12px 12px 29px;background:#fff0df;border-radius:14px;font-size:12px;line-height:1.6;color:#85521e}
+.vawb-preflight small,.vawb-booked>small{font-size:11px;line-height:1.5;color:#816e90}
+.vawb-booked{grid-template-columns:repeat(2,minmax(0,1fr))}
+.vawb-booked p{display:grid;gap:5px;overflow-wrap:anywhere}
+.vawb-booked p strong{font-size:15px;color:#5b268b}
+.vawb-booked .vawb-actions,.vawb-booked>small{grid-column:1/-1}
+.vawb-footer{padding:14px 28px;display:flex;align-items:center;gap:10px;justify-content:flex-end;background:#eee7f5}
+.vawb-footer p{font-size:11px;line-height:1.5;color:#756485;margin:0 auto 0 0;max-width:520px}
+.vawb-dialog a:focus-visible,.vawb-dialog button:focus-visible,.vawb-dialog textarea:focus-visible{outline:3px solid #b16bf0;outline-offset:3px}
+html[data-vapmart-color-mode=dark] .vawb-dialog{background:#1f1928;color:#f4eefa}
+html[data-vapmart-color-mode=dark] .vawb-header,html[data-vapmart-color-mode=dark] .vawb-footer{background:#32273e}
+html[data-vapmart-color-mode=dark] .vawb-summary>div,html[data-vapmart-color-mode=dark] .vawb-batch{background:#35283f}
+html[data-vapmart-color-mode=dark] .vawb-empty,html[data-vapmart-color-mode=dark] .vawb-next,html[data-vapmart-color-mode=dark] .vawb-ready,html[data-vapmart-color-mode=dark] .vawb-preflight,html[data-vapmart-color-mode=dark] .vawb-booked{background:#2a2035}
+html[data-vapmart-color-mode=dark] .vawb-header h2,html[data-vapmart-color-mode=dark] .vawb-batch-head h3{color:#f1e7fa}
+html[data-vapmart-color-mode=dark] .vawb-summary strong{color:#f2eaff}
+html[data-vapmart-color-mode=dark] .vawb-next textarea{background:#41314e;color:#f6edfa}
+html[data-vapmart-color-mode=dark] .vawb-booked p strong{color:#d9aff2}
+@media(max-width:760px){
+ .vawb-overlay{padding:0;align-items:end}
+ .vawb-dialog{width:100%;max-height:95dvh;border-radius:24px 24px 0 0}
+ .vawb-header{padding:18px 16px;gap:9px}.vawb-header h2{font-size:18px}
+ .vawb-close{padding:8px 11px}
+ .vawb-content{padding:16px}
+ .vawb-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .vawb-batch{padding:14px}.vawb-batch-head{flex-direction:column;gap:8px}
+ .vawb-booked{grid-template-columns:1fr}.vawb-booked p{grid-column:1}
+ .vawb-footer{padding:12px 16px;flex-wrap:wrap}.vawb-footer p{width:100%;max-width:none}
+}
