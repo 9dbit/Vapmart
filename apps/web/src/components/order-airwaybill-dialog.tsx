@@ -7,7 +7,7 @@ import '../app/order-airwaybill.css';
 
 type ShippingBatch={
  batch_id:string;order_id:string;brand_name:string|null;warehouse_code:string;state:string;
- manifest_id:string|null;manifest_state:string|null;booking_state:string|null;
+ manifest_id:string|null;manifest_state:string|null;pickup_method:string|null;booking_state:string|null;
  booking_created_at:string|null;tracking_number:string|null;provider_status:string|null;
  carrier_state:string|null;provider_shipment_id:string|null;provider_events:number;
 };
