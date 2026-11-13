@@ -97,7 +97,7 @@ export class CourierManifestService{
   const result=await this.db.query(`SELECT f.id AS batch_id,f.order_id,b.name AS brand_name,
    w.code AS warehouse_code,f.state,m.id AS manifest_id,m.state AS manifest_state,
    m.pickup_method,m.pickup_date,m.pickup_time,
-   jb.state AS booking_state,jb.created_at AS booking_created_at,
+   jb.state AS booking_state,jb.created_at AS booking_created_at,jb.reference AS provider_reference,
    s.state AS carrier_state,s.provider_status,s.tracking_number,s.provider_shipment_id,
    (SELECT count(*)::integer FROM product.courier_tracking_events ev WHERE ev.shipment_id=s.id) AS provider_events
    FROM product.fulfillment_batches f
