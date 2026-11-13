@@ -8,7 +8,7 @@ import {FulfillmentService} from '../../src/fulfillment';
 import {CourierManifestService} from '../../src/courier-manifests';
 import {CourierEventService} from '../../src/courier-events';
 import {JubelioShipmentClient} from '../../src/jubelio-shipment';
-import {JubelioDispatchService} from '../../src/jubelio-dispatch';
+import {JubelioDispatchService,vapmartShipmentReference} from '../../src/jubelio-dispatch';
 
 test('Jubelio: durable booking, ambiguous result recovery, authoritative webhook and exactly-once inventory',async()=>{
  if(!process.env.DATABASE_URL?.includes('127.0.0.1')||!process.env.DATABASE_URL.includes('vapmart_cp39_'))throw Error('Disposable local database required');
@@ -42,6 +42,8 @@ test('Jubelio: durable booking, ambiguous result recovery, authoritative webhook
    return {id,batchId:b.id};
   }
   const first=await batch();
+  assert.equal(vapmartShipmentReference(first.id,first.batchId).length,24);
+  assert.ok(vapmartShipmentReference(first.id,first.batchId).startsWith('VM-'+first.id.slice(0,8).toUpperCase()+'-'));
   const orderOverview=await manifest.orderBatches(first.id);
   assert.equal(orderOverview.orderId,first.id);
   assert.equal(orderOverview.order.paymentVerified,true);
@@ -69,6 +71,11 @@ test('Jubelio: durable booking, ambiguous result recovery, authoritative webhook
   assert.equal(issued.batches[0].tracking_number,'TEST-AWB-1');
 
   assert.ok((await dispatch.label(first.batchId)).url.endsWith('.pdf'));
+  client.shippingLabel=async()=>({file_url:'https://storage.googleapis.com/labels-jubelio/valid.pdf?X-Signature=fixture'});
+  const label=await dispatch.label(first.batchId);
+  assert.equal(label.labelHost,'storage.googleapis.com');
+  assert.ok(label.url.includes('X-Signature=fixture'));
+  assert.equal(issued.batches[0].provider_reference,vapmartShipmentReference(first.id,first.batchId));
   client.shippingLabel=async()=>({file_url:'http://127.0.0.1/private'});await assert.rejects(()=>dispatch.label(first.batchId),/Alamat label/);
   const token=process.env.JUBELIO_WEBHOOK_TOKEN!;
   const notification=Buffer.from(JSON.stringify({shipment_id:10001,latest_status:'DELIVERED',price:1}));
@@ -89,7 +96,7 @@ test('Jubelio: durable booking, ambiguous result recovery, authoritative webhook
   assert.equal((await dispatch.reconcile(second.batchId)).state,'booked');assert.equal(calls,2);
   latest='CANCELED';await dispatch.sync(second.batchId);latest='ON_DELIVERY';await dispatch.sync(second.batchId);
   assert.equal((await db.query('SELECT state FROM product.shipments WHERE fulfillment_batch_id=$1',[second.batchId])).rows[0].state,'cancelled','cancelled shipment must not resurrect');
-  const third=await batch();preview=await dispatch.preview(third.batchId);await dispatch.book(admin,third.batchId,command());created.delete('vapmart-'+third.batchId);
+  const third=await batch();preview=await dispatch.preview(third.batchId);await dispatch.book(admin,third.batchId,command());created.delete(vapmartShipmentReference(third.id,third.batchId));
   await db.query("UPDATE product.jubelio_bookings SET created_at=now()-interval '1 minute' WHERE batch_id=$1",[third.batchId]);
   await assert.rejects(()=>dispatch.reconcile(third.batchId),/Shipment belum ditemukan/);assert.equal(calls,3);
   await dispatch.book(admin,third.batchId,command());assert.equal(calls,3);

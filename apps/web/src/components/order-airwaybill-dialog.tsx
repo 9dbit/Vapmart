@@ -8,7 +8,7 @@ import '../app/order-airwaybill.css';
 type ShippingBatch={
  batch_id:string;order_id:string;brand_name:string|null;warehouse_code:string;state:string;
  manifest_id:string|null;manifest_state:string|null;pickup_method:string|null;booking_state:string|null;
- booking_created_at:string|null;tracking_number:string|null;provider_status:string|null;
+ booking_created_at:string|null;provider_reference:string|null;tracking_number:string|null;provider_status:string|null;
  carrier_state:string|null;provider_shipment_id:string|null;provider_events:number;
 };
 type OrderOverview={
@@ -169,12 +169,21 @@ export function OrderAirwaybillDialog({orderId,onClose,onUpdated}:{
   });
  }
  function getLabel(batch:ShippingBatch){
+  if(busy)return;
+  // Open the print viewer from the actual click so browsers do not block an
+  // asynchronous popup. It cannot control or redirect the Vapmart admin tab.
+  const viewer=window.open('about:blank','_blank');
+  if(viewer){
+   try{viewer.opener=null;viewer.document.title='Mempersiapkan label Jubelio';viewer.document.body.textContent='Memuat label AWB resmi dari Jubelio...';}catch{}
+  }
   void action(async()=>{
-   const result=await api<{url:string}>('/api/admin/courier/batches/'+batch.batch_id+'/label','POST',{});
-   // Server restricts returned labels to verified HTTPS provider/CDN domains.
-   if(!/^https:\/\//.test(result.url))throw Error('URL label tidak valid');
-   setLabels(x=>({...x,[batch.batch_id]:result.url}));
-   return 'Label resmi tersedia. Buka dokumen untuk mencetaknya.';
+   try{
+    const result=await api<{url:string;labelHost?:string}>('/api/admin/courier/batches/'+batch.batch_id+'/label','POST',{});
+    if(!/^https:\/\//.test(result.url))throw Error('URL label tidak valid');
+    setLabels(x=>({...x,[batch.batch_id]:result.url}));
+    if(viewer&&!viewer.closed)viewer.location.replace(result.url);
+    return viewer?'Label AWB dibuka. Gunakan tombol Print pada viewer PDF.':'Label siap. Browser memblokir pop-up; klik Buka & cetak label di bawah.';
+   }catch(e){try{viewer?.close();}catch{}throw e;}
   },false);
  }
  const orderReady=data?.order.paymentVerified&&data.order.operationalStatus==='processing';
@@ -217,11 +226,12 @@ export function OrderAirwaybillDialog({orderId,onClose,onUpdated}:{
          <span className="vawb-state">{booked?shipmentLabels[status||'']||batch.provider_status||'Booking diterima':uncertain?'Periksa hasil booking':batch.manifest_id?'Manifest siap':'Belum ada AWB'}</span></div>
         {booked?<div className="vawb-booked">
          <p><small>AIRWAYBILL</small><strong>{batch.tracking_number||'Menunggu nomor AWB dari Jubelio'}</strong></p>
+         {batch.provider_reference&&<p><small>REF. ORDER DI JUBELIO</small><strong>{batch.provider_reference}</strong></p>}
          <p><small>STATUS PENGIRIMAN</small><strong>{shipmentLabels[status||'']||status||'Menunggu konfirmasi kurir'}</strong></p>
          <div className="vawb-actions">
           <button type="button" disabled={busy} onClick={()=>sync(batch,'sync')}>Sinkronkan tracking</button>
-          <button type="button" className="vawb-primary" disabled={busy} onClick={()=>getLabel(batch)}>Ambil label AWB</button>
-          {labels[batch.batch_id]&&<a className="vawb-primary vawb-link" href={labels[batch.batch_id]} target="_blank" rel="noopener noreferrer">Buka & cetak label</a>}
+          <button type="button" className="vawb-primary" disabled={busy} onClick={()=>getLabel(batch)}>Cetak label AWB</button>
+          {labels[batch.batch_id]&&<a className="vawb-primary vawb-link" href={labels[batch.batch_id]} target="_blank" rel="noopener noreferrer">Buka ulang label / cetak</a>}
          </div>
          <small>Tracking resmi tersinkron dari Jubelio. Cetak dilakukan melalui PDF/viewer label kurir.</small>
         </div>:uncertain?<div className="vawb-warning">

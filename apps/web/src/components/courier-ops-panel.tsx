@@ -127,13 +127,25 @@ export function CourierOpsPanel({token}:{token:string|null}){
   });
  }
  async function dispatchAction(action:'reconcile'|'sync'|'label',batchId=selected){
-  if(!batchId)return;setSelected(batchId);
+  if(!batchId||busy)return;setSelected(batchId);
+  const viewer=action==='label'?window.open('about:blank','_blank'):null;
+  if(viewer){
+   try{viewer.opener=null;viewer.document.title='Label resmi Jubelio';viewer.document.body.textContent='Memuat label AWB...';}catch{}
+  }
   await act(async()=>{
-   const r=await api('/api/admin/courier/batches/'+batchId+'/'+action,'POST',{});
-   if(action==='label'){setLabelUrl(r.url);setMessage('Label resmi tersedia. Klik Buka label kurir.');return;}
-   await reload();setEvents((await api('/api/admin/courier/batches/'+batchId+'/events')).items||[]);
-   if(action==='reconcile')setDispatchPreview({canBook:false,blockers:[],attempt:r});
-   setMessage(r.message||'Tracking diperiksa langsung ke Jubelio.');
+   try{
+    const r=await api('/api/admin/courier/batches/'+batchId+'/'+action,'POST',{});
+    if(action==='label'){
+     if(typeof r.url!=='string'||!r.url.startsWith('https://'))throw Error('URL label Jubelio tidak valid');
+     setLabelUrl(r.url);
+     if(viewer&&!viewer.closed)viewer.location.replace(r.url);
+     setMessage(viewer?'Label terbuka. Pilih Print untuk mencetak resi.':'Label siap. Klik Buka & cetak label.');
+     return;
+    }
+    await reload();setEvents((await api('/api/admin/courier/batches/'+batchId+'/events')).items||[]);
+    if(action==='reconcile')setDispatchPreview({canBook:false,blockers:[],attempt:r});
+    setMessage(r.message||'Tracking diperiksa langsung ke Jubelio.');
+   }catch(e){try{viewer?.close();}catch{}throw e;}
   });
  }
  async function review(r:ReturnRow){
@@ -169,7 +181,7 @@ export function CourierOpsPanel({token}:{token:string|null}){
   <header className="vm-fulfillment-heading"><div><span className="vma26-eyebrow">{config?.provider==='jubelio'?'JUBELIO SHIPMENT':'COURIER'} / OPERATIONS</span>
    <h2>Courier & Order Automation</h2><p>Booking resi, permintaan pickup, label kurir, tracking, dan pengelolaan retur.</p></div>
    <div className="vm-fulfillment-actions"><button type="button" className="vm-ops-secondary" disabled={busy} onClick={()=>act(reload)}>↻ Refresh</button>
-   <button type="button" className="vm-ops-primary" disabled={busy||!selected} onClick={()=>current?.booking_state==='booked'?dispatchAction('label'):current?.booking_state?dispatchAction('reconcile'):checkBooking()}>Dapatkan Airwaybill (AWB)</button></div></header>
+   <button type="button" className="vm-ops-primary" disabled={busy||!selected} onClick={()=>current?.booking_state==='booked'?dispatchAction('label'):current?.booking_state?dispatchAction('reconcile'):checkBooking()}>{current?.booking_state==='booked'?'Cetak AWB':'Dapatkan Airwaybill (AWB)'}</button></div></header>
   <div className="vm-ops-connection"><div><small>Provider</small><strong>{config?.provider==='jubelio'?'Jubelio Shipment':config?.provider||'Memuat...'}</strong></div><div><small>Booking AWB</small><strong>{config?.externalBookingEnabled?'Aktif':'Belum aktif'}</strong></div><div><small>Webhook API</small><strong>{config?.webhookEnabled?'Endpoint aktif':'Belum aktif'}</strong></div><p>Alur resi: pembayaran terverifikasi → paket siap dikirim → buat manifest → periksa tarif → konfirmasi booking. Status endpoint tidak membuktikan webhook sudah didaftarkan di dashboard Jubelio.</p></div>
   <div className="vm-ops-stats"><div><small>Manifest</small><strong>{count.manifests}</strong></div><div><small>Siap dibuat</small><strong>{count.noManifests}</strong></div>
    <div><small>AWB terverifikasi</small><strong>{count.waybills}</strong></div><div><small>Return requests</small><strong>{count.returns}</strong></div></div>
@@ -200,7 +212,7 @@ export function CourierOpsPanel({token}:{token:string|null}){
     <div className="vm-fulfillment-actions">
      {!current?.booking_state&&<button type="button" disabled={busy||!selected} onClick={()=>checkBooking()}>Dapatkan Airwaybill</button>}
      {current?.booking_state&&current.booking_state!=='booked'&&<button type="button" disabled={busy} onClick={()=>dispatchAction('reconcile')}>Periksa hasil booking</button>}
-     {current?.booking_state==='booked'&&<><button type="button" disabled={busy} onClick={()=>dispatchAction('sync')}>Perbarui tracking</button><button type="button" disabled={busy} onClick={()=>dispatchAction('label')}>Ambil label kurir</button></>}
+     {current?.booking_state==='booked'&&<><button type="button" disabled={busy} onClick={()=>dispatchAction('sync')}>Perbarui tracking</button><button type="button" disabled={busy} onClick={()=>dispatchAction('label')}>Cetak label AWB</button></>}
     </div>
     {dispatchPreview&&<div className="vm-ops-form"><p className="vm-ops-hint">AWB hanya dibuat untuk pesanan berbayar terverifikasi, paket siap kirim, manifest siap, dan tarif kurir yang masih valid. Booking menggunakan saldo Jubelio dan memerlukan konfirmasi admin.</p>
      {dispatchPreview.blockers.map(v=><p key={v} className="vm-ops-hint">{explain[v]||v}</p>)}
@@ -210,14 +222,14 @@ export function CourierOpsPanel({token}:{token:string|null}){
       <p className="vm-ops-hint">Ongkir pada pesanan: {rupiah(dispatchPreview.originalFeeIdr||0)}. Biaya booking memakai saldo Jubelio; selisih tidak ditagihkan otomatis kepada pelanggan.</p>
       <button type="button" className="vm-ops-primary" disabled={busy} onClick={book}>Konfirmasi & terbitkan AWB</button></>}
     </div>}
-    {labelUrl&&<a href={labelUrl} target="_blank" rel="noopener noreferrer" className="vm-ops-primary">Buka label kurir</a>}
+    {labelUrl&&<a href={labelUrl} target="_blank" rel="noopener noreferrer" className="vm-ops-primary">Buka ulang / cetak label</a>}
 
    </section>
   </div>
   <section className="vma26-panel"><h3>Parcels by brand & warehouse</h3>
     <div className="vm-ops-table"><table><thead><tr><th>Brand</th><th>Gudang</th><th>Order</th><th>Fulfillment</th><th>Manifest</th><th>Kurir / layanan</th><th>Status / AWB</th><th>Aksi</th></tr></thead>
     <tbody>{batches.map(b=><tr key={b.batch_id}><td>{b.brand_name}</td><td>{b.warehouse_code}</td><td>{b.order_id.slice(0,8)}</td>
-     <td>{b.state}</td><td>{b.manifest_id?'Prepared':'Pending'}</td><td><strong>{b.shipping_courier_name||b.shipping_courier_code||'Belum dipilih'}</strong><small>{b.shipping_service_name||b.shipping_service_code||''}</small></td><td><strong>{b.tracking_number||'AWB belum terbit'}</strong><small>{b.provider_status||b.carrier_state||'Belum dipesan'}</small></td><td><button type="button" className="vm-ops-secondary" disabled={busy} onClick={()=>b.booking_state==='booked'?dispatchAction('label',b.batch_id):b.booking_state?dispatchAction('reconcile',b.batch_id):checkBooking(b.batch_id)}>{b.booking_state==='booked'?'Ambil label AWB':b.booking_state?'Periksa AWB':'Dapatkan AWB'}</button></td></tr>)}</tbody></table>
+     <td>{b.state}</td><td>{b.manifest_id?'Prepared':'Pending'}</td><td><strong>{b.shipping_courier_name||b.shipping_courier_code||'Belum dipilih'}</strong><small>{b.shipping_service_name||b.shipping_service_code||''}</small></td><td><strong>{b.tracking_number||'AWB belum terbit'}</strong><small>{b.provider_status||b.carrier_state||'Belum dipesan'}</small></td><td><button type="button" className="vm-ops-secondary" disabled={busy} onClick={()=>b.booking_state==='booked'?dispatchAction('label',b.batch_id):b.booking_state?dispatchAction('reconcile',b.batch_id):checkBooking(b.batch_id)}>{b.booking_state==='booked'?'Cetak AWB':b.booking_state?'Periksa AWB':'Dapatkan AWB'}</button></td></tr>)}</tbody></table>
     {batches.length===0&&<p>Belum ada batch fulfilled. Tidak ada shipment sintetis dibuat.</p>}</div></section>
   <section className="vma26-panel vm-ops-form"><span className="vma26-eyebrow">RETURN MANAGEMENT</span><h3>Retur & pemeriksaan fisik</h3>
     <p className="vm-ops-hint">Retur hanya dapat diminta pelanggan jika shipment benar-benar delivered. Refund, retur berbayar, dan reverse booking tetap OFF.</p>
