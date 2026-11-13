@@ -119,7 +119,10 @@ export class JubelioShipmentClient{
   return this.dispatchRead('/shipments/'+id);
  }
  async findShipment(reference:string){
-  if(!/^vapmart-[a-f0-9-]{36}$/.test(reference))throw new BadRequestException('Invalid shipment reference');
+  // Legacy shipments retain "vapmart-<full UUID>". New ones use
+  // "VM-<short order ID>-<batch fingerprint>", both immutable once booked.
+  if(!/^vapmart-[a-f0-9-]{36}$/.test(reference)&&!/^VM-[A-F0-9]{8}-[A-F0-9]{12}$/.test(reference))
+   throw new BadRequestException('Invalid shipment reference');
   const data=object(await this.dispatchRead('/shipments?q='+encodeURIComponent(reference)+'&page=1&page_size=100'));
   if(!Array.isArray(data.data))throw new ServiceUnavailableException('Daftar shipment Jubelio tidak valid');
   return data.data.map(object).filter(x=>x.ref_no===reference);
