@@ -71,6 +71,11 @@ test('Jubelio: durable booking, ambiguous result recovery, authoritative webhook
   assert.equal(issued.batches[0].tracking_number,'TEST-AWB-1');
 
   assert.ok((await dispatch.label(first.batchId)).url.endsWith('.pdf'));
+  client.shippingLabel=async()=>({file_url:'https://storage.googleapis.com/labels-jubelio/valid.pdf?X-Signature=fixture'});
+  const label=await dispatch.label(first.batchId);
+  assert.equal(label.labelHost,'storage.googleapis.com');
+  assert.ok(label.url.includes('X-Signature=fixture'));
+  assert.equal(issued.batches[0].provider_reference,vapmartShipmentReference(first.id,first.batchId));
   client.shippingLabel=async()=>({file_url:'http://127.0.0.1/private'});await assert.rejects(()=>dispatch.label(first.batchId),/Alamat label/);
   const token=process.env.JUBELIO_WEBHOOK_TOKEN!;
   const notification=Buffer.from(JSON.stringify({shipment_id:10001,latest_status:'DELIVERED',price:1}));
