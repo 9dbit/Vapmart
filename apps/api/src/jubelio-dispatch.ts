@@ -6,11 +6,20 @@ import type {Principal} from './auth';
 import {batchSql,goodsSql,manifestBlockers,type BatchRow,type GoodsRow} from './courier-manifests';
 import {CourierEventService} from './courier-events';
 import {JubelioShipmentClient} from './jubelio-shipment';
+import {verifiedJubelioLabelLink} from './jubelio-label';
 import {jubelioConfigured,shippingProvider} from './shipping-config';
 import {requireUuid} from './warehouses';
 
 const obj=(x:unknown):Record<string,any>=>x&&typeof x==='object'&&!Array.isArray(x)?x as Record<string,any>:{};
 const hash=(x:unknown)=>createHash('sha256').update(JSON.stringify(x)).digest('hex');
+/** New bookings use a readable 24-char reference that includes the short order ID.
+ * Old references remain stored unchanged on existing bookings.
+ */
+export function vapmartShipmentReference(orderId:string,batchId:string){
+ if(!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(orderId)||!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(batchId))
+  throw new BadRequestException('Invalid shipment reference IDs');
+ return 'VM-'+orderId.slice(0,8).toUpperCase()+'-'+batchId.replace(/-/g,'').slice(0,12).toUpperCase();
+}
 export function jubelioBookingEnabled(){return shippingProvider()==='jubelio'&&jubelioConfigured()&&process.env.JUBELIO_BOOKING_ENABLED==='true';}
 export const jubelioStatuses:Record<string,string>={WAITING:'confirmed',CONFIRMED_BY_COURIER:'allocated',ON_THE_WAY_PICK_UP:'picking_up',PICKED_UP:'picked',ON_DELIVERY:'in_transit',ON_HOLD:'on_hold',DELIVERED:'delivered',RETURNED:'returned',CANCELED:'cancelled',CANCELLED:'cancelled',DECLINED:'rejected',SHIPMENT_ISSUE:'on_hold'};
 export function providerShipment(raw:unknown,requireStatus=false){
@@ -63,7 +72,7 @@ export class JubelioDispatchService{
   const rates=await this.jubelio.rates(destination,goods.map(g=>({quantity:g.quantity,value:Number(g.price_idr),weight:g.weight_grams!,length:g.length_cm!,width:g.width_cm!,height:g.height_cm!})));
   const rate=rates.find(r=>r.providerServiceId===quote!.provider_service_id&&r.courierCode===row.shipping_courier_code&&r.serviceCode===row.shipping_service_code);
   if(!rate)throw new ConflictException('Layanan kurir pesanan tidak tersedia. Periksa tarif dan pesanan sebelum booking.');
-  const payload={ref_no:'vapmart-'+batchId,courier_id:Number(rate.courierCode),courier_service_id:rate.providerServiceId,
+  const payload={ref_no:vapmartShipmentReference(row.order_id,batchId),courier_id:Number(rate.courierCode),courier_service_id:rate.providerServiceId,
    shipping_insurance:rate.insuranceIdr,is_insurance:rate.insuranceIdr>0,is_cod:false,cod_amount:0,
    origin:{name:row.origin_contact_name,email:process.env.SHIPPING_SENDER_EMAIL||'hello@vapmart.id',phone:row.origin_contact_phone,address:row.origin_address,area_id:origin.areaId,coordinate:'',zipcode:origin.postalCode},
    destination:{name:row.contact_name,email:row.contact_email||'',phone:row.contact_phone,address:row.address_line,area_id:destination.areaId,coordinate:'',zipcode:destination.postalCode},
@@ -168,9 +177,10 @@ export class JubelioDispatchService{
   const b=(await this.db.query<Booking>("SELECT * FROM product.jubelio_bookings WHERE batch_id=$1 AND state='booked'",[batchId])).rows[0];
   if(!b?.provider_shipment_id)throw new NotFoundException('Resi belum terdaftar');
   const data=obj(await this.jubelio.shippingLabel(b.provider_shipment_id));
-  let url:URL;try{url=new URL(data.file_url);}catch{throw new ServiceUnavailableException('Label belum tersedia');}
-  if(url.protocol!=='https:'||url.username||url.password||!/(^|\.)(jubelio\.com|jubelio\.store|amazonaws\.com|cloudfront\.net)$/.test(url.hostname))throw new ServiceUnavailableException('Alamat label Jubelio belum terverifikasi');
-  return {url:url.href};
+  // A signed CDN URL is returned by the authenticated provider. No server-side
+  // requests to this address; only authorized admins receive the external link.
+  const safe=verifiedJubelioLabelLink(data.file_url);
+  return {url:safe.url,labelHost:safe.hostname,source:'jubelio'};
  }
  async webhook(token:string,raw:Buffer|undefined){
   verifyJubelioToken(token);
