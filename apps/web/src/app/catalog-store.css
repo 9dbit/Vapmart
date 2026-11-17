@@ -5,3 +5,11 @@
 .vcs-buy-cta{background:#7b16da;color:#fff}
 .vcs-cta-row button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:600px){.vcs-cta-row{grid-template-columns:1fr}}
+
+/* CP51 catalog scale and availability controls */
+.vcs-more-row{display:flex;align-items:center;justify-content:center;gap:15px;flex-wrap:wrap;padding:20px 0 8px;color:#73647d;font-size:12px}
+.vcs-show-more{border:0;border-radius:999px;padding:13px 22px;background:#7832bc;color:white;font-size:12px;font-weight:800;cursor:pointer}
+.vcs-show-more:hover{filter:brightness(1.08)}
+.vcs-show-more:focus-visible{outline:3px solid #c28cff;outline-offset:2px}
+html[data-vapmart-color-mode=dark] .vcs-more-row{color:#c6b7d0}
+@media(max-width:600px){.vcs-more-row{flex-direction:column;gap:9px}.vcs-show-more{width:100%}}
