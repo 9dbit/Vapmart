@@ -16,7 +16,7 @@ export function xenditSandboxReadiness(env:NodeJS.ProcessEnv=process.env){
  const business=env.XENDIT_BUSINESS_ID||'';
  const mode=env.XENDIT_ENVIRONMENT||'test';
  const sandboxEnabled=mode==='test'&&env.XENDIT_SANDBOX_ENABLED==='true'&&
-  key.length>24&&!key.startsWith('xnd_production_');
+  key.length>24&&key.startsWith('xnd_development');
  const webhookEnabled=mode==='test'&&env.XENDIT_WEBHOOK_ENABLED==='true'&&
   callback.length>=16&&business.length>=16;
  return {provider:'xendit' as const,environment:mode,sandboxEnabled,
