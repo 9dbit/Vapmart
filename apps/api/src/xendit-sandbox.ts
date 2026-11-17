@@ -4,7 +4,7 @@ import {BadGatewayException,BadRequestException,ForbiddenException,Injectable,Se
 const BASE='https://api.xendit.co';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const sessionId=/^ps-[a-zA-Z0-9-]{24}$/;
-const terminal=new Set(['COMPLETED','EXPIRED','CANCELED']);
+
 const validTestHosts=new Set(['checkout-staging.xendit.co','dev.xen.to']);
 const string=(v:unknown)=>typeof v==='string'?v:'';
 const object=(v:unknown):Record<string,unknown>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:{};
@@ -15,6 +15,7 @@ export function xenditSandboxReadiness(env:NodeJS.ProcessEnv=process.env){
  const callback=env.XENDIT_WEBHOOK_TOKEN||'';
  const business=env.XENDIT_BUSINESS_ID||'';
  const mode=env.XENDIT_ENVIRONMENT||'test';
+ const channels=env.XENDIT_ALLOWED_CHANNELS||'';
  const sandboxEnabled=mode==='test'&&env.XENDIT_SANDBOX_ENABLED==='true'&&
   key.length>24&&key.startsWith('xnd_development');
  const webhookEnabled=mode==='test'&&env.XENDIT_WEBHOOK_ENABLED==='true'&&
@@ -22,12 +23,14 @@ export function xenditSandboxReadiness(env:NodeJS.ProcessEnv=process.env){
  return {provider:'xendit' as const,environment:mode,sandboxEnabled,
   webhookEnabled,liveEnabled:false,
   merchantConfigured:Boolean(business),testKeyConfigured:key.length>24,
+  channelsConfigured:Boolean(channels.trim()),
   callbackTokenConfigured:callback.length>=16,
   paymentEnabled:false, // Never expose gateway checkout before settlement integration
   missing:[
    ...(!business?['XENDIT_BUSINESS_ID']:[]),
    ...(!key?['XENDIT_TEST_SECRET_KEY']:[]),
    ...(!callback?['XENDIT_WEBHOOK_TOKEN']:[]),
+   ...(!channels?['XENDIT_ALLOWED_CHANNELS']:[]),
    ...(env.XENDIT_SANDBOX_ENABLED!=='true'?['XENDIT_SANDBOX_ENABLED']:[]),
    ...(env.XENDIT_WEBHOOK_ENABLED!=='true'?['XENDIT_WEBHOOK_ENABLED']:[])
   ]};
@@ -37,8 +40,19 @@ export function xenditSessionReference(invoice:string,attempt:number){
   throw new BadRequestException('Invalid Xendit session reference');
  return invoice+'-PAY'+attempt;
 }
+/** Xendit channel codes must be confirmed against the merchant's activated
+ * channel list before sandbox onboarding. No open-all checkout by default.
+ */
+export function xenditSelectedChannels(value:unknown):string[]{
+ if(typeof value!=='string')throw new ServiceUnavailableException({code:'XENDIT_CHANNELS_NOT_CONFIGURED'});
+ const channels=value.split(',').map(x=>x.trim()).filter(Boolean);
+ if(!channels.length||channels.length>25||new Set(channels).size!==channels.length||
+  channels.some(x=>!/^[A-Z][A-Z0-9_]{1,39}$/.test(x)))
+  throw new ServiceUnavailableException({code:'XENDIT_CHANNELS_INVALID'});
+ return channels;
+}
 export type SessionContext={referenceId:string;amountIdr:number;orderId:string;email:string;
- customerName:string;phone:string;returnOrigin:string};
+ customerName:string;phone:string;returnOrigin:string;allowedChannels?:string[]};
 export function buildXenditPaySession(input:SessionContext){
  if(!uuid.test(input.orderId)||!/^[A-Za-z0-9-]{8,50}$/.test(input.referenceId)||
   !Number.isSafeInteger(input.amountIdr)||input.amountIdr<=0||input.amountIdr>1000000000)
@@ -62,6 +76,7 @@ export function buildXenditPaySession(input:SessionContext){
   country:'ID' as const,
   capture_method:'AUTOMATIC' as const,
   allow_save_payment_method:'DISABLED' as const,
+  ...(input.allowedChannels?.length?{allowed_payment_channels:input.allowedChannels}:{}),
   locale:'id',
   description:'Vapmart - '+input.referenceId,
   success_return_url:origin.origin+'/pesanan/'+input.orderId+'?payment=return',
