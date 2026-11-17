@@ -1,0 +1,62 @@
+name: CP53 Xendit Sandbox Integration Safety QA
+on:
+  push:
+    branches: [feat/vapmart-cp53-xendit-sandbox-foundation-20261117]
+  pull_request:
+    branches: [release/vapmart-stable]
+permissions:
+  contents: read
+jobs:
+  xendit-sandbox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: vapmart_test
+          POSTGRES_PASSWORD: fixture_only_cp53
+          POSTGRES_DB: vapmart_cp39_cp53_xendit
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U vapmart_test -d vapmart_cp39_cp53_xendit"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgres://vapmart_test:fixture_only_cp53@127.0.0.1:5432/vapmart_cp39_cp53_xendit
+      CP39_LOCAL_TEST: '1'
+      CHECKOUT_ENABLED: 'false'
+      DIGITAL_COMMERCE_ENABLED: 'false'
+      PAYMENT_MODE: disabled
+      XENDIT_ENVIRONMENT: test
+      XENDIT_SANDBOX_ENABLED: 'false'
+      XENDIT_WEBHOOK_ENABLED: 'false'
+      XENDIT_SANDBOX_ORDER_ENABLED: 'false'
+      SHIPPING_RATE_LOOKUP_ENABLED: 'false'
+      SHIPPING_FEE_IDR: '15000'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install API
+        run: npm ci --no-audit --no-fund --prefix apps/api
+      - name: Build API
+        run: npm run build --prefix apps/api
+      - name: Run unit tests including Xendit
+        run: npm test --prefix apps/api
+      - name: Run idempotent migrations
+        working-directory: apps/api
+        run: |
+          npm run migrate
+          npm run migrate
+      - name: Seed and test manual checkout baseline
+        working-directory: apps/api
+        run: npx tsx --test test/integration/checkout-conversion.ts
+      - name: Xendit isolated PostgreSQL schema and duplicate-callback tests
+        working-directory: apps/api
+        run: npx tsx --test test/integration/xendit-sandbox.ts
+      - name: Install storefront
+        run: npm ci --no-audit --no-fund --prefix apps/web
+      - name: Build Next.js with test-mode webhook proxy
+        run: npm run build --prefix apps/web

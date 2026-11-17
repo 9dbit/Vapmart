@@ -3,6 +3,7 @@ import { AdminGuard,CustomerGuard,SupabaseAuthService,type Principal } from './a
 import {BrandsService} from './brands';
 import {MediaService} from './media';
 import {CheckoutService} from './checkout';
+import {XenditPaymentSessionsService} from './xendit-payment-sessions';
 import { DatabaseService } from './database';
 import { ProductsService } from './products';
 
@@ -81,7 +82,7 @@ export class MediaController{
 }
 @Controller('v1/checkout')
 export class CheckoutController{
- constructor(private readonly checkout:CheckoutService,private readonly auth:SupabaseAuthService){}
+ constructor(private readonly checkout:CheckoutService,private readonly auth:SupabaseAuthService,private readonly xendit:XenditPaymentSessionsService){}
  @Get('config')
  config(){return this.checkout.config();}
  @Post('quote')
@@ -95,7 +96,10 @@ export class CheckoutController{
  order(@Req() req:{user:Principal},@Param('id') id:string){return this.checkout.getOrder(req.user,id);}
  @Post('orders/:id/payment-session')
  @UseGuards(CustomerGuard)
- paymentSession(){return this.checkout.paymentSession();}
+ paymentSession(@Req() req:{user:Principal},@Param('id') id:string,@Body() input:unknown){return this.xendit.prepare(req.user,id,input);}
+ @Get('orders/:id/payment-session')
+ @UseGuards(CustomerGuard)
+ getPaymentSession(@Req() req:{user:Principal},@Param('id') id:string){return this.xendit.current(req.user,id);}
 }
 
 @Controller('v1/orders')
