@@ -38,7 +38,7 @@ export class XenditWebhookInboxService{
     // must first be independently read from the provider and reconciled with
     // the immutable expected amount, currency, session and unique payment_id.
     await client.query(
-     'UPDATE product.xendit_payment_sessions SET state=$2,provider_status=$3,payment_id=$4,payment_request_id=$5,updated_at=now() WHERE id=$1 AND state IN (\'active\',\'creating\',\'awaiting_reconciliation\')',
+     'UPDATE product.xendit_payment_sessions SET state=$2,provider_status=$3,payment_id=$4,payment_request_id=$5,updated_at=now() WHERE id=$1 AND (state IN (\'active\',\'creating\') OR (state=\'awaiting_reconciliation\' AND $3=\'COMPLETED\'))',
      [matched!.id,event.status==='COMPLETED'?'awaiting_reconciliation':'expired',
       event.status,event.paymentId,event.paymentRequestId]);
    }
