@@ -27,6 +27,7 @@ Official docs checked (API docs updated November 11, 2026):
 - Return URLs: `https://vapmart-web-staging.up.railway.app/pesanan/{orderId}?payment=return` (sandbox default). **Browser redirect is NOT proof of payment.**
 - Xendit webhook events: `payment_session.completed`, `payment_session.expired`. Receive through `https://vapmart.id/api/webhooks/xendit/payment-sessions` (or staging hostname for sandbox). Next.js forwards the exact bytes and `x-callback-token` to NestJS.
 - Token compared constant-time, business ID matched, session/reference/amount/currency validated. Private webhook inbox prevents duplicate processing and quarantines unexpected callbacks.
+- Require explicit merchant-approved `allowed_payment_channels`, so hosted checkout does not unintentionally show extra instruments. Codes must be confirmed in Xendit dashboard and official provider docs.
 - Before any `paid` transition, retrieve authoritative provider session and validate status, amount IDR, reference, business ID, payment request and unique payment ID, then apply one idempotent DB transaction with audit trail. **CP53 intentionally does NOT mark orders paid**.
 - Separate immutable Xendit session and webhook inbox tables in private `product` schema, migration `031_xendit_sandbox_foundation.sql`. No public DB write grants.
 
@@ -49,6 +50,7 @@ The operator must configure these in Railway's private API service Settings / Va
 | `XENDIT_TEST_SECRET_KEY` | Xendit Test Mode secret API key, money-in permission | API calls |
 | `XENDIT_BUSINESS_ID` | Merchant's Xendit business ID | merchant matching |
 | `XENDIT_WEBHOOK_TOKEN` | Xendit dashboard callback verification token | callbacks |
+| `XENDIT_ALLOWED_CHANNELS` | Comma-separated, merchant-verified Xendit channel codes | restrict checkout to approved channels |
 | `XENDIT_RETURN_ORIGIN` | `https://vapmart-web-staging.up.railway.app` | return URL |
 | `XENDIT_SANDBOX_ENABLED` | initially `false` | outbound session API |
 | `XENDIT_WEBHOOK_ENABLED` | initially `false` | webhook inbox |
