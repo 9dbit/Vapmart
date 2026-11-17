@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
  xenditSandboxReadiness,xenditSessionReference,buildXenditPaySession,
- parseXenditSession,parseXenditWebhook,safeXenditCallbackToken,xenditWebhookHash,
+ parseXenditSession,parseXenditWebhook,safeXenditCallbackToken,xenditWebhookHash,xenditSelectedChannels,
  XenditSandboxClient
 } from '../src/xendit-sandbox';
 import {XenditPaymentSessionsService} from '../src/xendit-payment-sessions';
@@ -123,4 +123,11 @@ test('sandbox prepare stays disabled even for forged or authenticated buyer orde
  const service=new XenditPaymentSessionsService(db as never,new XenditSandboxClient());
  await assert.rejects(()=>service.prepare({id:order,email:'buyer@example.test',emailVerified:true},
   order,{idempotencyKey:order}),/Sandbox Xendit belum diaktifkan/);
+});
+
+test('sandbox requires explicit merchant-verified channels before remote creation',()=>{
+ assert.deepEqual(xenditSelectedChannels('DANA,BRI_DIRECT_DEBIT'),['DANA','BRI_DIRECT_DEBIT']);
+ assert.throws(()=>xenditSelectedChannels(''),/Service Unavailable/);
+ assert.throws(()=>xenditSelectedChannels('DANA,DANA'),/Service Unavailable/);
+ assert.throws(()=>xenditSelectedChannels('DANA,http://malicious'),/Service Unavailable/);
 });
