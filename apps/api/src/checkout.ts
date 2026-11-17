@@ -53,6 +53,7 @@ export function priceBasket(items:BasketItem[],rows:Array<{id:string;sku:string|
    if(product.stock_qty<item.quantity)throw new ConflictException('Stok tidak mencukupi untuk '+product.name);
    const unitPriceIdr=effectivePrice(product);
    if(!Number.isSafeInteger(unitPriceIdr)||unitPriceIdr<0)throw new ServiceUnavailableException('Harga produk belum valid');
+   if(unitPriceIdr===0)throw new ConflictException('Harga '+product.name+' belum ditetapkan oleh admin. Produk belum dapat dipesan.');
    return {productId:item.productId,brandId:product.fulfillment_owner_brand_id===undefined?(product.brand_id||null):product.fulfillment_owner_brand_id,sku:product.sku,name:product.name,unitPriceIdr,quantity:item.quantity,lineTotalIdr:unitPriceIdr*item.quantity,stockQty:product.stock_qty};
  });
  const subtotalIdr=priced.reduce((sum,item)=>sum+item.lineTotalIdr,0);
