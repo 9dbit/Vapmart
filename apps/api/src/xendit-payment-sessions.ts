@@ -3,7 +3,7 @@ import {BadRequestException,ConflictException,ForbiddenException,Injectable,NotF
 import {DatabaseService} from './database';
 import type {Principal} from './auth';
 import {XenditSandboxClient,buildXenditPaySession,parseXenditSession,xenditSandboxReadiness,xenditSessionReference,
- XenditTransportError,type XenditSession} from './xendit-sandbox';
+ XenditTransportError,xenditSelectedChannels,type XenditSession} from './xendit-sandbox';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 type OrderRow={id:string;invoice_number:string;total_idr:string;currency:string;status:string;
@@ -80,6 +80,7 @@ export class XenditPaymentSessionsService{
     referenceId:attempt.reference,amountIdr:attempt.amountIdr,orderId,
     email:user.email,customerName:attempt.order.contact_name,
     phone:attempt.order.contact_phone,
+    allowedChannels:xenditSelectedChannels(process.env.XENDIT_ALLOWED_CHANNELS),
     returnOrigin:process.env.XENDIT_RETURN_ORIGIN||'https://vapmart-web-staging.up.railway.app'
    });
    session=await this.xendit.createSession(payload);
