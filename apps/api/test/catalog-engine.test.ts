@@ -10,7 +10,18 @@ import {AdminGuard,CustomerGuard} from '../src/auth';
 import {GUARDS_METADATA} from '@nestjs/common/constants';
 test('CP39 CSV parses quotes, BOM, newlines and rejects malformed structure',()=>{
  const p=parseCSV('\uFEFFID,Name,Description\r\n1,"Desk, light","First line\nSecond ""quoted"" line"\r\n');assert.equal(p.rows.length,1);assert.equal(p.rows[0].Name,'Desk, light');assert.match(p.rows[0].Description,/"quoted"/);
- for(const text of ['A,A\n1,2','A,B\n1','A\n"unclosed','A,B\n"hello"x,2'])assert.throws(()=>parseCSV(text));
+ for(const text of ['A,B\n1','A\n"unclosed','A,B\n"hello"x,2'])assert.throws(()=>parseCSV(text));
+ const duplicates=parseCSV('Name,SKU,Name\nDesk,D-1,Desk 2');
+ assert.deepEqual(duplicates.headers,['Name','SKU','Name [kolom 3]']);
+ assert.equal(duplicates.rows[0]['Name [kolom 3]'],'Desk 2');
+ assert.ok(duplicates.warnings.some(w=>w.field==='Name [kolom 3]'));
+ const repaired=parseCSV('Name,,Price,\nLamp,metadata,1000,\n');
+ assert.deepEqual(repaired.headers,['Name','Kolom tanpa nama 2','Price']);
+ assert.equal(repaired.rows[0]['Kolom tanpa nama 2'],'metadata');
+ assert.equal(repaired.warnings.length,2);
+ const utf=parseCSV('\uFEFFsep=;\r\nName;SKU;Description\r\nPen;P-1;"Black, deep"\r\n');
+ assert.deepEqual(utf.headers,['Name','SKU','Description']);
+ assert.equal(utf.rows[0].Description,'Black, deep');
  assert.equal(csvInteger('','Stock',true),null);assert.equal(csvInteger('0','Stock',true),0);assert.throws(()=>csvInteger('1,000','Stock'));assert.throws(()=>csvInteger('-2','Stock'));
 });
 test('CSV generated slugs remain valid when a long name is cut at a word boundary',()=>{
