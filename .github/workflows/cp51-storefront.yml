@@ -1,0 +1,30 @@
+name: CP51 Storefront Guard & Catalog Performance
+on:
+  push:
+    branches: [feat/vapmart-cp51-storefront-20261117]
+  pull_request:
+    branches: [release/vapmart-stable]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CHECKOUT_ENABLED: 'false'
+      DIGITAL_COMMERCE_ENABLED: 'false'
+      PAYMENT_MODE: disabled
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund --prefix apps/api
+      - name: API build
+        run: npm run build --prefix apps/api
+      - name: API unit tests
+        run: npm test --prefix apps/api
+      - run: npm ci --no-audit --no-fund --prefix apps/web
+      - name: Next.js production build
+        run: npm run build --prefix apps/web
