@@ -8,6 +8,7 @@ import {parsePage,pageResult} from './data-integrity';
 import {shippingFingerprint,shippingParcelFingerprint} from './shipping-fingerprint';
 import {shippingSnapshotProvider,shippingConfig} from './shipping-config';
 import {bestAutomaticPromotion} from './promotions';
+import {paymentGatewayReadiness} from './payment-gateway-readiness';
 
 type BasketItem={productId:string;quantity:number};
 type PricedItem={productId:string;brandId:string|null;sku:string|null;name:string;unitPriceIdr:number;quantity:number;lineTotalIdr:number;stockQty:number};
@@ -59,7 +60,7 @@ export function priceBasket(items:BasketItem[],rows:Array<{id:string;sku:string|
  const subtotalIdr=priced.reduce((sum,item)=>sum+item.lineTotalIdr,0);
  const shippingFeeIdr=shippingAmount();
  return {items:priced,subtotalIdr,discountIdr:0,voucherDiscountIdr:0,voucherCode:null,voucherId:null,promotionDiscountIdr:0,promotionEventId:null,promotionTitle:null,shippingFeeIdr,totalIdr:shippingFeeIdr===null?null:subtotalIdr+shippingFeeIdr,
-  currency:'IDR',shippingEstimate:true,paymentEnabled:false,paymentMethods:[...PAYMENT_METHODS]};
+  currency:'IDR',shippingEstimate:true,paymentEnabled:false,paymentMethods:paymentGatewayReadiness().availableMethods};
 }
 type Address={name:string;phone:string;address:string;city:string;province:string;postalCode:string;paymentMethod:typeof PAYMENT_METHODS[number];idempotencyKey:string;shippingQuoteId:string|null;voucherCode:string|null;destinationAreaId?:string};
 function addressString(raw:unknown,label:string,min:number,max:number):string{
@@ -96,7 +97,7 @@ export function parseDraftOrder(raw:unknown){
 @Injectable()
 export class CheckoutService{
  constructor(private readonly db:DatabaseService){}
- config(){return {paymentEnabled:false,providerConnected:false,methods:PAYMENT_METHODS,shippingFeeIdr:shippingAmount(),shippingMode:shippingConfig().rateLookupEnabled?'courier_select':'fixed_estimate',ordersMode:'draft_only'};}
+ config(){const gateway=paymentGatewayReadiness();return {paymentEnabled:gateway.paymentEnabled,providerConnected:gateway.connected,methods:gateway.availableMethods,gateway,shippingFeeIdr:shippingAmount(),shippingMode:shippingConfig().rateLookupEnabled?'courier_select':'fixed_estimate',ordersMode:'manual_bank_transfer'};}
  async quoted(items:BasketItem[],query:(sql:string,params:unknown[])=>Promise<{rows:any[]}>,code:string|null=null,userId:string|null=null,overrides?:Map<string,number>):Promise<Quote>{
    const rows=await query(`SELECT p.* FROM product.products p WHERE p.id=ANY($1::uuid[]) AND ${sellableSQL}`,[items.map(x=>x.productId)]);
    let quote=priceBasket(items,rows.rows.map(p=>overrides?.has(p.id)?{...p,price_idr:overrides.get(p.id),sale_price_idr:null}:p));
@@ -121,6 +122,7 @@ export class CheckoutService{
  async createDraft(user:Principal,raw:unknown){
    if(!user.email||!user.emailVerified)throw new ForbiddenException('Masuk dengan email yang sudah diverifikasi');
    const {items,details}=parseDraftOrder(raw);
+   if(details.paymentMethod!=='bank_transfer')throw new ServiceUnavailableException({code:'PAYMENT_GATEWAY_NOT_CONNECTED',message:'QRIS, Virtual Account, dan e-wallet belum terhubung. Gunakan transfer manual sampai gateway siap.'});
    return this.db.transaction(async client=>{
      await inventoryLock(client);
      const hash=createHash('sha256').update(JSON.stringify({items,details:{...details,idempotencyKey:undefined}})).digest('hex');

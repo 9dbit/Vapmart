@@ -15,12 +15,14 @@ type ShippingOption={quoteId:string;expiresAt:string;courierCode:string;courierN
 type ShippingConfig={rateLookupEnabled:boolean;bookingEnabled:boolean;paymentEnabled:boolean;rateType:string;requiresArea?:boolean;provider?:string;originLabel?:string};
 type DraftForm={name:string;phone:string;address:string;city:string;province:string;postalCode:string;paymentMethod:'bank_transfer'|'qris'|'virtual_account'|'ewallet'};
 const initial:DraftForm={name:'',phone:'',address:'',city:'',province:'',postalCode:'',paymentMethod:'bank_transfer'};
+type CheckoutConfig={paymentEnabled:boolean;providerConnected:boolean;methods:DraftForm['paymentMethod'][];gateway?:{provider:string|null;status:string}};
 const methods=[{id:'bank_transfer',name:'Bank Transfer',hint:'Buat pesanan sekarang; pembayaran diverifikasi manual oleh admin'},{id:'qris',name:'QRIS',hint:'Menunggu integrasi payment gateway'},{id:'virtual_account',name:'Virtual Account',hint:'Menunggu integrasi payment gateway'},{id:'ewallet',name:'E-Wallet',hint:'Menunggu integrasi payment gateway'}] as const;
 export default function CheckoutPage(){
  const {items,count}=useCart();
  const auth=useCustomerAuth();
  const router=useRouter();
  const [form,setForm]=useState<DraftForm>(initial);
+ const [checkoutConfig,setCheckoutConfig]=useState<CheckoutConfig|null>(null);
  const [voucherDraft,setVoucherDraft]=useState('');
  const [appliedVoucher,setAppliedVoucher]=useState('');
  const [quote,setQuote]=useState<Quote|null>(null);
@@ -44,6 +46,7 @@ export default function CheckoutPage(){
  const selectedShipping=shippingRates.find(r=>r.quoteId===selectedQuoteId)||null;
  const shippingPrice=shippingConfig?.rateLookupEnabled?(selectedShipping?.priceIdr??null):(quote?.shippingFeeIdr??null);
  const totalPreview=quote&&shippingPrice!==null?quote.subtotalIdr-quote.discountIdr+shippingPrice:null;
+ useEffect(()=>{fetch('/api/checkout/config',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error('Gateway config unavailable'))).then(setCheckoutConfig).catch(()=>setCheckoutConfig({paymentEnabled:false,providerConnected:false,methods:['bank_transfer']}));},[]);
  useEffect(()=>{fetch('/api/shipping/config',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error('Shipping unavailable'))).then(setShippingConfig).catch(()=>setShippingConfig({rateLookupEnabled:false,bookingEnabled:false,paymentEnabled:false,rateType:'disabled'}));},[]);
  useEffect(()=>{
   if(includesDigital||requestItems.length===0){setQuote(null);setError('');return;}
@@ -94,6 +97,7 @@ export default function CheckoutPage(){
  };
  const submit=async(event:FormEvent<HTMLFormElement>)=>{
   event.preventDefault();setError('');
+  if(form.paymentMethod!=='bank_transfer'&&!checkoutConfig?.methods.includes(form.paymentMethod)){setError('Metode pembayaran belum aktif. Gunakan transfer manual.');return;}
   if(!quote||totalPreview===null||includesDigital||!requestItems.length||(shippingConfig?.rateLookupEnabled&&!selectedShipping)){setError('Biaya pengiriman atau stok belum siap. Tunggu estimasi otomatis dan pilih layanan kurir.');return;}
   if(!auth.accessToken){setError('Silakan masuk terlebih dahulu.');return;}
   setBusy(true);
@@ -138,12 +142,12 @@ export default function CheckoutPage(){
     </div>:<p className="vco26-disclaimer">Pilihan jasa kurir live belum diaktifkan. Estimasi tarif standar tetap ditampilkan bila tersedia.</p>}
     <div className="vco26-card-heading vco26-payment-head"><span>03</span><div><h2>Voucher</h2><p>Gunakan kode voucher aktif bila tersedia.</p></div></div>
     <div className="vco26-voucher"><input aria-label="Kode voucher" value={voucherDraft} maxLength={32} placeholder="Kode voucher" onChange={e=>setVoucherDraft(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g,''))}/><button type="button" className="vco26-secondary" onClick={()=>{setAppliedVoucher(voucherDraft.trim());requestKey.current=null;}}>{appliedVoucher?'Perbarui voucher':'Terapkan voucher'}</button>{appliedVoucher&&<button type="button" className="vco26-secondary" onClick={()=>{setVoucherDraft('');setAppliedVoucher('');requestKey.current=null;}}>Hapus</button>}</div>
-    <div className="vco26-card-heading vco26-payment-head"><span>04</span><div><h2>Metode pembayaran</h2><p>Bank Transfer dapat dipakai untuk menguji checkout tanpa payment gateway. Metode gateway lain tetap belum aktif.</p></div></div>
-    <div className="vco26-methods">{methods.map(method=><label className={'vco26-method'+(form.paymentMethod===method.id?' selected':'')} key={method.id}>
-      <input type="radio" name="paymentMethod" value={method.id} checked={form.paymentMethod===method.id} onChange={()=>change('paymentMethod',method.id)}/>
+    <div className="vco26-card-heading vco26-payment-head"><span>04</span><div><h2>Metode pembayaran</h2><p>Transfer bank diproses melalui konfirmasi admin. QRIS, Virtual Account, dan e-wallet hanya bisa dipilih setelah integrasi gateway terverifikasi.</p></div></div>
+    <div className="vco26-methods">{methods.map(method=><label className={'vco26-method'+(form.paymentMethod===method.id?' selected':'')+(!checkoutConfig?.methods.includes(method.id)?' is-unavailable':'')} key={method.id}>
+      <input type="radio" name="paymentMethod" value={method.id} checked={form.paymentMethod===method.id} disabled={!checkoutConfig?.methods.includes(method.id)} onChange={()=>change('paymentMethod',method.id)}/>
       <span><strong>{method.name}</strong><small>{method.hint}</small></span><em>{method.id==='bank_transfer'?'Manual':'Gateway OFF'}</em>
     </label>)}</div>
-    <p className="vco26-disclaimer">Bank Transfer membuat pesanan berstatus menunggu pembayaran agar flow dashboard dapat diuji. Halaman ini tidak menampilkan nomor rekening dan tidak menandai pembayaran sebagai lunas secara otomatis.</p>
+    <p className="vco26-disclaimer">Transfer manual memerlukan instruksi rekening dari toko dan persetujuan admin setelah dana diterima. QRIS/VA/e-wallet belum terhubung, sehingga opsi itu dinonaktifkan agar tidak menciptakan pesanan yang tidak dapat dibayar.</p>
     {!auth.configured?<div className="vco26-warning">Autentikasi pelanggan belum dikonfigurasi. Draft pesanan belum dapat dibuat.</div>:
      !auth.user?<Link className="vco26-button" href="/login?next=/checkout">Masuk sebelum checkout ↗</Link>:
      <button className="vco26-button" type="submit" disabled={busy||quoting||shippingLoading||!quote||totalPreview===null||(shippingConfig?.rateLookupEnabled&&!selectedShipping)}>{busy?'Membuat pesanan...':'Buat pesanan ↗'}</button>}

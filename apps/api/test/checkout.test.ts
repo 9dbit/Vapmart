@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {parseBasket,parseDraftOrder,priceBasket} from '../src/checkout';
+import {CheckoutService,parseBasket,parseDraftOrder,priceBasket} from '../src/checkout';
 import {parseImageUpload} from '../src/media';
 import {cleanProduct} from '../src/products';
 const id='25f397b8-564f-46f4-971e-bc1d333ac1d0';
@@ -39,4 +39,11 @@ test('image upload rejects falsified content and markup',()=>{
 test('product supports brand references and gallery with strict URLs',()=>{
  assert.equal(cleanProduct({slug:'object-one',name:'Lampu Meja',category:'home',price_idr:200000,stock_qty:1,brand_id:id}).brand_id,id);
  assert.throws(()=>cleanProduct({gallery_urls:['javascript:alert(1)']},true),/Invalid image gallery/);
+});
+
+test('non-bank gateway methods cannot create an unpaid and unusable order',async()=>{
+ const db={transaction:async()=>{throw Error('database must never be written');}};
+ const service=new CheckoutService(db as never);
+ const actor={id, email:'customer@example.test',emailVerified:true};
+ await assert.rejects(()=>service.createDraft(actor as never,form),/QRIS, Virtual Account, dan e-wallet belum terhubung/);
 });
