@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseCSV,csvInteger,csvMeasurement,csvStock,plainDescription,generatedImportSlug} from '../src/catalog-csv';
+import {parseCSV,importFields,csvInteger,csvMeasurement,csvStock,plainDescription,generatedImportSlug} from '../src/catalog-csv';
 import {effectivePrice} from '../src/catalog-pricing';
 import {attributes,options,priceFields,stockInputs,imageUrl,safeCatalogTerms,slug,sku} from '../src/catalog-validation';
 import {cleanProduct} from '../src/products';
@@ -66,4 +66,16 @@ test('CP39 data remains text and restricted catalog safeguards remain',()=>{
 });
 test('CP39 write controllers keep server guards',()=>{
  assert.ok(Reflect.getMetadata(GUARDS_METADATA,CatalogAdminController).includes(AdminGuard));assert.ok(Reflect.getMetadata(GUARDS_METADATA,CatalogCustomerController).includes(CustomerGuard));
+});
+
+test('Vapmart exported CSV template header can be uploaded without false duplicate errors',()=>{
+ const names=Object.values(importFields);
+ const template='\uFEFF'+names.map(v=>'"'+v.replace(/"/g,'""')+'"').join(',')+'\r\n';
+ const p=parseCSV(template);
+ assert.deepEqual(p.headers,names);
+ assert.equal(p.rows.length,0);
+ assert.equal(p.warnings.length,0);
+ const withOptionalBlanks=parseCSV('Name,SKU,Regular price,,\r\nLamp,L-01,0,,\r\n');
+ assert.deepEqual(withOptionalBlanks.headers,['Name','SKU','Regular price']);
+ assert.equal(withOptionalBlanks.warnings.length,2);
 });
