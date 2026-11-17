@@ -9,11 +9,12 @@ import {formatIDR,type Product} from '@/lib/types';
 
 function ProductCard({product,index}:{product:Product;index:number}){
   const {add}=useCart();
-  const soldOut=product.stock_qty<=0;
+  const soldOut=product.stock_qty<=0,unpriced=product.price_idr<=0,unavailable=product.available===false;
+  const canAdd=!soldOut&&!unpriced&&!unavailable;
   return <article className="product-card"><Link href={`/product/${product.slug}`} className={`product-art product-art-${index%4}`} aria-label={`Lihat ${product.name}`}>
     {product.image_url?<img src={product.image_url} alt={product.name} loading="lazy" decoding="async" />:<div className="product-placeholder"><span className="placeholder-spark">✦</span><span>VAPMART OBJECTS</span></div>}
-    <span className="product-index">VM / {String(index+1).padStart(2,'0')}</span>{soldOut&&<span className="soldout-tag">Stok habis</span>}
-  </Link><FavoriteButton id={product.id} name={product.name} className="vm-cp17-card-favorite"/><div className="product-description"><div className="product-copy"><p className="eyebrow">{product.brand_name?product.brand_name+' · ':''}{product.category}{product.sku?` · SKU ${product.sku}`:''}</p><Link href={`/product/${product.slug}`}><h3>{product.name}</h3></Link><span className="vcs-price">{product.promo_active&&product.product_type!=='variable'&&<del>{formatIDR(product.regular_price_idr||product.price_idr)}</del>}<strong>{product.product_type==='variable'?'Mulai ':''}{formatIDR(product.price_idr)}</strong></span></div>{product.product_type==='variable'?<Link href={`/product/${product.slug}`} className="add-circle" aria-label={`Pilih variasi ${product.name}`}>+</Link>:<button type="button" disabled={soldOut} onClick={()=>add(product)} className="add-circle" aria-label={`Tambahkan ${product.name} ke keranjang`}>+</button>}</div></article>;
+    <span className="product-index">VM / {String(index+1).padStart(2,'0')}</span>{soldOut&&<span className="soldout-tag">Stok habis</span>}{!soldOut&&unpriced&&<span className="soldout-tag">Harga menyusul</span>}{!soldOut&&!unpriced&&unavailable&&<span className="soldout-tag">Belum tersedia</span>}
+  </Link><FavoriteButton id={product.id} name={product.name} className="vm-cp17-card-favorite"/><div className="product-description"><div className="product-copy"><p className="eyebrow">{product.brand_name?product.brand_name+' · ':''}{product.category}{product.sku?` · SKU ${product.sku}`:''}</p><Link href={`/product/${product.slug}`}><h3>{product.name}</h3></Link><span className="vcs-price">{product.promo_active&&product.product_type!=='variable'&&<del>{formatIDR(product.regular_price_idr||product.price_idr)}</del>}<strong>{unpriced?'Harga belum tersedia':(product.product_type==='variable'?'Mulai ':'')+formatIDR(product.price_idr)}</strong></span></div>{product.product_type==='variable'?<Link href={`/product/${product.slug}`} className="add-circle" aria-label={`Pilih variasi ${product.name}`}>+</Link>:<button type="button" disabled={!canAdd} onClick={()=>add(product)} className="add-circle" aria-label={`Tambahkan ${product.name} ke keranjang`}>+</button>}</div></article>;
 }
 const normalize=(value:string)=>value.toLocaleLowerCase('id-ID').trim();
 const match=(p:Product,query:string)=>normalize([p.name,p.sku??'',p.brand_name??'',p.description,p.category].join(' ')).includes(query);
@@ -26,6 +27,8 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
   const [term,setTerm]=useState(initialTerm);
   const [sort,setSort]=useState('newest');
   const [favoritesOnly,setFavoritesOnly]=useState(false);
+ const [readyOnly,setReadyOnly]=useState(false);
+ const [visibleCount,setVisibleCount]=useState(24);
   const {savedIds}=useWishlist();
   const [showSuggestions,setShowSuggestions]=useState(false);
   const [activeSuggestion,setActiveSuggestion]=useState(-1);
@@ -34,13 +37,14 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
   const activeProducts=useMemo(()=>products.filter(p=>p.is_active),[products]);
   const suggestions=useMemo(()=>query?activeProducts.filter(p=>match(p,query)).slice(0,5):[],[activeProducts,query]);
   const filtered=useMemo(()=>{
-    let result=activeProducts.filter(p=>categoryMatch(p)&&(!query||match(p,query))&&(!favoritesOnly||savedIds.includes(p.id)));
+    let result=activeProducts.filter(p=>categoryMatch(p)&&(!query||match(p,query))&&(!favoritesOnly||savedIds.includes(p.id))&&(!readyOnly||(p.price_idr>0&&p.stock_qty>0&&p.available!==false)));
     if(sort==='priceLow')result=[...result].sort((a,b)=>a.price_idr-b.price_idr);
     if(sort==='priceHigh')result=[...result].sort((a,b)=>b.price_idr-a.price_idr);
     return result;
-  },[activeProducts,category,query,sort,favoritesOnly,savedIds,categoryTree]);
+  },[activeProducts,category,query,sort,favoritesOnly,readyOnly,savedIds,categoryTree]);
+  useEffect(()=>setVisibleCount(24),[category,query,sort,favoritesOnly,readyOnly]);
   const pick=(p:Product)=>{setTerm(p.name);setCategory('all');setShowSuggestions(false);setActiveSuggestion(-1);searchRef.current?.focus();};
-  const reset=()=>{setCategory('all');setTerm('');setSort('newest');setFavoritesOnly(false);setShowSuggestions(false);setActiveSuggestion(-1);searchRef.current?.focus();};
+  const reset=()=>{setCategory('all');setTerm('');setSort('newest');setFavoritesOnly(false);setReadyOnly(false);setShowSuggestions(false);setActiveSuggestion(-1);searchRef.current?.focus();};
   const onSearchKey=(event:KeyboardEvent<HTMLInputElement>)=>{
     if(event.key==='Escape'){setShowSuggestions(false);setActiveSuggestion(-1);return;}
     if(!suggestions.length)return;
@@ -63,13 +67,14 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
     <div className="vm-results-row">
       <div className="results-meta" role="status" aria-live="polite">{filtered.length} produk ditemukan{query?` untuk “${term.trim()}”`:''}</div>
       <div className="vm-cp17-result-actions">
+        <button type="button" className={readyOnly?'vm-cp17-favorites-filter is-active':'vm-cp17-favorites-filter'} aria-pressed={readyOnly} onClick={()=>setReadyOnly(v=>!v)} aria-label="Tampilkan hanya produk siap dibeli">Siap dibeli</button>
         <button type="button" className={favoritesOnly?'vm-cp17-favorites-filter is-active':'vm-cp17-favorites-filter'}
           aria-pressed={favoritesOnly} onClick={()=>setFavoritesOnly(value=>!value)} aria-label="Tampilkan hanya produk favorit">
           <span aria-hidden="true">♡</span> Favorit <span className="vm-cp17-favorites-number">{activeProducts.filter(p=>savedIds.includes(p.id)).length}</span>
         </button>
-        {(query||category!=='all'||sort!=='newest'||favoritesOnly)&&<button type="button" className="vm-reset-filters" onClick={reset}>Reset filter ×</button>}
+        {(query||category!=='all'||sort!=='newest'||favoritesOnly||readyOnly)&&<button type="button" className="vm-reset-filters" onClick={reset}>Reset filter ×</button>}
       </div>
     </div>
-    {filtered.length>0?<div className="product-grid">{filtered.map((p,i)=><ProductCard product={p} key={p.id} index={i}/>)}</div>:<div className="empty-collection" role="status"><div className="empty-illustration" aria-hidden="true">✳</div><h3>{activeProducts.length===0?'Koleksi segera hadir.':favoritesOnly?'Belum ada favorit yang cocok.':'Belum ada produk yang cocok.'}</h3><p>{activeProducts.length===0?'Vapmart sedang menyiapkan koleksi baru.':favoritesOnly?'Gunakan ikon hati di kartu produk untuk menyimpan favorit, atau matikan filter favorit.':'Tidak ada hasil untuk pencarian atau kategori ini. Coba istilah lain atau reset filter.'}</p>{activeProducts.length>0&&<button type="button" className="vm-reset-filters vm-empty-reset" onClick={reset}>Tampilkan semua produk ↗</button>}<Link href="/" className="vm-empty-home">Kembali ke beranda</Link></div>}
+    {filtered.length>0?<><div className="product-grid">{filtered.slice(0,visibleCount).map((p,i)=><ProductCard product={p} key={p.id} index={i}/>)}</div>{visibleCount<filtered.length&&<div className="vcs-more-row"><span>Menampilkan {Math.min(visibleCount,filtered.length)} dari {filtered.length} produk</span><button type="button" className="vcs-show-more" onClick={()=>setVisibleCount(n=>n+24)}>Lihat 24 produk berikutnya</button></div>}</>:<div className="empty-collection" role="status"><div className="empty-illustration" aria-hidden="true">✳</div><h3>{activeProducts.length===0?'Koleksi segera hadir.':favoritesOnly?'Belum ada favorit yang cocok.':'Belum ada produk yang cocok.'}</h3><p>{activeProducts.length===0?'Vapmart sedang menyiapkan koleksi baru.':favoritesOnly?'Gunakan ikon hati di kartu produk untuk menyimpan favorit, atau matikan filter favorit.':'Tidak ada hasil untuk pencarian atau kategori ini. Coba istilah lain atau reset filter.'}</p>{activeProducts.length>0&&<button type="button" className="vm-reset-filters vm-empty-reset" onClick={reset}>Tampilkan semua produk ↗</button>}<Link href="/" className="vm-empty-home">Kembali ke beranda</Link></div>}
   </section>;
 }
