@@ -47,9 +47,10 @@ test('Xendit session request is IDR and hosted only; customer contact is normali
 });
 test('signed Xendit test checkout URLs accepted, unexpected redirect hosts rejected',()=>{
  assert.equal(parseXenditSession(session).payment_link_url,link);
- assert.throws(()=>parseXenditSession({...session,payment_link_url:'https://fake-checkout.example.test/pay'}),/XENDIT_UNTRUSTED_CHECKOUT_URL/);
- assert.throws(()=>parseXenditSession({...session,amount:0}),/XENDIT_INVALID_SESSION_RESPONSE/);
- assert.throws(()=>parseXenditSession({...session,currency:'USD'}),/XENDIT_INVALID_SESSION_RESPONSE/);
+ const hasCode=(code:string)=>(e:any)=>e?.getResponse?.()?.code===code;
+ assert.throws(()=>parseXenditSession({...session,payment_link_url:'https://fake-checkout.example.test/pay'}),hasCode('XENDIT_UNTRUSTED_CHECKOUT_URL'));
+ assert.throws(()=>parseXenditSession({...session,amount:0}),hasCode('XENDIT_INVALID_SESSION_RESPONSE'));
+ assert.throws(()=>parseXenditSession({...session,currency:'USD'}),hasCode('XENDIT_INVALID_SESSION_RESPONSE'));
 });
 test('Session webhook token, event/currency/amount and stable hash validation',()=>{
  assert.equal(safeXenditCallbackToken('token-1234567890-secret','token-1234567890-secret'),true);
