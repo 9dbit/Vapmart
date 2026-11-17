@@ -21,6 +21,9 @@ test('rejects duplicate items and unavailable stock',()=>{
  assert.throws(()=>parseBasket({items:[{productId:id,quantity:1},{productId:id,quantity:1}]}),/ganda/);
  assert.throws(()=>priceBasket([{productId:id,quantity:5}],[{id,sku:null,name:'Barang',price_idr:10,stock_qty:4,is_active:true}]),/Stok/);
 });
+test('zero placeholder price cannot create a free physical order',()=>{
+ assert.throws(()=>priceBasket([{productId:id,quantity:1}],[{id,sku:'TEMP',name:'Produk dummy',price_idr:0,stock_qty:4,is_active:true}]),/belum ditetapkan/);
+});
 test('validate checkout without allowing payment state injection',()=>{
  assert.equal(parseDraftOrder(form).details.paymentMethod,'qris');
  assert.equal(parseDraftOrder({...form,paymentMethod:'bank_transfer',voucherCode:'SAVE10'}).details.paymentMethod,'bank_transfer');
