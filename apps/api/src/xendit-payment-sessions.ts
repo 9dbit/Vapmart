@@ -50,6 +50,7 @@ export class XenditPaymentSessionsService{
    Object.keys(raw).some(k=>k!=='idempotencyKey'))throw new BadRequestException('Body sesi tidak valid');
   const key=(raw as Record<string,unknown>).idempotencyKey;
   if(typeof key!=='string'||!uuid.test(key))throw new BadRequestException('Kunci sesi tidak valid');
+  const selectedChannels=xenditSelectedChannels(process.env.XENDIT_ALLOWED_CHANNELS);
   const attempt=await this.db.transaction(async client=>{
    const found=await client.query<OrderRow>( 'SELECT id,invoice_number,total_idr::text,currency,status,operational_status,payment_status,payment_method,contact_name,contact_phone,contact_email,expires_at FROM product.orders WHERE id=$1 AND customer_user_id=$2 FOR UPDATE',[orderId,user.id]);
    const o=found.rows[0];
@@ -80,7 +81,7 @@ export class XenditPaymentSessionsService{
     referenceId:attempt.reference,amountIdr:attempt.amountIdr,orderId,
     email:user.email,customerName:attempt.order.contact_name,
     phone:attempt.order.contact_phone,
-    allowedChannels:xenditSelectedChannels(process.env.XENDIT_ALLOWED_CHANNELS),
+    allowedChannels:selectedChannels,
     returnOrigin:process.env.XENDIT_RETURN_ORIGIN||'https://vapmart-web-staging.up.railway.app'
    });
    session=await this.xendit.createSession(payload);
