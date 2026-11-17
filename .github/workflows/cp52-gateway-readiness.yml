@@ -1,0 +1,27 @@
+name: CP52 Payment Gateway Readiness QA
+on:
+  push:
+    branches: [feat/vapmart-cp52-gateway-readiness-20261117]
+  pull_request:
+    branches: [release/vapmart-stable]
+permissions:
+  contents: read
+jobs:
+  api-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CHECKOUT_ENABLED: 'false'
+      DIGITAL_COMMERCE_ENABLED: 'false'
+      PAYMENT_MODE: disabled
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund --prefix apps/api
+      - run: npm run build --prefix apps/api
+      - run: npm test --prefix apps/api
+      - run: npm ci --no-audit --no-fund --prefix apps/web
+      - run: npm run build --prefix apps/web
