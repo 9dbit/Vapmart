@@ -89,7 +89,8 @@ export class XenditPaymentSessionsService{
     session.status!=='ACTIVE'||session.business_id!==process.env.XENDIT_BUSINESS_ID||!session.payment_link_url)
     throw new ServiceUnavailableException({code:'XENDIT_SESSION_MISMATCH'});
   }catch(e){
-   const known=e instanceof XenditTransportError&&!e.retriable&&e.httpStatus>=400&&e.httpStatus<500;
+   const known=e instanceof XenditTransportError&&[400,401,403,404,422].includes(e.httpStatus);
+   // HTTP 409, timeout, or 5xx may have created an upstream session already.
    await this.db.query('UPDATE product.xendit_payment_sessions SET state=$2,last_error_code=$3,updated_at=now() WHERE id=$1',
     [attempt.recordId,known?'failed':'unknown',known?'PROVIDER_REJECTED':'PROVIDER_RESULT_UNCERTAIN']);
    throw new ServiceUnavailableException({code:known?'XENDIT_SESSION_REJECTED':'XENDIT_SESSION_RESULT_UNKNOWN',
