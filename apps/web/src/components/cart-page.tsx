@@ -1,4 +1,5 @@
 'use client';
+import {Icon} from './store-icon';
 import Link from 'next/link';
 import '../app/catalog-store.css';
 import {useCart} from '@/lib/cart';
@@ -36,14 +37,14 @@ export function CartPageContent(){
         {items.map(({product,quantity})=><article className="vm21-cart-product" key={product.id}>
           <div className="vm21-cart-product-image">{product.image_url?<img src={product.image_url} alt={product.name}/>:<span aria-hidden="true">{isDigitalProduct(product)?'V':'✦'}</span>}</div>
           <div className="vm21-cart-product-body">
-            <span className="vm21-eyebrow">{isDigitalProduct(product)?'DIGITAL · COIN / MEMBER':'PRODUK STAGING'}</span>
+            {isDigitalProduct(product)&&<span className="vm21-eyebrow">DIGITAL · COIN / MEMBER</span>}
             {isDigitalProduct(product)?<Link href="/member-2"><h2>{product.name}</h2></Link>:<Link href={'/product/'+(product.parent_slug||product.slug)}><h2>{product.name}</h2></Link>}
             <p>{isDigitalProduct(product)?'Dikirim ke akun setelah pembayaran terverifikasi':product.category}</p>
             <strong>{formatIDR(product.price_idr)}</strong>{!isDigitalProduct(product)&&(!product.is_active||product.stock_qty<=0)&&<p className="vcs-unavailable">SKU tidak tersedia. Hapus atau pilih variasi lain.</p>}
             <div className="vm21-cart-product-actions">
               {!isDigitalProduct(product)&&<div className="vm21-drawer-qty">
-                <button type="button" disabled={quantity<=1} onClick={()=>setQuantity(product.id,quantity-1)} aria-label={'Kurangi '+product.name}>−</button><span>{quantity}</span>
-                <button type="button" disabled={quantity>=product.stock_qty} onClick={()=>setQuantity(product.id,quantity+1)} aria-label={'Tambah '+product.name}>+</button>
+                <button type="button" disabled={quantity<=1} onClick={()=>setQuantity(product.id,quantity-1)} aria-label={'Kurangi '+product.name}><Icon name="minus"/></button><span>{quantity}</span>
+                <button type="button" disabled={quantity>=Math.min(product.stock_qty,99)} onClick={()=>setQuantity(product.id,quantity+1)} aria-label={'Tambah '+product.name}><Icon name="plus"/></button>
               </div>}
               {isDigitalProduct(product)&&<span className="vm21-digital-qty">1 paket</span>}
               <button type="button" className="vm21-remove-action" onClick={()=>remove(product.id)} aria-label={'Hapus '+product.name}>Hapus</button>
