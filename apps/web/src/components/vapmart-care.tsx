@@ -27,6 +27,7 @@ export function VapmartCare() {
     }
     loadedOnStorefront.current = true;
     let attempts = 0;
+    let suspended = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
     let script: HTMLScriptElement | null = null;
 
@@ -43,10 +44,11 @@ export function VapmartCare() {
       script?.remove();
       script = null;
       checkVisibility();
-      if (attempts < 3) retry = setTimeout(loadScript, attempts * 1500);
+      if (!suspended && attempts < 3) retry = setTimeout(loadScript, attempts * 1500);
     }
 
     function loadScript() {
+      if (suspended) return;
       const existing = document.getElementById(scriptId) as HTMLScriptElement | null;
       if (existing) {
         script = existing;
@@ -66,7 +68,13 @@ export function VapmartCare() {
       document.head.appendChild(script);
     }
 
+    function suspend() {
+      suspended = true;
+      clearTimeout(retry);
+    }
+
     function online() {
+      suspended = false;
       clearTimeout(retry);
       attempts = 0;
       loadScript();
@@ -85,7 +93,8 @@ export function VapmartCare() {
     document.body.addEventListener('load', checkVisibility, true);
     document.body.addEventListener('error', checkVisibility, true);
     window.addEventListener('online', online);
-    window.addEventListener('pageshow', checkVisibility);
+    window.addEventListener('pageshow', online);
+    window.addEventListener('pagehide', suspend);
     window.addEventListener('resize', checkVisibility);
     loadScript();
     checkVisibility();
@@ -97,7 +106,8 @@ export function VapmartCare() {
       document.body.removeEventListener('load', checkVisibility, true);
       document.body.removeEventListener('error', checkVisibility, true);
       window.removeEventListener('online', online);
-      window.removeEventListener('pageshow', checkVisibility);
+      window.removeEventListener('pageshow', online);
+      window.removeEventListener('pagehide', suspend);
       window.removeEventListener('resize', checkVisibility);
     };
   }, [storefront]);

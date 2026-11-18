@@ -223,10 +223,19 @@ def verify_care(page, base):
     expect(fallback).to_be_visible()
     # Complete script outage keeps a usable link to this merchant's chat.
     page.unroute(embed)
-    page.route(embed, lambda route: route.abort())
+    outages = []
+    def unavailable(route):
+        outages.append(1)
+        route.fulfill(status=503, content_type='text/plain', body='Unavailable')
+    page.route(embed, unavailable)
     page.reload(wait_until='domcontentloaded')
     expect(fallback).to_be_visible()
     expect(fallback).to_have_attribute('href','https://chatvice.app/widget/m_d74410c444e2726c')
+    for _ in range(150):
+        if len(outages) == 3: break
+        page.wait_for_timeout(50)
+    assert len(outages) == 3
+    expect(page.locator('head #vapmart-chatvice-care')).to_have_count(0)
     # A subsequent page load recovers normally.
     page.unroute(embed)
     page.route(embed, lambda route: route.fulfill(content_type='application/javascript',body=provider))
