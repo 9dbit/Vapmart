@@ -1,3 +1,4 @@
+import {courierRecipientAddress} from './shipping-address';
 import {BadRequestException,ConflictException,ForbiddenException,Injectable,NotFoundException,ServiceUnavailableException,UnauthorizedException} from '@nestjs/common';
 import {createHash,timingSafeEqual} from 'node:crypto';
 import type {PoolClient} from 'pg';
@@ -68,6 +69,7 @@ export class JubelioDispatchService{
   // than silently sending a courier to a different pickup area.
   const origin=await this.jubelio.destination(row.origin_postal_code!);
   if(origin.areaId!==quote!.origin_area_id)throw new ConflictException('Kelurahan gudang berbeda dari asal tarif Jubelio');
+  if(row.address_region?.areaId&&row.address_region.areaId!==quote!.destination_area_id)throw new ConflictException('Wilayah pesanan berbeda dari tarif kurir.');
   const destination=await this.jubelio.destination(row.postal_code!,quote!.destination_area_id);
   const rates=await this.jubelio.rates(destination,goods.map(g=>({quantity:g.quantity,value:Number(g.price_idr),weight:g.weight_grams!,length:g.length_cm!,width:g.width_cm!,height:g.height_cm!})));
   const rate=rates.find(r=>r.providerServiceId===quote!.provider_service_id&&r.courierCode===row.shipping_courier_code&&r.serviceCode===row.shipping_service_code);
@@ -75,7 +77,7 @@ export class JubelioDispatchService{
   const payload={ref_no:vapmartShipmentReference(row.order_id,batchId),courier_id:Number(rate.courierCode),courier_service_id:rate.providerServiceId,
    shipping_insurance:rate.insuranceIdr,is_insurance:rate.insuranceIdr>0,is_cod:false,cod_amount:0,
    origin:{name:row.origin_contact_name,email:process.env.SHIPPING_SENDER_EMAIL||'hello@vapmart.id',phone:row.origin_contact_phone,address:row.origin_address,area_id:origin.areaId,coordinate:'',zipcode:origin.postalCode},
-   destination:{name:row.contact_name,email:row.contact_email||'',phone:row.contact_phone,address:row.address_line,area_id:destination.areaId,coordinate:'',zipcode:destination.postalCode},
+   destination:{name:row.contact_name,email:row.contact_email||'',phone:row.contact_phone,address:courierRecipientAddress(row),area_id:destination.areaId,coordinate:'',zipcode:destination.postalCode},
    items:goods.map(g=>({item_code:g.sku||g.product_id,item_name:g.name,category:'-',quantity:g.quantity,value:Number(g.price_idr),weight:g.weight_grams,length:g.length_cm,width:g.width_cm,height:g.height_cm}))};
   return {...context,rate,payload,fingerprint:hash({snapshotHash:context.snapshotHash,payload,fee:rate.priceIdr})};
  }

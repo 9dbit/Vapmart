@@ -1,12 +1,13 @@
 'use client';
 import {useRef,useState} from 'react';
 import {useCatalogAdmin,CatalogNotice} from './catalog-admin-shell';
+import {IndonesiaAddressPicker} from './indonesia-address-picker';
 import {ShippingRegionPicker} from './shipping-region-picker';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {formatIDR} from '@/lib/types';
 export function CatalogOrderEditor({data,onSaved,onCancel}:{data:any;onSaved:()=>void;onCancel:()=>void}){
  const {request}=useCatalogAdmin(),auth=useCustomerAuth(),o=data.order;
- const [contact,setContact]=useState({name:o.contact_name||'',phone:o.contact_phone||'',address:o.address_line||'',city:o.city||'',province:o.province||'',postalCode:o.postal_code||'',areaId:data.destinationAreaId||null});
+ const [contact,setContact]=useState({name:o.contact_name||'',phone:o.contact_phone||'',address:o.address_line||'',city:o.city||'',province:o.province||'',postalCode:o.postal_code||'',areaId:data.destinationAreaId||null,...(o.address_region?.provinceId?{provinceId:o.address_region.provinceId}:{})});
  const [items,setItems]=useState<any[]>(data.items.map((i:any)=>({productId:i.product_id,name:i.product_name,sku:i.sku,quantity:i.quantity,unitPriceIdr:Number(i.unit_price_idr)})));
  const [fees,setFees]=useState<any[]>(o.additional_fees||[]),[voucherCode,setVoucherCode]=useState(o.voucher_code||''),[notes,setNotes]=useState(''),[q,setQ]=useState(''),[found,setFound]=useState<any[]>([]),[rates,setRates]=useState<any[]>([]),[shippingQuoteId,setShippingQuoteId]=useState<string|null>(null),[preview,setPreview]=useState<any>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const generation=useRef(0);
@@ -18,8 +19,11 @@ export function CatalogOrderEditor({data,onSaved,onCancel}:{data:any;onSaved:()=
  async function review(){await perform(async()=>{const g=generation.current;const r=await request('orders/'+o.id+'/preview',body());if(g===generation.current)setPreview(r)})}
  async function save(){if(!preview||preview.shippingNeeded)return;await perform(async()=>{await request('orders/'+o.id,{...body(),previewHash:preview.previewHash},'PATCH');onSaved()})}
  return <section className="vc-panel"><h2>Edit pesanan</h2><p>Periksa perubahan dan total sebelum menyimpan.</p><CatalogNotice error={error}/><fieldset disabled={busy} className="vo-fieldset"><div className="vc-grid">
- {([['name','Nama penerima'],['phone','Telepon'],['address','Alamat lengkap'],['postalCode','Kode pos'],['city','Kota'],['province','Provinsi']] as const).map(([key,label])=><label key={key}>{label}<input value={contact[key]} maxLength={key==='address'?300:key==='postalCode'?5:100} onChange={e=>{invalidate();setContact({...contact,[key]:e.target.value,...(key==='postalCode'?{areaId:null}:{})})}}/></label>)}
+ {([['name','Nama penerima'],['phone','Telepon'],['address','Alamat lengkap']] as const).map(([key,label])=><label key={key}>{label}<input value={contact[key]} maxLength={key==='address'?300:100} onChange={e=>{invalidate();setContact({...contact,[key]:e.target.value})}}/></label>)}
+ {o.address_region?.provinceId?<IndonesiaAddressPicker initialValue={o.address_region} onChange={region=>{invalidate();setContact(prev=>({...prev,city:region?.city||'',province:region?.province||'',postalCode:region?.postalCode||'',areaId:region?.areaId||null,provinceId:region?.provinceId}))}}/>:<>
+ {([['postalCode','Kode pos'],['city','Kota'],['province','Provinsi']] as const).map(([key,label])=><label key={key}>{label}<input value={contact[key]} maxLength={key==='postalCode'?5:100} onChange={e=>{invalidate();setContact({...contact,[key]:e.target.value,...(key==='postalCode'?{areaId:null}:{})})}}/></label>)}
  <ShippingRegionPicker postalCode={contact.postalCode} token={auth.accessToken} value={contact.areaId||''} onChange={region=>{invalidate();setContact(prev=>({...prev,areaId:region?.areaId||null,...(region?{city:region.city,province:region.province}:{})}))}}/>
+ </>}
  </div><h3>Barang dan harga</h3><div className="vc-table-wrap"><table className="vc-table"><thead><tr><th>Barang / SKU</th><th>Jumlah</th><th>Harga satuan (Rp)</th><th>Aksi</th></tr></thead><tbody>{items.map((i,n)=><tr key={i.productId}><td>{i.name}<br/><small>{i.sku}</small></td><td><input aria-label={'Jumlah '+i.name} type="number" min="1" max="99" value={i.quantity} onChange={e=>{invalidate();setItems(items.map((x,k)=>k===n?{...x,quantity:Number(e.target.value)}:x))}}/></td><td><input aria-label={'Harga '+i.name} type="number" min="0" max="2000000000" value={i.unitPriceIdr} onChange={e=>{invalidate();setItems(items.map((x,k)=>k===n?{...x,unitPriceIdr:Number(e.target.value)}:x))}}/></td><td><button type="button" disabled={items.length===1} onClick={()=>{invalidate();setItems(items.filter((_,k)=>k!==n))}}>Hapus</button></td></tr>)}</tbody></table></div>
  <div className="vc-actions"><input aria-label="Cari barang untuk ditambahkan" placeholder="Cari nama atau SKU" value={q} onChange={e=>setQ(e.target.value)}/><button type="button" onClick={search}>Cari barang</button></div>
  {found.length>0&&<div className="vo-product-results">{found.map(p=><div key={p.id}><span>{p.name} · {p.sku}<small> Stok {p.stock_qty} · {formatIDR(p.unitPriceIdr)}</small></span><button disabled={items.some(i=>i.productId===p.id)||items.length>=25} onClick={()=>{invalidate();setItems([...items,{productId:p.id,name:p.name,sku:p.sku,quantity:1,unitPriceIdr:p.unitPriceIdr}])}}>Tambah</button></div>)}</div>}

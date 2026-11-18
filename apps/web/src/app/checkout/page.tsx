@@ -6,7 +6,8 @@ import {useCart} from '@/lib/cart';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {isDigitalProduct} from '@/lib/digital-products';
 import {formatIDR} from '@/lib/types';
-import {ShippingRegionPicker,type ShippingRegion} from '@/components/shipping-region-picker';
+import {IndonesiaAddressPicker} from '@/components/indonesia-address-picker';
+import type {AddressSelection} from '@/lib/address-location';
 import '../checkout-v26.css';
 
 type QuoteItem={productId:string;sku:string|null;name:string;unitPriceIdr:number;quantity:number;lineTotalIdr:number;stockQty:number};
@@ -28,7 +29,7 @@ export default function CheckoutPage(){
  const [quote,setQuote]=useState<Quote|null>(null);
  const [shippingConfig,setShippingConfig]=useState<ShippingConfig|null>(null);
  const [shippingRates,setShippingRates]=useState<ShippingOption[]>([]);
- const [destination,setDestination]=useState<ShippingRegion|null>(null);
+ const [destination,setDestination]=useState<AddressSelection|null>(null);
  const [selectedQuoteId,setSelectedQuoteId]=useState('');
  const [shippingLoading,setShippingLoading]=useState(false);
  const [shippingError,setShippingError]=useState('');
@@ -75,7 +76,7 @@ export default function CheckoutPage(){
   const timer=setTimeout(async()=>{
    try{
     const response=await fetch('/api/shipping/rates',{method:'POST',headers:{authorization:'Bearer '+auth.accessToken,'content-type':'application/json'},
-     body:JSON.stringify({items:requestItems,destinationPostalCode:form.postalCode,...(destination?{destinationAreaId:destination.areaId}:{})}),
+     body:JSON.stringify({items:requestItems,destinationPostalCode:form.postalCode,...(destination?{destinationAreaId:destination.areaId,destinationProvinceId:destination.provinceId}:{})}),
      signal:controller.signal,cache:'no-store'});
     const data=await response.json();if(!response.ok)throw Error(data?.message||data?.code||'Tarif kurir belum tersedia');
     if(sequence!==shippingRequest.current)return;
@@ -90,7 +91,7 @@ export default function CheckoutPage(){
   },350);
   return()=>{clearTimeout(timer);controller.abort();if(shippingRequest.current===sequence)shippingRequest.current++;};
  },[shippingConfig?.rateLookupEnabled,shippingConfig?.requiresArea,auth.accessToken,form.postalCode,form.city,form.province,
-  destination?.areaId,destination?.postalCode,requestItems,key,shippingRetry]);
+  destination?.areaId,destination?.provinceId,destination?.postalCode,requestItems,key,shippingRetry]);
  const change=(name:keyof DraftForm,value:string)=>{
   setForm(previous=>({...previous,[name]:value}));setOrder(null);requestKey.current=null;
   if(['postalCode','city','province'].includes(name)){shippingRequest.current++;setShippingLoading(false);setShippingRates([]);setSelectedQuoteId('');setShippingError('');if(name==='postalCode')setDestination(null);}
@@ -99,13 +100,14 @@ export default function CheckoutPage(){
  const submit=async(event:FormEvent<HTMLFormElement>)=>{
   event.preventDefault();setError('');
   if(form.paymentMethod!=='bank_transfer'&&!checkoutConfig?.methods.includes(form.paymentMethod)){setError('Metode pembayaran belum aktif. Gunakan transfer manual.');return;}
+  if(!destination){setError('Pilih wilayah dari provinsi hingga kelurahan terlebih dahulu.');return;}
   if(!quote||totalPreview===null||includesDigital||!requestItems.length||(shippingConfig?.rateLookupEnabled&&!selectedShipping)){setError('Biaya pengiriman atau stok belum siap. Tunggu estimasi otomatis dan pilih layanan kurir.');return;}
   if(!auth.accessToken){setError('Silakan masuk terlebih dahulu.');return;}
   setBusy(true);
   try{
    requestKey.current??=crypto.randomUUID();
    const response=await fetch('/api/checkout/orders',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+auth.accessToken},
-    body:JSON.stringify({...form,items:requestItems,idempotencyKey:requestKey.current,...(appliedVoucher?{voucherCode:appliedVoucher}:{}),...(selectedShipping?{shippingQuoteId:selectedShipping.quoteId}:{}),...(destination?{destinationAreaId:destination.areaId}:{})})});
+    body:JSON.stringify({...form,items:requestItems,idempotencyKey:requestKey.current,...(appliedVoucher?{voucherCode:appliedVoucher}:{}),...(selectedShipping?{shippingQuoteId:selectedShipping.quoteId}:{}),...(destination?{destinationAreaId:destination.areaId,destinationProvinceId:destination.provinceId}:{})})});
    const result=await response.json();
    if(!response.ok)throw new Error(typeof result?.message==='string'?result.message:result?.code||'Gagal menyimpan draft pesanan');
    setOrder({id:result.id,status:result.status,paymentStatus:result.paymentStatus});
@@ -126,10 +128,9 @@ export default function CheckoutPage(){
     <div className="vco26-card-heading"><span>01</span><div><h2>Detail penerima</h2><p>Isi tujuan pengiriman dan kontak yang bisa dihubungi.</p></div></div>
     <label>Nama lengkap<input value={form.name} onChange={e=>change('name',e.target.value)} minLength={2} maxLength={100} required autoComplete="name" placeholder="Nama penerima"/></label>
     <label>Nomor telepon<input value={form.phone} onChange={e=>change('phone',e.target.value)} minLength={9} maxLength={22} required inputMode="tel" autoComplete="tel" placeholder="08xxxxxxxxxx"/></label>
-    <label>Alamat lengkap<textarea value={form.address} onChange={e=>change('address',e.target.value)} minLength={8} maxLength={300} required rows={3} placeholder="Jalan, nomor, RT/RW, kecamatan"/></label>
-    <div className="vco26-fields"><label>Kota / Kabupaten<input readOnly={shippingConfig?.requiresArea} value={form.city} onChange={e=>change('city',e.target.value)} maxLength={90} required/></label><label>Provinsi<input readOnly={shippingConfig?.requiresArea} value={form.province} onChange={e=>change('province',e.target.value)} maxLength={90} required/></label></div>
-    <label>Kode pos<input value={form.postalCode} onChange={e=>change('postalCode',e.target.value)} pattern="[0-9]{5}" inputMode="numeric" maxLength={5} required placeholder="40115"/></label>
-    {shippingConfig?.requiresArea&&<ShippingRegionPicker postalCode={form.postalCode} token={auth.accessToken} value={destination?.areaId||''} onChange={r=>{setDestination(r);shippingRequest.current++;setShippingLoading(false);setShippingRates([]);setSelectedQuoteId('');setShippingError('');requestKey.current=null;if(r)setForm(f=>({...f,city:r.city,province:r.province}));}}/>}
+    <IndonesiaAddressPicker onChange={r=>{setDestination(r);shippingRequest.current++;setShippingLoading(false);setShippingRates([]);setSelectedQuoteId('');setShippingError('');setOrder(null);requestKey.current=null;setForm(f=>({...f,city:r?.city||'',province:r?.province||'',postalCode:r?.postalCode||''}));}}/>
+    <label>Detail alamat<textarea value={form.address} onChange={e=>change('address',e.target.value)} minLength={8} maxLength={300} required rows={3} autoComplete="street-address" placeholder="Nama jalan, nomor rumah/gedung, RT/RW, patokan"/></label>
+    <p className="vm-address-help">Isi jalan dan nomor rumah di sini. Wilayah dan kode pos mengikuti pilihan di atas.</p>
     <div className="vco26-card-heading vco26-payment-head"><span>02</span><div><h2>Kurir & Ongkos Kirim</h2><p>Lihat estimasi biaya dan waktu kirim sebelum membuat pesanan. Belum ada booking kurir maupun resi.</p></div></div>
     {shippingConfig?.rateLookupEnabled?<div className="vco26-shipping-picker">
      <p className="vco26-shipping-status" aria-live="polite">{!auth.user?'Masuk untuk menghitung ongkir otomatis.':!/^[0-9]{5}$/.test(form.postalCode)?'Masukkan kode pos tujuan untuk menghitung ongkir.':shippingConfig.requiresArea&&!destination?'Pilih kelurahan tujuan agar tarif sesuai alamat.':shippingLoading?'Menghitung estimasi ongkir...':shippingRates.length?shippingRates.length+' layanan tersedia. Pilihan termurah dipilih sebagai awal.':'Estimasi akan dihitung otomatis setelah alamat lengkap.'}</p>

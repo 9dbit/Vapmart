@@ -8,15 +8,17 @@ import {shippingConfig,shippingSnapshotProvider} from './shipping-config';
 import {CourierVisibilityService,filterVisibleShippingRates} from './courier-visibility';
 import {JubelioShipmentClient,type ShippingRegion,type JubelioRate} from './jubelio-shipment';
 
-type ShippingRequest={items:{productId:string;quantity:number}[];destinationPostalCode:string;destinationAreaId?:string};
+type ShippingRequest={items:{productId:string;quantity:number}[];destinationPostalCode:string;destinationAreaId?:string;destinationProvinceId?:string};
 export function parseShippingRequest(raw:unknown):ShippingRequest{
  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new BadRequestException('Permintaan ongkir tidak valid');
  const body=raw as Record<string,unknown>;
- if(Object.keys(body).some(x=>!['items','destinationPostalCode','destinationAreaId'].includes(x))||
+ if(Object.keys(body).some(x=>!['items','destinationPostalCode','destinationAreaId','destinationProvinceId'].includes(x))||
  typeof body.destinationPostalCode!=='string'||!/^[0-9]{5}$/.test(body.destinationPostalCode))
   throw new BadRequestException('Kode pos tujuan harus 5 angka');
  if(body.destinationAreaId!==undefined&&(typeof body.destinationAreaId!=='string'||!/^\d{10}$/.test(body.destinationAreaId)))throw new BadRequestException('Pilih wilayah tujuan yang valid');
- return {items:parseBasket({items:body.items}),destinationPostalCode:body.destinationPostalCode,...(typeof body.destinationAreaId==='string'?{destinationAreaId:body.destinationAreaId}:{})};
+ if(body.destinationProvinceId!==undefined&&(typeof body.destinationProvinceId!=='string'||!/^\d{2}$/.test(body.destinationProvinceId)))throw new BadRequestException('Provinsi tujuan tidak valid');
+ if(body.destinationProvinceId&&!body.destinationAreaId)throw new BadRequestException('Kelurahan tujuan belum dipilih');
+ return {items:parseBasket({items:body.items}),destinationPostalCode:body.destinationPostalCode,...(typeof body.destinationAreaId==='string'?{destinationAreaId:body.destinationAreaId}:{}),...(typeof body.destinationProvinceId==='string'?{destinationProvinceId:body.destinationProvinceId}:{})};
 }
 export type CourierRate={courierCode:string;courierName:string;serviceCode:string;serviceName:string;priceIdr:number;duration:string};
 export function normalizeCourierRates(raw:unknown):CourierRate[]{
@@ -39,7 +41,7 @@ export class ShippingService{
  config(){return shippingConfig();}
  async rates(user:Principal,body:unknown,adminOrder?:{customerId:string;prices:Map<string,number>}){
   if(!user.emailVerified)throw new ForbiddenException('Verifikasi email diperlukan untuk cek ongkir');
-  const {items,destinationPostalCode,destinationAreaId}=parseShippingRequest(body),config=this.config();
+  const {items,destinationPostalCode,destinationAreaId,destinationProvinceId}=parseShippingRequest(body),config=this.config();
   const key=process.env.BITESHIP_API_KEY,origin=process.env.SHIPPING_ORIGIN_POSTAL_CODE;
   if(!config.rateLookupEnabled||!origin)throw new ServiceUnavailableException({code:'SHIPPING_NOT_CONFIGURED',message:'Tarif kurir belum diaktifkan'});
   const list=await this.db.query<{id:string;slug:string;name:string;stock_qty:number;is_active:boolean;weight_grams:number|null;length_cm:number|null;width_cm:number|null;height_cm:number|null}&PriceInput>(
@@ -59,7 +61,8 @@ export class ShippingService{
   });
   let rates:Array<CourierRate|JubelioRate>,destination:ShippingRegion|null=null;
   if(config.provider==='jubelio'){
-   destination=await this.jubelio.destination(destinationPostalCode,destinationAreaId);
+   destination=destinationProvinceId&&destinationAreaId?await this.jubelio.addressRegion(destinationProvinceId,destinationAreaId):await this.jubelio.destination(destinationPostalCode,destinationAreaId);
+   if(destination.postalCode!==destinationPostalCode)throw new BadRequestException('Kode pos harus sesuai kelurahan tujuan.');
    rates=await this.jubelio.rates(destination,goods);
   }else{let data:unknown;try{
    const couriers=process.env.SHIPPING_COURIERS||'jne,sicepat,anteraja';
