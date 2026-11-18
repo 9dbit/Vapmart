@@ -16,24 +16,33 @@ export function xenditSandboxReadiness(env:NodeJS.ProcessEnv=process.env){
  const business=env.XENDIT_BUSINESS_ID||'';
  const mode=env.XENDIT_ENVIRONMENT||'test';
  const channels=env.XENDIT_ALLOWED_CHANNELS||'';
+ let selected:string[]=[];
+ try{selected=xenditSelectedChannels(channels);}catch{}
  const sandboxEnabled=mode==='test'&&env.XENDIT_SANDBOX_ENABLED==='true'&&
   key.length>24&&key.startsWith('xnd_development');
  const webhookEnabled=mode==='test'&&env.XENDIT_WEBHOOK_ENABLED==='true'&&
   callback.length>=16&&business.length>=16;
- return {provider:'xendit' as const,environment:mode,sandboxEnabled,
+ const connected=sandboxEnabled&&webhookEnabled&&selected.length>0;
+ const orderSandboxEnabled=connected&&env.XENDIT_SANDBOX_ORDER_ENABLED==='true';
+ return {provider:'xendit' as const,environment:mode,sandboxEnabled,connected,orderSandboxEnabled,
   webhookEnabled,liveEnabled:false,
   merchantConfigured:Boolean(business),testKeyConfigured:key.length>24,
-  channelsConfigured:Boolean(channels.trim()),
+  channelsConfigured:selected.length>0,channels:selected,
   callbackTokenConfigured:callback.length>=16,
-  paymentEnabled:false, // Never expose gateway checkout before settlement integration
+  paymentEnabled:orderSandboxEnabled,livePaymentEnabled:false,settlementEnabled:false,
   missing:[
    ...(!business?['XENDIT_BUSINESS_ID']:[]),
    ...(!key?['XENDIT_TEST_SECRET_KEY']:[]),
    ...(!callback?['XENDIT_WEBHOOK_TOKEN']:[]),
    ...(!channels?['XENDIT_ALLOWED_CHANNELS']:[]),
    ...(env.XENDIT_SANDBOX_ENABLED!=='true'?['XENDIT_SANDBOX_ENABLED']:[]),
-   ...(env.XENDIT_WEBHOOK_ENABLED!=='true'?['XENDIT_WEBHOOK_ENABLED']:[])
+   ...(env.XENDIT_WEBHOOK_ENABLED!=='true'?['XENDIT_WEBHOOK_ENABLED']:[]),
+   ...(!orderSandboxEnabled?['XENDIT_SANDBOX_ORDER_ENABLED']:[])
   ]};
+}
+export function xenditChannelsForMethod(method:string,channels:string[]):string[]{
+ return channels.filter(c=>method==='virtual_account'?c.endsWith('_VIRTUAL_ACCOUNT'):
+  method==='qris'?c==='QRIS':method==='ewallet'?['DANA','OVO','SHOPEEPAY','LINKAJA','GOPAY','JENIUSPAY','ASTRAPAY'].includes(c):false);
 }
 export function xenditSessionReference(invoice:string,attempt:number){
  if(!/^VM-[0-9]{10}$/.test(invoice)||!Number.isSafeInteger(attempt)||attempt<1||attempt>99)

@@ -1,5 +1,5 @@
 /* CP53 read-only integration status card */
-.vm-xendit-panel{margin:24px 0;padding:24px;border-radius:24px;background:#eee8f5;color:#30253e;display:grid;gap:15px}
+.vm-xendit-panel{margin:24px 0;padding:24px;border-radius:24px;background:#eee8f5;color:#30253e;display:grid;gap:15px;min-width:0}
 .vm-xendit-head{display:flex;gap:15px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
 .vm-xendit-head p{font-size:11px;letter-spacing:.12em;color:#755991;font-weight:750;margin:0 0 9px}
 .vm-xendit-head h2{font-size:22px;margin:0 0 7px;font-weight:850;color:inherit}
@@ -21,3 +21,5 @@ html[data-vapmart-color-mode=dark] .vm-xendit-head span,html[data-vapmart-color-
 html[data-vapmart-color-mode=dark] .vm-xendit-check,html[data-vapmart-color-mode=dark] .vm-xendit-callback{background:#362a42}
 html[data-vapmart-color-mode=dark] .vm-xendit-callback code{color:#dfb9fa}
 @media(max-width:620px){.vm-xendit-panel{padding:17px}.vm-xendit-checks{grid-template-columns:1fr}.vm-xendit-callback button{width:100%}}
+
+.vm-xendit-refresh{justify-self:start;border:0;border-radius:99px;padding:10px 16px;background:#7534b0;color:#fff;cursor:pointer;font-weight:700}.vm-xendit-refresh:disabled{opacity:.6;cursor:wait}

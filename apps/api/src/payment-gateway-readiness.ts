@@ -1,4 +1,5 @@
 import {createHash,timingSafeEqual} from 'node:crypto';
+import {xenditSandboxReadiness,xenditChannelsForMethod} from './xendit-sandbox';
 
 export type FutureGatewayProvider='midtrans'|'xendit'|'genesis';
 export type PaymentMethod='bank_transfer'|'qris'|'virtual_account'|'ewallet';
@@ -10,7 +11,17 @@ const supportedProviders=new Set<FutureGatewayProvider>(['midtrans','xendit','ge
  */
 export function paymentGatewayReadiness(){
  const raw=process.env.VAPMART_PAYMENT_PROVIDER;
- const provider=raw&&supportedProviders.has(raw as FutureGatewayProvider)?raw as FutureGatewayProvider:null;
+ const xendit=xenditSandboxReadiness();
+ const provider=raw&&supportedProviders.has(raw as FutureGatewayProvider)?raw as FutureGatewayProvider:
+  xendit.testKeyConfigured?'xendit':null;
+ if(provider==='xendit')return {
+  provider,connected:xendit.connected,paymentEnabled:xendit.paymentEnabled,livePaymentEnabled:false,
+  status:xendit.paymentEnabled?'sandbox_active':xendit.connected?'sandbox_connected':'sandbox_incomplete',
+  environment:'test',
+  availableMethods:['bank_transfer',...(['qris','virtual_account','ewallet'] as const).filter(m=>
+   xendit.paymentEnabled&&xenditChannelsForMethod(m,xendit.channels).length>0)] as PaymentMethod[],
+  requires:xendit.missing
+ };
  return {
   provider,
   connected:false,

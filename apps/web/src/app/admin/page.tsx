@@ -7,6 +7,7 @@ import {formatIDR,type Product} from '@/lib/types';
 import {readCollection} from '@/lib/collection-read';
 import {AuditHistory} from '@/components/audit-history';
 import {BrandAccessManager} from '@/components/brand-access-manager';
+import {XenditReadinessPanel} from '@/components/xendit-readiness-panel';
 import {ShippingPanel} from '@/components/shipping-panel';
 import {WarehouseOps} from '@/components/warehouse-ops';
 import {FulfillmentPanel} from '@/components/fulfillment-panel';
@@ -227,11 +228,7 @@ export default function AdminPage(){
      <p>Produk existing dapat diperiksa di Produk &amp; SKU. Publikasi produk operasional tetap memerlukan data, foto, dan stok terverifikasi.</p>
      <div className="vma26-quick-actions"><button className="vma26-btn-dark" type="button" onClick={()=>navigate('products')}>Lihat semua produk</button><button className="vma26-btn-light" type="button" onClick={newProduct}>+ Tambah produk</button><button className="vma26-btn-light" type="button" onClick={newBrand}>+ Tambah brand</button><button className="vma26-btn-light" type="button" onClick={()=>navigate('media')}>Lihat Media Library</button><button className="vma26-btn-light" type="button" onClick={()=>navigate('orders')}>Lihat pesanan</button></div>
     </section>
-    <section className="vma26-panel vma26-gateway"><p className="vma26-eyebrow">PAYMENT STATUS</p><h2>Gateway belum terhubung</h2><p>QRIS, Virtual Account, dan e-wallet tersedia sebagai preferensi checkout. Pesanan baru disimpan sebagai draft dan tidak memicu transaksi.</p>
-     <div className="vma26-gate-row"><span>Cart &amp; checkout review</span><strong>Siap di kode</strong></div>
-     <div className="vma26-gate-row"><span>Draft order database</span><strong>Siap di kode</strong></div>
-     <div className="vma26-gate-row"><span>Pembayaran langsung</span><strong>Nonaktif</strong></div>
-    </section>
+    <XenditReadinessPanel/>
    </div>}
    {tab==='overview'&&products.length===0&&<section className="vma26-panel vma27-start-guide" aria-label="Panduan memulai">
     <p className="vma26-eyebrow">GET STARTED</p><h2>Periksa data existing, lengkapi operasional.</h2>

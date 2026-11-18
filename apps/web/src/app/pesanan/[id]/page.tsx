@@ -2,6 +2,8 @@
 import {orderStatuses,orderStatus} from '@/lib/order-status';
 import {useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
+import {XenditOrderPayment} from '@/components/xendit-order-payment';
+import '../../xendit-readiness.css';
 import {BuyerReviewForm} from '@/components/catalog-public-reviews';
 import {useParams} from 'next/navigation';
 import {useCustomerAuth} from '@/lib/customer-auth';
@@ -62,7 +64,7 @@ export default function OrderPage(){
    detail?<section className="vco26-card">
     <div className="vco26-order-badge">{detail.order.payment_status==='paid'?'Pembayaran terverifikasi':detail.order.payment_status==='pending'?'Menunggu pembayaran':'Draft · Belum dibayar'}</div>
     <h2>Nomor pesanan</h2><p className="vco26-id">{detail.order.id}</p>
-    <p>{detail.order.payment_status==='paid'?'Status pembayaran dan pengiriman mengikuti catatan backend terverifikasi.':detail.order.payment_method==='bank_transfer'?'Pesanan sudah masuk dashboard dan menunggu verifikasi pembayaran manual. Instruksi rekening tidak diterbitkan dari halaman test ini.':'Pesanan tersimpan sebagai draft. Metode gateway belum dapat memproses pembayaran.'}</p>
+    <p>{detail.order.payment_status==='paid'?'Status pembayaran dan pengiriman mengikuti catatan backend terverifikasi.':detail.order.payment_method==='bank_transfer'?'Pesanan sudah masuk dashboard dan menunggu verifikasi pembayaran manual. Instruksi rekening tidak diterbitkan dari halaman test ini.':'Pesanan tersimpan. Lanjutkan simulasi melalui Xendit sandbox di bawah.'}</p>
     <p>Status pesanan: <strong>{orderStatuses[orderStatus(detail.order)]||detail.order.status}</strong></p><div className="vco26-order-grid"><div><span>Penerima</span><strong>{detail.order.contact_name}</strong></div><div><span>Pengiriman</span><strong>{detail.order.city}, {detail.order.province}</strong></div><div><span>Preferensi pembayaran</span><strong>{paymentNames[detail.order.payment_method]||detail.order.payment_method}</strong></div><div><span>Status pembayaran</span><strong>{detail.order.payment_status==='not_initiated'?'Belum dimulai':detail.order.payment_status}</strong></div></div>
     <h2>Barang</h2>{detail.items.map(x=><div className="vco26-receipt-row" key={x.product_id}><span>{x.product_name} · {x.quantity} pcs</span><strong>{formatIDR(Number(x.unit_price_idr)*x.quantity)}</strong></div>)}
     {Number(detail.order.voucher_discount_idr||0)>0&&<div className="vco26-receipt-row"><span>Voucher {detail.order.voucher_code||''}</span><strong>-{formatIDR(Number(detail.order.voucher_discount_idr))}</strong></div>}
@@ -101,7 +103,7 @@ export default function OrderPage(){
     }):<p className="vco26-footnote">Belum ada batch. Draft tidak otomatis mereservasi stok atau memesan kurir.</p>}
     {returnMessage&&<p role="status">{returnMessage}</p>}
    </div>
-   <button className="vco26-button" type="button" disabled>{detail.order.payment_method==='bank_transfer'?'Bank Transfer · Menunggu verifikasi':'Bayar sekarang · Gateway belum aktif'}</button>
+   {detail.order.payment_method==='bank_transfer'?<button className="vco26-button" type="button" disabled>Bank Transfer · Menunggu verifikasi</button>:<XenditOrderPayment orderId={params.id}/>}
     <p className="vco26-footnote">Status lunas hanya bisa diberikan oleh backend setelah notifikasi payment gateway diverifikasi.</p>
     <Link className="vco26-secondary" href="/catalog">Kembali ke katalog ↗</Link>
    </section>:<section className="vco26-card">Detail belum tersedia.</section>}
