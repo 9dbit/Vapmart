@@ -6,40 +6,38 @@ const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]
 const sessionId=/^ps-[a-zA-Z0-9-]{24}$/;
 
 const validTestHosts=new Set(['checkout-staging.xendit.co','dev.xen.to']);
+const validLiveHosts=new Set(['checkout.xendit.co','xen.to']);
 const string=(v:unknown)=>typeof v==='string'?v:'';
 const object=(v:unknown):Record<string,unknown>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:{};
 
-/** Test-mode only. This deployment intentionally cannot request a live payment. */
+/** Credentials and enabled flags are isolated by environment. */
 export function xenditSandboxReadiness(env:NodeJS.ProcessEnv=process.env){
- const key=env.XENDIT_TEST_SECRET_KEY||'';
- const callback=env.XENDIT_WEBHOOK_TOKEN||'';
+ const mode=env.XENDIT_ENVIRONMENT||'test',live=mode==='live';
+ const key=live?env.XENDIT_SECRET_KEY||'':env.XENDIT_TEST_SECRET_KEY||'';
+ const callback=live?env.XENDIT_LIVE_WEBHOOK_TOKEN||'':env.XENDIT_WEBHOOK_TOKEN||'';
  const business=env.XENDIT_BUSINESS_ID||'';
- const mode=env.XENDIT_ENVIRONMENT||'test';
- const channels=env.XENDIT_ALLOWED_CHANNELS||'';
- let selected:string[]=[];
- try{selected=xenditSelectedChannels(channels);}catch{}
- const sandboxEnabled=mode==='test'&&env.XENDIT_SANDBOX_ENABLED==='true'&&
-  key.length>24&&key.startsWith('xnd_development');
- const webhookEnabled=mode==='test'&&env.XENDIT_WEBHOOK_ENABLED==='true'&&
-  callback.length>=16&&business.length>=16;
- const connected=sandboxEnabled&&webhookEnabled&&selected.length>0;
- const orderSandboxEnabled=connected&&env.XENDIT_SANDBOX_ORDER_ENABLED==='true';
- return {provider:'xendit' as const,environment:mode,sandboxEnabled,connected,orderSandboxEnabled,
-  webhookEnabled,liveEnabled:false,
-  merchantConfigured:Boolean(business),testKeyConfigured:key.length>24,
-  channelsConfigured:selected.length>0,channels:selected,
-  callbackTokenConfigured:callback.length>=16,
-  paymentEnabled:orderSandboxEnabled,livePaymentEnabled:false,settlementEnabled:false,
-  missing:[
-   ...(!business?['XENDIT_BUSINESS_ID']:[]),
-   ...(!key?['XENDIT_TEST_SECRET_KEY']:[]),
-   ...(!callback?['XENDIT_WEBHOOK_TOKEN']:[]),
-   ...(!channels?['XENDIT_ALLOWED_CHANNELS']:[]),
-   ...(env.XENDIT_SANDBOX_ENABLED!=='true'?['XENDIT_SANDBOX_ENABLED']:[]),
-   ...(env.XENDIT_WEBHOOK_ENABLED!=='true'?['XENDIT_WEBHOOK_ENABLED']:[]),
-   ...(!orderSandboxEnabled?['XENDIT_SANDBOX_ORDER_ENABLED']:[])
-  ]};
+ const channels=live?env.XENDIT_LIVE_ALLOWED_CHANNELS||'':env.XENDIT_ALLOWED_CHANNELS||'';
+ let selected:string[]=[];try{selected=xenditSelectedChannels(channels);}catch{}
+ const keyValid=key.length>24&&key.startsWith(live?'xnd_production_':'xnd_development_');
+ const transportEnabled=keyValid&&(live?env.XENDIT_LIVE_ENABLED==='true':mode==='test'&&env.XENDIT_SANDBOX_ENABLED==='true');
+ const webhookEnabled=['live','test'].includes(mode)&&env.XENDIT_WEBHOOK_ENABLED==='true'&&callback.length>=16&&business.length>=16;
+ const connected=transportEnabled&&webhookEnabled&&selected.length>0;
+ const paymentEnabled=connected&&(live?env.XENDIT_LIVE_ORDER_ENABLED==='true':env.XENDIT_SANDBOX_ORDER_ENABLED==='true');
+ return {provider:'xendit' as const,environment:mode,transportEnabled,connected,
+  sandboxEnabled:!live&&transportEnabled,orderSandboxEnabled:!live&&paymentEnabled,
+  webhookEnabled,liveEnabled:live&&paymentEnabled,
+  merchantConfigured:business.length>=16,testKeyConfigured:(env.XENDIT_TEST_SECRET_KEY||'').startsWith('xnd_development_'),
+  liveKeyConfigured:(env.XENDIT_SECRET_KEY||'').startsWith('xnd_production_'),
+  channelsConfigured:selected.length>0,channels:selected,callbackTokenConfigured:callback.length>=16,
+  paymentEnabled,livePaymentEnabled:live&&paymentEnabled,settlementEnabled:live&&paymentEnabled,
+  missing:[...(!business?['XENDIT_BUSINESS_ID']:[]),...(!keyValid?[live?'XENDIT_SECRET_KEY':'XENDIT_TEST_SECRET_KEY']:[]),
+   ...(callback.length<16?[live?'XENDIT_LIVE_WEBHOOK_TOKEN':'XENDIT_WEBHOOK_TOKEN']:[]),
+   ...(!selected.length?[live?'XENDIT_LIVE_ALLOWED_CHANNELS':'XENDIT_ALLOWED_CHANNELS']:[]),
+   ...(!transportEnabled?[live?'XENDIT_LIVE_ENABLED':'XENDIT_SANDBOX_ENABLED']:[]),
+   ...(!webhookEnabled?['XENDIT_WEBHOOK_ENABLED']:[]),
+   ...(!paymentEnabled?[live?'XENDIT_LIVE_ORDER_ENABLED':'XENDIT_SANDBOX_ORDER_ENABLED']:[])]};
 }
+export function xenditCallbackToken(){return process.env.XENDIT_ENVIRONMENT==='live'?process.env.XENDIT_LIVE_WEBHOOK_TOKEN:process.env.XENDIT_WEBHOOK_TOKEN;}
 export function xenditChannelsForMethod(method:string,channels:string[]):string[]{
  return channels.filter(c=>method==='virtual_account'?c.endsWith('_VIRTUAL_ACCOUNT'):
   method==='qris'?c==='QRIS':method==='ewallet'?['DANA','OVO','SHOPEEPAY','LINKAJA','GOPAY','JENIUSPAY','ASTRAPAY'].includes(c):false);
@@ -61,7 +59,7 @@ export function xenditSelectedChannels(value:unknown):string[]{
  return channels;
 }
 export type SessionContext={referenceId:string;amountIdr:number;orderId:string;email:string;
- customerName:string;phone:string;returnOrigin:string;allowedChannels?:string[]};
+ customerName:string;phone:string;returnOrigin:string;allowedChannels?:string[];environment?:string};
 export function buildXenditPaySession(input:SessionContext){
  if(!uuid.test(input.orderId)||!/^[A-Za-z0-9-]{8,50}$/.test(input.referenceId)||
   !Number.isSafeInteger(input.amountIdr)||input.amountIdr<=0||input.amountIdr>1000000000)
@@ -90,7 +88,7 @@ export function buildXenditPaySession(input:SessionContext){
   description:'Vapmart - '+input.referenceId,
   success_return_url:origin.origin+'/pesanan/'+input.orderId+'?payment=return',
   cancel_return_url:origin.origin+'/pesanan/'+input.orderId+'?payment=cancel',
-  metadata:{vapmart_order_id:input.orderId,source:'vapmart_sandbox'},
+  metadata:{vapmart_order_id:input.orderId,source:input.environment==='live'?'vapmart_live':'vapmart_sandbox'},
   customer:{
    reference_id:input.orderId.replace(/-/g,''),
    type:'INDIVIDUAL' as const,
@@ -106,8 +104,9 @@ export type XenditSession={payment_session_id:string;reference_id:string;amount:
  currency:'IDR';country:'ID';status:'ACTIVE'|'COMPLETED'|'EXPIRED'|'CANCELED';
  payment_link_url:string|null;expires_at?:string;business_id?:string;
  payment_id?:string|null;payment_request_id?:string|null;};
-export function parseXenditSession(raw:unknown,mode:'test'|'readback'='test'):XenditSession{
+export function parseXenditSession(raw:unknown,mode:'test'|'live'|'readback'='test'):XenditSession{
  const s=object(raw);
+ if(mode==='live'&&(s.session_type!=='PAY'||s.mode!=='PAYMENT_LINK'||s.capture_method!=='AUTOMATIC'))throw new BadGatewayException({code:'XENDIT_UNEXPECTED_SESSION_TYPE'});
  const value={
   payment_session_id:string(s.payment_session_id),
   reference_id:string(s.reference_id),
@@ -129,7 +128,7 @@ export function parseXenditSession(raw:unknown,mode:'test'|'readback'='test'):Xe
   let link:URL;
   try{link=new URL(value.payment_link_url);}catch{throw new BadGatewayException({code:'XENDIT_INVALID_CHECKOUT_URL'});}
   if(link.protocol!=='https:'||link.username||link.password||link.port||link.hash||
-   (mode==='test'&&!validTestHosts.has(link.hostname)))
+   (!(mode==='live'?validLiveHosts:validTestHosts).has(link.hostname)))
    throw new BadGatewayException({code:'XENDIT_UNTRUSTED_CHECKOUT_URL'});
  }
  return value as XenditSession;
@@ -173,8 +172,8 @@ export class XenditTransportError extends Error{
 export class XenditSandboxClient{
  private config(){
   const ready=xenditSandboxReadiness();
-  if(!ready.sandboxEnabled)throw new ServiceUnavailableException({code:'XENDIT_SANDBOX_DISABLED'});
-  return process.env.XENDIT_TEST_SECRET_KEY as string;
+  if(!ready.transportEnabled)throw new ServiceUnavailableException({code:'XENDIT_TRANSPORT_DISABLED'});
+  return (ready.environment==='live'?process.env.XENDIT_SECRET_KEY:process.env.XENDIT_TEST_SECRET_KEY) as string;
  }
  async request(method:'POST'|'GET',path:string,body?:unknown,client:typeof fetch=fetch):Promise<unknown>{
   const key=this.config();
@@ -194,10 +193,10 @@ export class XenditSandboxClient{
   return json;
  }
  async createSession(payload:ReturnType<typeof buildXenditPaySession>,client:typeof fetch=fetch){
-  return parseXenditSession(await this.request('POST','/sessions',payload,client));
+  return parseXenditSession(await this.request('POST','/sessions',payload,client),process.env.XENDIT_ENVIRONMENT==='live'?'live':'test');
  }
  async readSession(id:string,client:typeof fetch=fetch){
   if(!sessionId.test(id))throw new BadRequestException('Invalid session ID');
-  return parseXenditSession(await this.request('GET','/sessions/'+id,undefined,client),'readback');
+  return parseXenditSession(await this.request('GET','/sessions/'+id,undefined,client),process.env.XENDIT_ENVIRONMENT==='live'?'live':'test');
  }
 }

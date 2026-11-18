@@ -3,7 +3,7 @@ import {useEffect,useState} from 'react';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import '../app/xendit-readiness.css';
 
-type Readiness={provider:'xendit';environment:string;sandboxEnabled:boolean;connected:boolean;channels:string[];
+type Readiness={provider:'xendit';environment:string;sandboxEnabled:boolean;connected:boolean;channels:string[];transportEnabled:boolean;liveKeyConfigured:boolean;
  webhookEnabled:boolean;liveEnabled:boolean;paymentEnabled:boolean;
  merchantConfigured:boolean;testKeyConfigured:boolean;callbackTokenConfigured:boolean;
  channelsConfigured:boolean;orderSandboxEnabled:boolean;settlementEnabled:boolean;missing:string[]};
@@ -28,18 +28,18 @@ export function XenditReadinessPanel(){
  },[auth.accessToken,revision]);
  const checks=[
   {title:'Merchant Business ID',ready:state?.merchantConfigured},
-  {title:'API key Test Mode',ready:state?.testKeyConfigured},
+  {title:state?.environment==='live'?'API key Live Mode':'API key Test Mode',ready:state?.environment==='live'?state.liveKeyConfigured:state?.testKeyConfigured},
   {title:'Webhook verification token',ready:state?.callbackTokenConfigured},
   {title:'Kanal pembayaran terpilih',ready:state?.channelsConfigured},
-  {title:'Sandbox transport diaktifkan',ready:state?.sandboxEnabled},
-  {title:'Webhook sandbox diaktifkan',ready:state?.webhookEnabled},
-  {title:'Checkout sandbox diaktifkan',ready:state?.orderSandboxEnabled}
+  {title:'Koneksi API diaktifkan',ready:state?.transportEnabled},
+  {title:'Webhook diaktifkan',ready:state?.webhookEnabled},
+  {title:'Checkout diaktifkan',ready:state?.paymentEnabled}
  ];
  return <section className="vm-xendit-panel" aria-labelledby="vm-xendit-title">
   <header className="vm-xendit-head"><div><p>PAYMENTS / INTEGRATION</p><h2 id="vm-xendit-title">Xendit Gateway</h2>
    <span>Status koneksi dan kanal pembayaran dari server Vapmart.</span></div>
-   <strong className="vm-xendit-flag">{busy?'MEMERIKSA':error?'STATUS TIDAK TERSEDIA':state?.paymentEnabled?'SANDBOX AKTIF':state?.connected?'SANDBOX TERHUBUNG':'PERLU KONFIGURASI'}</strong></header>
-  <p className="vm-xendit-notice">Sandbox digunakan untuk simulasi pembayaran melalui Xendit. Hasil simulasi diverifikasi server dan tidak mengubah pesanan menjadi pembayaran nyata atau memicu pengiriman.</p>
+   <strong className="vm-xendit-flag">{busy?'MEMERIKSA':error?'STATUS TIDAK TERSEDIA':state?.paymentEnabled?(state.liveEnabled?'LIVE AKTIF':'SANDBOX AKTIF'):state?.connected?'TERHUBUNG':'PERLU KONFIGURASI'}</strong></header>
+  <p className="vm-xendit-notice">{state?.environment==='live'?'Pembayaran live diverifikasi dari Xendit sebelum pencatatan lunas. Pembayaran terlambat atau tidak cocok masuk peninjauan admin.':'Sandbox digunakan untuk simulasi pembayaran melalui Xendit. Hasil simulasi diverifikasi server dan tidak mengubah pesanan menjadi pembayaran nyata atau memicu pengiriman.'}</p>
   <button className="vm-xendit-refresh" type="button" disabled={busy||!auth.accessToken} onClick={()=>setRevision(x=>x+1)}>{busy?'Memeriksa...':'Perbarui status'}</button>
   {busy&&<p role="status">Memeriksa konfigurasi server...</p>}
   {error&&<p role="alert" className="vm-xendit-error">{error}</p>}
@@ -48,8 +48,8 @@ export function XenditReadinessPanel(){
     <span>{check.title}</span><strong className={check.ready?'is-ready':'is-missing'}>{check.ready?'Tersedia':'Perlu konfigurasi'}</strong>
    </div>)}
   </div>
-  <p className="vm-xendit-note">Checkout: <strong>{state.paymentEnabled?'Sandbox aktif':'Belum aktif'}</strong>.
-   Pembayaran nyata: <strong>Belum aktif</strong>.<br/>Kanal sandbox: {state.channels?.join(', ')||'Belum dipilih'}.</p></>}
+  <p className="vm-xendit-note">Checkout: <strong>{state.paymentEnabled?(state.liveEnabled?'Live aktif':'Sandbox aktif'):'Belum aktif'}</strong>.
+   Pembayaran nyata: <strong>{state.liveEnabled?'Aktif':'Belum aktif'}</strong>.<br/>Kanal: {state.channels?.join(', ')||'Belum dipilih'}.</p></>}
   <div className="vm-xendit-callback"><div><small>WEBHOOK PAYMENT SESSION</small><code>{callback}</code></div>
    <button type="button" onClick={()=>{void navigator.clipboard.writeText(callback).then(()=>setCopied(true)).catch(()=>setCopied(false))}}>
     {copied?'Tersalin':'Salin URL'}</button></div>

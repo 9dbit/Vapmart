@@ -1,7 +1,7 @@
 import {BadRequestException,ForbiddenException,Injectable,ServiceUnavailableException} from '@nestjs/common';
 import type {PoolClient} from 'pg';
 import {DatabaseService} from './database';
-import {parseXenditWebhook,safeXenditCallbackToken,xenditSandboxReadiness,xenditWebhookHash} from './xendit-sandbox';
+import {parseXenditWebhook,safeXenditCallbackToken,xenditCallbackToken,xenditSandboxReadiness,xenditWebhookHash} from './xendit-sandbox';
 import {XenditPaymentSessionsService} from './xendit-payment-sessions';
 
 @Injectable()
@@ -9,9 +9,9 @@ export class XenditWebhookInboxService{
  constructor(private readonly db:DatabaseService,private readonly sessions?:XenditPaymentSessionsService){}
  async receive(raw:Buffer|undefined,proof:string|undefined){
   const ready=xenditSandboxReadiness();
-  if(!ready.sandboxEnabled||!ready.webhookEnabled)
+  if(!ready.transportEnabled||!ready.webhookEnabled)
    throw new ServiceUnavailableException({code:'XENDIT_WEBHOOK_DISABLED'});
-  if(!safeXenditCallbackToken(proof,process.env.XENDIT_WEBHOOK_TOKEN))
+  if(!safeXenditCallbackToken(proof,xenditCallbackToken()))
    throw new ForbiddenException('Invalid Xendit callback token');
   if(!raw||raw.length===0||raw.length>32768)
    throw new BadRequestException('Invalid Xendit webhook body');
@@ -23,8 +23,8 @@ export class XenditWebhookInboxService{
   const hash=xenditWebhookHash(raw);
   const result=await this.db.transaction(async(client:PoolClient)=>{
    const session=await client.query<{id:string;amount_idr:string;state:string;provider_business_id:string|null}>(
-    'SELECT id,amount_idr::text,state,provider_business_id FROM product.xendit_payment_sessions WHERE payment_session_id=$1 AND reference_id=$2 FOR UPDATE',
-    [event.sessionId,event.referenceId]);
+    'SELECT id,amount_idr::text,state,provider_business_id FROM product.xendit_payment_sessions WHERE payment_session_id=$1 AND reference_id=$2 AND environment=$3 FOR UPDATE',
+    [event.sessionId,event.referenceId,ready.environment]);
    const matched=session.rows[0];
    const disposition=matched&&Number(matched.amount_idr)===event.amountIdr&&matched.provider_business_id===event.businessId?
     'pending_reconciliation':'quarantined';
@@ -46,7 +46,15 @@ export class XenditWebhookInboxService{
    return {received:true,duplicate:false,paymentApplied:false,queuedForReconciliation:disposition==='pending_reconciliation'};
   });
   if(this.sessions){
-   try{await this.sessions.verifySandboxSession(event.sessionId);}catch{}
+   try{
+    const verified=await this.sessions.verifySandboxSession(event.sessionId);
+    if(event.status==='COMPLETED'&&verified&&!['completed','review'].includes(verified.session.state))
+     throw new Error('PROVIDER_NOT_FINAL');
+   }catch{
+    // The inbox is already durable. A non-2xx response asks Xendit to retry;
+    // duplicate delivery also re-runs readback without applying funds twice.
+    throw new ServiceUnavailableException({code:'XENDIT_RECONCILIATION_PENDING'});
+   }
   }
   return result;
  }
