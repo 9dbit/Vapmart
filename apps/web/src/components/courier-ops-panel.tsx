@@ -1,4 +1,5 @@
 'use client';
+import {DeliveryPinLink} from './delivery-pin-link';
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import '../app/warehouse-ops.css';
 type Batch={batch_id:string;order_id:string;brand_name:string;warehouse_code:string;state:string;shipping_provider?:string|null;shipping_courier_code?:string|null;shipping_service_code?:string|null;shipping_courier_name?:string|null;shipping_service_name?:string|null;shipping_fee_idr?:string|null;manifest_id:string|null;
@@ -15,7 +16,7 @@ type Preview={batchId:string;state:string;bookingBlockers:string[];weightGrams:n
  origin:{warehouse:string;city:string;postalCode:string|null};destination:{city:string;postalCode:string|null};
  courier:{provider?:string|null;code:string|null;service:string|null;name?:string|null;serviceName?:string|null;priceIdr?:number|null}};
 type Slip={type:string;awb:null;slip:{manifest_id:string;brand_name:string;order_id:string;warehouse_name:string;warehouse_address:string;warehouse_city:string;warehouse_province:string;warehouse_postal_code:string;
- receiver_name:string;receiver_phone:string;receiver_address:string;receiver_city:string;receiver_province:string;receiver_postal_code:string;
+ receiver_pin?:import('@/lib/delivery-pin').DeliveryPin;receiver_name:string;receiver_phone:string;receiver_address:string;receiver_city:string;receiver_province:string;receiver_postal_code:string;
  total_weight_grams:number;pickup_date:string|null;pickup_time:string|null};items:{name:string;sku:string|null;quantity:number;weight_grams:number}[]};
 type CarrierEvent={id:string;event_type:string;provider_status:string|null;waybill_id:string|null;observed_fee_idr:string|null;is_applied:boolean;received_at:string};
 const explain:Record<string,string>={
@@ -254,7 +255,7 @@ export function CourierOpsPanel({token}:{token:string|null}){
     <div className="vm-ops-panels"><div><h3>Pengirim</h3><p>{slip.slip.warehouse_name}</p><p>{slip.slip.warehouse_address}</p>
       <p>{slip.slip.warehouse_city}, {slip.slip.warehouse_province} {slip.slip.warehouse_postal_code}</p></div>
       <div><h3>Penerima</h3><p>{slip.slip.receiver_name} · {slip.slip.receiver_phone}</p><p>{slip.slip.receiver_address}</p>
-      <p>{slip.slip.receiver_city}, {slip.slip.receiver_province} {slip.slip.receiver_postal_code}</p></div></div>
+      <p>{slip.slip.receiver_city}, {slip.slip.receiver_province} {slip.slip.receiver_postal_code}</p><DeliveryPinLink pin={slip.slip.receiver_pin}/></div></div>
     <div className="vm-ops-table"><table><thead><tr><th>SKU</th><th>Produk</th><th>Qty</th><th>Berat</th></tr></thead>
     <tbody>{slip.items.map((x,i)=><tr key={i}><td>{x.sku||'—'}</td><td>{x.name}</td><td>{x.quantity}</td><td>{x.weight_grams}g</td></tr>)}</tbody></table></div>
     <p>Total berat: {slip.slip.total_weight_grams} gram.</p>

@@ -2,6 +2,7 @@
 import {useEffect,useState,useRef,type FormEvent} from 'react';
 import type {Product} from '@/lib/types';
 import {ShippingRegionPicker,type ShippingRegion} from './shipping-region-picker';
+import {ShippingOriginPin} from './shipping-origin-pin';
 import {CourierVisibilitySettings} from './courier-visibility-settings';
 type Config={provider:string;rateLookupEnabled:boolean;bookingEnabled:boolean;paymentEnabled:boolean;rateType:string;requiresArea:boolean;originLabel:string;insuranceIncluded:boolean};
 type Rate={courierCode:string;courierName:string;serviceCode:string;serviceName:string;priceIdr:number;duration:string;insuranceIdr?:number};
@@ -17,7 +18,7 @@ export function ShippingPanel({token,products}:{token:string|null;products:Produ
   try{const r=await fetch('/api/shipping/rates',{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify({destinationPostalCode:postal,...(region?{destinationAreaId:region.areaId}:{}),items:[{productId,quantity:1}]})});
    const x=await r.json();if(request!==requestId.current)return;if(!r.ok)throw new Error(x?.message||x?.code||'Tarif belum tersedia');setRates(x.rates||[]);}
   catch(e){if(request===requestId.current)setMessage(e instanceof Error?e.message:'Gagal cek ongkir');}finally{if(request===requestId.current)setBusy(false);}}
- return <><CourierVisibilitySettings token={token}/><section className="vma26-panel"><p className="vma26-eyebrow">SHIPPING OPERATIONS</p><h2>Courier API</h2>
+ return <><ShippingOriginPin token={token}/><CourierVisibilitySettings token={token}/><section className="vma26-panel"><p className="vma26-eyebrow">SHIPPING OPERATIONS</p><h2>Courier API</h2>
   <p>{config?.provider==='jubelio'?'Cek tarif langsung dari Jubelio Shipment. Tarif mencakup asuransi; promo bersyarat belum diterapkan.':'Periksa estimasi tarif pengiriman.'}</p>
   <div className="vma26-gate-row"><span>Provider adapter</span><strong>{config?.provider||'Memeriksa...'}</strong></div>
   <div className="vma26-gate-row"><span>Cek ongkir</span><strong>{config?.rateLookupEnabled?'Siap':'Belum dikonfigurasi'}</strong></div>

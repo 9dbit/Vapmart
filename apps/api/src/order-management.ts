@@ -1,3 +1,4 @@
+import {samePin,readOriginPin} from './shipping-pin';
 import {StoreProfileService} from './store-profile';
 import {manualPaymentBlocker,parseManualPayment} from './manual-payment';
 import {ConflictException,Injectable,NotFoundException,ServiceUnavailableException} from '@nestjs/common';
@@ -56,8 +57,8 @@ export class OrderManagementService{
  }
  async rates(actor:Principal,id:string,raw:unknown){
   this.writable();requireActor(actor);const x=parseOrderEdit(raw),o=await this.order(this.db,id);await this.editable(this.db,o,x);
-  const result=await this.shipping.rates(actor,{items:x.items.map(({productId,quantity})=>({productId,quantity})),destinationPostalCode:x.contact.postalCode,...(x.contact.areaId?{destinationAreaId:x.contact.areaId}:{}),...(x.contact.provinceId?{destinationProvinceId:x.contact.provinceId}:{})},{customerId:o.customer_user_id,prices:new Map(x.items.map(i=>[i.productId,i.unitPriceIdr]))});
-  const ids=result.rates.map(r=>r.quoteId);
+  const result=await this.shipping.rates(actor,{items:x.items.map(({productId,quantity})=>({productId,quantity})),destinationPostalCode:x.contact.postalCode,destinationPin:x.contact.destinationPin,...(x.contact.areaId?{destinationAreaId:x.contact.areaId}:{}),...(x.contact.provinceId?{destinationProvinceId:x.contact.provinceId}:{})},{customerId:o.customer_user_id,prices:new Map(x.items.map(i=>[i.productId,i.unitPriceIdr]))});
+  const ids=result.rates.map(r=>'quoteId' in r?r.quoteId:null).filter((id):id is string=>typeof id==='string');
   if(ids.length)await this.db.query('UPDATE product.shipping_rate_quotes SET admin_order_id=$1,admin_edit_hash=$2 WHERE id=ANY($3::uuid[]) AND customer_user_id=$4 AND applied_order_id IS NULL',[id,editBinding(x),ids,o.customer_user_id]);
   return result;
  }
@@ -69,13 +70,15 @@ export class OrderManagementService{
   const fingerprintItems=x.items.map(i=>{const p=products.find(p=>p.id===i.productId);return {...i,weightGrams:p?.weight_grams,lengthCm:p?.length_cm,widthCm:p?.width_cm,heightCm:p?.height_cm};});
   const oldQuote=o.shipping_quote_id?(await client.query('SELECT * FROM product.shipping_rate_quotes WHERE id=$1',[o.shipping_quote_id])).rows[0]:null;
   const sameLines=JSON.stringify(x.items)===JSON.stringify(oldLines.map(i=>({productId:i.product_id,quantity:i.quantity,unitPriceIdr:Number(i.unit_price_idr)})).sort((a,b)=>a.productId.localeCompare(b.productId)));
-  const sameContact=x.contact.name===o.contact_name&&x.contact.phone===o.contact_phone&&x.contact.address===o.address_line&&x.contact.city===o.city&&x.contact.province===o.province&&x.contact.postalCode===o.postal_code&&(!x.contact.areaId||x.contact.areaId===oldQuote?.destination_area_id);
+  const sameContact=x.contact.name===o.contact_name&&x.contact.phone===o.contact_phone&&x.contact.address===o.address_line&&x.contact.city===o.city&&x.contact.province===o.province&&x.contact.postalCode===o.postal_code&&(!x.contact.areaId||x.contact.areaId===oldQuote?.destination_area_id)&&samePin(x.contact.destinationPin,o.delivery_pin);
   let selected:any=null,shippingNeeded=false;
   if(x.shippingQuoteId){
    selected=(await client.query('SELECT * FROM product.shipping_rate_quotes WHERE id=$1 FOR UPDATE',[x.shippingQuoteId])).rows[0];
    if(!selected||selected.customer_user_id!==o.customer_user_id||selected.admin_order_id!==o.id||selected.admin_edit_hash!==editBinding(x)||new Date(selected.expires_at).valueOf()<=Date.now()||selected.applied_order_id&&selected.applied_order_id!==o.id)throw new ConflictException('Quote ongkir berubah atau kedaluwarsa. Cek ongkir ulang.');
    const sig=selected.provider==='jubelio'?shippingParcelFingerprint(fingerprintItems):shippingFingerprint(fingerprintItems);
    if(sig!==selected.cart_fingerprint||selected.destination_postal_code!==x.contact.postalCode||selected.provider==='jubelio'&&selected.destination_area_id!==x.contact.areaId)throw new ConflictException('Isi paket atau wilayah berubah. Cek ongkir ulang.');
+   if(!samePin(selected.destination_pin,x.contact.destinationPin))throw new ConflictException('Pin tujuan berubah. Cek ongkir ulang.');
+   if(selected.requires_pin&&(!selected.origin_pin||!selected.destination_pin||!samePin(selected.origin_pin,await readOriginPin(client,selected.origin_area_id,selected.origin_postal_code))))throw new ConflictException('Pin gudang berubah. Cek ongkir ulang.');
    if(selected.destination_region&&(selected.destination_region.city!==x.contact.city||selected.destination_region.province!==x.contact.province||x.contact.provinceId&&selected.destination_region.provinceId!==x.contact.provinceId))throw new ConflictException('Kota dan provinsi harus sesuai wilayah tujuan.');
   }else if(oldQuote){
    const sig=oldQuote.provider==='jubelio'?shippingParcelFingerprint(fingerprintItems):shippingFingerprint(fingerprintItems);
@@ -106,8 +109,8 @@ export class OrderManagementService{
    for(const i of r.items)await client.query('INSERT INTO product.order_items(order_id,product_id,quantity,unit_price_idr,product_name,sku,brand_id,ownership_scope) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[id,i.productId,i.quantity,i.unitPriceIdr,i.name,i.sku,i.brandId,i.brandId?'brand':'platform']);
    const after=(await client.query(`UPDATE product.orders SET contact_name=$2,contact_phone=$3,address_line=$4,city=$5,province=$6,postal_code=$7,
     subtotal_idr=$8,discount_idr=$9,voucher_discount_idr=$10,voucher_id=$11,voucher_code=$12,promotion_discount_idr=$13,promotion_event_id=$14,promotion_title=$15,
-    shipping_fee_idr=$16,additional_fees=$17::jsonb,additional_fee_idr=$18,total_idr=$19,shipping_quote_id=$20,shipping_provider=$21,shipping_courier_code=$22,shipping_service_code=$23,address_region=$24::jsonb WHERE id=$1 RETURNING *`,
-    [id,x.contact.name,x.contact.phone,x.contact.address,x.contact.city,x.contact.province,x.contact.postalCode,r.subtotalIdr,r.discountIdr,r.voucherDiscountIdr,r.voucherId,r.voucherCode,r.promotionDiscountIdr,r.promotionEventId,r.promotionTitle,r.shippingFeeIdr,JSON.stringify(x.fees),r.additionalFeeIdr,r.totalIdr,r.shippingQuoteId,r.courier?.provider||null,r.courier?.courierCode||null,r.courier?.serviceCode||null,JSON.stringify(p.selected?.destination_region||null)])).rows[0];
+    shipping_fee_idr=$16,additional_fees=$17::jsonb,additional_fee_idr=$18,total_idr=$19,shipping_quote_id=$20,shipping_provider=$21,shipping_courier_code=$22,shipping_service_code=$23,address_region=$24::jsonb,delivery_pin=$25::jsonb WHERE id=$1 RETURNING *`,
+    [id,x.contact.name,x.contact.phone,x.contact.address,x.contact.city,x.contact.province,x.contact.postalCode,r.subtotalIdr,r.discountIdr,r.voucherDiscountIdr,r.voucherId,r.voucherCode,r.promotionDiscountIdr,r.promotionEventId,r.promotionTitle,r.shippingFeeIdr,JSON.stringify(x.fees),r.additionalFeeIdr,r.totalIdr,r.shippingQuoteId,r.courier?.provider||null,r.courier?.courierCode||null,r.courier?.serviceCode||null,JSON.stringify(p.selected?.destination_region||null),JSON.stringify(x.contact.destinationPin||null)])).rows[0];
    await this.audit(client,who,id,'edit',x.notes,{order:o,items:p.oldLines},{order:after,items:await this.lines(client,id)});
    return {id,version:after.edit_version,totalIdr:r.totalIdr};
   });

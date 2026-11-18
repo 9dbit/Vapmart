@@ -1,0 +1,10 @@
+'use client';
+import {useEffect,useState} from 'react';
+import {DeliveryPinPicker} from './delivery-pin-picker';
+import type {DeliveryPin} from '@/lib/delivery-pin';
+export function ShippingOriginPin({token}:{token:string|null}){
+ const [pin,setPin]=useState<DeliveryPin|null>(null),[config,setConfig]=useState<{originLabel:string;postalCode:string}|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
+ useEffect(()=>{if(!token)return;let active=true;fetch('/api/admin/shipping/origin-pin',{headers:{authorization:'Bearer '+token},cache:'no-store'}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.message||'Pin gudang belum dapat dimuat');return d;}).then(d=>{if(active){setConfig(d);setPin(d.pin);}}).catch(e=>{if(active)setMessage(e.message);});return()=>{active=false;};},[token]);
+ async function save(){if(!token||!pin)return;setBusy(true);setMessage('');try{const r=await fetch('/api/admin/shipping/origin-pin',{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify(pin)}),d=await r.json();if(!r.ok)throw Error(d.message||'Pin gagal disimpan');setPin(d.pin);setMessage('Pin gudang tersimpan. Instant / Same Day tersedia sesuai jangkauan dan pilihan layanan aktif.');}catch(e){setMessage(e instanceof Error?e.message:'Pin gagal disimpan');}finally{setBusy(false);}}
+ return <section className="vma26-panel"><h3>Pin pickup gudang</h3><p>{config?config.originLabel+' · '+config.postalCode:'Memuat gudang pengiriman...'}</p><p>Tentukan titik gudang yang sama dengan alamat pickup. Instant / Same Day memerlukan pin gudang dan pin tujuan yang terkonfirmasi.</p>{config&&<><DeliveryPinPicker title="Pin Google Maps gudang" value={pin} onChange={setPin} address={config.originLabel+' '+config.postalCode}/><button type="button" className="vma26-btn-dark vm-pin-admin-save" disabled={busy||!pin} onClick={()=>void save()}>{busy?'Menyimpan...':'Simpan pin gudang'}</button></>}{message&&<p role="status">{message}</p>}</section>;
+}
