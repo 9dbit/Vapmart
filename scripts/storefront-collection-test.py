@@ -179,7 +179,7 @@ def verify_care(page, base):
         else:
             route.fulfill(content_type='application/javascript', body=provider)
     page.route(embed, provider_route)
-    page.goto(base+'/catalog', wait_until='networkidle')
+    page.goto(base+'/catalog', wait_until='domcontentloaded')
     fallback = page.get_by_role('link', name='Buka chat Vapmart Care')
     expect(fallback).to_be_visible()
     page.wait_for_function('window.careLoads === 1')
@@ -221,13 +221,13 @@ def verify_care(page, base):
     # Complete script outage keeps a usable link to this merchant's chat.
     page.unroute(embed)
     page.route(embed, lambda route: route.abort())
-    page.reload(wait_until='networkidle')
+    page.reload(wait_until='domcontentloaded')
     expect(fallback).to_be_visible()
     expect(fallback).to_have_attribute('href','https://chatvice.app/widget/m_d74410c444e2726c')
     # A subsequent page load recovers normally.
     page.unroute(embed)
     page.route(embed, lambda route: route.fulfill(content_type='application/javascript',body=provider))
-    page.reload(wait_until='networkidle')
+    page.reload(wait_until='domcontentloaded')
     page.wait_for_function('window.careLoads === 1')
     expect(page.locator('head #vapmart-chatvice-care')).to_have_count(1)
     print('Chat retry, stalled configuration, image failure, cart, mobile clearance and SPA persistence passed.')
