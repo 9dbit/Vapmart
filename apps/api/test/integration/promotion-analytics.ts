@@ -31,7 +31,7 @@ test('CP44 analytics reconciles paid GMV and split discount costs across periods
   const asset=await json('/v1/admin/media',{filename:'cp44.png',mimeType:'image/png',base64:png.toString('base64')});
   async function product(name:string,sku:string,slug:string,cat:string,price:number){
    const item={name,sku,slug,description:'Everyday carry organizer accessories.',categoryIds:[cat],brand_id:null,
-    fulfillment_owner_brand_id:null,image_url:'/api/media/'+asset.id,gallery_urls:[],price_idr:price,
+    fulfillment_owner_brand_id:null,image_url:'/api/media/'+asset.id,gallery_urls:['https://example.invalid/side.webp','https://example.invalid/back.webp'],price_idr:price,
     sale_price_idr:null,sale_starts_at:null,sale_ends_at:null,weight_grams:250,length_cm:22,width_cm:12,height_cm:5,product_type:'simple',attributes:[]};
    let x=await json(api+'/products',{requestKey:randomUUID(),product:item,variants:[],
     warehouseStocks:[{warehouseId:warehouse.id,onHand:12,expectedOnHand:0,expectedReserved:0,notes:''}]});

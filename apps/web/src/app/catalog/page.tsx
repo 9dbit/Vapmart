@@ -17,13 +17,7 @@ export default async function CatalogPage({searchParams}:{searchParams:Promise<{
  const active=result.items.filter(p=>p.is_active&&!p.slug.startsWith('demo-'));
  const referenceItems=isArchiveCategory(ref)?allArchiveItems.filter(p=>p.category===ref):allArchiveItems;
  return <main className="main-container legacy-product-wrapper vm-catalog-page vm-restored-catalog">
-   <div className="vm-catalog-intro">
-     <Link href="/" className="back-link">← Kembali ke beranda</Link>
-     <span className="vm-trendora-eyebrow">DISCOVER VAPMART</span>
-     <h1>Explore the catalog.</h1>
-     <p>Struktur katalog diperbarui tanpa menghilangkan referensi visual dari website sebelum rebuild.</p>
-     <span className="vm-catalog-preview">Produk aktif hanya ditampilkan dari PostgreSQL setelah verifikasi. Metode pembayaran tersedia di checkout.</span>
-   </div>
+   <h1 className="sr-only">Katalog Vapmart</h1>
    {!result.ok?<DataStatus kind="produk" code={result.error}/>:active.length>0?<ProductGrid products={active} initialTerm={query} initialCategory={validCategory?category:'all'}/>:
     <section className="vm-restored-catalog-status" aria-label="Status katalog aktif"><span className="vm-trendora-eyebrow">LIVE CATALOG</span>
       <h2>Katalog aktif sedang diverifikasi</h2>

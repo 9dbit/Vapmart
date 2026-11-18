@@ -45,7 +45,7 @@ test('legacy SKU and decimal dimensions keep their values across catalog validat
  for(const value of ['1,000','-1','Infinity','NaN','1000.1','0.5'])assert.throws(()=>csvMeasurement(value,'length_cm'));
  assert.throws(()=>csvMeasurement('500.5','weight_grams'));assert.equal(csvMeasurement('500.0','weight_grams'),500);
  assert.equal(csvStock('-27'),-27);assert.equal(csvStock('0'),0);assert.throws(()=>csvStock('-1.5'));assert.throws(()=>csvStock('100000001'));
- assert.deepEqual(publicationMissing({sku:'ITEM / BLUE',description:'Organizer',image_url:'https://example.invalid/a.png',price_idr:100,weight_grams:500,length_cm:34.6,width_cm:36.2,height_cm:70.5}),[]);
+ assert.deepEqual(publicationMissing({sku:'ITEM / BLUE',description:'Organizer',image_url:'https://example.invalid/a.png',gallery_urls:['https://example.invalid/side.webp','https://example.invalid/back.webp'],price_idr:100,weight_grams:500,length_cm:34.6,width_cm:36.2,height_cm:70.5}),[]);
 });
 test('CP39 authoritative promo has explicit start/end boundaries',()=>{
  const p={price_idr:'100000',sale_price_idr:'80000',sale_starts_at:'2026-11-03T00:00:00Z',sale_ends_at:'2026-11-04T00:00:00Z'};
@@ -78,4 +78,14 @@ test('Vapmart exported CSV template header can be uploaded without false duplica
  const withOptionalBlanks=parseCSV('Name,SKU,Regular price,,\r\nLamp,L-01,0,,\r\n');
  assert.deepEqual(withOptionalBlanks.headers,['Name','SKU','Regular price']);
  assert.equal(withOptionalBlanks.warnings.length,2);
+});
+
+test('publication counts unique product photos and rejects placeholder inventory codes',()=>{
+ const id='00000000-0000-4000-a000-000000000001';
+ const local='/api/media/'+id;
+ const product={sku:'TEST',image_url:local,gallery_urls:['https://vapmart.id'+local,'https://example.invalid/side.png']};
+ const missing=publicationMissing(product);
+ assert.ok(missing.includes('sku'));
+ assert.ok(missing.includes('minimal 3 foto produk berbeda'));
+ assert.ok(!publicationMissing({...product,sku:'TIC-42',gallery_urls:[...product.gallery_urls,'https://example.invalid/back.png']}).includes('minimal 3 foto produk berbeda'));
 });

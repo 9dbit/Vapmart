@@ -19,7 +19,7 @@ test('CP41 voucher, optional stock note and manual bank-transfer order reach adm
   const png=await sharp({create:{width:96,height:96,channels:3,background:'#7842b8'}}).png().toBuffer();
   const asset=await ok('/v1/admin/media',{filename:'cp41.png',mimeType:'image/png',base64:png.toString('base64')});
   const image='/api/media/'+asset.id;
-  const product={name:'Travel Pouch CP41',slug:'travel-pouch-cp41',sku:'CP41-POUCH',description:'Travel pouch for everyday accessories.',categoryIds:[category.id],brand_id:null,fulfillment_owner_brand_id:null,image_url:image,gallery_urls:[],price_idr:100000,sale_price_idr:null,sale_starts_at:null,sale_ends_at:null,weight_grams:250,length_cm:20,width_cm:12,height_cm:4,product_type:'simple',attributes:[]};
+  const product={name:'Travel Pouch CP41',slug:'travel-pouch-cp41',sku:'CP41-POUCH',description:'Travel pouch for everyday accessories.',categoryIds:[category.id],brand_id:null,fulfillment_owner_brand_id:null,image_url:image,gallery_urls:['https://example.invalid/side.webp','https://example.invalid/back.webp'],price_idr:100000,sale_price_idr:null,sale_starts_at:null,sale_ends_at:null,weight_grams:250,length_cm:20,width_cm:12,height_cm:4,product_type:'simple',attributes:[]};
   let saved=await ok(api+'/products',{requestKey:randomUUID(),product,variants:[],warehouseStocks:[{warehouseId:warehouse.id,onHand:6,expectedOnHand:0,expectedReserved:0,notes:''}]});
   assert.equal(saved.product.stock_qty,6,'blank stock note must not block an audited stock update');
   const event=(await db.query('SELECT notes FROM product.warehouse_stock_events WHERE product_id=$1 ORDER BY id DESC LIMIT 1',[saved.product.id])).rows[0];

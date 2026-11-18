@@ -3,7 +3,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import type {PoolClient} from 'pg';
 import {DatabaseService} from './database';
 import type {Principal} from './auth';
-import {requireActor,assertVersion,recordAudit,parsePage,pageResult,publicationMissing} from './data-integrity';
+import {requireActor,assertVersion,recordAudit,parsePage,pageResult,hasGallery,publicationMissing} from './data-integrity';
 import {inventoryLock,ensureBalance,writeEvent,refreshProductAvailability,requireUuid} from './warehouses';
 import * as V from './catalog-validation';
 import {publicPrice} from './catalog-pricing';
@@ -62,6 +62,9 @@ async function categoryIds(q:Reader,x:Record<string,any>){
 async function linkCategories(q:Reader,id:string,ids:string[]){
  await q.query('DELETE FROM product.product_categories WHERE product_id=$1',[id]);
  await q.query('INSERT INTO product.product_categories(product_id,category_id) SELECT $1,unnest($2::uuid[])',[id,ids]);
+}
+function assertFamilyGallery(product:Record<string,unknown>){
+ if(!hasGallery(product))throw new ConflictException({code:'PUBLICATION_INCOMPLETE',message:'Lengkapi minimal 3 foto produk berbeda.'});
 }
 export async function assertPublishable(q:Reader,p:Record<string,any>){
  // Private drafts may retain unreviewed text; every publication checks the stored record.
@@ -160,6 +163,7 @@ export class CatalogWorkspaceService{
     await linkCategories(client,row.id,cats.ids);await stockSave(client,who,row.id,V.stockInputs(v.warehouseStocks));
     if(saved.is_active&&row.is_active)await assertPublishable(client,row);
    }
+   if(saved.is_active)assertFamilyGallery(saved);
    if(saved.is_active&&!x.variants.some((v:any)=>v.enabled))throw new ConflictException('Produk aktif membutuhkan setidaknya satu varian aktif');
   }
   if(saved.is_active&&type==='simple')await assertPublishable(client,saved);
@@ -189,6 +193,7 @@ export class CatalogWorkspaceService{
      const variants=(await client.query('SELECT * FROM product.products WHERE parent_product_id=$1 AND is_active AND archived_at IS NULL FOR UPDATE',[id])).rows;
      if(!variants.length)throw new ConflictException('Tambahkan varian aktif sebelum publikasi');
      for(const v of variants)await assertPublishable(client,v);
+     assertFamilyGallery(before);
     }else await assertPublishable(client,before);
    }
    const after=(await client.query('UPDATE product.products SET is_active=$2,edit_version=edit_version+1,updated_at=now() WHERE id=$1 RETURNING *',[id,x.active])).rows[0];await recordAudit(client,'product',who,before,after);return family(client,id);

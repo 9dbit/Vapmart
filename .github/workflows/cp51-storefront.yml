@@ -28,3 +28,7 @@ jobs:
       - run: npm ci --no-audit --no-fund --prefix apps/web
       - name: Next.js production build
         run: npm run build --prefix apps/web
+      - name: Exercise catalog and product details at phone, tablet and desktop sizes
+        run: |
+          python -m pip install playwright==1.56.0
+          python scripts/storefront-collection-test.py

@@ -83,7 +83,7 @@ test('legacy activation-only requests cannot publish restricted text saved by th
 });
 
 test('ordinary accessory publication still accepts complete validated data',async()=>{
- const p={...input(),id:productId,description:'Tas kain untuk aksesori perjalanan.',price_idr:100000,image_url:'https://example.invalid/bag.png',weight_grams:500,length_cm:20,width_cm:15,height_cm:10};
+ const p={...input(),id:productId,description:'Tas kain untuk aksesori perjalanan.',price_idr:100000,image_url:'https://example.invalid/bag.png',gallery_urls:['https://example.invalid/side.webp','https://example.invalid/back.webp'],weight_grams:500,length_cm:20,width_cm:15,height_cm:10};
  const reader={query:async(sql:string)=>sql.includes('WITH RECURSIVE ancestors')?{rows:[{n:1,ok:true}]}:sql.includes('warehouse_stock')?{rows:[{exists:1}]}:Promise.reject(Error('Unexpected query'))};
  await assertPublishable(reader,p);
 });

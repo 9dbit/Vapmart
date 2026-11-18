@@ -19,7 +19,7 @@ test('CP43 promotion campaigns auto-apply with scope, stacking, member and usage
   assert.ok(warehouse&&category);
   const png=await sharp({create:{width:96,height:96,channels:3,background:'#7c3aed'}}).png().toBuffer();
   const asset=await ok('/v1/admin/media',{filename:'cp43.png',mimeType:'image/png',base64:png.toString('base64')});
-  const product={name:'Organizer CP43',slug:'organizer-cp43',sku:'CP43-ORG',description:'Compact organizer for everyday accessories.',categoryIds:[category.id],brand_id:null,fulfillment_owner_brand_id:null,image_url:'/api/media/'+asset.id,gallery_urls:[],price_idr:100000,sale_price_idr:null,sale_starts_at:null,sale_ends_at:null,weight_grams:300,length_cm:20,width_cm:12,height_cm:5,product_type:'simple',attributes:[]};
+  const product={name:'Organizer CP43',slug:'organizer-cp43',sku:'CP43-ORG',description:'Compact organizer for everyday accessories.',categoryIds:[category.id],brand_id:null,fulfillment_owner_brand_id:null,image_url:'/api/media/'+asset.id,gallery_urls:['https://example.invalid/side.webp','https://example.invalid/back.webp'],price_idr:100000,sale_price_idr:null,sale_starts_at:null,sale_ends_at:null,weight_grams:300,length_cm:20,width_cm:12,height_cm:5,product_type:'simple',attributes:[]};
   let saved=await ok(api+'/products',{requestKey:randomUUID(),product,variants:[],warehouseStocks:[{warehouseId:warehouse.id,onHand:8,expectedOnHand:0,expectedReserved:0,notes:''}]});
   saved=await ok(api+'/products/'+saved.product.id+'/state',{expectedVersion:saved.product.edit_version,active:true});
 

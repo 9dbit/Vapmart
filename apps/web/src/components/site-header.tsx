@@ -8,18 +8,8 @@ import {ThemeSwitcher} from '@/components/theme-switcher';
 import {BrandLogo} from '@/components/brand-logo';
 import {useCustomerAuth} from '@/lib/customer-auth';
 
-type IconName='search'|'cart'|'user'|'home'|'categories'|'star'|'tag'|'back';
-function Icon({name}:{name:IconName}){
-  const common={viewBox:'0 0 24 24',width:21,height:21,fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round' as const,strokeLinejoin:'round' as const,'aria-hidden':true as const};
-  if(name==='search')return <svg {...common}><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>;
-  if(name==='cart')return <svg {...common}><path d="M3 4h2l2.2 11.4a2 2 0 0 0 2 1.6h9.5a2 2 0 0 0 2-1.5L22 8H6"/><circle cx="10" cy="20" r="1"/><circle cx="19" cy="20" r="1"/></svg>;
-  if(name==='user')return <svg {...common}><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg>;
-  if(name==='home')return <svg {...common}><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg>;
-  if(name==='categories')return <svg {...common}><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>;
-  if(name==='star')return <svg {...common}><path d="m12 2 2.9 6 6.6.9-4.8 4.7 1.1 6.6-5.8-3.1-5.8 3.1 1.1-6.6-4.8-4.7L9.1 8Z"/></svg>;
-  if(name==='tag')return <svg {...common}><path d="M3 4h9l9 9-8 8-10-10V4Z"/><circle cx="8" cy="9" r="1"/></svg>;
-  return <svg {...common}><path d="m15 18-6-6 6-6"/></svg>;
-}
+import {Icon} from './store-icon';
+import type {IconName} from './store-icon';
 
 export function SiteHeader(){
   const {count,setOpen,open}=useCart();
