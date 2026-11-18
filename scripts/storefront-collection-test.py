@@ -150,9 +150,11 @@ def verify(page,base,touch=False):
     page.goto(base+'/brand/login', wait_until='load')
     expect(script).to_have_count(0)
     assert page.evaluate('window.careLoads || 0') == 0
+    page.evaluate('window.staffDocument = true')
     page.get_by_role('link', name='Kembali ke Vapmart').click()
     page.wait_for_function('window.careLoads === 1')
     expect(script).to_have_count(1)
+    assert page.evaluate('window.staffDocument') is True
     print('Catalog filters, drawer, sort, geometry, gallery, cart, checkout and WhatsApp passed.')
 
 def verify_care(page, base):
@@ -248,14 +250,16 @@ if __name__=='__main__':
             browser=playwright.chromium.launch(args=['--no-sandbox','--disable-dev-shm-usage'])
             page=browser.new_page(viewport={'width':390,'height':844})
             verify(page,base)
-            verify_care(page,base)
+            page.close()
+            verify_care(browser.new_page(viewport={'width':390,'height':844}),base)
             browser.close()
             print('Testing iPhone 13 in WebKit')
             webkit=playwright.webkit.launch()
             iphone=webkit.new_context(**playwright.devices['iPhone 13'])
             page=iphone.new_page()
             verify(page,base,touch=True)
-            verify_care(page,base)
+            page.close()
+            verify_care(iphone.new_page(),base)
             webkit.close()
             print('Chromium and WebKit with iPhone 13 emulation passed.')
     finally:

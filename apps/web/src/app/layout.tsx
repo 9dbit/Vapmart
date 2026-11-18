@@ -36,7 +36,7 @@ export const metadata:Metadata={
  robots:{index:false,follow:false},
 };
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="id" suppressHydrationWarning><head><meta name="theme-color" content="#ffffff"/><script id="vapmart-theme-init" dangerouslySetInnerHTML={{__html:initialThemeScript}}/></head><body data-vapmart-theme="member-cp22" data-vapmart-theme-options="cp23"><ThemeProvider><CustomerAuthProvider><CartProvider><WishlistProvider><StorefrontChrome><SiteHeader/><VapmartCare/></StorefrontChrome>{children}
+  return <html lang="id" suppressHydrationWarning><head><meta name="theme-color" content="#ffffff"/><script id="vapmart-theme-init" dangerouslySetInnerHTML={{__html:initialThemeScript}}/></head><body data-vapmart-theme="member-cp22" data-vapmart-theme-options="cp23"><ThemeProvider><CustomerAuthProvider><CartProvider><WishlistProvider><StorefrontChrome><SiteHeader/></StorefrontChrome><VapmartCare/>{children}
     <StorefrontChrome><footer className="legacy-footer vm-reference-footer">
       <div className="main-container vm-reference-footer-grid">
         <div className="vm-footer-intro"><BrandLogo variant="footer"/>

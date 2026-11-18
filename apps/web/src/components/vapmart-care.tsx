@@ -1,5 +1,7 @@
 'use client';
-import {useEffect, useState, type MouseEvent} from 'react';
+import {useEffect, useRef, useState, type MouseEvent} from 'react';
+
+import {useStorefront} from './storefront-chrome';
 
 const scriptId = 'vapmart-chatvice-care';
 const scriptUrl = 'https://chatvice.app/api/widget/chatvice.js?merchant=m_d74410c444e2726c';
@@ -13,9 +15,17 @@ function visible(element: HTMLElement | null): boolean {
 }
 
 export function VapmartCare() {
+  const storefront = useStorefront();
+  const loadedOnStorefront = useRef(false);
   const [fallback, setFallback] = useState(false);
 
   useEffect(() => {
+    if (!storefront) {
+      // Dispose of the provider's document-level listeners before entering staff pages.
+      if (loadedOnStorefront.current) window.location.reload();
+      return;
+    }
+    loadedOnStorefront.current = true;
     let attempts = 0;
     let retry: ReturnType<typeof setTimeout> | undefined;
     let script: HTMLScriptElement | null = null;
@@ -90,7 +100,7 @@ export function VapmartCare() {
       window.removeEventListener('pageshow', checkVisibility);
       window.removeEventListener('resize', checkVisibility);
     };
-  }, []);
+  }, [storefront]);
 
   function openChat(event: MouseEvent<HTMLAnchorElement>) {
     const care = (window as CareWindow).chatvice;
@@ -100,7 +110,7 @@ export function VapmartCare() {
     }
   }
 
-  return fallback ? (
+  return storefront && fallback ? (
     <a className="vm-care-fallback" href={chatUrl} target="_blank" rel="noopener noreferrer"
       aria-label="Buka chat Vapmart Care" title="Chat Vapmart Care" onClick={openChat}>
       <span aria-hidden="true">•••</span>
