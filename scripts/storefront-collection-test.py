@@ -52,7 +52,24 @@ def box(locator):
 def same_row(a,b):
     return abs((a['y']+a['height']/2)-(b['y']+b['height']/2)) < 2
 
-def verify(page,base):
+def verify_quantity_controls(container, start, touch):
+    controls=container.locator('.vm21-drawer-qty')
+    count=controls.locator('span')
+    increase=controls.get_by_role('button',name='Tambah Lampu meja',exact=True)
+    decrease=controls.get_by_role('button',name='Kurangi Lampu meja',exact=True)
+    expect(count).to_have_text(str(start))
+    for button in [increase,decrease]:
+        frame,icon=box(button),box(button.locator('svg'))
+        assert abs(frame['width']-frame['height'])<1 and same_row(frame,icon)
+        assert abs(frame['x']+frame['width']/2-icon['x']-icon['width']/2)<1
+    if touch: increase.tap()
+    else: increase.click()
+    expect(count).to_have_text(str(start+1))
+    if touch: decrease.tap()
+    else: decrease.click()
+    expect(count).to_have_text(str(start))
+
+def verify(page,base,touch=False):
     page.goto(base+'/catalog',wait_until='networkidle')
     expect(page.get_by_role('heading',name='Produk Pilihan')).to_be_visible()
     search = page.locator('.vm-collection-bar button[aria-label="Cari produk"]')
@@ -79,7 +96,8 @@ def verify(page,base):
     expect(page.locator('.product-card h3').first).to_have_text('Tas kecil')
     sort.select_option('priceHigh')
     expect(page.locator('.product-card h3').first).to_have_text('Lampu meja')
-    search.click()
+    if touch: search.tap()
+    else: search.click()
     expect(page.locator('#shop-search')).to_be_focused()
     page.locator('#shop-search').fill('BG-203')
     expect(page.locator('.product-card')).to_have_count(1)
@@ -107,8 +125,13 @@ def verify(page,base):
         assert box(page.get_by_role('heading',name='Review pembeli'))['x']>=16
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
     expect(page.get_by_role('link',name='Chat WhatsApp',exact=False)).to_have_attribute('href','https://wa.me/6282146323633')
+    page.set_viewport_size({'width':390,'height':844})
     page.get_by_role('button',name='Tambahkan ke keranjang',exact=True).click()
-    expect(page.get_by_role('dialog',name='Keranjang',exact=False)).to_contain_text('Lampu meja')
+    drawer=page.get_by_role('dialog',name='Keranjang',exact=False)
+    expect(drawer).to_contain_text('Lampu meja')
+    verify_quantity_controls(drawer,1,touch)
+    page.goto(base+'/keranjang-2',wait_until='networkidle')
+    verify_quantity_controls(page.locator('.vm21-cart-product'),1,touch)
     page.goto(base+'/product/lampu',wait_until='networkidle')
     page.get_by_role('button',name='Beli sekarang').click()
     page.wait_for_url('**/checkout')
@@ -129,6 +152,11 @@ if __name__=='__main__':
             browser=playwright.chromium.launch(channel='chrome',args=['--no-sandbox','--disable-dev-shm-usage'])
             verify(browser.new_page(viewport={'width':390,'height':844}),base)
             browser.close()
+            webkit=playwright.webkit.launch()
+            iphone=webkit.new_context(**playwright.devices['iPhone 13'])
+            verify(iphone.new_page(),base,touch=True)
+            webkit.close()
+            print('Chromium and WebKit with iPhone 13 emulation passed.')
     finally:
         app.terminate()
         app.wait(timeout=15)

@@ -1,4 +1,5 @@
 'use client';
+import {Icon} from './store-icon';
 import {useEffect,useRef} from 'react';
 import Link from 'next/link';
 import {useCart} from '@/lib/cart';
@@ -59,7 +60,7 @@ export function CartDrawer(){
                <strong>{product.name}</strong>
                <span>{formatIDR(product.price_idr)}</span>
                {isDigitalProduct(product)?<span className="vm21-digital-qty">Qty 1 · digital</span>:
-               <div className="vm21-drawer-qty"><button type="button" disabled={quantity<=1} onClick={()=>setQuantity(product.id,quantity-1)} aria-label={'Kurangi '+product.name}>−</button><span>{quantity}</span><button type="button" disabled={quantity>=product.stock_qty} onClick={()=>setQuantity(product.id,quantity+1)} aria-label={'Tambah '+product.name}>+</button></div>}
+               <div className="vm21-drawer-qty"><button type="button" disabled={quantity<=1} onClick={()=>setQuantity(product.id,quantity-1)} aria-label={'Kurangi '+product.name}><Icon name="minus"/></button><span>{quantity}</span><button type="button" disabled={quantity>=Math.min(product.stock_qty,99)} onClick={()=>setQuantity(product.id,quantity+1)} aria-label={'Tambah '+product.name}><Icon name="plus"/></button></div>}
              </div>
              <button type="button" className="vm21-drawer-item-remove" onClick={()=>remove(product.id)} aria-label={'Hapus '+product.name}>×</button>
            </article>)}
