@@ -97,7 +97,7 @@ export function parseDraftOrder(raw:unknown){
 @Injectable()
 export class CheckoutService{
  constructor(private readonly db:DatabaseService){}
- config(){const gateway=paymentGatewayReadiness();return {paymentEnabled:gateway.paymentEnabled,providerConnected:gateway.connected,methods:gateway.availableMethods,gateway,shippingFeeIdr:shippingAmount(),shippingMode:shippingConfig().rateLookupEnabled?'courier_select':'fixed_estimate',ordersMode:gateway.paymentEnabled?'xendit_sandbox':'manual_bank_transfer'};}
+ config(){const gateway=paymentGatewayReadiness();return {paymentEnabled:gateway.paymentEnabled,providerConnected:gateway.connected,methods:gateway.availableMethods,gateway,shippingFeeIdr:shippingAmount(),shippingMode:shippingConfig().rateLookupEnabled?'courier_select':'fixed_estimate',ordersMode:gateway.paymentEnabled?(gateway.environment==='live'?'xendit_live':'xendit_sandbox'):'manual_bank_transfer'};}
  async quoted(items:BasketItem[],query:(sql:string,params:unknown[])=>Promise<{rows:any[]}>,code:string|null=null,userId:string|null=null,overrides?:Map<string,number>):Promise<Quote>{
    const rows=await query(`SELECT p.* FROM product.products p WHERE p.id=ANY($1::uuid[]) AND ${sellableSQL}`,[items.map(x=>x.productId)]);
    let quote=priceBasket(items,rows.rows.map(p=>overrides?.has(p.id)?{...p,price_idr:overrides.get(p.id),sale_price_idr:null}:p));
@@ -132,7 +132,7 @@ export class CheckoutService{
        [user.id,details.idempotencyKey]);
      if(existing.rows[0]){
        if(existing.rows[0].request_hash!==hash)throw new ConflictException('Kunci pesanan pernah digunakan untuk data berbeda');
-       return {id:existing.rows[0].id,status:existing.rows[0].status,paymentStatus:existing.rows[0].payment_status,paymentEnabled:gateway.paymentEnabled,sandboxOnly:details.paymentMethod!=='bank_transfer'};
+       return {id:existing.rows[0].id,status:existing.rows[0].status,paymentStatus:existing.rows[0].payment_status,paymentEnabled:gateway.paymentEnabled,sandboxOnly:details.paymentMethod!=='bank_transfer'&&gateway.environment!=='live'};
      }
      const recent=await client.query<{total:string}>(
        "SELECT COUNT(*)::text total FROM product.orders WHERE customer_user_id=$1 AND created_at > now() - interval '24 hours' AND status='draft'",
@@ -181,6 +181,7 @@ export class CheckoutService{
      const order=await client.query<{id:string;status:string;payment_status:string}>(
        "INSERT INTO product.orders(customer_user_id,status,currency,total_idr,subtotal_idr,discount_idr,voucher_discount_idr,promotion_discount_idr,shipping_fee_idr,idempotency_key,request_hash,contact_name,contact_email,contact_phone,address_line,city,province,postal_code,shipping_method,payment_method,payment_status,expires_at,shipping_quote_id,shipping_provider,shipping_courier_code,shipping_service_code,voucher_id,voucher_code,promotion_event_id,promotion_title) VALUES ($1,'draft','IDR',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'standard',$17,$18,now()+interval '24 hours',$19,$20,$21,$22,$23,$24,$25,$26) RETURNING id,status,payment_status",
        [user.id,draftTotal,quote.subtotalIdr,quote.discountIdr,quote.voucherDiscountIdr,quote.promotionDiscountIdr,shippingFee,details.idempotencyKey,hash,details.name,user.email,details.phone,details.address,details.city,details.province,details.postalCode,details.paymentMethod,paymentStatus,details.shippingQuoteId,service?.provider||null,service?.courier_code||null,service?.service_code||null,quote.voucherId,quote.voucherCode,quote.promotionEventId,quote.promotionTitle]);
+     await client.query('UPDATE product.orders SET payment_environment=$2 WHERE id=$1',[order.rows[0].id,details.paymentMethod==='bank_transfer'?null:gateway.environment]);
      if(details.shippingQuoteId){
       await client.query('UPDATE product.shipping_rate_quotes SET applied_order_id=$2 WHERE id=$1 AND applied_order_id IS NULL',[details.shippingQuoteId,order.rows[0].id]);
      }
@@ -188,7 +189,7 @@ export class CheckoutService{
        await client.query('INSERT INTO product.order_items(order_id,product_id,quantity,unit_price_idr,product_name,sku,brand_id,ownership_scope) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',
          [order.rows[0].id,item.productId,item.quantity,item.unitPriceIdr,item.name,item.sku,item.brandId,item.brandId?'brand':'platform']);
      }
-     return {id:order.rows[0].id,status:order.rows[0].status,paymentStatus:order.rows[0].payment_status,paymentMethod:details.paymentMethod,paymentEnabled:gateway.paymentEnabled,sandboxOnly:details.paymentMethod!=='bank_transfer',totalIdr:draftTotal,discountIdr:quote.discountIdr,voucherDiscountIdr:quote.voucherDiscountIdr,voucherCode:quote.voucherCode,promotionDiscountIdr:quote.promotionDiscountIdr,promotionEventId:quote.promotionEventId,promotionTitle:quote.promotionTitle};
+     return {id:order.rows[0].id,status:order.rows[0].status,paymentStatus:order.rows[0].payment_status,paymentMethod:details.paymentMethod,paymentEnabled:gateway.paymentEnabled,sandboxOnly:details.paymentMethod!=='bank_transfer'&&gateway.environment!=='live',totalIdr:draftTotal,discountIdr:quote.discountIdr,voucherDiscountIdr:quote.voucherDiscountIdr,voucherCode:quote.voucherCode,promotionDiscountIdr:quote.promotionDiscountIdr,promotionEventId:quote.promotionEventId,promotionTitle:quote.promotionTitle};
    });
  }
  async getOrder(user:Principal,id:string){
@@ -199,7 +200,7 @@ export class CheckoutService{
    if(!order.rows[0])throw new NotFoundException('Pesanan tidak ditemukan');
    const lines=await this.db.query(
      'SELECT id,product_id,product_name,sku,quantity,unit_price_idr::text FROM product.order_items WHERE order_id=$1 ORDER BY id',[id]);
-   return {order:order.rows[0],items:lines.rows,paymentEnabled:false};
+   return {order:order.rows[0],items:lines.rows,paymentEnabled:paymentGatewayReadiness().paymentEnabled};
  }
  async adminOrders(raw:Record<string,unknown>={}){
   const f=parsePage(raw);
@@ -214,7 +215,7 @@ export class CheckoutService{
    ), selected AS (SELECT * FROM filtered ORDER BY created_at DESC,id DESC LIMIT $3 OFFSET $4)
    SELECT jsonb_build_object('items',coalesce((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.created_at DESC,s.id DESC) FROM selected s),'[]'::jsonb),
     'total',(SELECT count(*)::integer FROM filtered)) AS data`,[f.q,f.status,f.pageSize,(f.page-1)*f.pageSize]);
-  const d=r.rows[0].data;return {...pageResult(d.items,d.total,f.page,f.pageSize),paymentEnabled:false};
+  const d=r.rows[0].data;return {...pageResult(d.items,d.total,f.page,f.pageSize),paymentEnabled:paymentGatewayReadiness().paymentEnabled};
  }
  paymentSession(){
    throw new ServiceUnavailableException({code:'PAYMENT_PROVIDER_NOT_CONNECTED',message:'Pembayaran tidak dapat diproses sampai payment gateway terintegrasi dan diverifikasi'});

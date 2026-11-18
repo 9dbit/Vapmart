@@ -1,12 +1,12 @@
 'use client';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {useCustomerAuth} from '@/lib/customer-auth';
-type Session={state:string;paymentUrl:string|null;sessionId:string|null;expiresAt:string|null;message:string};
+type Session={state:string;paymentUrl:string|null;environment:string;sessionId:string|null;expiresAt:string|null;message:string};
 type State={readiness:{paymentEnabled:boolean;environment:string};session:Session|null};
-export function XenditOrderPayment({orderId}:{orderId:string}){
+export function XenditOrderPayment({orderId,onVerified}:{orderId:string;onVerified?:()=>void}){
  const {accessToken}=useCustomerAuth();
  const [state,setState]=useState<State|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
- const key=useRef<string|null>(null),locked=useRef(false);
+ const key=useRef<string|null>(null),locked=useRef(false),notified=useRef(false);
  const path='/api/checkout/orders/'+encodeURIComponent(orderId)+'/payment-session';
  const load=useCallback(async(signal?:AbortSignal)=>{
   if(!accessToken)return;
@@ -43,22 +43,23 @@ export function XenditOrderPayment({orderId}:{orderId:string}){
    const x=await r.json();
    if(!r.ok){if(x?.code==='XENDIT_SESSION_REJECTED')key.current=null;await load();throw Error(x?.message||'Sesi belum dapat dibuat. Periksa status sebelum mencoba lagi.');}
    key.current=null;await load();
-   if(x.paymentUrl){const u=new URL(x.paymentUrl);if(u.protocol!=='https:'||!['dev.xen.to','checkout-staging.xendit.co'].includes(u.hostname))throw Error('Alamat checkout tidak valid');window.location.assign(u.href);}
+   if(x.paymentUrl){const u=new URL(x.paymentUrl);const hosts=x.environment==='live'?['xen.to','checkout.xendit.co']:['dev.xen.to','checkout-staging.xendit.co'];if(u.protocol!=='https:'||!hosts.includes(u.hostname))throw Error('Alamat checkout tidak valid');window.location.assign(u.href);}
   }catch(e){setError(e instanceof Error?e.message:'Tidak dapat membuka pembayaran');}
   finally{locked.current=false;setBusy(false);}
  }
- const s=state?.session;
+ const s=state?.session,live=(state?.session?.environment??state?.readiness.environment)==='live';
+ useEffect(()=>{if(live&&s?.state==='completed'&&!notified.current){notified.current=true;onVerified?.()}},[live,s?.state,onVerified]);
  const canCreate=state?.readiness.paymentEnabled&&(!s||['failed','expired','canceled'].includes(s.state));
  const resumable=s?.state==='active'&&s.paymentUrl&&(!s.expiresAt||Date.parse(s.expiresAt)>Date.now());
- return <section aria-label="Pembayaran Xendit sandbox" className="vm-xendit-panel">
-  <h2>Xendit · Sandbox</h2>
-  <p>Simulasi pembayaran. Jangan transfer uang nyata. Pesanan ini tidak otomatis diproses gudang.</p>
+ return <section aria-label="Pembayaran Xendit" className="vm-xendit-panel">
+  <h2>Xendit{state?(live?'':' · Sandbox'):''}</h2>
+  <p>{live?'Lanjutkan ke halaman pembayaran Xendit. Pembayaran akan diverifikasi oleh server.':'Simulasi pembayaran. Jangan transfer uang nyata. Pesanan ini tidak otomatis diproses gudang.'}</p>
   {!state&&!error&&<p role="status">Memeriksa koneksi pembayaran...</p>}
-  {s&&<p role="status"><strong>{s.state==='completed'?'Simulasi berhasil':s.state==='expired'?'Sesi kedaluwarsa':s.state==='active'?'Menunggu simulasi pembayaran':s.state==='awaiting_reconciliation'?'Memverifikasi pembayaran':s.state==='unknown'?'Status sesi perlu diperiksa':s.state==='canceled'?'Sesi dibatalkan':s.state==='failed'?'Sesi gagal dibuat':'Menyiapkan sesi'}</strong><br/>{s.message}</p>}
+  {s&&<p role="status"><strong>{s.state==='completed'?(live?'Pembayaran berhasil':'Simulasi berhasil'):s.state==='expired'?'Sesi kedaluwarsa':s.state==='active'?(live?'Menunggu pembayaran':'Menunggu simulasi pembayaran'):s.state==='awaiting_reconciliation'?'Memverifikasi pembayaran':s.state==='review'?'Menunggu peninjauan admin':s.state==='unknown'?'Status sesi perlu diperiksa':s.state==='canceled'?'Sesi dibatalkan':s.state==='failed'?'Sesi gagal dibuat':'Menyiapkan sesi'}</strong><br/>{s.message}</p>}
   {s?.expiresAt&&s.state==='active'&&<p>Berlaku hingga {new Date(s.expiresAt).toLocaleString('id-ID')}</p>}
-  {state&&!state.readiness.paymentEnabled&&<p>Sandbox belum siap. Hubungi admin untuk memeriksa konfigurasi.</p>}
-  {canCreate&&<button type="button" className="vco26-button" disabled={busy} onClick={()=>void start()}>{busy?'Membuka checkout...':'Bayar melalui Xendit sandbox ↗'}</button>}
-  {resumable&&<a className="vco26-button" href={s.paymentUrl!}>Lanjutkan pembayaran sandbox ↗</a>}
+  {state&&!state.readiness.paymentEnabled&&<p>Pembayaran belum siap untuk lingkungan pesanan ini. Hubungi admin untuk memeriksa status.</p>}
+  {canCreate&&<button type="button" className="vco26-button" disabled={busy} onClick={()=>void start()}>{busy?'Membuka checkout...':(live?'Bayar melalui Xendit ↗':'Bayar melalui Xendit sandbox ↗')}</button>}
+  {resumable&&<a className="vco26-button" href={s.paymentUrl!}>{live?'Lanjutkan pembayaran ↗':'Lanjutkan pembayaran sandbox ↗'}</a>}
   {s?.sessionId&&s.state!=='completed'&&<button type="button" className="vco26-secondary" disabled={busy} onClick={()=>void check()}>{busy?'Memeriksa...':'Periksa status pembayaran'}</button>}
   {error&&<p role="alert">{error}</p>}
   {!state&&error&&<button type="button" className="vco26-secondary" onClick={()=>void load().catch(e=>setError(e.message))}>Coba muat lagi</button>}

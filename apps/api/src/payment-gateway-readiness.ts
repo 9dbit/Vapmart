@@ -6,18 +6,16 @@ export type PaymentMethod='bank_transfer'|'qris'|'virtual_account'|'ewallet';
 
 const supportedProviders=new Set<FutureGatewayProvider>(['midtrans','xendit','genesis']);
 
-/** Do not infer a live connection solely from the presence of a secret or env var.
- * Only the manual bank-transfer flow is currently wired into Vapmart orders.
- */
+/** Enable only channels with environment-specific credentials and explicit flags. */
 export function paymentGatewayReadiness(){
  const raw=process.env.VAPMART_PAYMENT_PROVIDER;
  const xendit=xenditSandboxReadiness();
  const provider=raw&&supportedProviders.has(raw as FutureGatewayProvider)?raw as FutureGatewayProvider:
-  xendit.testKeyConfigured?'xendit':null;
+  xendit.testKeyConfigured||xendit.liveKeyConfigured?'xendit':null;
  if(provider==='xendit')return {
-  provider,connected:xendit.connected,paymentEnabled:xendit.paymentEnabled,livePaymentEnabled:false,
-  status:xendit.paymentEnabled?'sandbox_active':xendit.connected?'sandbox_connected':'sandbox_incomplete',
-  environment:'test',
+  provider,connected:xendit.connected,paymentEnabled:xendit.paymentEnabled,livePaymentEnabled:xendit.livePaymentEnabled,
+  status:xendit.paymentEnabled?(xendit.environment==='live'?'live_active':'sandbox_active'):xendit.connected?(xendit.environment==='live'?'live_connected':'sandbox_connected'):(xendit.environment==='live'?'live_incomplete':'sandbox_incomplete'),
+  environment:xendit.environment,
   availableMethods:['bank_transfer',...(['qris','virtual_account','ewallet'] as const).filter(m=>
    xendit.paymentEnabled&&xenditChannelsForMethod(m,xendit.channels).length>0)] as PaymentMethod[],
   requires:xendit.missing
