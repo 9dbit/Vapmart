@@ -176,7 +176,11 @@ html body .vm21-drawer-item-body strong{font-size:12px;color:#302a35;line-height
 html body .vm21-drawer-item-body>span{font-size:11px;color:#655e6e}
 html body .vm21-drawer-item-remove{position:absolute;right:0;top:14px;background:#f6f3fa;color:#6b6473;border:0;border-radius:50%;width:30px;height:30px;font-size:22px}
 html body .vm21-drawer-qty{display:flex;align-items:center;gap:9px;width:max-content;background:#f3f0f8;border-radius:999px;padding:3px}
-html body .vm21-drawer-qty button{border:0;background:white;border-radius:50%;width:30px;height:30px;font-size:15px;color:#4a325f}
+html body .vm21-drawer-qty button{
+ display:grid;place-items:center;flex:none;box-sizing:border-box;
+ width:36px;height:36px;padding:0;border:0;border-radius:50%;background:white;color:#4a325f
+}
+html body .vm21-drawer-qty button svg{display:block;width:16px;height:16px}
 html body .vm21-drawer-qty button:disabled{opacity:.4}
 html body .vm21-drawer-qty span{font-size:12px;font-weight:700;color:#2e2435}
 html body .vm21-digital-qty{font-size:10px;color:#78568b;background:#f4edfb;border-radius:999px;padding:6px 10px;width:max-content}

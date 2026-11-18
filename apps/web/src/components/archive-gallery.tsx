@@ -16,7 +16,7 @@ export function ArchiveGallery({images,title}:{images:string[];title:string}){
     <div className="vm-photo-stage">
       <div className="vm-photo-track" ref={track} tabIndex={photos.length>1?0:undefined} aria-label="Galeri foto produk"
         onKeyDown={e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();show(active+(e.key==='ArrowRight'?1:-1));}}}
-        onScroll={e=>{const rail=e.currentTarget;if(rail.clientWidth)setActive(Math.round(rail.scrollLeft/rail.clientWidth));}}>
+        onScroll={e=>{const rail=e.currentTarget;if(rail.clientWidth)setActive(Math.max(0,Math.min(photos.length-1,Math.round(rail.scrollLeft/rail.clientWidth))));}}>
         {photos.map((src,i)=><img key={src} src={src} alt={title+' — foto '+(i+1)} width={640} height={640} loading={i===0?'eager':'lazy'} draggable={false}/>)}
       </div>
       {photos.length>1&&<div className="vm-photo-nav">
