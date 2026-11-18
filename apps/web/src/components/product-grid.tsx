@@ -52,7 +52,7 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
     if(event.key==='ArrowUp'){event.preventDefault();setShowSuggestions(true);setActiveSuggestion(n=>(n-1+suggestions.length)%suggestions.length);}
     if(event.key==='Enter'&&showSuggestions&&activeSuggestion>=0){event.preventDefault();pick(suggestions[activeSuggestion]!);}
   };
-  return <section className="shop-section" id="shop"><div className="section-heading"><div><p className="eyebrow">VAPMART CATALOG</p><h2>Produk Pilihan</h2></div><p>Cari produk, gunakan filter kategori, dan simpan favorit. Checkout dapat menyimpan draft. Pembayaran belum aktif.</p></div>
+  return <section className="shop-section" id="shop"><div className="section-heading"><div><p className="eyebrow">VAPMART CATALOG</p><h2>Produk Pilihan</h2></div><p>Cari produk, gunakan filter kategori, dan simpan favorit. Checkout dapat menyimpan draft. Metode pembayaran tersedia di checkout.</p></div>
     <div className="shop-toolbar"><div className="category-scroller" role="group" aria-label="Filter kategori">{categories.map(c=><button type="button" key={c.value} className={category===c.value?'category active':'category'} onClick={()=>{setCategory(c.value);setShowSuggestions(false)}} aria-pressed={category===c.value}>{c.label}</button>)}</div>
       <div className="shop-controls">
         <div className="vm-search-combobox">

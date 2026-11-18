@@ -23,7 +23,7 @@ export function ShippingPanel({token,products}:{token:string|null;products:Produ
   <div className="vma26-gate-row"><span>Cek ongkir</span><strong>{config?.rateLookupEnabled?'Siap':'Belum dikonfigurasi'}</strong></div>
   {config?.originLabel&&<div className="vma26-gate-row"><span>Asal pengiriman</span><strong>{config.originLabel}</strong></div>}
   <div className="vma26-gate-row"><span>Booking kurir / pickup</span><strong>{config?.bookingEnabled?'Aktif · menu Courier':'Nonaktif'}</strong></div>
-  <div className="vma26-gate-row"><span>Gateway pembayaran</span><strong>OFF</strong></div>
+  <div className="vma26-gate-row"><span>Pembayaran nyata</span><strong>Belum aktif</strong></div>
   <p>Lengkapi berat dan dimensi produk agar ongkir dapat dihitung. Pengecekan tarif belum membuat resi atau memesan pickup.</p>
   {config?.provider==='jubelio'&&<button type="button" className="vma26-btn-dark" disabled={!token||busy} onClick={async()=>{setBusy(true);setMessage('');try{
    const r=await fetch('/api/shipping/connection',{headers:{authorization:'Bearer '+token},cache:'no-store'});const d=await r.json();
