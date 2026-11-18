@@ -139,6 +139,9 @@ html body .vm-reference-footer .vm-whatsapp {
     margin-bottom:calc(75px + max(10px,env(safe-area-inset-bottom)));
   }
 }
+body:has(.vm21-cart-shell) :is(#chatvice-widget-button,#chatvice-eye-toggle,#chatvice-hidden-label,#chatvice-welcome-bubble,.vm-care-fallback) {
+  margin-bottom:calc(176px + env(safe-area-inset-bottom));
+}
 html body .vm-care-fallback {
   position:fixed;right:20px;bottom:20px;z-index:99995;display:grid;place-items:center;
   width:56px;height:56px;border-radius:50%;background:#751bd5;color:#fff;border:0;

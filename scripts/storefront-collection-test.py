@@ -204,8 +204,9 @@ def verify_care(page, base):
     page.set_viewport_size({'width':390,'height':844})
     nav=page.locator('.legacy-mobile-nav')
     assert box(launcher)['y']+box(launcher)['height'] < box(nav)['y']
-    page.get_by_role('button',name='Buka keranjang',exact=False).click()
+    page.locator('.add-circle').first.click()
     expect(launcher).to_have_css('visibility','visible')
+    assert box(launcher)['y']+box(launcher)['height'] < box(page.locator('.vm21-drawer-footer'))['y']
     page.locator('.vm21-drawer-close').click()
     # SPA navigation must retain the same widget session and load the script only once.
     page.get_by_role('link',name='Lihat Lampu meja',exact=True).click()
