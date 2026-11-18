@@ -104,6 +104,9 @@ export class JubelioDispatchService{
   if(q.blockers.length)throw new ConflictException({message:'Pesanan belum siap untuk booking',blockers:q.blockers});
   if(q.fingerprint!==x.fingerprint||q.rate!.priceIdr!==x.acceptedFeeIdr)throw new ConflictException('Tarif atau isi pesanan berubah. Periksa tarif dan konfirmasi ulang.');
   const claimed=await this.db.transaction(async client=>{
+   // Claim and provider-result persistence take the same batch lock before row
+   // locks, preventing booking/FK lock inversion during concurrent clicks.
+   await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,2457))',[batchId]);
    const fresh=await this.context(batchId,client);
    if(fresh.blockers.length||fresh.snapshotHash!==q.snapshotHash)throw new ConflictException('Data pesanan berubah sebelum booking');
    if((await client.query('SELECT 1 FROM product.shipments WHERE fulfillment_batch_id=$1',[batchId])).rows.length)return false;
@@ -126,6 +129,7 @@ export class JubelioDispatchService{
  }
  private async finish(batchId:string,shipment:ReturnType<typeof providerShipment>){
   return this.db.transaction(async client=>{
+   await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,2457))',[batchId]);
    const r=await client.query<Booking>('SELECT * FROM product.jubelio_bookings WHERE batch_id=$1 FOR UPDATE',[batchId]);
    const attempt=r.rows[0];if(!attempt)throw new NotFoundException('Booking not found');
    if(attempt.provider_shipment_id&&attempt.provider_shipment_id!==shipment.id)throw new ConflictException('Referensi memiliki lebih dari satu shipment; periksa Jubelio');

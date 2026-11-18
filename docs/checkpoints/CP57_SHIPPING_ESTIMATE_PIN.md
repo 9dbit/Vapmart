@@ -19,6 +19,8 @@ required an access token, while the summary continued to show “Menunggu estima
   courier service, and a tariff returned by Jubelio. There is no fabricated fallback tariff.
 - Admin → Shipping → Pin pickup gudang stores the exact pickup point against the active
   origin area and postcode. An area centroid must not substitute for the warehouse door.
+- Booking claim and provider-result persistence use the same per-batch transaction
+  lock to prevent concurrent-click deadlocks while retaining exactly-once creation.
 - Altered destination pins invalidate quotes. Changed pickup pins invalidate Instant
   quotes. Existing postal orders and regular courier booking remain compatible.
 
