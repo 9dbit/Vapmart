@@ -135,13 +135,16 @@ html body .vm-reference-footer .vm-whatsapp {
 
 @media(max-width:767px) {
   /* Keep the provider's relative launcher, toggle and bubble positions above the floating navigation. */
-  :is(#chatvice-widget-button,#chatvice-eye-toggle,#chatvice-hidden-label,#chatvice-welcome-bubble) {
+  :is(#chatvice-widget-button,#chatvice-eye-toggle,#chatvice-hidden-label,#chatvice-welcome-bubble,.vm-care-fallback) {
     margin-bottom:calc(75px + max(10px,env(safe-area-inset-bottom)));
   }
 }
-body:has(.vm21-cart-shell) :is(#chatvice-widget-button,#chatvice-eye-toggle,#chatvice-hidden-label,#chatvice-welcome-bubble) {
-  visibility:hidden;
+html body .vm-care-fallback {
+  position:fixed;right:20px;bottom:20px;z-index:99995;display:grid;place-items:center;
+  width:56px;height:56px;border-radius:50%;background:#751bd5;color:#fff;border:0;
+  text-decoration:none;font-size:22px;letter-spacing:2px;box-shadow:0 4px 15px #751bd540;
 }
+.vm-care-fallback:focus-visible {outline:3px solid currentColor;outline-offset:3px;}
 @media(max-width:600px){
   html body .vm-reference-footer .vm-reference-footer-grid {row-gap:20px;}
   .vm-collection .vm-results-row .vm-cp17-result-actions {width:auto;}

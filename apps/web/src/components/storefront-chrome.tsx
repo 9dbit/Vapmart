@@ -6,7 +6,7 @@ function useStorefront() {
   return !/^\/(admin|brand)(?:\/|$)/.test(usePathname());
 }
 
-export function VapmartCareScript() {
+export function StorefrontChrome({children}:{children:React.ReactNode}) {
   const storefront = useStorefront();
   const initialStorefront = useRef(storefront);
   useEffect(() => {
@@ -14,11 +14,5 @@ export function VapmartCareScript() {
     if (initialStorefront.current !== storefront) window.location.reload();
   }, [storefront]);
 
-  return storefront ? (
-    <script id="vapmart-chatvice-care" defer src="https://chatvice.app/api/widget/chatvice.js?merchant=m_d74410c444e2726c"/>
-  ) : null;
-}
-
-export function StorefrontChrome({children}:{children:React.ReactNode}) {
-  return useStorefront() ? <>{children}</> : null;
+  return storefront ? <>{children}</> : null;
 }

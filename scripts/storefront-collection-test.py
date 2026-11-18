@@ -155,6 +155,83 @@ def verify(page,base,touch=False):
     expect(script).to_have_count(1)
     print('Catalog filters, drawer, sort, geometry, gallery, cart, checkout and WhatsApp passed.')
 
+def verify_care(page, base):
+    embed = 'https://chatvice.app/api/widget/chatvice.js?merchant=m_d74410c444e2726c'
+    page.unroute(embed)
+    attempts = []
+    provider = """
+        window.careLoads = (window.careLoads || 0) + 1;
+        const launcher = document.createElement('button');
+        launcher.id = 'chatvice-widget-button';
+        launcher.textContent = 'Chatvice';
+        launcher.style.cssText = 'position:fixed;right:20px;bottom:20px;width:60px;height:60px;display:none;opacity:0;z-index:99996';
+        const frame = document.createElement('iframe');
+        frame.id = 'chatvice-widget-frame';
+        frame.style.display = 'none';
+        document.body.append(launcher, frame);
+        window.chatvice = {open: () => {frame.style.display='block'; launcher.style.display='none';}};
+        launcher.onclick = window.chatvice.open;
+    """
+    def provider_route(route):
+        attempts.append(1)
+        if len(attempts) == 1:
+            route.abort()
+        else:
+            route.fulfill(content_type='application/javascript', body=provider)
+    page.route(embed, provider_route)
+    page.goto(base+'/catalog', wait_until='networkidle')
+    fallback = page.get_by_role('link', name='Buka chat Vapmart Care')
+    expect(fallback).to_be_visible()
+    page.wait_for_function('window.careLoads === 1')
+    assert len(attempts) == 2
+    expect(page.locator('head #vapmart-chatvice-care')).to_have_count(1)
+    # A stalled configuration leaves the vendor launcher hidden. The fallback still opens chat.
+    fallback.click()
+    frame = page.locator('#chatvice-widget-frame')
+    expect(frame).to_be_visible()
+    expect(fallback).to_be_hidden()
+    # Config recovery replaces the fallback with the vendor launcher.
+    page.evaluate("""() => {
+        document.getElementById('chatvice-widget-frame').style.display='none';
+        const launcher=document.getElementById('chatvice-widget-button');
+        launcher.style.display='block';launcher.style.opacity='1';
+    }""")
+    launcher = page.locator('#chatvice-widget-button')
+    expect(launcher).to_be_visible()
+    expect(fallback).to_be_hidden()
+    page.set_viewport_size({'width':390,'height':844})
+    nav=page.locator('.legacy-mobile-nav')
+    assert box(launcher)['y']+box(launcher)['height'] < box(nav)['y']
+    page.get_by_role('button',name='Buka keranjang',exact=False).click()
+    expect(launcher).to_have_css('visibility','visible')
+    page.locator('.vm21-drawer-close').click()
+    # SPA navigation must retain the same widget session and load the script only once.
+    page.get_by_role('link',name='Lihat Lampu meja',exact=True).click()
+    page.wait_for_url('**/product/lampu')
+    assert page.evaluate('window.careLoads') == 1
+    expect(launcher).to_be_visible()
+    # A broken custom icon cannot make the only chat entry invisible.
+    page.evaluate("""() => {
+        const launcher=document.getElementById('chatvice-widget-button');
+        launcher.textContent='';
+        const img=document.createElement('img');
+        img.src='/missing-care-icon.png';launcher.append(img);
+    }""")
+    expect(fallback).to_be_visible()
+    # Complete script outage keeps a usable link to this merchant's chat.
+    page.unroute(embed)
+    page.route(embed, lambda route: route.abort())
+    page.reload(wait_until='networkidle')
+    expect(fallback).to_be_visible()
+    expect(fallback).to_have_attribute('href','https://chatvice.app/widget/m_d74410c444e2726c')
+    # A subsequent page load recovers normally.
+    page.unroute(embed)
+    page.route(embed, lambda route: route.fulfill(content_type='application/javascript',body=provider))
+    page.reload(wait_until='networkidle')
+    page.wait_for_function('window.careLoads === 1')
+    expect(page.locator('head #vapmart-chatvice-care')).to_have_count(1)
+    print('Chat retry, stalled configuration, image failure, cart, mobile clearance and SPA persistence passed.')
+
 if __name__=='__main__':
     fixture=ThreadingHTTPServer(('127.0.0.1',0),Fixture)
     threading.Thread(target=fixture.serve_forever,daemon=True).start()
@@ -169,12 +246,16 @@ if __name__=='__main__':
         with sync_playwright() as playwright:
             print('Testing Chromium')
             browser=playwright.chromium.launch(args=['--no-sandbox','--disable-dev-shm-usage'])
-            verify(browser.new_page(viewport={'width':390,'height':844}),base)
+            page=browser.new_page(viewport={'width':390,'height':844})
+            verify(page,base)
+            verify_care(page,base)
             browser.close()
             print('Testing iPhone 13 in WebKit')
             webkit=playwright.webkit.launch()
             iphone=webkit.new_context(**playwright.devices['iPhone 13'])
-            verify(iphone.new_page(),base,touch=True)
+            page=iphone.new_page()
+            verify(page,base,touch=True)
+            verify_care(page,base)
             webkit.close()
             print('Chromium and WebKit with iPhone 13 emulation passed.')
     finally:
