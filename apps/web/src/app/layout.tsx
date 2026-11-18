@@ -1,5 +1,6 @@
 import type {Metadata} from 'next';
 import Link from 'next/link';
+import Script from 'next/script';
 import {CartProvider} from '@/lib/cart';
 import {CustomerAuthProvider} from '@/lib/customer-auth';
 import {WishlistProvider} from '@/lib/wishlist';
@@ -27,6 +28,10 @@ import './cp23-shell.css';
 import './cp24-logo.css';
 import './storefront-collection.css';
 import {Icon} from '@/components/store-icon';
+// Public merchant ID is not a secret. Keep the live widget disabled until
+// mailbox ownership and origin validation are finished in Chatvice.
+const chatviceMerchantId=process.env.NEXT_PUBLIC_CHATVICE_MERCHANT_ID?.trim()||'';
+const chatviceWidgetEnabled=process.env.NEXT_PUBLIC_CHATVICE_WIDGET_ENABLED==='true'&&/^m_[a-z0-9]+$/.test(chatviceMerchantId);
 // Runs before React hydration, preventing a bright flash on dark-theme return visits.
 const initialThemeScript="(function(){var root=document.documentElement;var pref='light';try{var stored=localStorage.getItem('vapmart.color-mode.v1');if(stored==='dark'||stored==='light'||stored==='system')pref=stored}catch(e){}var system=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=pref==='system'?(system?'dark':'light'):pref;root.setAttribute('data-vapmart-color-mode',resolved);root.style.colorScheme=resolved;var meta=document.querySelector('meta[name=theme-color]');if(meta)meta.content=resolved==='dark'?'#131317':'#ffffff'})();";
 export const metadata:Metadata={
@@ -61,5 +66,5 @@ export default function RootLayout({children}:{children:React.ReactNode}){
       </div>
       <div className="main-container vm-footer-powered">Powered by <BrandLogo variant="powered"/></div>
     </footer></StorefrontChrome>
-  </WishlistProvider></CartProvider></CustomerAuthProvider></ThemeProvider></body></html>;
+  </WishlistProvider></CartProvider></CustomerAuthProvider></ThemeProvider>{chatviceWidgetEnabled?<Script id="vapmart-chatvice-care" src={`https://chatvice.app/api/widget/chatvice.js?merchant=${chatviceMerchantId}`} strategy="afterInteractive"/>:null}</body></html>;
 }
