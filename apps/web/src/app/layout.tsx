@@ -1,11 +1,10 @@
 import type {Metadata} from 'next';
 import Link from 'next/link';
-import Script from 'next/script';
 import {CartProvider} from '@/lib/cart';
 import {CustomerAuthProvider} from '@/lib/customer-auth';
 import {WishlistProvider} from '@/lib/wishlist';
 import {SiteHeader} from '@/components/site-header';
-import {StorefrontChrome} from '@/components/storefront-chrome';
+import {StorefrontChrome, VapmartCareScript} from '@/components/storefront-chrome';
 import {ThemeProvider} from '@/lib/theme';
 import {BrandLogo} from '@/components/brand-logo';
 import './globals.css';
@@ -28,10 +27,6 @@ import './cp23-shell.css';
 import './cp24-logo.css';
 import './storefront-collection.css';
 import {Icon} from '@/components/store-icon';
-// Public merchant ID is not a secret. Keep the live widget disabled until
-// mailbox ownership and origin validation are finished in Chatvice.
-const chatviceMerchantId=process.env.NEXT_PUBLIC_CHATVICE_MERCHANT_ID?.trim()||'';
-const chatviceWidgetEnabled=process.env.NEXT_PUBLIC_CHATVICE_WIDGET_ENABLED==='true'&&/^m_[a-z0-9]+$/.test(chatviceMerchantId);
 // Runs before React hydration, preventing a bright flash on dark-theme return visits.
 const initialThemeScript="(function(){var root=document.documentElement;var pref='light';try{var stored=localStorage.getItem('vapmart.color-mode.v1');if(stored==='dark'||stored==='light'||stored==='system')pref=stored}catch(e){}var system=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=pref==='system'?(system?'dark':'light'):pref;root.setAttribute('data-vapmart-color-mode',resolved);root.style.colorScheme=resolved;var meta=document.querySelector('meta[name=theme-color]');if(meta)meta.content=resolved==='dark'?'#131317':'#ffffff'})();";
 export const metadata:Metadata={
@@ -40,7 +35,7 @@ export const metadata:Metadata={
  robots:{index:false,follow:false},
 };
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="id" suppressHydrationWarning><head><meta name="theme-color" content="#ffffff"/><script id="vapmart-theme-init" dangerouslySetInnerHTML={{__html:initialThemeScript}}/></head><body data-vapmart-theme="member-cp22" data-vapmart-theme-options="cp23"><ThemeProvider><CustomerAuthProvider><CartProvider><WishlistProvider><StorefrontChrome><SiteHeader/></StorefrontChrome>{children}
+  return <html lang="id" suppressHydrationWarning><head><meta name="theme-color" content="#ffffff"/><script id="vapmart-theme-init" dangerouslySetInnerHTML={{__html:initialThemeScript}}/><VapmartCareScript/></head><body data-vapmart-theme="member-cp22" data-vapmart-theme-options="cp23"><ThemeProvider><CustomerAuthProvider><CartProvider><WishlistProvider><StorefrontChrome><SiteHeader/></StorefrontChrome>{children}
     <StorefrontChrome><footer className="legacy-footer vm-reference-footer">
       <div className="main-container vm-reference-footer-grid">
         <div className="vm-footer-intro"><BrandLogo variant="footer"/>
@@ -58,7 +53,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
           <p>Metode pembayaran di checkout</p>
         </div>
         <div className="vm-footer-support"><div className="vm-footer-support-title"><h3>Pusat Bantuan</h3></div>
-          <a className="vm-support-box vm-whatsapp" href="https://wa.me/6282146323633" target="_blank" rel="noopener noreferrer">
+          <a className="vm-whatsapp" href="https://wa.me/6282146323633" target="_blank" rel="noopener noreferrer">
             <span className="vm-wa-icon"><Icon name="whatsapp"/></span>
             <span><strong>Chat WhatsApp</strong><small>+62 821 4632 3633</small></span>
           </a>
@@ -66,5 +61,5 @@ export default function RootLayout({children}:{children:React.ReactNode}){
       </div>
       <div className="main-container vm-footer-powered">Powered by <BrandLogo variant="powered"/></div>
     </footer></StorefrontChrome>
-  </WishlistProvider></CartProvider></CustomerAuthProvider></ThemeProvider>{chatviceWidgetEnabled?<Script id="vapmart-chatvice-care" src={`https://chatvice.app/api/widget/chatvice.js?merchant=${chatviceMerchantId}`} strategy="afterInteractive"/>:null}</body></html>;
+  </WishlistProvider></CartProvider></CustomerAuthProvider></ThemeProvider></body></html>;
 }
