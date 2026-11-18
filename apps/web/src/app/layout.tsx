@@ -25,11 +25,13 @@ import './cp23-member.css';
 import './cp23-commerce.css';
 import './cp23-shell.css';
 import './cp24-logo.css';
+import './storefront-collection.css';
+import {Icon} from '@/components/store-icon';
 // Runs before React hydration, preventing a bright flash on dark-theme return visits.
 const initialThemeScript="(function(){var root=document.documentElement;var pref='light';try{var stored=localStorage.getItem('vapmart.color-mode.v1');if(stored==='dark'||stored==='light'||stored==='system')pref=stored}catch(e){}var system=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=pref==='system'?(system?'dark':'light'):pref;root.setAttribute('data-vapmart-color-mode',resolved);root.style.colorScheme=resolved;var meta=document.querySelector('meta[name=theme-color]');if(meta)meta.content=resolved==='dark'?'#131317':'#ffffff'})();";
 export const metadata:Metadata={
  title:{default:'VapMart | Marketplace',template:'%s | VapMart'},
- description:'Vapmart marketplace untuk brand dan produk pilihan. Checkout masih dalam tahap integrasi pembayaran.',
+ description:'Vapmart marketplace untuk brand dan produk pilihan.',
  robots:{index:false,follow:false},
 };
 export default function RootLayout({children}:{children:React.ReactNode}){
@@ -43,17 +45,18 @@ export default function RootLayout({children}:{children:React.ReactNode}){
         </div>
         <div className="vm-footer-links"><h3>Jelajahi</h3>
           <Link href="/catalog">Katalog</Link><Link href="/brand-partner">Brand Partner</Link>
-          <Link href="/catalog">Katalog baru</Link><Link href="/member-2">Member</Link>
+          <Link href="/member-2">Member</Link>
           <Link href="/login">Akun pelanggan</Link>
         </div>
         <div className="vm-footer-links"><h3>Informasi</h3>
-          <Link href="/keranjang-2">Keranjang</Link><Link href="/brand-partner">Brand Partner</Link>
-          <p>Metode pembayaran di checkout</p><p>Customer support sedang disiapkan</p>
+          <Link href="/keranjang-2">Keranjang</Link>
+          <p>Metode pembayaran di checkout</p>
         </div>
-        <div className="vm-footer-support"><div className="vm-footer-support-title"><h3>Pusat Bantuan</h3><strong>Vapmart</strong></div>
-          <div className="vm-support-box"><span className="vm-support-symbol" aria-hidden="true">☏</span>
-            <div><strong>WhatsApp</strong><small>Belum aktif pada staging</small></div>
-          </div>
+        <div className="vm-footer-support"><div className="vm-footer-support-title"><h3>Pusat Bantuan</h3></div>
+          <a className="vm-support-box vm-whatsapp" href="https://wa.me/6282146323633" target="_blank" rel="noopener noreferrer">
+            <span className="vm-wa-icon"><Icon name="whatsapp"/></span>
+            <span><strong>Chat WhatsApp</strong><small>+62 821 4632 3633</small></span>
+          </a>
         </div>
       </div>
       <div className="main-container vm-footer-powered">Powered by <BrandLogo variant="powered"/></div>

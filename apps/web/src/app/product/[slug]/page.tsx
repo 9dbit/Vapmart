@@ -2,7 +2,6 @@ import Link from 'next/link';
 import {notFound} from 'next/navigation';
 import type {Metadata} from 'next';
 import {getProduct} from '@/lib/api';
-import {formatIDR} from '@/lib/types';
 import {CatalogPurchase} from '@/components/catalog-purchase';
 import {CatalogPublicReviews} from '@/components/catalog-public-reviews';
 import {FavoriteButton} from '@/components/favorite-button';
@@ -25,12 +24,15 @@ export default async function ProductPage({params}:{params:Promise<{slug:string}
     </div>}
     <section className="vm-detail-content">
       <nav className="vm-detail-breadcrumb" aria-label="Breadcrumb"><Link href="/">Vapmart</Link><span>/</span><Link href="/catalog">Katalog</Link></nav>
-      <h1>{product.name}</h1>{product.brand_name&&<p className="vm-cp17-brand-name">Brand: {product.brand_name}</p>}
-      <span className="vm-detail-archive-label">KATALOG VAPMART · TRANSFER MANUAL TERSEDIA</span>
+      {product.brand_name&&<div className="vm-product-brand">
+        {product.brand_logo_url&&<img src={product.brand_logo_url} alt="" width={68} height={34}/>}
+        <span>{product.brand_name}</span>
+      </div>}
+      <h1>{product.name}</h1>
       <div className="vm-detail-description"><h2>Deskripsi</h2><p>{product.description||'Detail produk sedang disiapkan.'}</p></div>
       <CatalogPurchase product={product}/>
       <div className="vm-cp17-detail-actions"><FavoriteButton id={product.id} name={product.name} className="vm-cp17-detail-favorite"/></div>
-      <p className="vm-detail-bottom-note">Produk dengan harga Rp0 adalah placeholder dan tidak bisa dipesan sampai harga ditetapkan. Pembayaran transfer manual diverifikasi oleh admin; metode gateway masih menunggu integrasi.</p>
+
     </section>
    </div>
    <CatalogPublicReviews slug={product.slug}/>

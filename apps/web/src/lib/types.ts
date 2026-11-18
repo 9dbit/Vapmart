@@ -5,6 +5,7 @@ export interface Product {
   sku?: string | null;
   brand_id?: string | null;
   brand_name?: string | null;
+  brand_logo_url?: string | null;
   gallery_urls?: string[];
   name: string;
   description: string;

@@ -47,7 +47,7 @@ test('CP37-A data integrity on disposable localhost PostgreSQL only',async()=>{
   const wh=(await warehouses.create(actor,{code:'QA-'+suffix,name:'Integration warehouse',address:'Jalan Internal Test 12',city:'Bandung',province:'Jawa Barat',postalCode:'40115'})).warehouse;
   await warehouses.adjust(actor,{warehouseId:wh.id,productId:p.id,delta:3,reason:'receipt',notes:'Verified CI receiving document',idempotencyKey:randomUUID()});
   await warehouses.update(actor,wh.id,{dispatchEnabled:true});
-  p=await products.update(p.id,{expected_version:p.edit_version,image_url:'https://example.invalid/organizer.png',weight_grams:200,length_cm:10,width_cm:10,height_cm:10,is_active:true},actor);
+  p=await products.update(p.id,{expected_version:p.edit_version,image_url:'https://example.invalid/organizer.png',gallery_urls:['https://example.invalid/side.webp','https://example.invalid/back.webp'],weight_grams:200,length_cm:10,width_cm:10,height_cm:10,is_active:true},actor);
   assert.equal(p.is_active,true);
   const audit=await products.audit({entityType:'product',entityId:p.id});
   assert.equal(audit.items[0].action,'publish');assert.equal(audit.items[0].actor_id,actor.id);

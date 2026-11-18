@@ -4,7 +4,7 @@ import {inventoryLock} from './warehouses';
 import { BadRequestException, ConflictException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { DatabaseService } from './database';
 import type {Principal} from './auth';
-import {requireActor,parseEdit,assertVersion,recordAudit,publicationMissing,parsePage,pageResult} from './data-integrity';
+import {requireActor,parseEdit,assertVersion,recordAudit,inventorySku,publicationMissing,parsePage,pageResult} from './data-integrity';
 
 export const categories = ['home', 'lifestyle', 'decor', 'accessories', 'electronics', 'other'] as const;
 type Category = string;
@@ -148,7 +148,7 @@ export class ProductsService {
   const f=parsePage(raw);
   const result=await this.db.query<{result:{items:Product[];total:number}}>(
    `WITH filtered AS (
-     SELECT p.*,b.name AS brand_name FROM product.products p LEFT JOIN product.brands b ON b.id=p.brand_id
+     SELECT p.*,b.name AS brand_name,b.logo_url AS brand_logo_url FROM product.products p LEFT JOIN product.brands b ON b.id=p.brand_id
      WHERE p.slug NOT LIKE 'demo-%' AND p.archived_at IS NULL AND ($1::boolean OR (p.is_active AND p.parent_product_id IS NULL))
       AND ($2::text='' OR strpos(lower(concat_ws(' ',p.name,p.slug,p.sku,b.name)),lower($2))>0)
       AND ($3::text='' OR p.category=$3 OR EXISTS(SELECT 1 FROM product.product_categories pc JOIN product.categories c ON c.id=pc.category_id WHERE pc.product_id=p.id AND c.slug=$3)) AND ($4::text='' OR p.brand_id::text=$4)
@@ -166,8 +166,8 @@ export class ProductsService {
   const cats=(await this.db.query<{product_id:string;slug:string}>('SELECT pc.product_id,c.slug FROM product.product_categories pc JOIN product.categories c ON c.id=pc.category_id WHERE pc.product_id=ANY($1::uuid[])',[rows.map(p=>p.id)])).rows;
   const now=Date.now();return rows.map(p=>{
    (p as any).category_slugs=cats.filter(c=>c.product_id===p.id).map(c=>c.slug);
-   const priced=publicPrice(p,now);if(p.product_type!=='variable')return priced;
-   const variants=all.filter(v=>v.parent_product_id===p.id).map(v=>({...publicPrice(v,now),parent_slug:p.slug}));
+   const priced={...publicPrice(p,now),sku:inventorySku(p.sku)};if(p.product_type!=='variable')return priced;
+   const variants=all.filter(v=>v.parent_product_id===p.id).map(v=>({...publicPrice(v,now),sku:inventorySku(v.sku),parent_slug:p.slug}));
    const prices=variants.map(v=>v.price_idr);return {...priced,...(includeVariants?{variants}:{}),stock_qty:variants.reduce((n,v)=>n+v.stock_qty,0),price_idr:prices.length?Math.min(...prices):0,price_max_idr:prices.length?Math.max(...prices):0,promo_active:variants.some(v=>v.promo_active)};
   });
  }
@@ -175,7 +175,7 @@ export class ProductsService {
  async listAdmin():Promise<Product[]>{return (await this.page({},true)).items;}
  async bySlug(slug:string):Promise<Product>{
   if(!this.db.configured)throw new ServiceUnavailableException('Database unavailable');
-  const r=await this.db.query<Product>("SELECT p.*,p.price_idr::integer AS price_idr,b.name AS brand_name FROM product.products p LEFT JOIN product.brands b ON b.id=p.brand_id WHERE p.slug=$1 AND p.is_active AND p.archived_at IS NULL AND p.parent_product_id IS NULL AND p.slug NOT LIKE 'demo-%'",[slug]);
+  const r=await this.db.query<Product>("SELECT p.*,p.price_idr::integer AS price_idr,b.name AS brand_name,b.logo_url AS brand_logo_url FROM product.products p LEFT JOIN product.brands b ON b.id=p.brand_id WHERE p.slug=$1 AND p.is_active AND p.archived_at IS NULL AND p.parent_product_id IS NULL AND p.slug NOT LIKE 'demo-%'",[slug]);
   if(!r.rows[0])throw new NotFoundException('Product not found');return (await this.publicRows(r.rows,true))[0];
  }
  async create(body:unknown,actor?:Principal):Promise<Product>{

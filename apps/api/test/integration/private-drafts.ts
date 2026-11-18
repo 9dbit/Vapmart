@@ -17,7 +17,7 @@ test('CP40 private drafts persist, remain private, and require publication valid
   const l=await ok(api+'/lookups'),cat=l.categories.find((c:any)=>c.slug==='accessories'),wh=l.warehouses.find((w:any)=>w.code==='CP39-A');assert.ok(cat&&wh);
   const png=await sharp({create:{width:128,height:128,channels:3,background:'#7050a0'}}).png().toBuffer();
   const asset=await ok('/v1/admin/media',{filename:'accessory-test.png',mimeType:'image/png',base64:png.toString('base64')});
-  const product={name:'Tas aksesori CP40',slug:'tas-aksesori-cp40',sku:'CP40-BAG',description:'Catatan internal: bukan produk vape.',product_type:'simple',attributes:[],categoryIds:[cat.id],brand_id:null,fulfillment_owner_brand_id:null,image_url:'/api/media/'+asset.id,gallery_urls:[],price_idr:0,sale_price_idr:null,sale_starts_at:null,sale_ends_at:null,weight_grams:100,length_cm:20,width_cm:10,height_cm:5};
+  const product={name:'Tas aksesori CP40',slug:'tas-aksesori-cp40',sku:'CP40-BAG',description:'Catatan internal: bukan produk vape.',product_type:'simple',attributes:[],categoryIds:[cat.id],brand_id:null,fulfillment_owner_brand_id:null,image_url:'/api/media/'+asset.id,gallery_urls:['https://example.invalid/side.webp','https://example.invalid/back.webp'],price_idr:0,sale_price_idr:null,sale_starts_at:null,sale_ends_at:null,weight_grams:100,length_cm:20,width_cm:10,height_cm:5};
   const create={requestKey:randomUUID(),product,variants:[],warehouseStocks:[{warehouseId:wh.id,onHand:2,expectedOnHand:0,expectedReserved:0,notes:'Disposable accessory fixture count'}]};
   assert.equal((await call(api+'/products',create,'POST','invalid')).status,401);
   assert.equal((await call(api+'/products',create,'POST','fixture-buyer')).status,403);
