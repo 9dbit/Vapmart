@@ -2,10 +2,11 @@ import {BadRequestException,ForbiddenException,Injectable,ServiceUnavailableExce
 import type {PoolClient} from 'pg';
 import {DatabaseService} from './database';
 import {parseXenditWebhook,safeXenditCallbackToken,xenditSandboxReadiness,xenditWebhookHash} from './xendit-sandbox';
+import {XenditPaymentSessionsService} from './xendit-payment-sessions';
 
 @Injectable()
 export class XenditWebhookInboxService{
- constructor(private readonly db:DatabaseService){}
+ constructor(private readonly db:DatabaseService,private readonly sessions?:XenditPaymentSessionsService){}
  async receive(raw:Buffer|undefined,proof:string|undefined){
   const ready=xenditSandboxReadiness();
   if(!ready.sandboxEnabled||!ready.webhookEnabled)
@@ -20,7 +21,7 @@ export class XenditWebhookInboxService{
   if(event.businessId!==process.env.XENDIT_BUSINESS_ID)
    throw new ForbiddenException('Invalid Xendit merchant');
   const hash=xenditWebhookHash(raw);
-  return this.db.transaction(async(client:PoolClient)=>{
+  const result=await this.db.transaction(async(client:PoolClient)=>{
    const session=await client.query<{id:string;amount_idr:string;state:string;provider_business_id:string|null}>(
     'SELECT id,amount_idr::text,state,provider_business_id FROM product.xendit_payment_sessions WHERE payment_session_id=$1 AND reference_id=$2 FOR UPDATE',
     [event.sessionId,event.referenceId]);
@@ -44,5 +45,9 @@ export class XenditWebhookInboxService{
    }
    return {received:true,duplicate:false,paymentApplied:false,queuedForReconciliation:disposition==='pending_reconciliation'};
   });
+  if(this.sessions){
+   try{await this.sessions.verifySandboxSession(event.sessionId);}catch{}
+  }
+  return result;
  }
 }

@@ -60,7 +60,7 @@ export function CartPageContent(){
         <div className="vm21-cart-total"><span>Total</span><strong>{formatIDR(subtotal)}</strong></div>
         {digitalOnly?<DigitalCheckoutAction items={items} subtotal={subtotal}/>:
         physicalOnly?<Link className="vm21-primary" href="/checkout">Lanjut ke checkout ↗</Link>:<button className="vm21-primary" disabled type="button">Pisahkan produk digital dari barang fisik</button>}
-        <p>Harga dan stok akan diperiksa ulang di checkout. Pembayaran tetap nonaktif hingga payment gateway dihubungkan dan diverifikasi.</p>
+        <p>Harga dan stok akan diperiksa ulang di checkout. Metode pembayaran yang tersedia ditampilkan di checkout.</p>
       </aside>
     </div>}
  </div>;

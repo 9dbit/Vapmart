@@ -100,6 +100,10 @@ export class CheckoutController{
  @Get('orders/:id/payment-session')
  @UseGuards(CustomerGuard)
  getPaymentSession(@Req() req:{user:Principal},@Param('id') id:string){return this.xendit.current(req.user,id);}
+ @Post('orders/:id/payment-session/reconcile')
+ @HttpCode(200)
+ @UseGuards(CustomerGuard)
+ reconcilePaymentSession(@Req() req:{user:Principal},@Param('id') id:string){return this.xendit.reconcile(req.user,id);}
 }
 
 @Controller('v1/orders')

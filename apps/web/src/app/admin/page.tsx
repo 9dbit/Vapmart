@@ -7,6 +7,7 @@ import {formatIDR,type Product} from '@/lib/types';
 import {readCollection} from '@/lib/collection-read';
 import {AuditHistory} from '@/components/audit-history';
 import {BrandAccessManager} from '@/components/brand-access-manager';
+import {XenditReadinessPanel} from '@/components/xendit-readiness-panel';
 import {ShippingPanel} from '@/components/shipping-panel';
 import {WarehouseOps} from '@/components/warehouse-ops';
 import {FulfillmentPanel} from '@/components/fulfillment-panel';
@@ -227,11 +228,7 @@ export default function AdminPage(){
      <p>Produk existing dapat diperiksa di Produk &amp; SKU. Publikasi produk operasional tetap memerlukan data, foto, dan stok terverifikasi.</p>
      <div className="vma26-quick-actions"><button className="vma26-btn-dark" type="button" onClick={()=>navigate('products')}>Lihat semua produk</button><button className="vma26-btn-light" type="button" onClick={newProduct}>+ Tambah produk</button><button className="vma26-btn-light" type="button" onClick={newBrand}>+ Tambah brand</button><button className="vma26-btn-light" type="button" onClick={()=>navigate('media')}>Lihat Media Library</button><button className="vma26-btn-light" type="button" onClick={()=>navigate('orders')}>Lihat pesanan</button></div>
     </section>
-    <section className="vma26-panel vma26-gateway"><p className="vma26-eyebrow">PAYMENT STATUS</p><h2>Gateway belum terhubung</h2><p>QRIS, Virtual Account, dan e-wallet tersedia sebagai preferensi checkout. Pesanan baru disimpan sebagai draft dan tidak memicu transaksi.</p>
-     <div className="vma26-gate-row"><span>Cart &amp; checkout review</span><strong>Siap di kode</strong></div>
-     <div className="vma26-gate-row"><span>Draft order database</span><strong>Siap di kode</strong></div>
-     <div className="vma26-gate-row"><span>Pembayaran langsung</span><strong>Nonaktif</strong></div>
-    </section>
+    <XenditReadinessPanel/>
    </div>}
    {tab==='overview'&&products.length===0&&<section className="vma26-panel vma27-start-guide" aria-label="Panduan memulai">
     <p className="vma26-eyebrow">GET STARTED</p><h2>Periksa data existing, lengkapi operasional.</h2>
@@ -301,7 +298,7 @@ export default function AdminPage(){
     <div className="vma26-orders-scroller"><table><thead><tr><th>Order ID</th><th>Pelanggan / Kota</th><th>Metode</th><th>Total</th><th>Pesanan</th><th>Pembayaran</th><th>Waktu</th></tr></thead>
      <tbody>{orders.map(o=><tr key={o.id}><td><code>{o.id.slice(0,8)}</code></td><td><strong>{o.contact_name||'Pelanggan'}</strong><small>{o.city||'-'}, {o.province||'-'}</small></td><td>{o.payment_method||'-'}</td><td>{formatIDR(Number(o.total_idr))}</td><td><span className="vma26-state">{o.status}</span></td><td><span className="vma26-state">{o.payment_status==='not_initiated'?'Belum dimulai':o.payment_status}</span></td><td>{labelDate(o.created_at)}</td></tr>)}</tbody>
     </table>{orders.length===0&&<p className="vma26-muted">Belum ada draft pesanan.</p>}</div>
-    <p className="vma26-muted">Pembayaran akan terhubung setelah provider, webhook, serta rekonsiliasi berhasil melewati QA. Saat ini tombol bayar tetap nonaktif.</p>
+    <p className="vma26-muted">Status koneksi dan kanal pembayaran dapat diperiksa pada Pengaturan Xendit. Pembayaran sandbox digunakan untuk simulasi.</p>
    </section>}
    {(tab==='products'&&editingProduct||tab==='brands'&&editingBrand)&&<AuditHistory token={auth.accessToken} entityType={tab==='products'?'product':'brand'} entityId={(tab==='products'?editingProduct:editingBrand)!}/> }
    {message&&<p className="vma26-message" role="status" aria-live="polite">{message}</p>}

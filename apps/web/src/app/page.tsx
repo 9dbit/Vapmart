@@ -24,7 +24,7 @@ export default async function Home(){
      <HeroCarousel slides={heroResult.items}/>
    </div>}
    {!heroResult.ok&&<DataStatus kind="banner" code={heroResult.error}/>}
-   {heroResult.items.some(s=>s.reference)&&<p className="main-container vm-restored-media-note">Materi banner terdahulu ditampilkan sebagai referensi visual, bukan penawaran atau promosi aktif. Pembayaran dan pemesanan masih nonaktif.</p>}
+   {heroResult.items.some(s=>s.reference)&&<p className="main-container vm-restored-media-note">Materi banner terdahulu ditampilkan sebagai referensi visual, bukan penawaran atau promosi aktif. Arsip visual tidak tersedia untuk transaksi.</p>}
 
    <section className="main-container vm-trendora-categories" id="categories">
      <div className="vm-trendora-section-heading">

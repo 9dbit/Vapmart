@@ -114,8 +114,8 @@ export default function CheckoutPage(){
  };
  return <main className="vco26-root main-container">
   <div className="vco26-intro">
-   <p className="vco26-eyebrow">VAPMART / SECURE CHECKOUT PREVIEW</p><h1>Checkout</h1>
-   <p>Tinjau barang, penerima, ongkos kirim, dan metode pembayaran. Pembayaran baru diproses setelah gateway resmi dihubungkan.</p>
+   <p className="vco26-eyebrow">VAPMART / CHECKOUT</p><h1>Checkout</h1>
+   <p>Tinjau barang, penerima, ongkos kirim, dan metode pembayaran. Pilih transfer manual atau kanal Xendit sandbox yang tersedia.</p>
    <div className="vco26-steps"><span className="done">1. Keranjang</span><span className="current">2. Checkout</span><span>3. Pembayaran</span></div>
   </div>
   {items.length===0?<section className="vco26-card"><h2>Belum ada barang.</h2><p>Pilih produk di katalog terlebih dahulu.</p><Link href="/catalog" className="vco26-button">Lihat katalog</Link></section>:
@@ -142,12 +142,12 @@ export default function CheckoutPage(){
     </div>:<p className="vco26-disclaimer">Pilihan jasa kurir live belum diaktifkan. Estimasi tarif standar tetap ditampilkan bila tersedia.</p>}
     <div className="vco26-card-heading vco26-payment-head"><span>03</span><div><h2>Voucher</h2><p>Gunakan kode voucher aktif bila tersedia.</p></div></div>
     <div className="vco26-voucher"><input aria-label="Kode voucher" value={voucherDraft} maxLength={32} placeholder="Kode voucher" onChange={e=>setVoucherDraft(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g,''))}/><button type="button" className="vco26-secondary" onClick={()=>{setAppliedVoucher(voucherDraft.trim());requestKey.current=null;}}>{appliedVoucher?'Perbarui voucher':'Terapkan voucher'}</button>{appliedVoucher&&<button type="button" className="vco26-secondary" onClick={()=>{setVoucherDraft('');setAppliedVoucher('');requestKey.current=null;}}>Hapus</button>}</div>
-    <div className="vco26-card-heading vco26-payment-head"><span>04</span><div><h2>Metode pembayaran</h2><p>Transfer bank diproses melalui konfirmasi admin. QRIS, Virtual Account, dan e-wallet hanya bisa dipilih setelah integrasi gateway terverifikasi.</p></div></div>
+    <div className="vco26-card-heading vco26-payment-head"><span>04</span><div><h2>Metode pembayaran</h2><p>Transfer bank diverifikasi admin. Kanal Xendit berlabel Sandbox digunakan untuk simulasi, tanpa dana nyata.</p></div></div>
     <div className="vco26-methods">{methods.map(method=><label className={'vco26-method'+(form.paymentMethod===method.id?' selected':'')+(!checkoutConfig?.methods.includes(method.id)?' is-unavailable':'')} key={method.id}>
       <input type="radio" name="paymentMethod" value={method.id} checked={form.paymentMethod===method.id} disabled={!checkoutConfig?.methods.includes(method.id)} onChange={()=>change('paymentMethod',method.id)}/>
-      <span><strong>{method.name}</strong><small>{method.hint}</small></span><em>{method.id==='bank_transfer'?'Manual':'Gateway OFF'}</em>
+      <span><strong>{method.name}</strong><small>{method.id==='bank_transfer'?method.hint:checkoutConfig?.methods.includes(method.id)?'Simulasi melalui checkout Xendit · tanpa dana nyata':'Kanal ini belum diaktifkan'}</small></span><em>{method.id==='bank_transfer'?'Manual':checkoutConfig?.methods.includes(method.id)?'Sandbox aktif':'Belum aktif'}</em>
     </label>)}</div>
-    <p className="vco26-disclaimer">Transfer manual memerlukan instruksi rekening dari toko dan persetujuan admin setelah dana diterima. QRIS/VA/e-wallet belum terhubung, sehingga opsi itu dinonaktifkan agar tidak menciptakan pesanan yang tidak dapat dibayar.</p>
+    <p className="vco26-disclaimer">Transfer manual memerlukan konfirmasi dana oleh admin. Xendit Sandbox hanya untuk pengujian dan tidak memicu pengiriman barang. Kanal yang belum tersedia tidak dapat dipilih.</p>
     {!auth.configured?<div className="vco26-warning">Autentikasi pelanggan belum dikonfigurasi. Draft pesanan belum dapat dibuat.</div>:
      !auth.user?<Link className="vco26-button" href="/login?next=/checkout">Masuk sebelum checkout ↗</Link>:
      <button className="vco26-button" type="submit" disabled={busy||quoting||shippingLoading||!quote||totalPreview===null||(shippingConfig?.rateLookupEnabled&&!selectedShipping)}>{busy?'Membuat pesanan...':'Buat pesanan ↗'}</button>}

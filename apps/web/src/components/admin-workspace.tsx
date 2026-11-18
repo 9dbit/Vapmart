@@ -62,7 +62,7 @@ export function AdminWorkspace({active,onNavigate,onLogout,email,children}:{
    </nav>
    <div className="vma27-sidebar-bottom">
     <div className="vma27-locked-card"><span className="vma27-lock-icon" aria-hidden="true">●</span><strong>Operasional terlindungi</strong>
-     <p>Pembayaran gateway nonaktif. Booking kurir melalui Courier Ops.</p></div>
+     <p>Status gateway tersedia di Pengaturan. Booking kurir melalui Courier Ops.</p></div>
     <Link href="/" className="vma27-storefront-link">↗ Lihat storefront</Link>
    </div>
   </aside>

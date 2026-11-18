@@ -12,7 +12,7 @@ import {paymentGatewayReadiness} from './payment-gateway-readiness';
 
 type BasketItem={productId:string;quantity:number};
 type PricedItem={productId:string;brandId:string|null;sku:string|null;name:string;unitPriceIdr:number;quantity:number;lineTotalIdr:number;stockQty:number};
-type Quote={items:PricedItem[];subtotalIdr:number;discountIdr:number;voucherDiscountIdr:number;voucherCode:string|null;voucherId:string|null;promotionDiscountIdr:number;promotionEventId:string|null;promotionTitle:string|null;shippingFeeIdr:number|null;totalIdr:number|null;currency:'IDR';shippingEstimate:boolean;paymentEnabled:false;paymentMethods:string[]};
+type Quote={items:PricedItem[];subtotalIdr:number;discountIdr:number;voucherDiscountIdr:number;voucherCode:string|null;voucherId:string|null;promotionDiscountIdr:number;promotionEventId:string|null;promotionTitle:string|null;shippingFeeIdr:number|null;totalIdr:number|null;currency:'IDR';shippingEstimate:boolean;paymentEnabled:boolean;paymentMethods:string[]};
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const PAYMENT_METHODS=['bank_transfer','qris','virtual_account','ewallet'] as const;
 function voucherCode(raw:unknown):string|null{
@@ -60,7 +60,7 @@ export function priceBasket(items:BasketItem[],rows:Array<{id:string;sku:string|
  const subtotalIdr=priced.reduce((sum,item)=>sum+item.lineTotalIdr,0);
  const shippingFeeIdr=shippingAmount();
  return {items:priced,subtotalIdr,discountIdr:0,voucherDiscountIdr:0,voucherCode:null,voucherId:null,promotionDiscountIdr:0,promotionEventId:null,promotionTitle:null,shippingFeeIdr,totalIdr:shippingFeeIdr===null?null:subtotalIdr+shippingFeeIdr,
-  currency:'IDR',shippingEstimate:true,paymentEnabled:false,paymentMethods:paymentGatewayReadiness().availableMethods};
+  currency:'IDR',shippingEstimate:true,paymentEnabled:paymentGatewayReadiness().paymentEnabled,paymentMethods:paymentGatewayReadiness().availableMethods};
 }
 type Address={name:string;phone:string;address:string;city:string;province:string;postalCode:string;paymentMethod:typeof PAYMENT_METHODS[number];idempotencyKey:string;shippingQuoteId:string|null;voucherCode:string|null;destinationAreaId?:string};
 function addressString(raw:unknown,label:string,min:number,max:number):string{
@@ -97,7 +97,7 @@ export function parseDraftOrder(raw:unknown){
 @Injectable()
 export class CheckoutService{
  constructor(private readonly db:DatabaseService){}
- config(){const gateway=paymentGatewayReadiness();return {paymentEnabled:gateway.paymentEnabled,providerConnected:gateway.connected,methods:gateway.availableMethods,gateway,shippingFeeIdr:shippingAmount(),shippingMode:shippingConfig().rateLookupEnabled?'courier_select':'fixed_estimate',ordersMode:'manual_bank_transfer'};}
+ config(){const gateway=paymentGatewayReadiness();return {paymentEnabled:gateway.paymentEnabled,providerConnected:gateway.connected,methods:gateway.availableMethods,gateway,shippingFeeIdr:shippingAmount(),shippingMode:shippingConfig().rateLookupEnabled?'courier_select':'fixed_estimate',ordersMode:gateway.paymentEnabled?'xendit_sandbox':'manual_bank_transfer'};}
  async quoted(items:BasketItem[],query:(sql:string,params:unknown[])=>Promise<{rows:any[]}>,code:string|null=null,userId:string|null=null,overrides?:Map<string,number>):Promise<Quote>{
    const rows=await query(`SELECT p.* FROM product.products p WHERE p.id=ANY($1::uuid[]) AND ${sellableSQL}`,[items.map(x=>x.productId)]);
    let quote=priceBasket(items,rows.rows.map(p=>overrides?.has(p.id)?{...p,price_idr:overrides.get(p.id),sale_price_idr:null}:p));
@@ -122,7 +122,8 @@ export class CheckoutService{
  async createDraft(user:Principal,raw:unknown){
    if(!user.email||!user.emailVerified)throw new ForbiddenException('Masuk dengan email yang sudah diverifikasi');
    const {items,details}=parseDraftOrder(raw);
-   if(details.paymentMethod!=='bank_transfer')throw new ServiceUnavailableException({code:'PAYMENT_GATEWAY_NOT_CONNECTED',message:'QRIS, Virtual Account, dan e-wallet belum terhubung. Gunakan transfer manual sampai gateway siap.'});
+   const gateway=paymentGatewayReadiness();
+   if(!gateway.availableMethods.includes(details.paymentMethod))throw new ServiceUnavailableException({code:'PAYMENT_METHOD_UNAVAILABLE',message:'Kanal pembayaran ini belum aktif. Pilih metode pembayaran yang tersedia.'});
    return this.db.transaction(async client=>{
      await inventoryLock(client);
      const hash=createHash('sha256').update(JSON.stringify({items,details:{...details,idempotencyKey:undefined}})).digest('hex');
@@ -131,7 +132,7 @@ export class CheckoutService{
        [user.id,details.idempotencyKey]);
      if(existing.rows[0]){
        if(existing.rows[0].request_hash!==hash)throw new ConflictException('Kunci pesanan pernah digunakan untuk data berbeda');
-       return {id:existing.rows[0].id,status:existing.rows[0].status,paymentStatus:existing.rows[0].payment_status,paymentEnabled:false};
+       return {id:existing.rows[0].id,status:existing.rows[0].status,paymentStatus:existing.rows[0].payment_status,paymentEnabled:gateway.paymentEnabled,sandboxOnly:details.paymentMethod!=='bank_transfer'};
      }
      const recent=await client.query<{total:string}>(
        "SELECT COUNT(*)::text total FROM product.orders WHERE customer_user_id=$1 AND created_at > now() - interval '24 hours' AND status='draft'",
@@ -187,7 +188,7 @@ export class CheckoutService{
        await client.query('INSERT INTO product.order_items(order_id,product_id,quantity,unit_price_idr,product_name,sku,brand_id,ownership_scope) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',
          [order.rows[0].id,item.productId,item.quantity,item.unitPriceIdr,item.name,item.sku,item.brandId,item.brandId?'brand':'platform']);
      }
-     return {id:order.rows[0].id,status:order.rows[0].status,paymentStatus:order.rows[0].payment_status,paymentMethod:details.paymentMethod,paymentEnabled:false,totalIdr:draftTotal,discountIdr:quote.discountIdr,voucherDiscountIdr:quote.voucherDiscountIdr,voucherCode:quote.voucherCode,promotionDiscountIdr:quote.promotionDiscountIdr,promotionEventId:quote.promotionEventId,promotionTitle:quote.promotionTitle};
+     return {id:order.rows[0].id,status:order.rows[0].status,paymentStatus:order.rows[0].payment_status,paymentMethod:details.paymentMethod,paymentEnabled:gateway.paymentEnabled,sandboxOnly:details.paymentMethod!=='bank_transfer',totalIdr:draftTotal,discountIdr:quote.discountIdr,voucherDiscountIdr:quote.voucherDiscountIdr,voucherCode:quote.voucherCode,promotionDiscountIdr:quote.promotionDiscountIdr,promotionEventId:quote.promotionEventId,promotionTitle:quote.promotionTitle};
    });
  }
  async getOrder(user:Principal,id:string){

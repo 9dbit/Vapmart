@@ -43,7 +43,7 @@ export function AdminAccess({phase,onRetry}:{phase:AdminAccessPhase;onRetry:()=>
     <div className="vma27-access-highlights" aria-label="Keamanan sistem">
      <div><strong>01</strong><span>Login Supabase terverifikasi</span></div>
      <div><strong>02</strong><span>Izin admin diperiksa di server</span></div>
-     <div><strong>03</strong><span>Gateway pembayaran tetap nonaktif</span></div>
+     <div><strong>03</strong><span>Pembayaran mengikuti konfigurasi server</span></div>
     </div>
    </section>
    <section className="vma27-access-card" aria-labelledby="admin-login-title">

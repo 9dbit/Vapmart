@@ -45,5 +45,5 @@ test('non-bank gateway methods cannot create an unpaid and unusable order',async
  const db={transaction:async()=>{throw Error('database must never be written');}};
  const service=new CheckoutService(db as never);
  const actor={id, email:'customer@example.test',emailVerified:true};
- await assert.rejects(()=>service.createDraft(actor as never,form),/QRIS, Virtual Account, dan e-wallet belum terhubung/);
+ await assert.rejects(()=>service.createDraft(actor as never,form),(e:any)=>e.getResponse()?.code==='PAYMENT_METHOD_UNAVAILABLE');
 });

@@ -3,7 +3,7 @@ import {BadRequestException,ConflictException,ForbiddenException,Injectable,NotF
 import {DatabaseService} from './database';
 import type {Principal} from './auth';
 import {XenditSandboxClient,buildXenditPaySession,parseXenditSession,xenditSandboxReadiness,xenditSessionReference,
- XenditTransportError,xenditSelectedChannels,type XenditSession} from './xendit-sandbox';
+ XenditTransportError,xenditSelectedChannels,xenditChannelsForMethod,type XenditSession} from './xendit-sandbox';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 type OrderRow={id:string;invoice_number:string;total_idr:string;currency:string;status:string;
@@ -19,14 +19,14 @@ const publicSession=(r:SessionRow)=>({
  expiresAt:r.expires_at,amountIdr:Number(r.amount_idr),paymentId:r.payment_id,
  paymentRequestId:r.payment_request_id,
  message:r.state==='unknown'?'Status pembuatan sesi belum pasti. Jangan membuat ulang pembayaran; minta admin memeriksa Xendit.':
+  r.state==='completed'?'Simulasi pembayaran berhasil diverifikasi oleh server. Tidak ada dana nyata atau pengiriman barang.':
   r.state==='awaiting_reconciliation'?'Pembayaran terdeteksi. Sedang menunggu verifikasi server.':
   'Sesi sandbox Xendit, bukan pembayaran nyata.'
 });
 @Injectable()
 export class XenditPaymentSessionsService{
  constructor(private readonly db:DatabaseService,private readonly xendit:XenditSandboxClient){}
- readiness(){return {...xenditSandboxReadiness(),orderSandboxEnabled:process.env.XENDIT_SANDBOX_ORDER_ENABLED==='true',
-  settlementEnabled:false};}
+ readiness(){return xenditSandboxReadiness();}
  private guard(){
   const ready=this.readiness();
   if(!ready.sandboxEnabled||!ready.webhookEnabled||!ready.orderSandboxEnabled)
@@ -55,6 +55,8 @@ export class XenditPaymentSessionsService{
    const found=await client.query<OrderRow>( 'SELECT id,invoice_number,total_idr::text,currency,status,operational_status,payment_status,payment_method,contact_name,contact_phone,contact_email,expires_at FROM product.orders WHERE id=$1 AND customer_user_id=$2 FOR UPDATE',[orderId,user.id]);
    const o=found.rows[0];
    if(!o)throw new NotFoundException('Pesanan tidak ditemukan');
+   const methodChannels=xenditChannelsForMethod(o.payment_method,selectedChannels);
+   if(!methodChannels.length)throw new ConflictException('Kanal pembayaran pesanan ini belum dikonfigurasi.');
    if(o.currency!=='IDR'||!Number.isSafeInteger(Number(o.total_idr))||Number(o.total_idr)<=0||
     o.payment_status!=='not_initiated'||o.status!=='draft'||
     !['qris','virtual_account','ewallet'].includes(o.payment_method)||
@@ -62,6 +64,9 @@ export class XenditPaymentSessionsService{
     throw new ConflictException('Pesanan tidak memenuhi syarat sandbox Xendit');
    const prior=await client.query<SessionRow>( 'SELECT * FROM product.xendit_payment_sessions WHERE order_id=$1 ORDER BY attempt DESC LIMIT 1 FOR UPDATE',[orderId]);
    const previous=prior.rows[0];
+   if(previous&&Number(previous.amount_idr)!==Number(o.total_idr))throw new ConflictException('Nilai pesanan berubah. Sesi perlu ditinjau admin.');
+   if(previous?.state==='active'&&previous.payment_link_url&&previous.expires_at&&Date.parse(previous.expires_at)>Date.now())
+    return {existing:publicSession(previous)};
    if(previous&&['prepared','creating','active','unknown','awaiting_reconciliation','review','completed'].includes(previous.state)){
     if(previous.state==='active'&&previous.expires_at&&Date.parse(previous.expires_at)<=Date.now())
      throw new ConflictException('Sesi Xendit kedaluwarsa; perlu rekonsiliasi sebelum membuat ulang');
@@ -71,8 +76,9 @@ export class XenditPaymentSessionsService{
    const reference=xenditSessionReference(o.invoice_number,index);
    const hash=createHash('sha256').update(orderId+':'+reference+':'+String(o.total_idr)).digest('hex');
    const inserted=await client.query<{id:string}>( 'INSERT INTO product.xendit_payment_sessions(order_id,attempt,reference_id,amount_idr,request_hash,request_idempotency_key,state) VALUES ($1,$2,$3,$4,$5,$6,\'creating\') RETURNING id',[o.id,index,reference,o.total_idr,hash,key]);
-   return {recordId:inserted.rows[0].id,order:o,reference,amountIdr:Number(o.total_idr)};
+   return {recordId:inserted.rows[0].id,order:o,reference,amountIdr:Number(o.total_idr),methodChannels};
   });
+  if('existing' in attempt)return attempt.existing!;
   // Never send a second CREATE after a connection timeout. The upstream may
   // have created a session despite no HTTP response; mark as UNKNOWN instead.
   let session:XenditSession;
@@ -81,7 +87,7 @@ export class XenditPaymentSessionsService{
     referenceId:attempt.reference,amountIdr:attempt.amountIdr,orderId,
     email:user.email,customerName:attempt.order.contact_name,
     phone:attempt.order.contact_phone,
-    allowedChannels:selectedChannels,
+    allowedChannels:attempt.methodChannels,
     returnOrigin:process.env.XENDIT_RETURN_ORIGIN||'https://vapmart-web-staging.up.railway.app'
    });
    session=await this.xendit.createSession(payload);
@@ -101,22 +107,36 @@ export class XenditPaymentSessionsService{
    [attempt.recordId,session.payment_session_id,session.payment_link_url,session.expires_at||null,session.business_id,session.status]);
   return publicSession(saved.rows[0]);
  }
- /** Read-only provider reconciliation. Does NOT mark an order paid. */
+ /** Verify sandbox outcomes in the session ledger only. Never mark a real order paid. */
  async reconcile(user:Principal,orderId:string){
   this.guard();
   const current=await this.current(user,orderId);
   if(!current.session?.sessionId)throw new ConflictException('Sesi tidak memiliki ID provider; perlu penyelidikan manual.');
-  const provider=await this.xendit.readSession(current.session.sessionId);
-  const rows=await this.db.query<SessionRow>('SELECT * FROM product.xendit_payment_sessions WHERE order_id=$1 AND payment_session_id=$2',[orderId,provider.payment_session_id]);
-  const stored=rows.rows[0];
-  if(!stored||stored.reference_id!==provider.reference_id||Number(stored.amount_idr)!==provider.amount||
-   stored.provider_business_id!==provider.business_id||provider.currency!=='IDR'||provider.country!=='ID')
-   throw new ConflictException('Data provider tidak cocok. Tahan pembayaran dan investigasi.');
-  const state=provider.status==='COMPLETED'?'awaiting_reconciliation':provider.status.toLowerCase();
-  const saved=await this.db.query<SessionRow>(
-   'UPDATE product.xendit_payment_sessions SET state=$3,provider_status=$4,payment_id=$5,payment_request_id=$6,last_checked_at=now(),updated_at=now() WHERE order_id=$1 AND payment_session_id=$2 AND state<>\'completed\' RETURNING *',
-   [orderId,provider.payment_session_id,state,provider.status,provider.payment_id,provider.payment_request_id]);
-  return {session:publicSession(saved.rows[0]||stored),verifiedProviderRead:true,
-   orderPaidChanged:false,note:'Status Xendit hanya diverifikasi. Belum ada settlement/paid transition otomatis pada CP53.'};
+  return this.verifySandboxSession(current.session.sessionId);
+ }
+ async verifySandboxSession(sessionId:string){
+  const ready=this.readiness();
+  if(!ready.sandboxEnabled||!ready.webhookEnabled)throw new ServiceUnavailableException('Sandbox tidak tersedia');
+  const known=await this.db.query<SessionRow>('SELECT * FROM product.xendit_payment_sessions WHERE payment_session_id=$1',[sessionId]);
+  if(!known.rows[0])return null;
+  const provider=await this.xendit.readSession(sessionId);
+  return this.db.transaction(async client=>{
+   const order=(await client.query<{total_idr:string;payment_status:string;status:string}>(
+    'SELECT total_idr::text,payment_status,status FROM product.orders WHERE id=$1 FOR UPDATE',[known.rows[0].order_id])).rows[0];
+   const stored=(await client.query<SessionRow>('SELECT * FROM product.xendit_payment_sessions WHERE payment_session_id=$1 FOR UPDATE',[sessionId])).rows[0];
+   if(!stored||!order||stored.reference_id!==provider.reference_id||Number(stored.amount_idr)!==provider.amount||
+    Number(order.total_idr)!==provider.amount||stored.provider_business_id!==provider.business_id||
+    provider.business_id!==process.env.XENDIT_BUSINESS_ID||provider.currency!=='IDR'||provider.country!=='ID'||
+    (provider.status==='COMPLETED'&&(!provider.payment_id||!provider.payment_request_id)))
+    throw new ConflictException('Data provider tidak cocok. Tahan pembayaran dan investigasi.');
+   let state=stored.state==='completed'?'completed':provider.status.toLowerCase();
+   if(provider.status==='ACTIVE'&&stored.state==='awaiting_reconciliation')state=stored.state;
+   const saved=await client.query<SessionRow>(
+    'UPDATE product.xendit_payment_sessions SET state=$2,provider_status=$3,payment_id=coalesce(payment_id,$4),payment_request_id=coalesce(payment_request_id,$5),last_checked_at=now(),updated_at=now() WHERE id=$1 RETURNING *',
+    [stored.id,state,stored.state==='completed'?'COMPLETED':provider.status,provider.payment_id,provider.payment_request_id]);
+   if(state==='completed')await client.query("UPDATE product.xendit_webhook_inbox SET disposition='reconciled',disposition_reason=NULL WHERE payment_session_id=$1 AND disposition='pending_reconciliation'",[sessionId]);
+   return {session:publicSession(saved.rows[0]),verifiedProviderRead:true,orderPaidChanged:false,
+    note:'Hasil simulasi sandbox. Pembayaran nyata dan fulfillment tidak dijalankan.'};
+  });
  }
 }
