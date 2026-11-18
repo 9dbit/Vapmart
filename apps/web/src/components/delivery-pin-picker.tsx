@@ -1,9 +1,12 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
+import dynamic from 'next/dynamic';
 import {googleMapsPinUrl,type DeliveryPin} from '@/lib/delivery-pin';
 import '../app/delivery-pin.css';
-export function DeliveryPinPicker({value,onChange,address='',title='Pin Google Maps'}:{value:DeliveryPin|null;onChange:(pin:DeliveryPin|null)=>void;address?:string;title?:string}){
+const DestinationMap = dynamic(() => import('./destination-map'), {ssr:false,loading:()=> <p>Memuat peta…</p>});
+export function DeliveryPinPicker({value,onChange,address='',region='',title='Pin titik antar'}:{value:DeliveryPin|null;onChange:(pin:DeliveryPin|null)=>void;address?:string;region?:string;title?:string}){
  const [input,setInput]=useState(''),[candidate,setCandidate]=useState<DeliveryPin|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
+ const [mapOpen,setMapOpen]=useState(false);
  const request=useRef(0);
  useEffect(()=>()=>{request.current++;},[]);
  useEffect(()=>{if(!value)setCandidate(null);},[value]);
@@ -26,6 +29,8 @@ export function DeliveryPinPicker({value,onChange,address='',title='Pin Google M
  return <section className="vm-pin" aria-label={title}>
   <div className="vm-pin-head"><strong>{title}</strong><span>{value?'Terkonfirmasi':'Untuk GoSend / GrabExpress'}</span></div>
   <p>Pastikan pin tepat di pintu masuk tujuan. Pin diperlukan untuk layanan Instant / Same Day yang tersedia.</p>
+  {region&&<button type="button" aria-expanded={mapOpen} onClick={()=>setMapOpen(!mapOpen)}>{mapOpen?'Tutup peta':value?'Sesuaikan titik antar':'Tentukan titik antar di peta'}</button>}
+  {mapOpen&&<DestinationMap initial={value||candidate} region={region} onConfirm={(p:DeliveryPin)=>{request.current++;setBusy(false);setInput('');setCandidate(null);onChange(p);setMapOpen(false);setMessage('Titik antar tersimpan untuk estimasi ongkir dan pengiriman.');}}/>}
   <div className="vm-pin-actions"><button type="button" onClick={()=>void locate()} disabled={busy}>⌖ Ambil lokasi perangkat</button><a target="_blank" rel="noopener noreferrer" href={'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(address||'Indonesia')}>Pilih titik di Google Maps ↗</a></div>
   <label>Tautan Google Maps atau latitude, longitude<input value={input} maxLength={2048} placeholder="-6.200000, 106.816666 atau tautan Maps" onChange={e=>{setInput(e.target.value);clear();}}/></label>
   <p className="vm-pin-help">Di Google Maps, tahan/klik titik tujuan, lalu salin tautan pin atau koordinatnya ke sini.</p>
