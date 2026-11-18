@@ -9,10 +9,12 @@ import {formatIDR} from '@/lib/types';
 import {IndonesiaAddressPicker} from '@/components/indonesia-address-picker';
 import type {AddressSelection} from '@/lib/address-location';
 import '../checkout-v26.css';
+import {DeliveryPinPicker} from '@/components/delivery-pin-picker';
+import type {DeliveryPin} from '@/lib/delivery-pin';
 
 type QuoteItem={productId:string;sku:string|null;name:string;unitPriceIdr:number;quantity:number;lineTotalIdr:number;stockQty:number};
 type Quote={items:QuoteItem[];subtotalIdr:number;discountIdr:number;voucherDiscountIdr:number;voucherCode:string|null;promotionDiscountIdr:number;promotionEventId:string|null;promotionTitle:string|null;shippingFeeIdr:number|null;totalIdr:number|null;shippingEstimate:boolean;paymentEnabled:boolean;paymentMethods:string[]};
-type ShippingOption={quoteId:string;expiresAt:string;courierCode:string;courierName:string;serviceCode:string;serviceName:string;priceIdr:number;duration:string;insuranceIdr?:number};
+type ShippingOption={quoteId:string;expiresAt:string;courierCode:string;courierName:string;serviceCode:string;serviceName:string;priceIdr:number;duration:string;insuranceIdr?:number;estimateOnly?:boolean;providerServiceId?:number};
 type ShippingConfig={rateLookupEnabled:boolean;bookingEnabled:boolean;paymentEnabled:boolean;rateType:string;requiresArea?:boolean;provider?:string;originLabel?:string};
 type DraftForm={name:string;phone:string;address:string;city:string;province:string;postalCode:string;paymentMethod:'bank_transfer'|'qris'|'virtual_account'|'ewallet'};
 const initial:DraftForm={name:'',phone:'',address:'',city:'',province:'',postalCode:'',paymentMethod:'bank_transfer'};
@@ -30,6 +32,8 @@ export default function CheckoutPage(){
  const [shippingConfig,setShippingConfig]=useState<ShippingConfig|null>(null);
  const [shippingRates,setShippingRates]=useState<ShippingOption[]>([]);
  const [destination,setDestination]=useState<AddressSelection|null>(null);
+ const [destinationPin,setDestinationPin]=useState<DeliveryPin|null>(null);
+ const [pinNotice,setPinNotice]=useState('');
  const [selectedQuoteId,setSelectedQuoteId]=useState('');
  const [shippingLoading,setShippingLoading]=useState(false);
  const [shippingError,setShippingError]=useState('');
@@ -48,7 +52,7 @@ export default function CheckoutPage(){
  const shippingPrice=shippingConfig?.rateLookupEnabled?(selectedShipping?.priceIdr??null):(quote?.shippingFeeIdr??null);
  const totalPreview=quote&&shippingPrice!==null?quote.subtotalIdr-quote.discountIdr+shippingPrice:null;
  useEffect(()=>{fetch('/api/checkout/config',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error('Gateway config unavailable'))).then(setCheckoutConfig).catch(()=>setCheckoutConfig({paymentEnabled:false,providerConnected:false,methods:['bank_transfer']}));},[]);
- useEffect(()=>{fetch('/api/shipping/config',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error('Shipping unavailable'))).then(setShippingConfig).catch(()=>setShippingConfig({rateLookupEnabled:false,bookingEnabled:false,paymentEnabled:false,rateType:'disabled'}));},[]);
+ useEffect(()=>{fetch('/api/shipping/config',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error('Shipping unavailable'))).then(setShippingConfig).catch(()=>setShippingError('Pengaturan ongkir belum dapat dimuat. Muat ulang halaman untuk mencoba lagi.'));},[]);
  useEffect(()=>{
   if(includesDigital||requestItems.length===0){setQuote(null);setError('');return;}
   const controller=new AbortController();
@@ -67,20 +71,21 @@ export default function CheckoutPage(){
  useEffect(()=>{
   const postalReady=/^[0-9]{5}$/.test(form.postalCode);
   const areaReady=!shippingConfig?.requiresArea||Boolean(destination&&destination.postalCode===form.postalCode);
-  if(!shippingConfig?.rateLookupEnabled||!auth.accessToken||!postalReady||!requestItems.length||!areaReady){
+  if(!shippingConfig?.rateLookupEnabled||!postalReady||!requestItems.length||!areaReady){
    shippingRequest.current++;setShippingLoading(false);setShippingRates([]);setSelectedQuoteId('');
    return;
   }
   const sequence=++shippingRequest.current,controller=new AbortController();
-  setShippingLoading(true);setShippingError('');
+  setShippingLoading(true);setShippingError('');setShippingRates([]);setSelectedQuoteId('');
   const timer=setTimeout(async()=>{
    try{
-    const response=await fetch('/api/shipping/rates',{method:'POST',headers:{authorization:'Bearer '+auth.accessToken,'content-type':'application/json'},
-     body:JSON.stringify({items:requestItems,destinationPostalCode:form.postalCode,...(destination?{destinationAreaId:destination.areaId,destinationProvinceId:destination.provinceId}:{})}),
+    const response=await fetch(auth.accessToken?'/api/shipping/rates':'/api/shipping/estimate',{method:'POST',headers:{...(auth.accessToken?{authorization:'Bearer '+auth.accessToken}:{}),'content-type':'application/json'},
+     body:JSON.stringify({items:requestItems,destinationPostalCode:form.postalCode,...(destinationPin?{destinationPin}:{}),...(destination?{destinationAreaId:destination.areaId,destinationProvinceId:destination.provinceId}:{})}),
      signal:controller.signal,cache:'no-store'});
     const data=await response.json();if(!response.ok)throw Error(data?.message||data?.code||'Tarif kurir belum tersedia');
     if(sequence!==shippingRequest.current)return;
-    const rates=(Array.isArray(data.rates)?data.rates:[]).slice().sort((a:ShippingOption,b:ShippingOption)=>a.priceIdr-b.priceIdr);
+    setPinNotice(data.pinNotice||'');
+    const rates=(Array.isArray(data.rates)?data.rates:[]).map((r:ShippingOption)=>({...r,quoteId:r.quoteId||'estimate:'+r.courierCode+':'+(r.providerServiceId||r.serviceCode)})).sort((a:ShippingOption,b:ShippingOption)=>a.priceIdr-b.priceIdr);
     setShippingRates(rates);setSelectedQuoteId(rates[0]?.quoteId||'');
     if(!rates.length)setShippingError('Tidak ada tarif kurir untuk kombinasi alamat dan produk ini.');
    }catch(e){
@@ -91,8 +96,9 @@ export default function CheckoutPage(){
   },350);
   return()=>{clearTimeout(timer);controller.abort();if(shippingRequest.current===sequence)shippingRequest.current++;};
  },[shippingConfig?.rateLookupEnabled,shippingConfig?.requiresArea,auth.accessToken,form.postalCode,form.city,form.province,
-  destination?.areaId,destination?.provinceId,destination?.postalCode,requestItems,key,shippingRetry]);
+  destination?.areaId,destination?.provinceId,destination?.postalCode,requestItems,key,shippingRetry,destinationPin]);
  const change=(name:keyof DraftForm,value:string)=>{
+  if(name==='address')setDestinationPin(null);
   setForm(previous=>({...previous,[name]:value}));setOrder(null);requestKey.current=null;
   if(['postalCode','city','province'].includes(name)){shippingRequest.current++;setShippingLoading(false);setShippingRates([]);setSelectedQuoteId('');setShippingError('');if(name==='postalCode')setDestination(null);}
  };
@@ -107,7 +113,7 @@ export default function CheckoutPage(){
   try{
    requestKey.current??=crypto.randomUUID();
    const response=await fetch('/api/checkout/orders',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+auth.accessToken},
-    body:JSON.stringify({...form,items:requestItems,idempotencyKey:requestKey.current,...(appliedVoucher?{voucherCode:appliedVoucher}:{}),...(selectedShipping?{shippingQuoteId:selectedShipping.quoteId}:{}),...(destination?{destinationAreaId:destination.areaId,destinationProvinceId:destination.provinceId}:{})})});
+    body:JSON.stringify({...form,items:requestItems,idempotencyKey:requestKey.current,...(appliedVoucher?{voucherCode:appliedVoucher}:{}),...(selectedShipping?{shippingQuoteId:selectedShipping.quoteId}:{}),...(destinationPin?{destinationPin}:{}),...(destination?{destinationAreaId:destination.areaId,destinationProvinceId:destination.provinceId}:{})})});
    const result=await response.json();
    if(!response.ok)throw new Error(typeof result?.message==='string'?result.message:result?.code||'Gagal menyimpan draft pesanan');
    setOrder({id:result.id,status:result.status,paymentStatus:result.paymentStatus});
@@ -128,20 +134,23 @@ export default function CheckoutPage(){
     <div className="vco26-card-heading"><span>01</span><div><h2>Detail penerima</h2><p>Isi tujuan pengiriman dan kontak yang bisa dihubungi.</p></div></div>
     <label>Nama lengkap<input value={form.name} onChange={e=>change('name',e.target.value)} minLength={2} maxLength={100} required autoComplete="name" placeholder="Nama penerima"/></label>
     <label>Nomor telepon<input value={form.phone} onChange={e=>change('phone',e.target.value)} minLength={9} maxLength={22} required inputMode="tel" autoComplete="tel" placeholder="08xxxxxxxxxx"/></label>
-    <IndonesiaAddressPicker onChange={r=>{setDestination(r);shippingRequest.current++;setShippingLoading(false);setShippingRates([]);setSelectedQuoteId('');setShippingError('');setOrder(null);requestKey.current=null;setForm(f=>({...f,city:r?.city||'',province:r?.province||'',postalCode:r?.postalCode||''}));}}/>
+    <IndonesiaAddressPicker onChange={r=>{setDestination(r);setDestinationPin(null);shippingRequest.current++;setShippingLoading(false);setShippingRates([]);setSelectedQuoteId('');setShippingError('');setOrder(null);requestKey.current=null;setForm(f=>({...f,city:r?.city||'',province:r?.province||'',postalCode:r?.postalCode||''}));}}/>
     <label>Detail alamat<textarea value={form.address} onChange={e=>change('address',e.target.value)} minLength={8} maxLength={300} required rows={3} autoComplete="street-address" placeholder="Nama jalan, nomor rumah/gedung, RT/RW, patokan"/></label>
     <p className="vm-address-help">Isi jalan dan nomor rumah di sini. Wilayah dan kode pos mengikuti pilihan di atas.</p>
+    <DeliveryPinPicker key={(destination?.areaId||'none')+form.address} value={destinationPin} onChange={p=>{setDestinationPin(p);requestKey.current=null;}} address={[form.address,destination?.label].filter(Boolean).join(', ')}/>
     <div className="vco26-card-heading vco26-payment-head"><span>02</span><div><h2>Kurir & Ongkos Kirim</h2><p>Lihat estimasi biaya dan waktu kirim sebelum membuat pesanan. Belum ada booking kurir maupun resi.</p></div></div>
     {shippingConfig?.rateLookupEnabled?<div className="vco26-shipping-picker">
-     <p className="vco26-shipping-status" aria-live="polite">{!auth.user?'Masuk untuk menghitung ongkir otomatis.':!/^[0-9]{5}$/.test(form.postalCode)?'Masukkan kode pos tujuan untuk menghitung ongkir.':shippingConfig.requiresArea&&!destination?'Pilih kelurahan tujuan agar tarif sesuai alamat.':shippingLoading?'Menghitung estimasi ongkir...':shippingRates.length?shippingRates.length+' layanan tersedia. Pilihan termurah dipilih sebagai awal.':'Estimasi akan dihitung otomatis setelah alamat lengkap.'}</p>
+     <p className="vco26-shipping-status" aria-live="polite">{!/^[0-9]{5}$/.test(form.postalCode)?'Masukkan kode pos tujuan untuk menghitung ongkir.':shippingConfig.requiresArea&&!destination?'Pilih kelurahan tujuan agar tarif sesuai alamat.':shippingLoading?'Menghitung estimasi ongkir...':shippingRates.length?shippingRates.length+' layanan tersedia. Pilihan termurah dipilih sebagai awal.':'Estimasi akan dihitung otomatis setelah alamat lengkap.'}</p>
      {shippingRates.length>0&&<label className="vco26-courier-select">Kurir & layanan
       <select aria-label="Pilih kurir dan layanan" value={selectedQuoteId} onChange={e=>{setSelectedQuoteId(e.target.value);requestKey.current=null;}}>
        {shippingRates.map(r=><option key={r.quoteId} value={r.quoteId}>{r.courierName} · {r.serviceName} · {formatIDR(r.priceIdr)}{r.duration?' · '+r.duration:''}</option>)}
       </select>
      </label>}
+     {pinNotice&&<p className="vco26-shipping-status">{pinNotice}</p>}
+     {!auth.accessToken&&shippingRates.length>0&&<p className="vco26-shipping-status">Estimasi tersedia sebelum login. Masuk untuk menyimpan pesanan; tarif akan diperiksa kembali.</p>}
      {selectedShipping&&<div className="vco26-shipping-selected"><div><strong>{selectedShipping.courierName}</strong><span>{selectedShipping.serviceName} · {selectedShipping.duration||'Estimasi waktu belum tersedia'}{selectedShipping.insuranceIdr!==undefined?' · termasuk asuransi':''}</span></div><strong>{formatIDR(selectedShipping.priceIdr)}</strong></div>}
      {shippingError&&<div className="vco26-shipping-error"><p role="alert">{shippingError}</p><button type="button" onClick={()=>setShippingRetry(v=>v+1)} disabled={shippingLoading}>Coba hitung lagi</button></div>}
-    </div>:<p className="vco26-disclaimer">Pilihan jasa kurir live belum diaktifkan. Estimasi tarif standar tetap ditampilkan bila tersedia.</p>}
+    </div>:<p className="vco26-disclaimer" role="status">{shippingError||(!shippingConfig?'Memuat pengaturan ongkir...':'Pilihan jasa kurir live belum diaktifkan. Estimasi tarif standar ditampilkan bila tersedia.')}</p>}
     <div className="vco26-card-heading vco26-payment-head"><span>03</span><div><h2>Voucher</h2><p>Gunakan kode voucher aktif bila tersedia.</p></div></div>
     <div className="vco26-voucher"><input aria-label="Kode voucher" value={voucherDraft} maxLength={32} placeholder="Kode voucher" onChange={e=>setVoucherDraft(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g,''))}/><button type="button" className="vco26-secondary" onClick={()=>{setAppliedVoucher(voucherDraft.trim());requestKey.current=null;}}>{appliedVoucher?'Perbarui voucher':'Terapkan voucher'}</button>{appliedVoucher&&<button type="button" className="vco26-secondary" onClick={()=>{setVoucherDraft('');setAppliedVoucher('');requestKey.current=null;}}>Hapus</button>}</div>
     <div className="vco26-card-heading vco26-payment-head"><span>04</span><div><h2>Metode pembayaran</h2><p>{live?'Pembayaran Xendit diverifikasi otomatis oleh server. Transfer manual diverifikasi admin.':'Transfer bank diverifikasi admin. Kanal Xendit berlabel Sandbox digunakan untuk simulasi, tanpa dana nyata.'}</p></div></div>
@@ -165,7 +174,7 @@ export default function CheckoutPage(){
     </div>)}
     {quoting?<p className="vco26-quiet">Memeriksa harga dan stok terkini...</p>:quote?<div className="vco26-totals">
       <div><span>Subtotal aktual</span><b>{formatIDR(quote.subtotalIdr)}</b></div>
-      <div><span>{selectedShipping?selectedShipping.courierName+' · '+selectedShipping.serviceName:shippingConfig?.rateLookupEnabled?(shippingLoading?'Menghitung ongkir...':'Ongkos kirim'):'Ongkir standar (estimasi)'}</span><b>{shippingPrice===null?'Menunggu estimasi':formatIDR(shippingPrice)}</b></div>
+      <div><span>{selectedShipping?selectedShipping.courierName+' · '+selectedShipping.serviceName:shippingConfig?.rateLookupEnabled?(shippingLoading?'Menghitung ongkir...':'Ongkos kirim'):'Ongkir standar (estimasi)'}</span><b>{shippingPrice===null?(shippingLoading?'Sedang dihitung':shippingError?'Tarif belum tersedia':!destination?'Pilih wilayah tujuan':'Pilih layanan kurir'):formatIDR(shippingPrice)}</b></div>
       {quote.voucherDiscountIdr>0&&<div><span>Voucher {quote.voucherCode||''}</span><b>-{formatIDR(quote.voucherDiscountIdr)}</b></div>}
       {quote.promotionDiscountIdr>0&&<div><span>Promo otomatis {quote.promotionTitle||''}</span><b>-{formatIDR(quote.promotionDiscountIdr)}</b></div>}
       <div className="vco26-total"><span>Total estimasi</span><strong>{totalPreview===null?'Belum tersedia':formatIDR(totalPreview)}</strong></div>

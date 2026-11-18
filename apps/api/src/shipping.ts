@@ -1,3 +1,4 @@
+import {parseDeliveryPin,readOriginPin,pinMapsUrl,type DeliveryPin} from './shipping-pin';
 import {effectivePrice,sellableSQL,type PriceInput} from './catalog-pricing';
 import {BadRequestException,ConflictException,ForbiddenException,Injectable,ServiceUnavailableException} from '@nestjs/common';
 import {DatabaseService} from './database';
@@ -8,17 +9,17 @@ import {shippingConfig,shippingSnapshotProvider} from './shipping-config';
 import {CourierVisibilityService,filterVisibleShippingRates} from './courier-visibility';
 import {JubelioShipmentClient,type ShippingRegion,type JubelioRate} from './jubelio-shipment';
 
-type ShippingRequest={items:{productId:string;quantity:number}[];destinationPostalCode:string;destinationAreaId?:string;destinationProvinceId?:string};
+type ShippingRequest={items:{productId:string;quantity:number}[];destinationPostalCode:string;destinationAreaId?:string;destinationProvinceId?:string;destinationPin?:DeliveryPin|null};
 export function parseShippingRequest(raw:unknown):ShippingRequest{
  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new BadRequestException('Permintaan ongkir tidak valid');
  const body=raw as Record<string,unknown>;
- if(Object.keys(body).some(x=>!['items','destinationPostalCode','destinationAreaId','destinationProvinceId'].includes(x))||
+ if(Object.keys(body).some(x=>!['items','destinationPostalCode','destinationAreaId','destinationProvinceId','destinationPin'].includes(x))||
  typeof body.destinationPostalCode!=='string'||!/^[0-9]{5}$/.test(body.destinationPostalCode))
   throw new BadRequestException('Kode pos tujuan harus 5 angka');
  if(body.destinationAreaId!==undefined&&(typeof body.destinationAreaId!=='string'||!/^\d{10}$/.test(body.destinationAreaId)))throw new BadRequestException('Pilih wilayah tujuan yang valid');
  if(body.destinationProvinceId!==undefined&&(typeof body.destinationProvinceId!=='string'||!/^\d{2}$/.test(body.destinationProvinceId)))throw new BadRequestException('Provinsi tujuan tidak valid');
  if(body.destinationProvinceId&&!body.destinationAreaId)throw new BadRequestException('Kelurahan tujuan belum dipilih');
- return {items:parseBasket({items:body.items}),destinationPostalCode:body.destinationPostalCode,...(typeof body.destinationAreaId==='string'?{destinationAreaId:body.destinationAreaId}:{}),...(typeof body.destinationProvinceId==='string'?{destinationProvinceId:body.destinationProvinceId}:{})};
+ return {...(body.destinationPin!==undefined?{destinationPin:parseDeliveryPin(body.destinationPin)}:{}),items:parseBasket({items:body.items}),destinationPostalCode:body.destinationPostalCode,...(typeof body.destinationAreaId==='string'?{destinationAreaId:body.destinationAreaId}:{}),...(typeof body.destinationProvinceId==='string'?{destinationProvinceId:body.destinationProvinceId}:{})};
 }
 export type CourierRate={courierCode:string;courierName:string;serviceCode:string;serviceName:string;priceIdr:number;duration:string};
 export function normalizeCourierRates(raw:unknown):CourierRate[]{
@@ -39,9 +40,18 @@ export function normalizeCourierRates(raw:unknown):CourierRate[]{
 export class ShippingService{
  constructor(private readonly db:DatabaseService,private readonly jubelio:JubelioShipmentClient,private readonly visibility:CourierVisibilityService){}
  config(){return shippingConfig();}
- async rates(user:Principal,body:unknown,adminOrder?:{customerId:string;prices:Map<string,number>}){
-  if(!user.emailVerified)throw new ForbiddenException('Verifikasi email diperlukan untuk cek ongkir');
-  const {items,destinationPostalCode,destinationAreaId,destinationProvinceId}=parseShippingRequest(body),config=this.config();
+ async originPin(){return readOriginPin(this.db,process.env.JUBELIO_SHIPMENT_ORIGIN_AREA_ID||'',process.env.SHIPPING_ORIGIN_POSTAL_CODE||'');}
+ async originPinSettings(){const pin=await this.originPin();return {pin,googleMapsUrl:pin?pinMapsUrl(pin):null,originLabel:process.env.SHIPPING_ORIGIN_LABEL||'',areaId:process.env.JUBELIO_SHIPMENT_ORIGIN_AREA_ID||'',postalCode:process.env.SHIPPING_ORIGIN_POSTAL_CODE||''};}
+ async saveOriginPin(actor:Principal,raw:unknown){
+  if(!actor.emailVerified)throw new ForbiddenException('Admin terverifikasi diperlukan');
+  const pin=parseDeliveryPin(raw),area=process.env.JUBELIO_SHIPMENT_ORIGIN_AREA_ID||'',postal=process.env.SHIPPING_ORIGIN_POSTAL_CODE||'';
+  if(!pin||!/^\d{10}$/.test(area)||!/^\d{5}$/.test(postal))throw new BadRequestException('Pin atau wilayah gudang belum valid');
+  await this.db.query("INSERT INTO product.shipping_origin_pins(provider,area_id,postal_code,pin,updated_by) VALUES('jubelio',$1,$2,$3::jsonb,$4) ON CONFLICT(provider) DO UPDATE SET area_id=EXCLUDED.area_id,postal_code=EXCLUDED.postal_code,pin=EXCLUDED.pin,updated_by=EXCLUDED.updated_by,updated_at=now()",[area,postal,JSON.stringify(pin),actor.id]);return this.originPinSettings();
+ }
+ async estimate(body:unknown){return this.rates(null,body,undefined,true);}
+ async rates(user:Principal|null,body:unknown,adminOrder?:{customerId:string;prices:Map<string,number>},estimateOnly=false){
+  if(!estimateOnly&&!user?.emailVerified)throw new ForbiddenException('Verifikasi email diperlukan untuk cek ongkir');
+  const {items,destinationPostalCode,destinationAreaId,destinationProvinceId,destinationPin}=parseShippingRequest(body),config=this.config();
   const key=process.env.BITESHIP_API_KEY,origin=process.env.SHIPPING_ORIGIN_POSTAL_CODE;
   if(!config.rateLookupEnabled||!origin)throw new ServiceUnavailableException({code:'SHIPPING_NOT_CONFIGURED',message:'Tarif kurir belum diaktifkan'});
   const list=await this.db.query<{id:string;slug:string;name:string;stock_qty:number;is_active:boolean;weight_grams:number|null;length_cm:number|null;width_cm:number|null;height_cm:number|null}&PriceInput>(
@@ -59,11 +69,12 @@ export class ShippingService{
    return {name:p.name,value,weight:p.weight_grams,quantity:i.quantity,
      ...(p.length_cm?{length:p.length_cm}:{}),...(p.width_cm?{width:p.width_cm}:{}),...(p.height_cm?{height:p.height_cm}:{})};
   });
+  const originPin=config.provider==='jubelio'?await this.originPin():null;
   let rates:Array<CourierRate|JubelioRate>,destination:ShippingRegion|null=null;
   if(config.provider==='jubelio'){
    destination=destinationProvinceId&&destinationAreaId?await this.jubelio.addressRegion(destinationProvinceId,destinationAreaId):await this.jubelio.destination(destinationPostalCode,destinationAreaId);
    if(destination.postalCode!==destinationPostalCode)throw new BadRequestException('Kode pos harus sesuai kelurahan tujuan.');
-   rates=await this.jubelio.rates(destination,goods);
+   rates=await this.jubelio.rates(destination,goods,{origin:originPin,destination:destinationPin||null,estimate:estimateOnly});
   }else{let data:unknown;try{
    const couriers=process.env.SHIPPING_COURIERS||'jne,sicepat,anteraja';
    if(!/^[a-z,]{3,120}$/.test(couriers))throw Error('Bad couriers');
@@ -79,19 +90,21 @@ export class ShippingService{
   // Apply the admin's explicit carrier selection before persisting checkout quotes.
   // A missing preference row preserves prior behavior until the first admin save.
   rates=filterVisibleShippingRates(rates,await this.visibility.selection(config.provider));
+  const pinNotice=!destinationPin?'Tambahkan pin tujuan untuk layanan Instant / Same Day.':!originPin?'Pin tujuan tersimpan. Layanan Instant / Same Day menunggu pin gudang di pengaturan pengiriman.':null;
+  if(estimateOnly)return {rates:rates.map(r=>({...r,estimateOnly:true})),provider:config.provider,quoteOnly:true,estimateOnly:true,canBook:false,paymentEnabled:false,destinationPostalCode,pinNotice};
   const fingerprint=config.provider==='jubelio'?shippingParcelFingerprint(fingerprintItems):shippingFingerprint(fingerprintItems);
   const saved=await this.db.transaction(async client=>{
    const options=[];
    for(const r of rates){
     const inserted=await client.query<{id:string;expires_at:string}>(
-     "INSERT INTO product.shipping_rate_quotes(customer_user_id,cart_fingerprint,origin_postal_code,destination_postal_code,provider,courier_code,service_code,courier_name,service_name,amount_idr,expires_at,origin_area_id,destination_area_id,destination_region,provider_service_id,base_amount_idr,insurance_amount_idr) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,now()+interval '15 minutes',$11,$12,$13::jsonb,$14,$15,$16) RETURNING id,expires_at",
-     [adminOrder?.customerId||user.id,fingerprint,origin,destinationPostalCode,shippingSnapshotProvider(),r.courierCode,r.serviceCode,r.courierName,r.serviceName,r.priceIdr,
+     "INSERT INTO product.shipping_rate_quotes(customer_user_id,cart_fingerprint,origin_postal_code,destination_postal_code,provider,courier_code,service_code,courier_name,service_name,amount_idr,expires_at,origin_area_id,destination_area_id,destination_region,provider_service_id,base_amount_idr,insurance_amount_idr,origin_pin,destination_pin,requires_pin) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,now()+interval '15 minutes',$11,$12,$13::jsonb,$14,$15,$16,$17::jsonb,$18::jsonb,$19) RETURNING id,expires_at",
+     [adminOrder?.customerId||user!.id,fingerprint,origin,destinationPostalCode,shippingSnapshotProvider(),r.courierCode,r.serviceCode,r.courierName,r.serviceName,r.priceIdr,
       config.provider==='jubelio'?process.env.JUBELIO_SHIPMENT_ORIGIN_AREA_ID:null,destination?.areaId||null,destination?JSON.stringify(destination):null,
-      'providerServiceId' in r?r.providerServiceId:null,'basePriceIdr' in r?r.basePriceIdr:r.priceIdr,'insuranceIdr' in r?r.insuranceIdr:0]);
+      'providerServiceId' in r?r.providerServiceId:null,'basePriceIdr' in r?r.basePriceIdr:r.priceIdr,'insuranceIdr' in r?r.insuranceIdr:0,originPin?JSON.stringify(originPin):null,destinationPin?JSON.stringify(destinationPin):null,'requiresPin' in r&&r.requiresPin===true]);
     options.push({...r,quoteId:inserted.rows[0].id,expiresAt:inserted.rows[0].expires_at});
    }
    return options;
   });
-  return {rates:saved,provider:config.provider,quoteOnly:true,canBook:false,paymentEnabled:false,rateType:config.rateType,destinationPostalCode,destination};
+  return {rates:saved,provider:config.provider,quoteOnly:true,canBook:false,paymentEnabled:false,rateType:config.rateType,destinationPostalCode,destination,pinNotice};
  }
 }

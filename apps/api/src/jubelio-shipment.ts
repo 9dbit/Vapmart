@@ -1,3 +1,4 @@
+import {pinCoordinate,type DeliveryPin} from './shipping-pin';
 import {normalizeAddressOptions,courierProvince,type AddressOption,type AddressRegion} from './shipping-address';
 import {BadRequestException,Injectable,ServiceUnavailableException} from '@nestjs/common';
 import {createHash} from 'node:crypto';
@@ -9,7 +10,7 @@ const API='https://api-shipment.jubelio.com';
 export type ShippingRegion={areaId:string;postalCode:string;label:string;province:string;city:string;district:string;area:string};
 export type JubelioGoods={weight:number;quantity:number;value:number;length?:number;width?:number;height?:number};
 export type JubelioRate={courierCode:string;courierName:string;serviceCode:string;serviceName:string;priceIdr:number;duration:string;
- providerServiceId:number;basePriceIdr:number;insuranceIdr:number};
+ providerServiceId:number;basePriceIdr:number;insuranceIdr:number;requiresPin?:boolean};
 function object(x:unknown):Record<string,unknown>{return x&&typeof x==='object'&&!Array.isArray(x)?x as Record<string,unknown>:{};}
 function money(x:unknown):number|null{
  if(typeof x!=='number'&&!(typeof x==='string'&&/^\d+(\.0+)?$/.test(x)))return null;
@@ -24,7 +25,7 @@ export function normalizeJubelioRegions(raw:unknown):ShippingRegion[]{
   seen.add(r.area_id);return [{areaId:r.area_id,postalCode:r.zipcode,label:String(r.name),province:String(r.province),city:String(r.city),district:String(r.district),area:String(r.area)}];
  }).slice(0,50);
 }
-export function normalizeJubelioRates(raw:unknown,now=Date.now()):JubelioRate[]{
+export function normalizeJubelioRates(raw:unknown,now=Date.now(),allowInstant=false):JubelioRate[]{
  if(!Array.isArray(raw))throw new ServiceUnavailableException('Respons tarif Jubelio tidak valid');
  const seen=new Set<number>();
  return raw.flatMap(row=>{const r=object(row),base=money(r.rates),insurance=money(r.shipping_insurance??0);
@@ -32,8 +33,9 @@ export function normalizeJubelioRates(raw:unknown,now=Date.now()):JubelioRate[]{
    !Number.isSafeInteger(r.courier_service_id)||Number(r.courier_service_id)<=0||seen.has(Number(r.courier_service_id))||
    typeof r.courier_service_code!=='string'||!/^[-A-Za-z0-9_ ]{1,50}$/.test(r.courier_service_code)||
    typeof r.courier_name!=='string'||typeof r.courier_service_name!=='string')return [];
-  // Instant/sameday requires verified map coordinates, which this postal flow does not collect.
-  if(['INSTANT','SAMEDAY','SAME DAY'].includes(String(r.courier_service_category).toUpperCase()))return [];
+  // Instant and same-day tariffs are usable only with both confirmed map pins.
+  const requiresPin=['INSTANT','SAMEDAY','SAME DAY'].includes(String(r.courier_service_category).toUpperCase());
+  if(requiresPin&&!allowInstant)return [];
   seen.add(Number(r.courier_service_id));
   const from=Date.parse(String(r.eta_from)),to=Date.parse(String(r.eta_to));
   const days=(t:number)=>Math.max(0,Math.ceil((t-now)/86400000));
@@ -42,10 +44,10 @@ export function normalizeJubelioRates(raw:unknown,now=Date.now()):JubelioRate[]{
   // not be promised without reserving their usage/quota at booking time.
   return [{courierCode:String(r.courier_id),courierName:r.courier_name.slice(0,100),serviceCode:r.courier_service_code,
    serviceName:r.courier_service_name.slice(0,150),priceIdr:base+insurance,basePriceIdr:base,insuranceIdr:insurance,
-   providerServiceId:Number(r.courier_service_id),duration}];
+   providerServiceId:Number(r.courier_service_id),...(requiresPin?{requiresPin:true}:{}),duration}];
  }).sort((a,b)=>a.priceIdr-b.priceIdr).slice(0,40);
 }
-export function buildJubelioRatePayload(origin:{areaId:string;postalCode:string},destination:ShippingRegion,goods:JubelioGoods[]){
+export function buildJubelioRatePayload(origin:{areaId:string;postalCode:string},destination:ShippingRegion,goods:JubelioGoods[],pins?:{origin:DeliveryPin|null;destination:DeliveryPin|null}){
  if(!/^\d{10}$/.test(origin.areaId)||!/^\d{5}$/.test(origin.postalCode)||!/^\d{10}$/.test(destination.areaId)||!/^\d{5}$/.test(destination.postalCode)||!goods.length)
   throw new BadRequestException('Wilayah pengiriman belum lengkap');
  let weight=0,total=0;
@@ -58,7 +60,7 @@ export function buildJubelioRatePayload(origin:{areaId:string;postalCode:string}
  });
  if(!Number.isSafeInteger(weight)||weight>100000000||!Number.isSafeInteger(total)||total>1000000000)
   throw new BadRequestException('Nilai atau berat paket melebihi batas');
- return {origin:{area_id:origin.areaId,zipcode:origin.postalCode},destination:{area_id:destination.areaId,zipcode:destination.postalCode},
+ return {origin:{area_id:origin.areaId,zipcode:origin.postalCode,...(pins?.origin?{coordinate:pinCoordinate(pins.origin)}:{})},destination:{area_id:destination.areaId,zipcode:destination.postalCode,...(pins?.origin&&pins.destination?{coordinate:pinCoordinate(pins.destination)}:{})},
   weight,items,total_value:total,service_category_id:0};
 }
 @Injectable()
@@ -67,6 +69,8 @@ export class JubelioShipmentClient{
  private authenticating:Promise<string>|null=null;
  private hierarchyCache=new Map<string,{expires:number;items:AddressOption[]}>();
  private hierarchyPending=new Map<string,Promise<AddressOption[]>>();
+ private estimateWindow={started:Date.now(),count:0,active:0};
+ private estimateCache=new Map<string,{expires:number;promise:Promise<unknown>}>();
  private regionsCache=new Map<string,{expires:number;items:ShippingRegion[]}>();
  private async json(path:string,init:RequestInit={},timeout=8000):Promise<{status:number;data:unknown}>{
   try{const r=await fetch(API+path,{...init,redirect:'error',signal:AbortSignal.timeout(timeout),headers:{'content-type':'application/json',...init.headers}});
@@ -176,9 +180,21 @@ export class JubelioShipmentClient{
   if(!chosen)throw new BadRequestException({code:'SHIPPING_AREA_REQUIRED',message:'Pilih kelurahan tujuan sesuai kode pos.'});
   return chosen;
  }
- async rates(destination:ShippingRegion,goods:JubelioGoods[]){
-  const payload=buildJubelioRatePayload({areaId:process.env.JUBELIO_SHIPMENT_ORIGIN_AREA_ID||'',postalCode:process.env.SHIPPING_ORIGIN_POSTAL_CODE||''},destination,goods);
-  return normalizeJubelioRates(await this.request('/webstore/rates/all',payload));
+ async rates(destination:ShippingRegion,goods:JubelioGoods[],pins?:{origin:DeliveryPin|null;destination:DeliveryPin|null;estimate?:boolean}){
+  const payload=buildJubelioRatePayload({areaId:process.env.JUBELIO_SHIPMENT_ORIGIN_AREA_ID||'',postalCode:process.env.SHIPPING_ORIGIN_POSTAL_CODE||''},destination,goods,pins);
+  let result:unknown;
+  if(pins?.estimate){
+   const key=createHash('sha256').update(JSON.stringify(payload)).digest('hex'),cached=this.estimateCache.get(key);
+   if(cached&&cached.expires>Date.now())result=await cached.promise;else{
+    if(Date.now()-this.estimateWindow.started>60000){this.estimateWindow.started=Date.now();this.estimateWindow.count=0;}
+    if(this.estimateWindow.count>=120||this.estimateWindow.active>=6)throw new ServiceUnavailableException('Pengecekan ongkir sedang ramai. Coba hitung lagi sebentar.');
+    this.estimateWindow.count++;this.estimateWindow.active++;
+    if(this.estimateCache.size>=100)this.estimateCache.delete(this.estimateCache.keys().next().value!);
+    const promise=this.request('/webstore/rates/all',payload).finally(()=>{this.estimateWindow.active--;});this.estimateCache.set(key,{expires:Date.now()+30000,promise});
+    try{result=await promise;}catch(e){this.estimateCache.delete(key);throw e;}
+   }
+  }else result=await this.request('/webstore/rates/all',payload);
+  return normalizeJubelioRates(result,Date.now(),Boolean(pins?.origin&&pins.destination));
  }
  async status(){const data=await this.request('/courier-services/list');
   if(!Array.isArray(data))throw new ServiceUnavailableException('Data kurir Jubelio tidak valid');

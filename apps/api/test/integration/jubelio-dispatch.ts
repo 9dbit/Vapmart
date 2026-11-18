@@ -16,11 +16,12 @@ test('Jubelio: durable booking, ambiguous result recovery, authoritative webhook
  const db=new DatabaseService(),products=new ProductsService(db),warehouse=new WarehouseService(db),fulfill=new FulfillmentService(db),manifest=new CourierManifestService(db),events=new CourierEventService(db),client=new JubelioShipmentClient(),dispatch=new JubelioDispatchService(db,client,events);
  const admin={id:randomUUID(),email:'dispatch-admin@example.invalid',emailVerified:true},customer=randomUUID(),suffix=randomUUID().slice(0,7).toUpperCase();
  let calls=0,reads=0,failCreate=false,fee=9800,latest='WAITING';
- const created=new Map<string,any>();
+ const created=new Map<string,any>(),payloads:any[]=[];
+ const originPin={latitude:-6.91,longitude:107.62,confirmed:true},destinationPin={latitude:-6.905,longitude:107.615,confirmed:true};
  const region={areaId:'3273091003',postalCode:'40115',label:'Citarum',city:'KOTA BANDUNG',province:'JAWA BARAT',district:'Bandung Wetan',area:'Citarum'};
  client.destination=async()=>region;
  client.rates=async()=>[{courierCode:'24',courierName:'Lion Parcel',serviceCode:'jagopack',serviceName:'JAGOPACK',priceIdr:fee,basePriceIdr:9500,insuranceIdr:fee-9500,providerServiceId:2453,duration:'2 hari'}];
- client.createShipment=async(raw:any)=>{assert.equal(raw.origin.email,'hello@vapmart.id');calls++;const s={shipment_id:10000+calls,ref_no:raw.ref_no,awb:'TEST-AWB-'+calls,courier_service_id:2453,destination_area_id:region.areaId,latest_status:latest,price:fee};created.set(raw.ref_no,s);if(failCreate)throw Error('timeout after provider accepted');return s;};
+ client.createShipment=async(raw:any)=>{payloads.push(raw);assert.equal(raw.origin.email,'hello@vapmart.id');calls++;const s={shipment_id:10000+calls,ref_no:raw.ref_no,awb:'TEST-AWB-'+calls,courier_service_id:2453,destination_area_id:region.areaId,latest_status:latest,price:fee};created.set(raw.ref_no,s);if(failCreate)throw Error('timeout after provider accepted');return s;};
  client.shipment=async(id:string)=>{reads++;const s=[...created.values()].find(v=>String(v.shipment_id)===id);assert.ok(s);return {...s,latest_status:latest,price_bill:12000};};
  client.findShipment=async(ref:string)=>created.has(ref)?[created.get(ref)]:[];
  client.shippingLabel=async()=>({file_url:'https://shipment.jubelio.com/fixture-label.pdf'});
@@ -42,6 +43,11 @@ test('Jubelio: durable booking, ambiguous result recovery, authoritative webhook
    return {id,batchId:b.id};
   }
   const first=await batch();
+  await db.query("INSERT INTO product.shipping_origin_pins(provider,area_id,postal_code,pin,updated_by) VALUES('jubelio','3273091003','40115',$1,$2) ON CONFLICT(provider) DO UPDATE SET area_id=EXCLUDED.area_id,postal_code=EXCLUDED.postal_code,pin=EXCLUDED.pin,updated_by=EXCLUDED.updated_by",[JSON.stringify(originPin),admin.id]);
+  await db.query('UPDATE product.shipping_rate_quotes SET origin_pin=$2::jsonb,destination_pin=$3::jsonb,requires_pin=true WHERE applied_order_id=$1',[first.id,JSON.stringify(originPin),JSON.stringify(destinationPin)]);
+  assert.ok((await dispatch.preview(first.batchId)).blockers.includes('DELIVERY_PIN_CHANGED'));
+  await db.query('UPDATE product.orders SET delivery_pin=$2::jsonb WHERE id=$1',[first.id,JSON.stringify(destinationPin)]);
+  const slip=await manifest.packingSlip(first.batchId);assert.deepEqual(slip.slip.receiver_pin,destinationPin);
   assert.equal(vapmartShipmentReference(first.id,first.batchId).length,24);
   assert.ok(vapmartShipmentReference(first.id,first.batchId).startsWith('VM-'+first.id.slice(0,8).toUpperCase()+'-'));
   const orderOverview=await manifest.orderBatches(first.id);
@@ -65,6 +71,7 @@ test('Jubelio: durable booking, ambiguous result recovery, authoritative webhook
   await assert.rejects(()=>dispatch.book({...admin,emailVerified:false},first.batchId,command()),/Verified admin/);
   const cmd=command();await Promise.all([dispatch.book(admin,first.batchId,cmd),dispatch.book(admin,first.batchId,cmd)]);
   assert.equal(calls,1,'concurrent clicks must create one shipment');
+  assert.equal(payloads[0].origin.coordinate,'(-6.91,107.62)');assert.equal(payloads[0].destination.coordinate,'(-6.905,107.615)');
   assert.equal((await dispatch.result(first.batchId)).state,'booked');assert.equal((await dispatch.book(admin,first.batchId,command())).state,'booked');assert.equal(calls,1);
   const issued=await manifest.orderBatches(first.id);
   assert.equal(issued.batches[0].booking_state,'booked');

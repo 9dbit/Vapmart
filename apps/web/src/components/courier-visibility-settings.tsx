@@ -10,7 +10,7 @@ type Settings={
  provider:string;configured:boolean;selectedCodes:string[];selectedServices:string[]|null;
  availableServices:CourierService[];warning:string|null;updatedAt:string|null
 };
-const checkedServices=(d:Settings)=>d.availableServices.filter(x=>x.supportsPostalCheckout&&
+const checkedServices=(d:Settings)=>d.availableServices.filter(x=>
  (!d.configured||d.selectedServices===null&&d.selectedCodes.includes(x.courierCode)||
  Array.isArray(d.selectedServices)&&d.selectedServices.includes(x.key))).map(x=>x.key);
 
@@ -37,7 +37,7 @@ export function CourierVisibilitySettings({token}:{token:string|null}){
   return()=>{active=false};
  },[token]);
  const available=data?.availableServices||[];
- const selectable=useMemo(()=>available.filter(x=>x.supportsPostalCheckout),[available]);
+ const selectable=useMemo(()=>available,[available]);
  const groups=useMemo(()=>{
   const m=new Map<string,{name:string;code:string;items:CourierService[]}>();
   for(const item of available){
@@ -82,18 +82,18 @@ export function CourierVisibilitySettings({token}:{token:string|null}){
    </div>
    <div className="vm-carrier-service-groups">
     {groups.map(group=>{
-     const keys=group.items.filter(x=>x.supportsPostalCheckout).map(x=>x.key);
+     const keys=group.items.map(x=>x.key);
      const count=keys.filter(x=>selected.includes(x)).length;
      return <section key={group.code} className="vm-carrier-group">
       <div className="vm-carrier-group-head"><div><h4>{group.name}</h4><small>{count} dari {keys.length} layanan dipilih</small></div>
        <button type="button" disabled={busy||!keys.length} onClick={()=>toggleCarrier(keys,count!==keys.length)}>{count===keys.length?'Batalkan pilihan':'Pilih semua layanan'}</button></div>
       <div className="vm-carrier-list">{group.items.map(item=>{
-       const disabled=!item.supportsPostalCheckout;
+       const disabled=false;
        const active=selected.includes(item.key);
        return <label key={item.key} className={'vm-carrier-option'+(active?' is-active':'')+(disabled?' is-unavailable':'')}>
         <input type="checkbox" checked={active} disabled={disabled||busy} onChange={e=>toggle(item.key,e.target.checked)}/>
         <span><strong>{item.serviceName}</strong><small>{item.category||'Layanan kurir'} · {item.serviceCode}</small></span>
-        <span className="vm-carrier-mark">{disabled?'Butuh koordinat':active?'Tampil':'Sembunyi'}</span>
+        <span className="vm-carrier-mark">{!item.supportsPostalCheckout?'Perlu pin peta':active?'Tampil':'Sembunyi'}</span>
        </label>
       })}</div>
      </section>;
@@ -101,7 +101,7 @@ export function CourierVisibilitySettings({token}:{token:string|null}){
     {!groups.length&&<p>Belum ditemukan layanan kurir. Periksa koneksi aggregator atau ubah pencarian.</p>}
    </div>
    <div className="vm-carrier-footer">
-    <p>Pilih minimal satu layanan. Opsi Instant dan Same Day yang membutuhkan koordinat peta belum dapat digunakan oleh checkout berbasis kode pos. Perubahan ini tidak membatalkan AWB yang sudah diterbitkan.</p>
+    <p>Pilih minimal satu layanan. Instant dan Same Day memerlukan pin gudang serta pin tujuan terkonfirmasi dan hanya tampil jika tarif tersedia. Perubahan ini tidak membatalkan AWB yang sudah diterbitkan.</p>
     <button type="button" className="vma26-btn-dark" disabled={busy||!selected.length||!selectable.length} onClick={()=>void save()}>{busy?'Menyimpan...':'Simpan layanan storefront'}</button>
    </div>
   </>}

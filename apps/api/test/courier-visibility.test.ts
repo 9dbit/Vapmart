@@ -16,7 +16,7 @@ test('provider service catalog preserves each service and its parent courier',()
  assert.deepEqual(normalizeProviderServices({data:[{courier_id:24,courier_service_id:2453,courier_name:'Lion Parcel'}]}).map(x=>x.key),['24:2453']);
  assert.deepEqual(normalizeProviderServices(null),[]);
 });
-test('Instant and Same Day requiring coordinates cannot be toggled for postal-only checkout',()=>{
+test('Instant and Same Day are marked as requiring map coordinates',()=>{
  const services=normalizeProviderServices([
   {courier_id:11,courier_service_id:101,courier_service_category:'INSTANT'},
   {courier_id:11,courier_service_id:102,courier_service_category:'SAME DAY'},

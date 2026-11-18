@@ -1,3 +1,4 @@
+import {parseDeliveryPin,samePin,readOriginPin,type DeliveryPin} from './shipping-pin';
 import {JubelioShipmentClient} from './jubelio-shipment';
 import {effectivePrice,sellableSQL,type PriceInput} from './catalog-pricing';
 import {inventoryLock} from './warehouses';
@@ -63,7 +64,7 @@ export function priceBasket(items:BasketItem[],rows:Array<{id:string;sku:string|
  return {items:priced,subtotalIdr,discountIdr:0,voucherDiscountIdr:0,voucherCode:null,voucherId:null,promotionDiscountIdr:0,promotionEventId:null,promotionTitle:null,shippingFeeIdr,totalIdr:shippingFeeIdr===null?null:subtotalIdr+shippingFeeIdr,
   currency:'IDR',shippingEstimate:true,paymentEnabled:paymentGatewayReadiness().paymentEnabled,paymentMethods:paymentGatewayReadiness().availableMethods};
 }
-type Address={name:string;phone:string;address:string;city:string;province:string;postalCode:string;paymentMethod:typeof PAYMENT_METHODS[number];idempotencyKey:string;shippingQuoteId:string|null;voucherCode:string|null;destinationAreaId?:string;destinationProvinceId?:string};
+type Address={name:string;phone:string;address:string;city:string;province:string;postalCode:string;paymentMethod:typeof PAYMENT_METHODS[number];idempotencyKey:string;shippingQuoteId:string|null;voucherCode:string|null;destinationAreaId?:string;destinationProvinceId?:string;destinationPin?:DeliveryPin|null};
 function addressString(raw:unknown,label:string,min:number,max:number):string{
  if(typeof raw!=='string'||raw.trim().length<min||raw.trim().length>max)throw new BadRequestException(label+' wajib diisi dengan benar');
  return raw.trim();
@@ -71,7 +72,7 @@ function addressString(raw:unknown,label:string,min:number,max:number):string{
 export function parseDraftOrder(raw:unknown){
  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new BadRequestException('Data checkout tidak valid');
  const data=raw as Record<string,unknown>;
- if(Object.keys(data).some(k=>!['items','name','phone','address','city','province','postalCode','paymentMethod','idempotencyKey','shippingQuoteId','voucherCode','destinationAreaId','destinationProvinceId'].includes(k)))
+ if(Object.keys(data).some(k=>!['items','name','phone','address','city','province','postalCode','paymentMethod','idempotencyKey','shippingQuoteId','voucherCode','destinationAreaId','destinationProvinceId','destinationPin'].includes(k)))
    throw new BadRequestException('Kolom checkout tidak dikenali');
  const items=parseBasket({items:data.items});
  const name=addressString(data.name,'Nama penerima',2,100);
@@ -97,6 +98,7 @@ export function parseDraftOrder(raw:unknown){
   if(typeof data.destinationProvinceId!=='string'||!/^\d{2}$/.test(data.destinationProvinceId)||!details.destinationAreaId)throw new BadRequestException('Pilih provinsi dan kelurahan tujuan.');
   details.destinationProvinceId=data.destinationProvinceId;
  }
+ if(data.destinationPin!==undefined)details.destinationPin=parseDeliveryPin(data.destinationPin);
  return {items,details};
 }
 @Injectable()
@@ -150,13 +152,15 @@ export class CheckoutService{
      let regionSnapshot:any=addressRegion;
      let service:{provider:string;courier_code:string;service_code:string}|null=null;
      if(details.shippingQuoteId){
-      const r=await client.query<{cart_fingerprint:string;destination_postal_code:string;origin_postal_code:string;provider:string;courier_code:string;service_code:string;provider_service_id:number|null;amount_idr:string;expires_at:string;applied_order_id:string|null;origin_area_id:string|null;destination_area_id:string|null;destination_region:{city:string;province:string;provinceId?:string;areaId?:string;postalCode?:string}|null}>(
-       'SELECT cart_fingerprint,destination_postal_code,origin_postal_code,provider,courier_code,service_code,provider_service_id,amount_idr::text,expires_at,applied_order_id,origin_area_id,destination_area_id,destination_region FROM product.shipping_rate_quotes WHERE id=$1 AND customer_user_id=$2 FOR UPDATE',
+      const r=await client.query<{cart_fingerprint:string;destination_postal_code:string;origin_postal_code:string;provider:string;courier_code:string;service_code:string;provider_service_id:number|null;amount_idr:string;expires_at:string;applied_order_id:string|null;origin_area_id:string|null;destination_area_id:string|null;destination_pin:DeliveryPin|null;origin_pin:DeliveryPin|null;requires_pin:boolean;destination_region:{city:string;province:string;provinceId?:string;areaId?:string;postalCode?:string}|null}>(
+       'SELECT cart_fingerprint,destination_postal_code,origin_postal_code,provider,courier_code,service_code,provider_service_id,amount_idr::text,expires_at,applied_order_id,origin_area_id,destination_area_id,destination_region,destination_pin,origin_pin,requires_pin FROM product.shipping_rate_quotes WHERE id=$1 AND customer_user_id=$2 FOR UPDATE',
        [details.shippingQuoteId,user.id]);
       const stored=r.rows[0];
       if(!stored||stored.applied_order_id||Date.parse(stored.expires_at)<=Date.now()||
         stored.destination_postal_code!==details.postalCode||stored.origin_postal_code!==process.env.SHIPPING_ORIGIN_POSTAL_CODE||
         stored.provider!==shippingSnapshotProvider())throw new ConflictException('Pilihan ongkir habis masa berlaku, silakan cek ulang');
+      if(!samePin(stored.destination_pin,details.destinationPin))throw new ConflictException('Pin tujuan berubah. Cek ongkir ulang.');
+      if(stored.requires_pin&&(!stored.destination_pin||!stored.origin_pin||!samePin(stored.origin_pin,await readOriginPin(client,stored.origin_area_id||'',stored.origin_postal_code))))throw new ConflictException('Pin gudang berubah. Cek ongkir ulang.');
       const policy=(await client.query<{courier_codes:string[];service_keys:string[]|null}>(
        'SELECT courier_codes,service_keys FROM product.shipping_courier_visibility WHERE provider=$1',
        [stored.provider==='jubelio'?'jubelio':'biteship'])).rows[0];
@@ -191,7 +195,7 @@ export class CheckoutService{
      const order=await client.query<{id:string;status:string;payment_status:string}>(
        "INSERT INTO product.orders(customer_user_id,status,currency,total_idr,subtotal_idr,discount_idr,voucher_discount_idr,promotion_discount_idr,shipping_fee_idr,idempotency_key,request_hash,contact_name,contact_email,contact_phone,address_line,city,province,postal_code,shipping_method,payment_method,payment_status,expires_at,shipping_quote_id,shipping_provider,shipping_courier_code,shipping_service_code,voucher_id,voucher_code,promotion_event_id,promotion_title) VALUES ($1,'draft','IDR',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'standard',$17,$18,now()+interval '24 hours',$19,$20,$21,$22,$23,$24,$25,$26) RETURNING id,status,payment_status",
        [user.id,draftTotal,quote.subtotalIdr,quote.discountIdr,quote.voucherDiscountIdr,quote.promotionDiscountIdr,shippingFee,details.idempotencyKey,hash,details.name,user.email,details.phone,details.address,details.city,details.province,details.postalCode,details.paymentMethod,paymentStatus,details.shippingQuoteId,service?.provider||null,service?.courier_code||null,service?.service_code||null,quote.voucherId,quote.voucherCode,quote.promotionEventId,quote.promotionTitle]);
-     await client.query('UPDATE product.orders SET payment_environment=$2,address_region=$3::jsonb WHERE id=$1',[order.rows[0].id,details.paymentMethod==='bank_transfer'?null:gateway.environment,regionSnapshot?JSON.stringify(regionSnapshot):null]);
+     await client.query('UPDATE product.orders SET payment_environment=$2,address_region=$3::jsonb,delivery_pin=$4::jsonb WHERE id=$1',[order.rows[0].id,details.paymentMethod==='bank_transfer'?null:gateway.environment,regionSnapshot?JSON.stringify(regionSnapshot):null,details.destinationPin?JSON.stringify(details.destinationPin):null]);
      if(details.shippingQuoteId){
       await client.query('UPDATE product.shipping_rate_quotes SET applied_order_id=$2 WHERE id=$1 AND applied_order_id IS NULL',[details.shippingQuoteId,order.rows[0].id]);
      }
@@ -205,7 +209,7 @@ export class CheckoutService{
  async getOrder(user:Principal,id:string){
    if(!uuid.test(id))throw new BadRequestException('ID pesanan tidak valid');
    const order=await this.db.query(
-     'SELECT o.id,o.status,o.operational_status,o.invoice_number,o.additional_fee_idr::text,o.payment_status,o.payment_method,o.shipping_provider,o.shipping_courier_code,o.shipping_service_code,q.courier_name AS shipping_courier_name,q.service_name AS shipping_service_name,q.provider AS shipping_quote_provider,o.subtotal_idr::text,o.discount_idr::text,o.voucher_discount_idr::text,o.voucher_code,o.promotion_discount_idr::text,o.promotion_event_id,o.promotion_title,o.shipping_fee_idr::text,o.total_idr::text,o.contact_name,o.contact_phone,o.address_line,o.address_region,o.postal_code,o.city,o.province,o.created_at,o.expires_at FROM product.orders o LEFT JOIN product.shipping_rate_quotes q ON q.id=o.shipping_quote_id WHERE o.id=$1 AND o.customer_user_id=$2',
+     'SELECT o.id,o.status,o.operational_status,o.invoice_number,o.additional_fee_idr::text,o.payment_status,o.payment_method,o.shipping_provider,o.shipping_courier_code,o.shipping_service_code,q.courier_name AS shipping_courier_name,q.service_name AS shipping_service_name,q.provider AS shipping_quote_provider,o.subtotal_idr::text,o.discount_idr::text,o.voucher_discount_idr::text,o.voucher_code,o.promotion_discount_idr::text,o.promotion_event_id,o.promotion_title,o.shipping_fee_idr::text,o.total_idr::text,o.contact_name,o.contact_phone,o.address_line,o.address_region,o.delivery_pin,o.postal_code,o.city,o.province,o.created_at,o.expires_at FROM product.orders o LEFT JOIN product.shipping_rate_quotes q ON q.id=o.shipping_quote_id WHERE o.id=$1 AND o.customer_user_id=$2',
      [id,user.id]);
    if(!order.rows[0])throw new NotFoundException('Pesanan tidak ditemukan');
    const lines=await this.db.query(

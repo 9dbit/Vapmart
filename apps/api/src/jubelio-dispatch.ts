@@ -1,3 +1,4 @@
+import {parseDeliveryPin,pinCoordinate,samePin,readOriginPin,type DeliveryPin} from './shipping-pin';
 import {courierRecipientAddress} from './shipping-address';
 import {BadRequestException,ConflictException,ForbiddenException,Injectable,NotFoundException,ServiceUnavailableException,UnauthorizedException} from '@nestjs/common';
 import {createHash,timingSafeEqual} from 'node:crypto';
@@ -36,7 +37,7 @@ export function verifyJubelioToken(token:string){
  if(expected.length<40||process.env.JUBELIO_WEBHOOK_ENABLED!=='true')throw new ServiceUnavailableException('Jubelio webhook disabled');
  if(!timingSafeEqual(createHash('sha256').update(expected).digest(),createHash('sha256').update(token).digest()))throw new UnauthorizedException('Untrusted courier webhook');
 }
-type Quote={provider:string;origin_postal_code:string;destination_postal_code:string;origin_area_id:string;destination_area_id:string;provider_service_id:number;amount_idr:string;courier_code:string;service_code:string};
+type Quote={origin_pin?:DeliveryPin|null;destination_pin?:DeliveryPin|null;requires_pin?:boolean;provider:string;origin_postal_code:string;destination_postal_code:string;origin_area_id:string;destination_area_id:string;provider_service_id:number;amount_idr:string;courier_code:string;service_code:string};
 type Manifest={id:string;state:string;pickup_method:string;pickup_date:string|null;pickup_time:string|null};
 type Booking={batch_id:string;request_key:string;reference:string;state:string;payload:Record<string,any>;accepted_fee_idr:string;provider_shipment_id:string|null;created_at:Date};
 @Injectable()
@@ -56,6 +57,8 @@ export class JubelioDispatchService{
   if(!quote||quote.provider!=='jubelio'||quote.origin_postal_code!==row.origin_postal_code||quote.destination_postal_code!==row.postal_code||
    quote.origin_area_id!==process.env.JUBELIO_SHIPMENT_ORIGIN_AREA_ID||quote.origin_postal_code!==process.env.SHIPPING_ORIGIN_POSTAL_CODE||
    quote.courier_code!==row.shipping_courier_code||quote.service_code!==row.shipping_service_code)blockers.push('WAREHOUSE_SPECIFIC_COURIER_QUOTE_REQUIRED');
+  if(quote&&!samePin(quote.destination_pin,row.delivery_pin))blockers.push('DELIVERY_PIN_CHANGED');
+  if(quote?.requires_pin&&(!quote.origin_pin||!quote.destination_pin||!samePin(quote.origin_pin,await readOriginPin(db,quote.origin_area_id,quote.origin_postal_code))))blockers.push('CONFIRMED_MAP_PINS_REQUIRED');
   if(!manifest||manifest.state!=='prepared')blockers.push('MANIFEST_REQUIRED');
   if(manifest&&(manifest.pickup_method!=='pickup'||manifest.pickup_date||manifest.pickup_time))blockers.push('IMMEDIATE_PICKUP_REQUIRED');
   const snapshot={row,goods:goods.rows,quote,manifest};
@@ -71,13 +74,13 @@ export class JubelioDispatchService{
   if(origin.areaId!==quote!.origin_area_id)throw new ConflictException('Kelurahan gudang berbeda dari asal tarif Jubelio');
   if(row.address_region?.areaId&&row.address_region.areaId!==quote!.destination_area_id)throw new ConflictException('Wilayah pesanan berbeda dari tarif kurir.');
   const destination=await this.jubelio.destination(row.postal_code!,quote!.destination_area_id);
-  const rates=await this.jubelio.rates(destination,goods.map(g=>({quantity:g.quantity,value:Number(g.price_idr),weight:g.weight_grams!,length:g.length_cm!,width:g.width_cm!,height:g.height_cm!})));
+  const rates=await this.jubelio.rates(destination,goods.map(g=>({quantity:g.quantity,value:Number(g.price_idr),weight:g.weight_grams!,length:g.length_cm!,width:g.width_cm!,height:g.height_cm!})),{origin:parseDeliveryPin(quote!.origin_pin),destination:parseDeliveryPin(quote!.destination_pin)});
   const rate=rates.find(r=>r.providerServiceId===quote!.provider_service_id&&r.courierCode===row.shipping_courier_code&&r.serviceCode===row.shipping_service_code);
   if(!rate)throw new ConflictException('Layanan kurir pesanan tidak tersedia. Periksa tarif dan pesanan sebelum booking.');
   const payload={ref_no:vapmartShipmentReference(row.order_id,batchId),courier_id:Number(rate.courierCode),courier_service_id:rate.providerServiceId,
    shipping_insurance:rate.insuranceIdr,is_insurance:rate.insuranceIdr>0,is_cod:false,cod_amount:0,
-   origin:{name:row.origin_contact_name,email:process.env.SHIPPING_SENDER_EMAIL||'hello@vapmart.id',phone:row.origin_contact_phone,address:row.origin_address,area_id:origin.areaId,coordinate:'',zipcode:origin.postalCode},
-   destination:{name:row.contact_name,email:row.contact_email||'',phone:row.contact_phone,address:courierRecipientAddress(row),area_id:destination.areaId,coordinate:'',zipcode:destination.postalCode},
+   origin:{name:row.origin_contact_name,email:process.env.SHIPPING_SENDER_EMAIL||'hello@vapmart.id',phone:row.origin_contact_phone,address:row.origin_address,area_id:origin.areaId,coordinate:pinCoordinate(parseDeliveryPin(quote!.origin_pin)),zipcode:origin.postalCode},
+   destination:{name:row.contact_name,email:row.contact_email||'',phone:row.contact_phone,address:courierRecipientAddress(row),area_id:destination.areaId,coordinate:pinCoordinate(parseDeliveryPin(quote!.destination_pin)),zipcode:destination.postalCode},
    items:goods.map(g=>({item_code:g.sku||g.product_id,item_name:g.name,category:'-',quantity:g.quantity,value:Number(g.price_idr),weight:g.weight_grams,length:g.length_cm,width:g.width_cm,height:g.height_cm}))};
   return {...context,rate,payload,fingerprint:hash({snapshotHash:context.snapshotHash,payload,fee:rate.priceIdr})};
  }
@@ -101,6 +104,9 @@ export class JubelioDispatchService{
   if(q.blockers.length)throw new ConflictException({message:'Pesanan belum siap untuk booking',blockers:q.blockers});
   if(q.fingerprint!==x.fingerprint||q.rate!.priceIdr!==x.acceptedFeeIdr)throw new ConflictException('Tarif atau isi pesanan berubah. Periksa tarif dan konfirmasi ulang.');
   const claimed=await this.db.transaction(async client=>{
+   // Claim and provider-result persistence take the same batch lock before row
+   // locks, preventing booking/FK lock inversion during concurrent clicks.
+   await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,2457))',[batchId]);
    const fresh=await this.context(batchId,client);
    if(fresh.blockers.length||fresh.snapshotHash!==q.snapshotHash)throw new ConflictException('Data pesanan berubah sebelum booking');
    if((await client.query('SELECT 1 FROM product.shipments WHERE fulfillment_batch_id=$1',[batchId])).rows.length)return false;
@@ -123,6 +129,7 @@ export class JubelioDispatchService{
  }
  private async finish(batchId:string,shipment:ReturnType<typeof providerShipment>){
   return this.db.transaction(async client=>{
+   await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,2457))',[batchId]);
    const r=await client.query<Booking>('SELECT * FROM product.jubelio_bookings WHERE batch_id=$1 FOR UPDATE',[batchId]);
    const attempt=r.rows[0];if(!attempt)throw new NotFoundException('Booking not found');
    if(attempt.provider_shipment_id&&attempt.provider_shipment_id!==shipment.id)throw new ConflictException('Referensi memiliki lebih dari satu shipment; periksa Jubelio');
