@@ -9,7 +9,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    container: mcr.microsoft.com/playwright/python:v1.56.0-noble
+    container:
+      image: mcr.microsoft.com/playwright/python:v1.56.0-noble
+      options: --shm-size=1g
     timeout-minutes: 30
     env:
       CHECKOUT_ENABLED: 'false'
