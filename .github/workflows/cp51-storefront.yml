@@ -9,6 +9,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    container: mcr.microsoft.com/playwright/python:v1.56.0-noble
     timeout-minutes: 30
     env:
       CHECKOUT_ENABLED: 'false'
@@ -31,5 +32,4 @@ jobs:
       - name: Exercise catalog and product details at phone, tablet and desktop sizes
         run: |
           python -m pip install playwright==1.56.0
-          python -m playwright install --with-deps webkit
-          python scripts/storefront-collection-test.py
+          python -u scripts/storefront-collection-test.py

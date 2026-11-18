@@ -149,9 +149,11 @@ if __name__=='__main__':
                 with urlopen(base+'/api/health',timeout=1): break
             except OSError: sleep(0.5)
         with sync_playwright() as playwright:
-            browser=playwright.chromium.launch(channel='chrome',args=['--no-sandbox','--disable-dev-shm-usage'])
+            print('Testing Chromium')
+            browser=playwright.chromium.launch(args=['--no-sandbox','--disable-dev-shm-usage'])
             verify(browser.new_page(viewport={'width':390,'height':844}),base)
             browser.close()
+            print('Testing iPhone 13 in WebKit')
             webkit=playwright.webkit.launch()
             iphone=webkit.new_context(**playwright.devices['iPhone 13'])
             verify(iphone.new_page(),base,touch=True)
