@@ -16,6 +16,9 @@ lamp = dict(id='lamp', name='Lampu meja', slug='lampu', sku='TIC-L01', category=
             brand_name='TIC', brand_logo_url='/legacy/brands/brand-01.png')
 bag = dict(lamp, id='bag', name='Tas kecil', slug='tas', sku='BG-203',
            category='accessories', price_idr=65000)
+variant = dict(lamp,id='lamp-blue',sku='TIC-L01-BL',product_type='variation',option_values={'Warna':'Biru'})
+family = dict(lamp,slug='lampu-warna',sku=None,product_type='variable',variants=[variant],
+              attributes=[{'name':'Warna','values':['Biru']}])
 categories = [dict(id=str(i), slug=slug, name=name) for i, (slug,name) in enumerate(
     [('accessories','Accessories'), ('decor','Dekorasi'), ('other','Lainnya')])]
 
@@ -26,6 +29,8 @@ class Fixture(BaseHTTPRequestHandler):
             data = {'items':[lamp, bag]}
         elif path == '/v1/products/lampu':
             data = lamp
+        elif path == '/v1/products/lampu-warna':
+            data = family
         elif path == '/v1/catalog/categories':
             data = {'items':categories}
         elif path == '/v1/catalog/selection':
@@ -81,6 +86,11 @@ def verify(page,base):
     expect(page.locator('.product-card h3')).to_have_text('Tas kecil')
     page.locator('#shop-search').press('Escape')
     expect(page.locator('#shop-search')).to_be_hidden()
+    page.goto(base+'/product/lampu-warna',wait_until='networkidle')
+    expect(page.get_by_role('button',name='Beli sekarang')).to_be_disabled()
+    page.get_by_label('Pilih Warna').select_option('Biru')
+    expect(page.get_by_role('button',name='Beli sekarang')).to_be_enabled()
+    expect(page.get_by_text('SKU TIC-L01-BL',exact=False)).to_be_visible()
     page.goto(base+'/product/lampu',wait_until='networkidle')
     expect(page.locator('.vm-product-brand img')).to_have_attribute('src',lamp['brand_logo_url'])
     expect(page.get_by_text('SKU TIC-L01',exact=False)).to_be_visible()

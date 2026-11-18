@@ -129,3 +129,5 @@ html body .vm-reference-footer .vm-whatsapp {display:flex;align-items:center;gap
   html body .vm-reference-footer .vm-reference-footer-grid {row-gap:20px;}
   .vm-collection .vm-results-row .vm-cp17-result-actions {width:auto;}
 }
+
+html body .vm-collection .vm-search-suggestions {border:0;}

@@ -12,7 +12,8 @@ export function CatalogPurchase({product}:{product:Product}){
  return <div className="vcs-purchase">
  {variable&&<fieldset className="vcs-variants"><legend>Pilih variasi</legend>{defs.map(d=><label key={d.name}>{d.name}<select aria-label={'Pilih '+d.name} value={selection[d.name]||''} onChange={e=>setSelection({...selection,[d.name]:e.target.value})}><option value="">Pilih {d.name}</option>{d.values.map(v=><option key={v} value={v} disabled={!available(d.name,v)}>{v}</option>)}</select></label>)}<button type="button" onClick={()=>setSelection({})}>Reset pilihan</button></fieldset>}
  <div aria-live="polite"><div className="vm-detail-price">{chosen?<>{chosen.promo_active&&chosen.regular_price_idr!==undefined&&<del>{formatIDR(chosen.regular_price_idr)}</del>}<strong>{chosen.price_idr>0?formatIDR(chosen.price_idr):'Harga belum ditetapkan'}</strong>{chosen.promo_active&&<span className="vcs-tag">Promo</span>}</>:<strong>{product.price_idr>0?formatIDR(product.price_idr)+(product.price_max_idr&&product.price_max_idr>product.price_idr?' - '+formatIDR(product.price_max_idr):''):'Harga belum ditetapkan'}</strong>}</div>
- {chosen?<><p>{chosen.sku&&<>SKU {chosen.sku} · </>}{chosen.stock_qty>0?'Tersedia '+chosen.stock_qty:'Stok habis'}</p>{variable&&chosen.image_url&&<img className="vcs-variant-image" src={chosen.image_url} alt={chosen.name}/>}<AddToCart product={{...chosen,parent_slug:variable?product.slug:undefined,brand_name:product.brand_name}}/></>:<p>Pilih seluruh atribut untuk melihat harga dan stok SKU yang tepat.</p>}
+ {chosen?<><p>{chosen.sku&&<>SKU {chosen.sku} · </>}{chosen.stock_qty>0?'Tersedia '+chosen.stock_qty:'Stok habis'}</p>{variable&&chosen.image_url&&<img className="vcs-variant-image" src={chosen.image_url} alt={chosen.name}/>}</>:<p>Pilih variasi untuk melihat SKU dan stok.</p>}
  </div>
+ <AddToCart product={chosen?{...chosen,parent_slug:variable?product.slug:undefined,brand_name:product.brand_name}:product}/>
  </div>;
 }
