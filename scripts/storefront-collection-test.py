@@ -70,8 +70,17 @@ def verify_quantity_controls(container, start, touch):
     expect(count).to_have_text(str(start))
 
 def verify(page,base,touch=False):
+    embed = 'https://chatvice.app/api/widget/chatvice.js?merchant=m_d74410c444e2726c'
+    # Exercise the real header load without sending fixture visitors to the merchant.
+    page.route(embed, lambda route: route.fulfill(content_type='application/javascript',
+               body='window.careLoads = (window.careLoads || 0) + 1;'))
     page.goto(base+'/catalog',wait_until='networkidle')
     expect(page.get_by_role('heading',name='Produk Pilihan')).to_be_visible()
+    script = page.locator('head script#vapmart-chatvice-care')
+    expect(script).to_have_count(1)
+    expect(script).to_have_attribute('src', embed)
+    assert page.evaluate('window.careLoads') == 1
+    whatsapp = page.get_by_role('link',name='Chat WhatsApp',exact=False)
     search = page.locator('.vm-collection-bar button[aria-label="Cari produk"]')
     sort = page.get_by_label('Urutkan produk')
     tabs = page.locator('.vm-category-tabs')
@@ -80,6 +89,8 @@ def verify(page,base,touch=False):
         page.set_viewport_size({'width':width,'height':844})
         for theme in ['light','dark']:
             page.evaluate('(theme)=>document.documentElement.dataset.vapmartColorMode=theme',theme)
+            expect(whatsapp).to_have_css('background-color', 'rgb(37, 211, 102)')
+            expect(whatsapp).to_have_css('border-top-left-radius', '999px')
             assert same_row(box(tabs),box(search)) and same_row(box(search),box(sort))
             assert box(sort)['x']+box(sort)['width'] <= width
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
@@ -135,6 +146,13 @@ def verify(page,base,touch=False):
     page.goto(base+'/product/lampu',wait_until='networkidle')
     page.get_by_role('button',name='Beli sekarang').click()
     page.wait_for_url('**/checkout')
+    assert page.evaluate('window.careLoads') == 1
+    page.goto(base+'/brand/login', wait_until='load')
+    expect(script).to_have_count(0)
+    assert page.evaluate('window.careLoads || 0') == 0
+    page.get_by_role('link', name='Kembali ke Vapmart').click()
+    page.wait_for_function('window.careLoads === 1')
+    expect(script).to_have_count(1)
     print('Catalog filters, drawer, sort, geometry, gallery, cart, checkout and WhatsApp passed.')
 
 if __name__=='__main__':

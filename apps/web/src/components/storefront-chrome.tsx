@@ -1,7 +1,24 @@
 'use client';
+import {useEffect, useRef} from 'react';
 import {usePathname} from 'next/navigation';
-export function StorefrontChrome({children}:{children:React.ReactNode}){
- const pathname=usePathname();
- if(pathname==='/admin'||pathname.startsWith('/admin/')||pathname==='/brand'||pathname.startsWith('/brand/'))return null;
- return <>{children}</>;
+
+function useStorefront() {
+  return !/^\/(admin|brand)(?:\/|$)/.test(usePathname());
+}
+
+export function VapmartCareScript() {
+  const storefront = useStorefront();
+  const initialStorefront = useRef(storefront);
+  useEffect(() => {
+    // Start or dispose of the provider's document-level listeners when crossing into or out of staff pages.
+    if (initialStorefront.current !== storefront) window.location.reload();
+  }, [storefront]);
+
+  return storefront ? (
+    <script id="vapmart-chatvice-care" defer src="https://chatvice.app/api/widget/chatvice.js?merchant=m_d74410c444e2726c"/>
+  ) : null;
+}
+
+export function StorefrontChrome({children}:{children:React.ReactNode}) {
+  return useStorefront() ? <>{children}</> : null;
 }

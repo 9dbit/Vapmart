@@ -42,7 +42,7 @@ html body .vm-collection {
   scrollbar-width: none;
 }
 .vm-category-tabs::-webkit-scrollbar, .vm-photo-thumbs::-webkit-scrollbar, .vm-photo-track::-webkit-scrollbar {display:none;}
-.vm-category-tabs button,.vm-tool-circle,.vm-photo-nav button,.vm-wa-icon {
+.vm-category-tabs button,.vm-tool-circle,.vm-photo-nav button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -61,7 +61,7 @@ html body .vm-collection {
   white-space: nowrap;
 }
 .vm-category-tabs button svg {width:17px;height:17px;}
-.vm-tool-circle,.vm-photo-nav button,.vm-wa-icon {width:44px;height:44px;flex:none;border-radius:50%;padding:0;}
+.vm-tool-circle,.vm-photo-nav button {width:44px;height:44px;flex:none;border-radius:50%;padding:0;}
 .vm-collection button[aria-pressed="true"]:not(.vm-favorite-button),.vm-tool-circle[aria-expanded="true"],.vm-tool-circle[data-selected="true"] {
   color: white;
   background: var(--vm-accent);
@@ -122,9 +122,26 @@ html body .vm-product-detail .vcs-reviews {margin:clamp(16px,3vw,30px) 0 0;paddi
 .vm-photo-thumbs button[aria-pressed="true"] {background:var(--vm-accent);}
 .vm-photo-thumbs img {object-fit:cover;border-radius:7px;}
 html body .vm-reference-footer,html body .vm-reference-footer .vm-footer-powered,html body .vm-reference-footer .vm-whatsapp {border:0;box-shadow:none;}
-html body .vm-reference-footer .vm-whatsapp {display:flex;align-items:center;gap:12px;border-radius:18px;padding:12px;background:var(--vm-surface);}
-.vm-wa-icon {background:#e1f5e9;color:#126c3f;}
-.vm-whatsapp strong,.vm-whatsapp small {display:block;}
+html body .vm-reference-footer .vm-whatsapp {
+  display:inline-flex;align-items:center;gap:10px;max-width:100%;min-height:48px;
+  padding:8px 20px;border-radius:999px;background:#25d366;color:#092b18;text-decoration:none;
+}
+.vm-whatsapp .vm-wa-icon {display:grid;place-items:center;flex:none;}
+.vm-whatsapp .vm-wa-icon svg {width:24px;height:24px;}
+.vm-whatsapp strong,.vm-whatsapp small {display:block;color:inherit;line-height:1.3;}
+.vm-whatsapp strong {font-size:14px;}
+.vm-whatsapp small {font-size:12px;}
+.vm-whatsapp:focus-visible {outline:3px solid currentColor;outline-offset:3px;}
+
+@media(max-width:767px) {
+  /* Keep the provider's relative launcher, toggle and bubble positions above the floating navigation. */
+  :is(#chatvice-widget-button,#chatvice-eye-toggle,#chatvice-hidden-label,#chatvice-welcome-bubble) {
+    margin-bottom:calc(75px + max(10px,env(safe-area-inset-bottom)));
+  }
+}
+body:has(.vm21-cart-shell) :is(#chatvice-widget-button,#chatvice-eye-toggle,#chatvice-hidden-label,#chatvice-welcome-bubble) {
+  visibility:hidden;
+}
 @media(max-width:600px){
   html body .vm-reference-footer .vm-reference-footer-grid {row-gap:20px;}
   .vm-collection .vm-results-row .vm-cp17-result-actions {width:auto;}
