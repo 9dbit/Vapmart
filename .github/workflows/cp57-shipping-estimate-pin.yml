@@ -54,3 +54,12 @@ jobs:
         run: npm ci --no-audit --no-fund --prefix apps/web
       - name: Build web
         run: npm run build --prefix apps/web
+      - name: Exercise recipient map and shipping controls on phone and desktop
+        run: |
+          python -m pip install playwright==1.56.0
+          PORT=3208 npm start --prefix apps/web > "$RUNNER_TEMP/checkout-server.log" 2>&1 &
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:3208/checkout > /dev/null; then break; fi
+            sleep 1
+          done
+          python scripts/checkout-recipient-map-test.py
