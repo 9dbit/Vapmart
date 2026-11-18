@@ -7,6 +7,8 @@ import {JubelioShipmentClient} from './jubelio-shipment';
 export class ShippingController{
  constructor(private readonly shipping:ShippingService,private readonly jubelio:JubelioShipmentClient){}
  @Get('config') config(){return this.shipping.config();}
+ @Get('areas')
+ async areas(@Query('level') level:string,@Query('parentId') parentId?:string){return {items:await this.jubelio.hierarchy(level,parentId||'')};}
  @Get('regions') @UseGuards(CustomerGuard)
  async regions(@Query('q') q:string){return {regions:await this.jubelio.regions(q)};}
  @Get('connection') @UseGuards(AdminGuard)

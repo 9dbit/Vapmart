@@ -13,7 +13,7 @@ export type BatchRow={
  status:string;operational_status?:string;payment_status:string;payment_provider:string|null;payment_reference:string|null;
  shipping_quote_id:string|null;shipping_courier_code:string|null;shipping_service_code:string|null;
  contact_name:string|null;contact_phone:string|null;contact_email:string|null;address_line:string|null;
- city:string|null;province:string|null;postal_code:string|null;
+ city:string|null;province:string|null;postal_code:string|null;address_region?:any;
  warehouse_name:string;origin_address:string;origin_city:string;origin_province:string;
  origin_postal_code:string|null;origin_contact_name:string|null;origin_contact_phone:string|null;
  is_active:boolean;is_dispatch_enabled:boolean;is_system_hold:boolean;
@@ -23,7 +23,7 @@ export type GoodsRow={order_item_id:string;product_id:string;quantity:number;nam
 export const batchSql=`SELECT f.id,f.order_id,f.brand_id,f.warehouse_id,f.state,
  o.status,o.operational_status,o.payment_status,o.payment_provider,o.payment_reference,
  o.shipping_quote_id,o.shipping_courier_code,o.shipping_service_code,
- o.contact_name,o.contact_phone,o.contact_email,o.address_line,o.city,o.province,o.postal_code,
+ o.contact_name,o.contact_phone,o.contact_email,o.address_line,o.address_region,o.city,o.province,o.postal_code,
  w.name AS warehouse_name,w.address_line AS origin_address,w.city AS origin_city,w.province AS origin_province,
  w.postal_code AS origin_postal_code,w.contact_name AS origin_contact_name,w.contact_phone AS origin_contact_phone,
  w.is_active,w.is_dispatch_enabled,w.is_system_hold
@@ -196,7 +196,7 @@ export class CourierManifestService{
    `SELECT m.id AS manifest_id,m.state,m.pickup_method,m.pickup_date,m.pickup_time,m.total_weight_grams,
     f.order_id,w.name AS warehouse_name,w.address_line AS warehouse_address,w.city AS warehouse_city,
     w.province AS warehouse_province,w.postal_code AS warehouse_postal_code,
-    o.contact_name AS receiver_name,o.contact_phone AS receiver_phone,o.address_line AS receiver_address,
+    o.contact_name AS receiver_name,o.contact_phone AS receiver_phone,concat_ws(', ',o.address_line,nullif(concat_ws(', ',o.address_region->>'area',o.address_region->>'district'),'')) AS receiver_address,o.address_region,
     o.city AS receiver_city,o.province AS receiver_province,o.postal_code AS receiver_postal_code,
     b.name AS brand_name
     FROM product.courier_manifests m JOIN product.fulfillment_batches f ON f.id=m.batch_id

@@ -9,8 +9,9 @@ export type OrderStatus=keyof typeof orderStatuses;
 export const orderHash=(x:unknown)=>createHash('sha256').update(JSON.stringify(x)).digest('hex');
 export function parseOrderEdit(raw:unknown){
  const x=V.record(raw,['expectedVersion','notes','contact','items','fees','voucherCode','shippingQuoteId','previewHash']);
- const c=V.record(x.contact,['name','phone','address','city','province','postalCode','areaId']);
- const contact={name:V.text(c.name,'Nama penerima',2,100),phone:V.text(c.phone,'Telepon',9,22),address:V.text(c.address,'Alamat',8,300),city:V.text(c.city,'Kota',2,90),province:V.text(c.province,'Provinsi',2,90),postalCode:V.text(c.postalCode,'Kode pos',5,5),areaId:c.areaId?V.text(c.areaId,'Wilayah',10,10):null};
+ const c=V.record(x.contact,['name','phone','address','city','province','postalCode','areaId','provinceId']);
+ const contact={name:V.text(c.name,'Nama penerima',2,100),phone:V.text(c.phone,'Telepon',9,22),address:V.text(c.address,'Alamat',8,300),city:V.text(c.city,'Kota',2,90),province:V.text(c.province,'Provinsi',2,90),postalCode:V.text(c.postalCode,'Kode pos',5,5),areaId:c.areaId?V.text(c.areaId,'Wilayah',10,10):null,...(c.provinceId?{provinceId:V.text(c.provinceId,'Provinsi tujuan',2,2)}:{})};
+ if(contact.provinceId&&!/^\d{2}$/.test(contact.provinceId))throw new BadRequestException('Provinsi tujuan tidak valid');
  if(!/^\+?[0-9\s()-]{9,22}$/.test(contact.phone)||!/^\d{5}$/.test(contact.postalCode)||contact.areaId&&!/^\d{10}$/.test(contact.areaId))throw new BadRequestException('Nomor telepon, kode pos, atau wilayah tidak valid');
  if(!Array.isArray(x.items))throw new BadRequestException('Daftar barang diperlukan');
  const items=x.items.map((v:unknown)=>{const i=V.record(v,['productId','quantity','unitPriceIdr']);return {productId:requireUuid(i.productId,'produk'),quantity:V.integer(i.quantity,'Jumlah',1,99),unitPriceIdr:V.integer(i.unitPriceIdr,'Harga')};}).sort((a,b)=>a.productId.localeCompare(b.productId));

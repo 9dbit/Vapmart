@@ -1,3 +1,4 @@
+import {normalizeAddressOptions,courierProvince,type AddressOption,type AddressRegion} from './shipping-address';
 import {BadRequestException,Injectable,ServiceUnavailableException} from '@nestjs/common';
 import {createHash} from 'node:crypto';
 import {jubelioConfigured} from './shipping-config';
@@ -64,6 +65,8 @@ export function buildJubelioRatePayload(origin:{areaId:string;postalCode:string}
 export class JubelioShipmentClient{
  private token:{value:string;expires:number;key:string}|null=null;
  private authenticating:Promise<string>|null=null;
+ private hierarchyCache=new Map<string,{expires:number;items:AddressOption[]}>();
+ private hierarchyPending=new Map<string,Promise<AddressOption[]>>();
  private regionsCache=new Map<string,{expires:number;items:ShippingRegion[]}>();
  private async json(path:string,init:RequestInit={},timeout=8000):Promise<{status:number;data:unknown}>{
   try{const r=await fetch(API+path,{...init,redirect:'error',signal:AbortSignal.timeout(timeout),headers:{'content-type':'application/json',...init.headers}});
@@ -95,6 +98,30 @@ export class JubelioShipmentClient{
    return r.data;
   }
   throw new ServiceUnavailableException('Koneksi Jubelio perlu diperiksa');
+ }
+ async hierarchy(level:string,parent=''):Promise<AddressOption[]>{
+  const sizes:Record<string,number>={cities:2,districts:4,areas:6};
+  if(level!=='provinces'&&(!sizes[level]||!new RegExp('^\\d{'+sizes[level]+'}$').test(parent))||level==='provinces'&&parent)
+   throw new BadRequestException('Induk wilayah tidak valid');
+  const key=level+':'+parent,cached=this.hierarchyCache.get(key);
+  if(cached&&cached.expires>Date.now())return cached.items;
+  const pending=this.hierarchyPending.get(key);if(pending)return pending;
+  const work=(async()=>{
+   const path='/region/'+level+(parent?'/'+(level==='cities'?courierProvince(parent):parent):'');
+   const r=await this.json(path);if(r.status!==200)throw new ServiceUnavailableException('Daftar wilayah belum dapat dimuat. Coba lagi.');
+   const items=normalizeAddressOptions(r.data,level,parent);
+   if(this.hierarchyCache.size>=2000)this.hierarchyCache.delete(this.hierarchyCache.keys().next().value!);
+   this.hierarchyCache.set(key,{items,expires:Date.now()+3600000});return items;
+  })();this.hierarchyPending.set(key,work);
+  try{return await work;}finally{this.hierarchyPending.delete(key);}
+ }
+ async addressRegion(provinceId:string,areaId:string):Promise<AddressRegion>{
+  if(!/^\d{2}$/.test(provinceId)||!/^\d{10}$/.test(areaId))throw new BadRequestException('Pilih wilayah dari provinsi hingga kelurahan.');
+  const cityId=areaId.slice(0,4),districtId=areaId.slice(0,6);
+  const [provinces,cities,districts,areas]=await Promise.all([this.hierarchy('provinces'),this.hierarchy('cities',provinceId),this.hierarchy('districts',cityId),this.hierarchy('areas',districtId)]);
+  const province=provinces.find(x=>x.id===provinceId),city=cities.find(x=>x.id===cityId),district=districts.find(x=>x.id===districtId),area=areas.find(x=>x.id===areaId);
+  if(!province||!city||!district||!area?.postalCode)throw new BadRequestException('Urutan wilayah tidak cocok. Pilih kembali alamat tujuan.');
+  return {provinceId,cityId,districtId,areaId,province:province.name,city:city.name,district:district.name,area:area.name,postalCode:area.postalCode,label:[area.name,district.name,city.name,province.name,area.postalCode].join(', ')};
  }
  async regions(search:string):Promise<ShippingRegion[]>{
   if(typeof search!=='string'||search.trim().length<3||search.length>80||!/^[\p{L}0-9 .,\-]+$/u.test(search))throw new BadRequestException('Masukkan kode pos atau nama wilayah minimal 3 karakter');
