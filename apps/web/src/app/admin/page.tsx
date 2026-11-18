@@ -298,7 +298,7 @@ export default function AdminPage(){
     <div className="vma26-orders-scroller"><table><thead><tr><th>Order ID</th><th>Pelanggan / Kota</th><th>Metode</th><th>Total</th><th>Pesanan</th><th>Pembayaran</th><th>Waktu</th></tr></thead>
      <tbody>{orders.map(o=><tr key={o.id}><td><code>{o.id.slice(0,8)}</code></td><td><strong>{o.contact_name||'Pelanggan'}</strong><small>{o.city||'-'}, {o.province||'-'}</small></td><td>{o.payment_method||'-'}</td><td>{formatIDR(Number(o.total_idr))}</td><td><span className="vma26-state">{o.status}</span></td><td><span className="vma26-state">{o.payment_status==='not_initiated'?'Belum dimulai':o.payment_status}</span></td><td>{labelDate(o.created_at)}</td></tr>)}</tbody>
     </table>{orders.length===0&&<p className="vma26-muted">Belum ada draft pesanan.</p>}</div>
-    <p className="vma26-muted">Pembayaran akan terhubung setelah provider, webhook, serta rekonsiliasi berhasil melewati QA. Saat ini tombol bayar tetap nonaktif.</p>
+    <p className="vma26-muted">Status koneksi dan kanal pembayaran dapat diperiksa pada Pengaturan Xendit. Pembayaran sandbox digunakan untuk simulasi.</p>
    </section>}
    {(tab==='products'&&editingProduct||tab==='brands'&&editingBrand)&&<AuditHistory token={auth.accessToken} entityType={tab==='products'?'product':'brand'} entityId={(tab==='products'?editingProduct:editingBrand)!}/> }
    {message&&<p className="vma26-message" role="status" aria-live="polite">{message}</p>}

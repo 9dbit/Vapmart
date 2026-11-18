@@ -48,7 +48,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
         </div>
         <div className="vm-footer-links"><h3>Informasi</h3>
           <Link href="/keranjang-2">Keranjang</Link><Link href="/brand-partner">Brand Partner</Link>
-          <p>Pembayaran belum tersedia</p><p>Customer support sedang disiapkan</p>
+          <p>Metode pembayaran di checkout</p><p>Customer support sedang disiapkan</p>
         </div>
         <div className="vm-footer-support"><div className="vm-footer-support-title"><h3>Pusat Bantuan</h3><strong>Vapmart</strong></div>
           <div className="vm-support-box"><span className="vm-support-symbol" aria-hidden="true">☏</span>
