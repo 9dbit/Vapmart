@@ -1,0 +1,79 @@
+/* Homepage simplification: circular category artwork and compact type scale. */
+html body .vm-trendora-home .vm-trendora-categories{
+  margin-top:clamp(12px,2vw,22px);
+  margin-bottom:clamp(18px,3vw,30px);
+}
+html body .vm-trendora-home .vm-trendora-category-grid{
+  gap:clamp(6px,1.7vw,20px);
+}
+html body .vm-trendora-home .vm-trendora-categories .vm-trendora-category{
+  min-height:0; padding:4px 0 8px;gap:9px;
+  border:0;border-radius:0;background:transparent;box-shadow:none;color:inherit;
+}
+html body .vm-trendora-home .vm-trendora-categories .vm-trendora-category:hover{
+  background:transparent;border:0;transform:translateY(-2px);
+}
+html body .vm-trendora-home .vm-trendora-categories .vm-trendora-category:focus-visible{
+  outline:2px solid #8310e8;outline-offset:3px;border-radius:12px;
+}
+html body .vm-trendora-home .vm-trendora-categories .vm-trendora-category-image{
+  box-sizing:border-box;flex:none;
+  width:clamp(56px,8vw,104px);height:auto;aspect-ratio:1;
+  border:0;border-radius:50%;overflow:hidden;
+  background:#f3eff8;box-shadow:0 3px 12px rgba(55,32,81,.07);
+}
+html body .vm-trendora-home .vm-trendora-categories .vm-trendora-category-image img{
+  width:100%;height:100%;border-radius:50%;object-fit:contain;
+}
+html body .vm-trendora-home .vm-trendora-category-title{
+  font-size:clamp(10px,1.12vw,12px);font-weight:650;letter-spacing:-.01em;
+}
+html body .vm-trendora-home .vm-trendora-section-heading h2,
+html body .vm-trendora-home .vm-ref-section-head h2,
+html body .vm-trendora-home .vm-ref-brands h2{
+  font-size:clamp(18px,1.8vw,25px);line-height:1.22;letter-spacing:-.035em;
+}
+html body .vm-collection .vm-collection-heading h2{
+  font-size:clamp(20px,2.3vw,29px);line-height:1.16;letter-spacing:-.035em;
+}
+html body .vm-trendora-home .vm-trendora-member{
+  gap:clamp(14px,3vw,35px);align-items:center;
+  min-height:0;padding:clamp(17px,3vw,30px);
+}
+html body .vm-trendora-home .vm-trendora-member-copy{
+  flex:1 1 230px;min-width:0;
+}
+html body .vm-trendora-home .vm-trendora-member h2{
+  font-size:clamp(21px,2.4vw,32px);line-height:1.16;
+}
+html body .vm-trendora-home .vm-home-member-preview{
+  position:relative;z-index:2;flex:0 1 435px;width:min(435px,100%);min-width:0;
+}
+html body .vm-trendora-home .vm-home-member-preview .vm-new-member-card.vm22-member-card{
+  width:100%;max-width:435px;margin-inline:auto;
+}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-home .vm-trendora-categories .vm-trendora-category,
+html[data-vapmart-color-mode="dark"] body .vm-trendora-home .vm-trendora-categories .vm-trendora-category:hover{
+  background:transparent;border:0;box-shadow:none;color:#f0ebf5;
+}
+html[data-vapmart-color-mode="dark"] body .vm-trendora-home .vm-trendora-categories .vm-trendora-category-image{background:#30283a}
+@media(max-width:767px){
+  html body .vm-trendora-home .vm-trendora-categories{margin-top:10px;margin-bottom:18px}
+  html body .vm-trendora-home .vm-trendora-category-grid{gap:clamp(3px,1.3vw,9px)}
+  html body .vm-trendora-home .vm-trendora-categories .vm-trendora-category{padding:3px 0 5px;gap:6px}
+  html body .vm-trendora-home .vm-trendora-categories .vm-trendora-category-image{width:clamp(43px,12.8vw,65px)}
+  html body .vm-trendora-home .vm-trendora-category-title{font-size:10px}
+  html body .vm-trendora-home .vm-trendora-section-heading h2,
+  html body .vm-trendora-home .vm-ref-section-head h2,
+  html body .vm-trendora-home .vm-ref-brands h2{font-size:19px}
+  html body .vm-collection .vm-collection-heading h2{font-size:23px}
+  html body .vm-trendora-home .vm-trendora-member{
+    flex-direction:column;gap:16px;padding:18px 16px;border-radius:22px;
+  }
+  html body .vm-trendora-home .vm-trendora-member-copy{flex:0 1 auto;width:100%}
+  html body .vm-trendora-home .vm-home-member-preview{flex:0 1 auto;width:min(100%,390px)}
+  html body .vm-trendora-home .vm-trendora-member h2{font-size:23px}
+}
+@media(prefers-reduced-motion:reduce){
+  html body .vm-trendora-home .vm-trendora-categories .vm-trendora-category{transition:none!important}
+}

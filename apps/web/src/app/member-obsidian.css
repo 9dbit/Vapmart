@@ -273,3 +273,12 @@ html body .vmoc-card .vm22-card-open-wallet:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   html body .vmoc-card .vm22-card-open-wallet { transition: none; }
 }
+
+/* Branded watermark uses the real supplied Vapmart asset, not the old invented engraving. */
+html body .vmoc-card .vmoc-brand-watermark{
+  position:absolute;z-index:1;right:1%;top:22%;width:39%;height:auto;
+  object-fit:contain;opacity:.1;
+  filter:grayscale(1) brightness(1.5);transform:rotate(-11deg);
+  pointer-events:none;
+}
+@media(max-width:767px){html body .vmoc-card .vmoc-brand-watermark{width:36%;top:19%;opacity:.08}}

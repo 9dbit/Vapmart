@@ -15,6 +15,8 @@ assert.match(component,/data-member-card-design="obsidian-premium"/);
 assert.match(component,/className="vm-new-member-card vm22-member-card vmoc-card"/);
 assert.doesNotMatch(component,/className="vm22-card-purple-panel"/);
 assert.doesNotMatch(component,/className="vm22-card-charcoal-panel"/);
+assert.doesNotMatch(component,/className="vm22-card-engraving"/);
+assert.match(component,/className="vmoc-brand-watermark"/);
 assert.match(component,/<strong aria-live="polite">\{balance===null\?'—':formatCoin\(balance\)\}<\/strong>/);
 assert.match(component,/onClick=\{onOpenWallet\}/);
 assert.match(component,/safeLast4/);

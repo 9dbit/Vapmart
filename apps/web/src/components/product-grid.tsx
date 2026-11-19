@@ -59,7 +59,7 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
     if(event.key==='Enter'&&showSuggestions&&activeSuggestion>=0){event.preventDefault();pick(suggestions[activeSuggestion]!);}
   };
   return <section className="shop-section vm-collection" id="shop">
-    <header className="vm-collection-heading"><h2>Produk Pilihan</h2><p>Temukan favorit baru untuk keseharianmu.</p></header>
+    <header className="vm-collection-heading"><h2>Produk Pilihan</h2></header>
     <div className="vm-collection-bar">
       <button ref={searchToggle} type="button" className="vm-tool-circle" aria-label="Cari produk" title="Cari produk" aria-expanded={searchOpen}
         aria-controls="vm-search-drawer" onClick={()=>{setSearchOpen(!searchOpen);setShowSuggestions(false)}}><Icon name="search"/></button>

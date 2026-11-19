@@ -32,10 +32,7 @@ export function MemberCard({name,balance,status,cardLast4,onOpenWallet}:MemberCa
    data-member-status={status.toLowerCase()} aria-label="Vapmart Member Card"
    aria-description="Kartu digital member Vapmart dengan rasio kartu internasional">
    <span className="vmoc-card-sheen" aria-hidden="true"/>
-   <svg className="vm22-card-engraving" aria-hidden="true" viewBox="0 0 150 165" focusable="false">
-     <path fill="#36333E" d="M39 0h94L80 69H9L39 0Z"/>
-     <path fill="#55505E" d="M5 82h51l49 73H54L5 82Z"/>
-   </svg>
+   <img className="vmoc-brand-watermark" src="/branding/vapmart-logo.png" alt="" aria-hidden="true" width="250" height="84"/>
    <div className="vm22-card-content">
      <div className="vm22-card-brand-row">
        <div className="vm-new-card-brand vm22-card-brand">
