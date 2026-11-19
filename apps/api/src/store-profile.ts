@@ -12,7 +12,7 @@ export function parseStoreProfile(raw:unknown){
 @Injectable()
 export class StoreProfileService{
  constructor(private readonly db:DatabaseService){}
- private fallback(){return {name:process.env.INVOICE_STORE_NAME||'Vapmart',address:process.env.INVOICE_STORE_ADDRESS||'',city:'',province:'',postalCode:'',phone:process.env.INVOICE_STORE_PHONE||'',email:process.env.INVOICE_STORE_EMAIL||process.env.SHIPPING_SENDER_EMAIL||''};}
+ private fallback(){return {name:process.env.INVOICE_STORE_NAME||'Vapmart',address:process.env.INVOICE_STORE_ADDRESS||'',city:'',province:'',postalCode:'',phone:process.env.INVOICE_STORE_PHONE||'+62 852-3232-4824',email:process.env.INVOICE_STORE_EMAIL||process.env.SHIPPING_SENDER_EMAIL||''};}
  async get(client:Pick<DatabaseService,'query'>=this.db){const r=(await client.query('SELECT * FROM product.store_profile WHERE id=true')).rows[0];return {profile:{...this.fallback(),...r.profile},version:r.version,updatedAt:r.updated_at};}
  async save(actor:Principal,raw:unknown){const who=requireActor(actor),x=parseStoreProfile(raw);return this.db.transaction(async c=>{
  const before=(await c.query('SELECT * FROM product.store_profile WHERE id=true FOR UPDATE')).rows[0];assertVersion(before.version,x.expectedVersion);
