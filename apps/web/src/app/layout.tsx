@@ -60,9 +60,9 @@ export default function RootLayout({children}:{children:React.ReactNode}){
           <p>Metode pembayaran di checkout</p>
         </div>
         <div className="vm-footer-support"><div className="vm-footer-support-title"><h3>Pusat Bantuan</h3></div>
-          <a className="vm-whatsapp" href="https://wa.me/6282146323633" target="_blank" rel="noopener noreferrer">
+          <a className="vm-whatsapp" href="https://wa.me/6285232324824" target="_blank" rel="noopener noreferrer">
             <span className="vm-wa-icon"><Icon name="whatsapp"/></span>
-            <span><strong>Chat WhatsApp</strong><small>+62 821 4632 3633</small></span>
+            <span><strong>Chat WhatsApp</strong><small>+62 852-3232-4824</small></span>
           </a>
         </div>
       </div>
