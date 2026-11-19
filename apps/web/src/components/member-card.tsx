@@ -26,12 +26,12 @@ export function MemberCard({name,balance,status,cardLast4,onOpenWallet}:MemberCa
  const statusText=active?'Vapmart Member':
    status==='REGISTERED'?'Belum Aktif':
    status==='SUSPENDED'?'Ditangguhkan':
-   status==='GUEST'?'Preview Card':'Belum Tersambung';
- return <section className="vm-new-member-card vm22-member-card"
+   status==='GUEST'?'Guest Member':'Belum Tersambung';
+ return <section className="vm-new-member-card vm22-member-card vmoc-card"
+   data-member-card-design="obsidian-premium"
    data-member-status={status.toLowerCase()} aria-label="Vapmart Member Card"
    aria-description="Kartu digital member Vapmart dengan rasio kartu internasional">
-   <span className="vm22-card-purple-panel" aria-hidden="true"/>
-   <span className="vm22-card-charcoal-panel" aria-hidden="true"/>
+   <span className="vmoc-card-sheen" aria-hidden="true"/>
    <svg className="vm22-card-engraving" aria-hidden="true" viewBox="0 0 150 165" focusable="false">
      <path fill="#36333E" d="M39 0h94L80 69H9L39 0Z"/>
      <path fill="#55505E" d="M5 82h51l49 73H54L5 82Z"/>
