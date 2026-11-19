@@ -84,6 +84,7 @@ def verify(page,base,touch=False):
     search = page.locator('.vm-collection-bar button[aria-label="Cari produk"]')
     sort = page.get_by_label('Urutkan produk')
     tabs = page.locator('.vm-category-tabs')
+    all_tab = tabs.get_by_role('button',name='Semua Pilihan')
     expect(page.locator('#shop-search')).to_be_hidden()
     for width in [320,390,768,1280]:
         page.set_viewport_size({'width':width,'height':844})
@@ -92,6 +93,8 @@ def verify(page,base,touch=False):
             expect(whatsapp).to_have_css('background-color', 'rgb(37, 211, 102)')
             expect(whatsapp).to_have_css('border-top-left-radius', '999px')
             assert same_row(box(tabs),box(search)) and same_row(box(search),box(sort))
+            assert box(search)['x'] < box(sort)['x'] < box(all_tab)['x']
+            assert box(all_tab)['height'] <= 36
             assert box(sort)['x']+box(sort)['width'] <= width
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
             plus=page.locator('.add-circle').first
@@ -102,7 +105,7 @@ def verify(page,base,touch=False):
     tabs.get_by_role('button',name='Dekorasi').click()
     expect(page.locator('.product-card')).to_have_count(1)
     assert tabs.get_by_role('button',name='Dekorasi').evaluate("(b)=>getComputedStyle(b).backgroundColor")=='rgb(117, 27, 213)'
-    tabs.get_by_role('button',name='Semua produk').click()
+    all_tab.click()
     sort.select_option('priceLow')
     expect(page.locator('.product-card h3').first).to_have_text('Tas kecil')
     sort.select_option('priceHigh')
@@ -115,6 +118,20 @@ def verify(page,base,touch=False):
     expect(page.locator('.product-card h3')).to_have_text('Tas kecil')
     page.locator('#shop-search').press('Escape')
     expect(page.locator('#shop-search')).to_be_hidden()
+    # Floating menu responds immediately and keeps an SPA document/session.
+    mobile_nav = page.locator('nav[aria-label="Navigasi seluler"]')
+    expect(mobile_nav).to_have_attribute('data-active-index','1')
+    page.evaluate('window.vmNavSessionMarker = true')
+    mobile_nav.locator('a[href="/brand-partner"]').click()
+    page.wait_for_url('**/brand-partner')
+    expect(mobile_nav).to_have_attribute('data-active-index','2')
+    assert page.evaluate('window.vmNavSessionMarker') is True
+    mobile_nav.locator('a[href="/member-2"]').click()
+    page.wait_for_url('**/member-2')
+    expect(mobile_nav).to_have_attribute('data-active-index','3')
+    mobile_nav.locator('a[href="/catalog"]').click()
+    page.wait_for_url('**/catalog')
+    expect(mobile_nav).to_have_attribute('data-active-index','1')
     page.goto(base+'/product/lampu-warna',wait_until='networkidle')
     expect(page.get_by_role('button',name='Beli sekarang')).to_be_disabled()
     page.get_by_label('Pilih Warna').select_option('Biru')
