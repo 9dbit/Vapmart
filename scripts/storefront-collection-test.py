@@ -262,10 +262,19 @@ def verify_care(page, base):
     expect(page.locator('head #vapmart-chatvice-care')).to_have_count(0)
     # A subsequent page load recovers normally.
     page.unroute(embed)
-    page.route(embed, lambda route: route.fulfill(content_type='application/javascript',body=provider))
-    page.reload(wait_until='domcontentloaded')
-    page.wait_for_function('window.careLoads === 1')
-    expect(page.locator('head #vapmart-chatvice-care')).to_have_count(1)
+    # WebKit in the Linux CI container can crash when immediately reloading the
+    # renderer after three simulated script failures. Verify recovery on a new
+    # page in the same browser context, as a customer would on a fresh visit.
+    recovery_page = page.context.new_page() if page.context.browser.browser_type.name == 'webkit' else page
+    recovery_page.route(embed, lambda route: route.fulfill(content_type='application/javascript',body=provider))
+    if recovery_page is page:
+        recovery_page.reload(wait_until='domcontentloaded')
+    else:
+        recovery_page.goto(base+'/catalog',wait_until='domcontentloaded')
+    recovery_page.wait_for_function('window.careLoads === 1')
+    expect(recovery_page.locator('head #vapmart-chatvice-care')).to_have_count(1)
+    if recovery_page is not page:
+        recovery_page.close()
     print('Chat retry, stalled configuration, image failure, cart, mobile clearance and SPA persistence passed.')
 
 if __name__=='__main__':
