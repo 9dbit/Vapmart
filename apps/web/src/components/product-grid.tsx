@@ -34,7 +34,6 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
   const searchToggle=useRef<HTMLButtonElement>(null);
   useEffect(()=>{if(searchOpen)searchRef.current?.focus({preventScroll:true})},[searchOpen]);
   const [favoritesOnly,setFavoritesOnly]=useState(false);
- const [readyOnly,setReadyOnly]=useState(false);
  const [visibleCount,setVisibleCount]=useState(24);
   const {savedIds}=useWishlist();
   const [showSuggestions,setShowSuggestions]=useState(false);
@@ -44,14 +43,14 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
   const activeProducts=useMemo(()=>products.filter(p=>p.is_active),[products]);
   const suggestions=useMemo(()=>query?activeProducts.filter(p=>match(p,query)).slice(0,5):[],[activeProducts,query]);
   const filtered=useMemo(()=>{
-    let result=activeProducts.filter(p=>categoryMatch(p)&&(!query||match(p,query))&&(!favoritesOnly||savedIds.includes(p.id))&&(!readyOnly||(p.price_idr>0&&p.stock_qty>0&&p.available!==false)));
+    let result=activeProducts.filter(p=>categoryMatch(p)&&(!query||match(p,query))&&(!favoritesOnly||savedIds.includes(p.id)));
     if(sort==='priceLow')result=[...result].sort((a,b)=>a.price_idr-b.price_idr);
     if(sort==='priceHigh')result=[...result].sort((a,b)=>b.price_idr-a.price_idr);
     return result;
-  },[activeProducts,category,query,sort,favoritesOnly,readyOnly,savedIds,categoryTree]);
-  useEffect(()=>setVisibleCount(24),[category,query,sort,favoritesOnly,readyOnly]);
+  },[activeProducts,category,query,sort,favoritesOnly,savedIds,categoryTree]);
+  useEffect(()=>setVisibleCount(24),[category,query,sort,favoritesOnly]);
   const pick=(p:Product)=>{setTerm(p.name);setCategory('all');setShowSuggestions(false);setActiveSuggestion(-1);searchRef.current?.focus();};
-  const reset=()=>{setCategory('all');setTerm('');setSort('newest');setFavoritesOnly(false);setReadyOnly(false);setShowSuggestions(false);setActiveSuggestion(-1);searchRef.current?.focus();};
+  const reset=()=>{setCategory('all');setTerm('');setSort('newest');setFavoritesOnly(false);setShowSuggestions(false);setActiveSuggestion(-1);searchRef.current?.focus();};
   const onSearchKey=(event:KeyboardEvent<HTMLInputElement>)=>{
     if(event.key==='Escape'){setShowSuggestions(false);setActiveSuggestion(-1);setSearchOpen(false);searchToggle.current?.focus();return;}
     if(!suggestions.length)return;
@@ -64,6 +63,10 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
     <div className="vm-collection-bar">
       <button ref={searchToggle} type="button" className="vm-tool-circle" aria-label="Cari produk" title="Cari produk" aria-expanded={searchOpen}
         aria-controls="vm-search-drawer" onClick={()=>{setSearchOpen(!searchOpen);setShowSuggestions(false)}}><Icon name="search"/></button>
+      <button type="button" className="vm-tool-circle vm-favorites-control"
+        aria-label="Tampilkan hanya produk favorit" aria-pressed={favoritesOnly}
+        title={favoritesOnly?'Nonaktifkan filter favorit':`Favorit (${savedIds.length} tersimpan)`}
+        onClick={()=>setFavoritesOnly(value=>!value)}><Icon name="heart"/></button>
       <label className="vm-tool-circle vm-sort-control" data-selected={sort!=='newest'} title={'Urutkan: '+sortOptions.find(([value])=>value===sort)?.[1]}>
         <Icon name="sort"/><select id="sort-products" aria-label="Urutkan produk" value={sort} onChange={e=>setSort(e.target.value)}>
           {sortOptions.map(([value,label])=><option key={value} value={value}>{label}</option>)}
@@ -85,14 +88,9 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
     </div>
     <div className="vm-results-row">
       <div className="results-meta" role="status" aria-live="polite">{filtered.length} produk ditemukan{query?` untuk “${term.trim()}”`:''}</div>
-      <div className="vm-cp17-result-actions">
-        <button type="button" className={readyOnly?'vm-cp17-favorites-filter is-active':'vm-cp17-favorites-filter'} aria-pressed={readyOnly} onClick={()=>setReadyOnly(v=>!v)} aria-label="Tampilkan hanya produk siap dibeli">Siap dibeli</button>
-        <button type="button" className={favoritesOnly?'vm-cp17-favorites-filter is-active':'vm-cp17-favorites-filter'}
-          aria-pressed={favoritesOnly} onClick={()=>setFavoritesOnly(value=>!value)} aria-label="Tampilkan hanya produk favorit">
-          <span aria-hidden="true">♡</span> Favorit <span className="vm-cp17-favorites-number">{activeProducts.filter(p=>savedIds.includes(p.id)).length}</span>
-        </button>
-        {(query||category!=='all'||sort!=='newest'||favoritesOnly||readyOnly)&&<button type="button" className="vm-reset-filters" onClick={reset}>Reset filter ×</button>}
-      </div>
+      {(query||category!=='all'||sort!=='newest'||favoritesOnly)&&<div className="vm-cp17-result-actions">
+        <button type="button" className="vm-reset-filters" onClick={reset}>Reset filter ×</button>
+      </div>}
     </div>
     {filtered.length>0?<><div className="product-grid">{filtered.slice(0,visibleCount).map((p,i)=><ProductCard product={p} key={p.id} index={i}/>)}</div>{visibleCount<filtered.length&&<div className="vcs-more-row"><span>Menampilkan {Math.min(visibleCount,filtered.length)} dari {filtered.length} produk</span><button type="button" className="vcs-show-more" onClick={()=>setVisibleCount(n=>n+24)}>Lihat 24 produk berikutnya</button></div>}</>:<div className="empty-collection" role="status"><div className="empty-illustration" aria-hidden="true">✳</div><h3>{activeProducts.length===0?'Koleksi segera hadir.':favoritesOnly?'Belum ada favorit yang cocok.':'Belum ada produk yang cocok.'}</h3><p>{activeProducts.length===0?'Vapmart sedang menyiapkan koleksi baru.':favoritesOnly?'Gunakan ikon hati di kartu produk untuk menyimpan favorit, atau matikan filter favorit.':'Tidak ada hasil untuk pencarian atau kategori ini. Coba istilah lain atau reset filter.'}</p>{activeProducts.length>0&&<button type="button" className="vm-reset-filters vm-empty-reset" onClick={reset}>Tampilkan semua produk ↗</button>}<Link href="/" className="vm-empty-home">Kembali ke beranda</Link></div>}
   </section>;

@@ -33,6 +33,7 @@ html body .vm-collection {
   justify-content:flex-start;
   gap:6px;
   min-width:0;
+  --vm-control-size:36px;
 }
 .vm-category-tabs, .vm-photo-thumbs {
   display: flex;
@@ -43,15 +44,32 @@ html body .vm-collection {
   scrollbar-width: none;
 }
 .vm-collection-bar .vm-category-tabs {flex:1 1 auto;justify-content:flex-start;}
-.vm-collection-bar .vm-tool-circle {flex:0 0 44px;}
-/* Smaller first pill after Search and Sort; keep the other categories scrollable. */
-.vm-collection-bar .vm-category-tabs button:first-child {
-  min-height:34px;
-  padding-inline:11px;
+/* One compact height for all catalog controls, not only the first tab. */
+.vm-collection-bar .vm-tool-circle {
+  flex:0 0 var(--vm-control-size);
+  width:var(--vm-control-size);
+  height:var(--vm-control-size);
+  min-width:var(--vm-control-size);
+  min-height:var(--vm-control-size);
+}
+.vm-collection-bar .vm-tool-circle svg {width:17px;height:17px;}
+.vm-collection-bar .vm-category-tabs button {
+  box-sizing:border-box;
+  min-height:var(--vm-control-size);
+  height:var(--vm-control-size);
+  padding:0 11px;
   gap:5px;
   font-size:11px;
+  line-height:1;
 }
-.vm-collection-bar .vm-category-tabs button:first-child svg {width:14px;height:14px;}
+.vm-collection-bar .vm-category-tabs button svg {width:15px;height:15px;flex:none;}
+.vm-collection-bar .vm-favorites-control[aria-pressed="true"] svg {fill:currentColor;}
+.vm-collection-bar .vm-tool-circle:focus-visible {outline:2px solid #a760f4;outline-offset:2px;}
+html body .vm-collection .vm-results-row .vm-reset-filters {
+  min-height:var(--vm-control-size);
+  padding:7px 12px;
+  font-size:11px;
+}
 .vm-category-tabs::-webkit-scrollbar, .vm-photo-thumbs::-webkit-scrollbar, .vm-photo-track::-webkit-scrollbar {display:none;}
 .vm-category-tabs button,.vm-tool-circle,.vm-photo-nav button {
   display: inline-flex;
@@ -92,10 +110,6 @@ html body .vm-collection .vm-search-combobox input {
 html body .vm-collection .vm-results-row {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 12px;margin:10px 0 14px;padding:0;border:0;}
 html body .vm-collection .results-meta {margin:0;padding:0;font-size:12px;color:var(--vm-secondary);}
 html body .vm-collection .vm-cp17-result-actions {display:flex;align-items:center;flex-wrap:wrap;gap:5px;}
-html body .vm-collection .vm-cp17-favorites-filter {
-  min-height:36px;background:var(--vm-tool);color:inherit;border:0;box-shadow:none;padding:6px 12px;
-}
-html body .vm-collection .vm-cp17-favorites-filter[aria-pressed="true"] {background:var(--vm-accent);color:#fff;}
 html body .vm-collection .product-copy {min-width:0;overflow-wrap:anywhere;}
 html body .vm-collection .product-card,html body .vm-collection .product-art,
 html body .vm-collection .product-description,html body .vm-collection .vm-cp17-card-favorite {border:0;box-shadow:none;}
