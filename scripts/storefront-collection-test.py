@@ -124,13 +124,20 @@ def verify(page,base,touch=False):
     page.evaluate('window.vmNavSessionMarker = true')
     mobile_nav.locator('a[href="/brand-partner"]').click()
     page.wait_for_url('**/brand-partner')
+    expect(page.locator('main.vm-brand-page')).to_be_visible()
     expect(mobile_nav).to_have_attribute('data-active-index','2')
     assert page.evaluate('window.vmNavSessionMarker') is True
     mobile_nav.locator('a[href="/member-2"]').click()
     page.wait_for_url('**/member-2')
+    expect(page.locator('main.vm21-member-page')).to_be_visible()
     expect(mobile_nav).to_have_attribute('data-active-index','3')
     mobile_nav.locator('a[href="/catalog"]').click()
     page.wait_for_url('**/catalog')
+    expect(page.locator('main.vm-catalog-page')).to_be_visible()
+    expect(page.get_by_role('heading',name='Produk Pilihan')).to_be_visible()
+    # On WebKit the URL can update before the client route finishes committing.
+    # Wait for the optimistic state to clear before starting the next navigation.
+    page.wait_for_function("""() => document.querySelector('nav[aria-label="Navigasi seluler"]')?.dataset.navPending !== 'true'""")
     expect(mobile_nav).to_have_attribute('data-active-index','1')
     page.goto(base+'/product/lampu-warna',wait_until='networkidle')
     expect(page.get_by_role('button',name='Beli sekarang')).to_be_disabled()
