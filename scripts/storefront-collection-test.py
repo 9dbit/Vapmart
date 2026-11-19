@@ -199,6 +199,32 @@ def verify(page,base,touch=False):
     assert page.evaluate('window.staffDocument') is True
     print('Catalog filters, drawer, sort, geometry, gallery, cart, checkout and WhatsApp passed.')
 
+
+def verify_home(page, base):
+    page.goto(base+'/',wait_until='domcontentloaded')
+    categories=page.locator('.vm-trendora-category')
+    expect(categories.first).to_be_visible()
+    expect(page.locator('.vm-home-member-preview .vmoc-card')).to_be_visible()
+    expect(page.locator('.vm-home-member-preview [data-member-card-design="obsidian-premium"]')).to_have_count(1)
+    expect(page.locator('.vm-home-member-preview .vmoc-brand-watermark')).to_have_count(1)
+    expect(page.locator('.vm-home-member-preview .vm22-card-coin-value strong')).to_have_text('—')
+    for label in ['Materi banner terdahulu','EXPLORE MORE','Temukan favorit baru',
+                  'Lihat semua','Tampilan Vapmart dipulihkan']:
+        assert label.lower() not in page.locator('main').inner_text().lower(),label
+    assert page.locator('.vm-trendora-categories h2:visible').count()==0
+    for width in [320,390,768,1280]:
+        page.set_viewport_size({'width':width,'height':844})
+        for theme in ['light','dark']:
+            page.evaluate('(value)=>document.documentElement.dataset.vapmartColorMode=value',theme)
+            category_image=categories.first.locator('.vm-trendora-category-image')
+            frame=box(category_image)
+            assert abs(frame['width']-frame['height']) < 1,frame
+            assert category_image.evaluate('(e)=>getComputedStyle(e).borderRadius') == '50%'
+            card=box(page.locator('.vm-home-member-preview .vmoc-card'))
+            assert abs(card['width']/card['height'] - 85.6/53.98) < .025,card
+            assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),width
+    print('Homepage hero cleanup, category circles, compact headings and Obsidian member preview passed.')
+
 def verify_care(page, base):
     embed = 'https://chatvice.app/api/widget/chatvice.js?merchant=m_d74410c444e2726c'
     page.unroute(embed)
@@ -311,6 +337,7 @@ if __name__=='__main__':
             browser=playwright.chromium.launch(args=['--no-sandbox','--disable-dev-shm-usage'])
             page=browser.new_page(viewport={'width':390,'height':844})
             verify(page,base)
+            verify_home(page,base)
             page.close()
             verify_care(browser.new_page(viewport={'width':390,'height':844}),base)
             browser.close()
@@ -319,6 +346,7 @@ if __name__=='__main__':
             iphone=webkit.new_context(**playwright.devices['iPhone 13'])
             page=iphone.new_page()
             verify(page,base,touch=True)
+            verify_home(page,base)
             page.close()
             iphone.close()
             webkit.close()
