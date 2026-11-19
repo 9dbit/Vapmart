@@ -26,7 +26,7 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
   const [category,setCategory]=useState(initialCategory);
   const [categoryTree,setCategoryTree]=useState<any[]>([]);
   useEffect(()=>{const ac=new AbortController();fetch('/api/catalog/categories',{cache:'no-store',signal:ac.signal}).then(r=>r.ok?r.json():null).then(d=>{if(d?.items)setCategoryTree(d.items)}).catch(()=>{});return()=>ac.abort()},[]);
-  const categories=[{value:'all',label:'Semua produk'},...(categoryTree.length?categoryTree.map(c=>({value:c.slug,label:c.name})):Array.from(new Set(products.map(p=>p.category))).map(c=>({value:c,label:c})))];
+  const categories=[{value:'all',label:'Semua Pilihan'},...(categoryTree.length?categoryTree.map(c=>({value:c.slug,label:c.name})):Array.from(new Set(products.map(p=>p.category))).map(c=>({value:c,label:c})))];
   const categoryMatch=(p:Product)=>{if(category==='all')return true;const selected=new Set([category]);let added=true;while(added){added=false;for(const c of categoryTree){const parent=categoryTree.find(x=>x.id===c.parent_id);if(parent&&selected.has(parent.slug)&&!selected.has(c.slug)){selected.add(c.slug);added=true;}}}return [p.category,...p.category_slugs||[]].some(c=>selected.has(c));};
   const [term,setTerm]=useState(initialTerm);
   const [sort,setSort]=useState('newest');
@@ -62,11 +62,6 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
   return <section className="shop-section vm-collection" id="shop">
     <header className="vm-collection-heading"><h2>Produk Pilihan</h2><p>Temukan favorit baru untuk keseharianmu.</p></header>
     <div className="vm-collection-bar">
-      <div className="vm-category-tabs" role="group" aria-label="Filter kategori">
-        {categories.map(c=><button type="button" key={c.value} onClick={()=>{setCategory(c.value);setShowSuggestions(false)}} aria-pressed={category===c.value}>
-          <Icon name={categoryIcons[c.value]||'tag'}/>{c.label}
-        </button>)}
-      </div>
       <button ref={searchToggle} type="button" className="vm-tool-circle" aria-label="Cari produk" title="Cari produk" aria-expanded={searchOpen}
         aria-controls="vm-search-drawer" onClick={()=>{setSearchOpen(!searchOpen);setShowSuggestions(false)}}><Icon name="search"/></button>
       <label className="vm-tool-circle vm-sort-control" data-selected={sort!=='newest'} title={'Urutkan: '+sortOptions.find(([value])=>value===sort)?.[1]}>
@@ -74,6 +69,11 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
           {sortOptions.map(([value,label])=><option key={value} value={value}>{label}</option>)}
         </select>
       </label>
+      <div className="vm-category-tabs" role="group" aria-label="Filter kategori">
+        {categories.map(c=><button type="button" key={c.value} onClick={()=>{setCategory(c.value);setShowSuggestions(false)}} aria-pressed={category===c.value}>
+          <Icon name={categoryIcons[c.value]||'tag'}/>{c.label}
+        </button>)}
+      </div>
     </div>
     <div id="vm-search-drawer" className="vm-search-drawer" hidden={!searchOpen}>
       <div className="vm-search-combobox">

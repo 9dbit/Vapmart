@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import {useEffect,useRef,type CSSProperties} from 'react';
+import {useEffect,useRef,useState,type CSSProperties,type MouseEvent} from 'react';
 import {usePathname} from 'next/navigation';
 import {useCart} from '@/lib/cart';
 import {CartDrawer} from '@/components/cart-drawer';
@@ -16,6 +16,8 @@ export function SiteHeader(){
   const customer=useCustomerAuth();
   const pathname=usePathname();
   const searchRef=useRef<HTMLDetailsElement>(null);
+  const [navigationIntent,setNavigationIntent]=useState<number|null>(null);
+  const navigationTimer=useRef<number|null>(null);
   const isSubpage=/^\/(product\/|product-category\/|catalog|brand-partner|keranjang-2|checkout|pesanan|login|akun|member-2|asset-review)/.test(pathname);
   const categoryName:Record<string,string>={pod:'Pod',mod:'Mod',cartridge:'Cartridge','e-juice':'Liquid'};
   const segment=pathname.split('/')[2]||'';
@@ -36,10 +38,27 @@ export function SiteHeader(){
           : pathname==='/keranjang-2'||pathname==='/checkout'||pathname.startsWith('/pesanan/')
             ? 4
             : 0;
-  const activeIndex=open?4:routeIndex;
+  const activeIndex=navigationIntent??(open?4:routeIndex);
+  const onNavigationClick=(event:MouseEvent<HTMLAnchorElement>,index:number,href:string)=>{
+    if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+    if(href===pathname){setNavigationIntent(null);return;}
+    // Move the active pill immediately, while Next.js loads the destination.
+    setNavigationIntent(index);
+    if(navigationTimer.current!==null)window.clearTimeout(navigationTimer.current);
+    navigationTimer.current=window.setTimeout(()=>{
+      setNavigationIntent(null);
+      navigationTimer.current=null;
+    },4500);
+  };
+  useEffect(()=>()=>{if(navigationTimer.current!==null)window.clearTimeout(navigationTimer.current);},[]);
   useEffect(()=>{
     if(searchRef.current)searchRef.current.open=false;
     setOpen(false);
+    setNavigationIntent(null);
+    if(navigationTimer.current!==null){
+      window.clearTimeout(navigationTimer.current);
+      navigationTimer.current=null;
+    }
   },[pathname,setOpen]);
   useEffect(()=>{
     const onKey=(event:KeyboardEvent)=>{
@@ -113,14 +132,15 @@ export function SiteHeader(){
       </div>
     </nav>}
     <nav className="legacy-mobile-nav vm-reference-mobile-nav vm-modern-mobile-nav"
-      aria-label="Navigasi seluler" data-active-index={activeIndex}
+      aria-label="Navigasi seluler" data-active-index={activeIndex} data-nav-pending={navigationIntent!==null?'true':undefined}
       style={{'--vm-active-index':activeIndex,'--vm-active-offset':`${activeIndex*100}%`} as CSSProperties}>
       <span className="vm-liquid-active-pill" aria-hidden="true"/>
-      {menu.map((item,index)=><Link key={item.href} href={item.href}
+      {menu.map((item,index)=><Link key={item.href} href={item.href} prefetch={true}
+        onClick={event=>onNavigationClick(event,index,item.href)}
         className={activeIndex===index?'is-active':''} aria-current={item.active?'page':undefined}>
         <Icon name={item.icon}/><span>{item.label}</span>
       </Link>)}
-      <Link href="/keranjang-2" className={activeIndex===4?'is-active':''}
+      <Link href="/keranjang-2" prefetch={true} onClick={event=>onNavigationClick(event,4,'/keranjang-2')} className={activeIndex===4?'is-active':''}
         aria-current={pathname==='/keranjang-2'?'page':undefined}
         aria-label={'Keranjang, '+count+' barang'}>
         <Icon name="cart"/><span>Keranjang</span>{count>0&&<b className="vm-mobile-cart-count">{count}</b>}

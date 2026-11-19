@@ -84,6 +84,7 @@ def verify(page,base,touch=False):
     search = page.locator('.vm-collection-bar button[aria-label="Cari produk"]')
     sort = page.get_by_label('Urutkan produk')
     tabs = page.locator('.vm-category-tabs')
+    all_tab = tabs.get_by_role('button',name='Semua Pilihan')
     expect(page.locator('#shop-search')).to_be_hidden()
     for width in [320,390,768,1280]:
         page.set_viewport_size({'width':width,'height':844})
@@ -92,6 +93,8 @@ def verify(page,base,touch=False):
             expect(whatsapp).to_have_css('background-color', 'rgb(37, 211, 102)')
             expect(whatsapp).to_have_css('border-top-left-radius', '999px')
             assert same_row(box(tabs),box(search)) and same_row(box(search),box(sort))
+            assert box(search)['x'] < box(sort)['x'] < box(all_tab)['x']
+            assert box(all_tab)['height'] <= 36
             assert box(sort)['x']+box(sort)['width'] <= width
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
             plus=page.locator('.add-circle').first
@@ -102,7 +105,7 @@ def verify(page,base,touch=False):
     tabs.get_by_role('button',name='Dekorasi').click()
     expect(page.locator('.product-card')).to_have_count(1)
     assert tabs.get_by_role('button',name='Dekorasi').evaluate("(b)=>getComputedStyle(b).backgroundColor")=='rgb(117, 27, 213)'
-    tabs.get_by_role('button',name='Semua produk').click()
+    all_tab.click()
     sort.select_option('priceLow')
     expect(page.locator('.product-card h3').first).to_have_text('Tas kecil')
     sort.select_option('priceHigh')
@@ -115,6 +118,27 @@ def verify(page,base,touch=False):
     expect(page.locator('.product-card h3')).to_have_text('Tas kecil')
     page.locator('#shop-search').press('Escape')
     expect(page.locator('#shop-search')).to_be_hidden()
+    # Floating menu responds immediately and keeps an SPA document/session.
+    mobile_nav = page.locator('nav[aria-label="Navigasi seluler"]')
+    expect(mobile_nav).to_have_attribute('data-active-index','1')
+    page.evaluate('window.vmNavSessionMarker = true')
+    mobile_nav.locator('a[href="/brand-partner"]').click()
+    page.wait_for_url('**/brand-partner')
+    expect(page.locator('main.vm-brand-page')).to_be_visible()
+    expect(mobile_nav).to_have_attribute('data-active-index','2')
+    assert page.evaluate('window.vmNavSessionMarker') is True
+    mobile_nav.locator('a[href="/member-2"]').click()
+    page.wait_for_url('**/member-2')
+    expect(page.locator('main.vm21-member-page')).to_be_visible()
+    expect(mobile_nav).to_have_attribute('data-active-index','3')
+    mobile_nav.locator('a[href="/catalog"]').click()
+    page.wait_for_url('**/catalog')
+    expect(page.locator('main.vm-catalog-page')).to_be_visible()
+    expect(page.get_by_role('heading',name='Produk Pilihan')).to_be_visible()
+    # On WebKit the URL can update before the client route finishes committing.
+    # Wait for the optimistic state to clear before starting the next navigation.
+    page.wait_for_function("""() => document.querySelector('nav[aria-label="Navigasi seluler"]')?.dataset.navPending !== 'true'""")
+    expect(mobile_nav).to_have_attribute('data-active-index','1')
     page.goto(base+'/product/lampu-warna',wait_until='networkidle')
     expect(page.get_by_role('button',name='Beli sekarang')).to_be_disabled()
     page.get_by_label('Pilih Warna').select_option('Biru')
@@ -238,10 +262,19 @@ def verify_care(page, base):
     expect(page.locator('head #vapmart-chatvice-care')).to_have_count(0)
     # A subsequent page load recovers normally.
     page.unroute(embed)
-    page.route(embed, lambda route: route.fulfill(content_type='application/javascript',body=provider))
-    page.reload(wait_until='domcontentloaded')
-    page.wait_for_function('window.careLoads === 1')
-    expect(page.locator('head #vapmart-chatvice-care')).to_have_count(1)
+    # WebKit in the Linux CI container can crash when immediately reloading the
+    # renderer after three simulated script failures. Verify recovery on a new
+    # page in the same browser context, as a customer would on a fresh visit.
+    recovery_page = page.context.new_page() if page.context.browser.browser_type.name == 'webkit' else page
+    recovery_page.route(embed, lambda route: route.fulfill(content_type='application/javascript',body=provider))
+    if recovery_page is page:
+        recovery_page.reload(wait_until='domcontentloaded')
+    else:
+        recovery_page.goto(base+'/catalog',wait_until='domcontentloaded')
+    recovery_page.wait_for_function('window.careLoads === 1')
+    expect(recovery_page.locator('head #vapmart-chatvice-care')).to_have_count(1)
+    if recovery_page is not page:
+        recovery_page.close()
     print('Chat retry, stalled configuration, image failure, cart, mobile clearance and SPA persistence passed.')
 
 if __name__=='__main__':
@@ -269,7 +302,16 @@ if __name__=='__main__':
             page=iphone.new_page()
             verify(page,base,touch=True)
             page.close()
-            verify_care(iphone.new_page(),base)
+            iphone.close()
+            webkit.close()
+            # Keep WebKit widget retry/reload QA in an isolated browser process:
+            # storefront navigation and test images otherwise accumulate memory.
+            webkit=playwright.webkit.launch()
+            iphone=webkit.new_context(**playwright.devices['iPhone 13'])
+            widget_page=iphone.new_page()
+            verify_care(widget_page,base)
+            widget_page.close()
+            iphone.close()
             webkit.close()
             print('Chromium and WebKit with iPhone 13 emulation passed.')
     finally:

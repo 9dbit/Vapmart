@@ -28,10 +28,11 @@ html body .vm-collection {
 }
 .vm-collection-heading p {margin: 5px 0 0; font-size: 14px; line-height: 1.45; color: var(--vm-secondary);}
 .vm-collection-bar {
-  display: grid;
-  grid-template-columns: minmax(0,1fr) 44px 44px;
-  align-items: center;
-  gap: 6px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:6px;
+  min-width:0;
 }
 .vm-category-tabs, .vm-photo-thumbs {
   display: flex;
@@ -41,6 +42,16 @@ html body .vm-collection {
   overflow-x: auto;
   scrollbar-width: none;
 }
+.vm-collection-bar .vm-category-tabs {flex:1 1 auto;justify-content:flex-start;}
+.vm-collection-bar .vm-tool-circle {flex:0 0 44px;}
+/* Smaller first pill after Search and Sort; keep the other categories scrollable. */
+.vm-collection-bar .vm-category-tabs button:first-child {
+  min-height:34px;
+  padding-inline:11px;
+  gap:5px;
+  font-size:11px;
+}
+.vm-collection-bar .vm-category-tabs button:first-child svg {width:14px;height:14px;}
 .vm-category-tabs::-webkit-scrollbar, .vm-photo-thumbs::-webkit-scrollbar, .vm-photo-track::-webkit-scrollbar {display:none;}
 .vm-category-tabs button,.vm-tool-circle,.vm-photo-nav button {
   display: inline-flex;
@@ -154,3 +165,28 @@ html body .vm-care-fallback {
 }
 
 html body .vm-collection .vm-search-suggestions {border:0;}
+
+/* Optimistic navigation feedback: the marker moves on tap, without waiting for RSC. */
+@media(max-width:767px) {
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav .vm-liquid-active-pill {
+    transition:transform 360ms cubic-bezier(.22,1,.36,1),box-shadow 250ms ease;
+  }
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a {
+    transition:color 220ms ease,transform 220ms ease;
+  }
+}
+@media(prefers-reduced-motion:no-preference) {
+  html body :is(main.vm-reference-home,main.vm-catalog-page,main.vm-brand-page,main.vm21-member-page,main.vm-cart-page) {
+    animation:vm-storefront-page-enter 190ms cubic-bezier(.2,.8,.2,1) both;
+  }
+}
+@keyframes vm-storefront-page-enter {
+  from {opacity:.93;transform:translate3d(0,4px,0);}
+  to {opacity:1;transform:translate3d(0,0,0);}
+}
+@media(prefers-reduced-motion:reduce) {
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav .vm-liquid-active-pill,
+  html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a {
+    transition:none!important;
+  }
+}
