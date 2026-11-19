@@ -82,19 +82,26 @@ def verify(page,base,touch=False):
     assert page.evaluate('window.careLoads') == 1
     whatsapp = page.get_by_role('link',name='Chat WhatsApp',exact=False)
     search = page.locator('.vm-collection-bar button[aria-label="Cari produk"]')
+    favorite = page.get_by_role('button',name='Tampilkan hanya produk favorit')
     sort = page.get_by_label('Urutkan produk')
     tabs = page.locator('.vm-category-tabs')
     all_tab = tabs.get_by_role('button',name='Semua Pilihan')
     expect(page.locator('#shop-search')).to_be_hidden()
+    expect(page.get_by_role('button',name='Tampilkan hanya produk siap dibeli')).to_have_count(0)
     for width in [320,390,768,1280]:
         page.set_viewport_size({'width':width,'height':844})
         for theme in ['light','dark']:
             page.evaluate('(theme)=>document.documentElement.dataset.vapmartColorMode=theme',theme)
             expect(whatsapp).to_have_css('background-color', 'rgb(37, 211, 102)')
             expect(whatsapp).to_have_css('border-top-left-radius', '999px')
-            assert same_row(box(tabs),box(search)) and same_row(box(search),box(sort))
-            assert box(search)['x'] < box(sort)['x'] < box(all_tab)['x']
-            assert box(all_tab)['height'] <= 36
+            assert same_row(box(tabs),box(search)) and same_row(box(search),box(favorite)) and same_row(box(favorite),box(sort))
+            assert box(search)['x'] < box(favorite)['x'] < box(sort)['x'] < box(all_tab)['x']
+            assert abs(box(search)['height']-36) < 1
+            assert abs(box(favorite)['height']-36) < 1
+            assert abs(box(favorite)['width']-box(favorite)['height']) < 1
+            assert abs(box(sort)['height']-36) < 1
+            for category_pill in tabs.locator('button').all():
+                assert abs(box(category_pill)['height']-36) < 1
             assert box(sort)['x']+box(sort)['width'] <= width
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
             plus=page.locator('.add-circle').first
@@ -105,7 +112,18 @@ def verify(page,base,touch=False):
     tabs.get_by_role('button',name='Dekorasi').click()
     expect(page.locator('.product-card')).to_have_count(1)
     assert tabs.get_by_role('button',name='Dekorasi').evaluate("(b)=>getComputedStyle(b).backgroundColor")=='rgb(117, 27, 213)'
+    # Favorite filter is a circular heart directly to the left of Sort/Filter.
+    page.get_by_role('button',name='Simpan Lampu meja ke favorit').click()
+    favorite.click()
+    expect(favorite).to_have_attribute('aria-pressed','true')
+    expect(page.locator('.product-card')).to_have_count(1)
+    tabs.get_by_role('button',name='Accessories').click()
+    expect(page.locator('.product-card')).to_have_count(0)
     all_tab.click()
+    expect(page.locator('.product-card')).to_have_count(1)
+    favorite.click()
+    expect(favorite).to_have_attribute('aria-pressed','false')
+    expect(page.locator('.product-card')).to_have_count(2)
     sort.select_option('priceLow')
     expect(page.locator('.product-card h3').first).to_have_text('Tas kecil')
     sort.select_option('priceHigh')
