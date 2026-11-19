@@ -10,6 +10,7 @@ import {archivedNews} from '@/lib/archived-reference';
 import {featuredArchiveItems} from '@/lib/archive-catalog';
 import {homepageCategoryTiles,brandPartners} from '@/lib/merchandising';
 import {BrandRail} from '@/components/brand-rail';
+import {HomeMemberCard} from '@/components/home-member-card';
 import './restored-home.css';
 
 export const dynamic='force-dynamic';
@@ -24,13 +25,9 @@ export default async function Home(){
      <HeroCarousel slides={heroResult.items}/>
    </div>}
    {!heroResult.ok&&<DataStatus kind="banner" code={heroResult.error}/>}
-   {heroResult.items.some(s=>s.reference)&&<p className="main-container vm-restored-media-note">Materi banner terdahulu ditampilkan sebagai referensi visual, bukan penawaran atau promosi aktif. Arsip visual tidak tersedia untuk transaksi.</p>}
 
    <section className="main-container vm-trendora-categories" id="categories">
-     <div className="vm-trendora-section-heading">
-       <div><span className="vm-trendora-eyebrow">EXPLORE MORE</span><h2>Kategori</h2></div>
-       <Link href="/catalog" className="vm-trendora-see-all">Lihat semua <span aria-hidden="true">↗</span></Link>
-     </div>
+     <h2 className="sr-only">Kategori</h2>
      <div className="vm-trendora-category-grid">
        {homepageCategoryTiles.map(item=><Link
          href={item.legacy_key==='brand'?'/brand-partner':'/catalog?reference='+encodeURIComponent(item.legacy_key)+'#archive-gallery'}
@@ -47,8 +44,7 @@ export default async function Home(){
      </section>:
      <section className="main-container vm-reference-products vm-trendora-featured" id="shop" aria-label="Referensi koleksi asli Vapmart">
        <div className="vm-trendora-section-heading vm-ref-section-head">
-         <div><span className="vm-trendora-eyebrow">VISUAL ARCHIVE / READ ONLY</span><h2>Featured Products</h2></div>
-         <Link href="/catalog#archive-gallery" className="vm-trendora-see-all">Lihat seluruh referensi <span aria-hidden="true">↗</span></Link>
+         <div><span className="vm-trendora-eyebrow">VISUAL ARCHIVE / READ ONLY</span><h2>Produk Pilihan</h2></div>
        </div>
        <ReferenceVisualGrid items={featuredArchiveItems}/>
        <p className="vm-reference-disclaimer">Galeri ini hanya dokumentasi tampilan lama. Belum ada SKU, stok, atau harga aktif yang diverifikasi di PostgreSQL; gambar tidak bisa dipesan.</p>
@@ -61,13 +57,12 @@ export default async function Home(){
        <p>Temukan akun, koleksi, dan fitur member dalam satu tempat.</p>
        <Link id="member" href="/member-2" className="vm-trendora-member-link">Explore member <span aria-hidden="true">↗</span></Link>
      </div>
-     <div className="vm-trendora-member-mark" aria-hidden="true">V<span>✳</span></div>
+     <HomeMemberCard/>
    </section>
 
    <section className="main-container vm-ref-brands vm-trendora-brands" id="brand">
      <div className="vm-trendora-section-heading vm-section-line">
        <div><span className="vm-trendora-eyebrow">EXPLORE THE NAMES</span><h2>Brand Partner</h2></div>
-       <Link href="/brand-partner" className="vm-trendora-see-all">Lihat semua <span aria-hidden="true">↗</span></Link>
      </div>
      {!brandResult.ok?<DataStatus kind="brand" code={brandResult.error}/>:brands.length>0?<BrandRail brands={brands}/>:<div className="vm-brand-rail vm-restored-archived-brands">
        <div className="vm-brand-logos" role="list" aria-label="Logo brand dalam arsip visual">
@@ -83,7 +78,6 @@ export default async function Home(){
    <section className="main-container vm-ref-news vm-trendora-news" id="news">
      <div className="vm-trendora-section-heading">
        <div><span className="vm-trendora-eyebrow">THE JOURNAL</span><h2>Inspirasi &amp; News</h2></div>
-       <span className="vm-trendora-see-all">Referensi halaman lama</span>
      </div>
      <div className="vm-reference-news-grid">
        {archivedNews.map((article,index)=><article className="vm-reference-news-card" key={article.image}>
@@ -92,6 +86,5 @@ export default async function Home(){
        </article>)}
      </div>
    </section>
-   <p className="main-container vm-archive-end-note">Tampilan Vapmart dipulihkan dari struktur sebelum CP33. Produk arsip dan banner historis adalah referensi visual, bukan stok maupun penawaran yang dapat dibeli.</p>
  </main>;
 }
