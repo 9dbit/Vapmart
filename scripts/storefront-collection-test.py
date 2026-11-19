@@ -211,7 +211,7 @@ def verify_home(page, base):
     for label in ['Materi banner terdahulu','EXPLORE MORE','Temukan favorit baru',
                   'Lihat semua','Tampilan Vapmart dipulihkan']:
         assert label.lower() not in page.locator('main').inner_text().lower(),label
-    assert page.locator('.vm-trendora-categories h2:visible').count()==0
+    assert page.locator('.vm-trendora-categories h2:not(.sr-only)').count()==0
     for width in [320,390,768,1280]:
         page.set_viewport_size({'width':width,'height':844})
         for theme in ['light','dark']:
