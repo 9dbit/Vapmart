@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {formatIDR,type Product} from '@/lib/types';
 import type {ProductRecord,ProductRecordResponse,ProductRecordSummary} from '@/lib/admin-product-records';
+import {createArchiveCatalogDraft,archiveEditorUrl} from '@/lib/archive-publish';
 import '../app/admin-product-records.css';
 
 export function useProductRecordSummary(token:string|null,products:Product[]){
@@ -47,17 +48,12 @@ function RecordDetails({record,token,onClose,onConverted}:{record:ProductRecord;
  const modal=useRef<HTMLDialogElement>(null),router=useRouter();
  const [converting,setConverting]=useState(false),[convertError,setConvertError]=useState('');
  async function convert(){
-  if(record.converted_product_id){router.push('/admin/products/'+record.converted_product_id);return;}
-  if(!window.confirm('Buat draft privat dari arsip ini? Harga akan Rp0, stok 0 dan SKU kosong. Produk tidak otomatis tayang.'))return;
+  if(record.converted_product_id){router.push(archiveEditorUrl(record.converted_product_id));return;}
+  if(!window.confirm('Siapkan produk arsip untuk katalog? Sistem membuat draft dari nama dan foto valid. Lengkapi data dan tekan Publish ke Katalog di editor. Produk tidak otomatis tayang.'))return;
   setConverting(true);setConvertError('');
   try{
-   const response=await fetch('/api/admin/product-records/'+encodeURIComponent(record.slug)+'/convert',{
-    method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},
-    body:JSON.stringify({confirm:true}),cache:'no-store'
-   });
-   const result=await response.json();
-   if(!response.ok||typeof result.productId!=='string')throw Error(result.message||'Konversi draft gagal');
-   onConverted();onClose();router.push('/admin/products/'+result.productId);
+   const id=await createArchiveCatalogDraft(token,record.slug);
+   onConverted();onClose();router.push(archiveEditorUrl(id));
   }catch(e){setConvertError(e instanceof Error?e.message:'Konversi gagal');}
   finally{setConverting(false)}
  }
@@ -86,24 +82,26 @@ function RecordDetails({record,token,onClose,onConverted}:{record:ProductRecord;
    {record.original_path&&<p>Path sumber: <code>{record.original_path}</code></p>}
    <p>Tanggal record: {new Date(record.source_updated_at).toLocaleString('id-ID')}</p>
   </details>
-  {existing&&<p className="vpr-note">Referensi arsip tetap read-only. Jika dikonversi, sistem membuat draft operasional baru berharga Rp0 dan stok 0; SKU, deskripsi, kategori, dimensi, dan harga jual harus diverifikasi admin sebelum publikasi. Foto disalin setelah validasi integritas. Harga historis bukan harga jual.</p>}
+  {existing&&<p className="vpr-note">Klik <strong>Publish ke Katalog</strong> untuk menyiapkan draft dari nama dan foto arsip yang valid. Lengkapi SKU, deskripsi, kategori, harga, stok gudang, serta minimal 3 foto berbeda di editor. <strong>Produk baru tayang setelah admin menyimpan dan menekan Publish ke Katalog di editor.</strong> Harga historis bukan harga jual.</p>}
   {convertError&&<p className="vpr-error" role="alert">{convertError}</p>}
   <div className="vpr-dialog-actions">
-  {existing&&(record.converted_product_id?<Link className="vma26-btn-dark" href={'/admin/products/'+record.converted_product_id}>Buka draft operasional</Link>:
-   <button type="button" className="vma26-btn-dark" disabled={converting} onClick={()=>void convert()}>{converting?'Membuat draft...':'Jadikan draft operasional'}</button>)}
+  {existing&&(record.converted_product_id?<Link className="vma26-btn-dark" href={archiveEditorUrl(record.converted_product_id)}>Lanjutkan Publish ke Katalog</Link>:
+   <button type="button" className="vma26-btn-dark" disabled={converting||!token} onClick={()=>void convert()}>{converting?'Menyiapkan produk...':'Publish ke Katalog'}</button>)}
   <Link href="/admin/media" className="vma26-btn-light">Buka Media Library</Link>
    <button type="button" className="vma26-btn-dark" onClick={onClose}>Selesai</button></div>
  </dialog>;
 }
 
-export function AdminProductRecords({token,products,onEdit,onPublish,onNew,onSynced,busy}:{
+export function AdminProductRecords({token,products,onEdit,onPublish,onNew,onSynced,busy,archiveMode=false}:{
  token:string;products:Product[];onEdit:(product:Product)=>void;onPublish:(product:Product)=>void;
- onNew:()=>void;onSynced:()=>void;busy:boolean;
+ onNew:()=>void;onSynced:()=>void;busy:boolean;archiveMode?:boolean;
 }){
  const [data,setData]=useState<ProductRecordResponse|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState('');
- const [q,setQ]=useState(''),[source,setSource]=useState('all'),[status,setStatus]=useState('all');
+ const [q,setQ]=useState(''),[source,setSource]=useState(archiveMode?'existing':'all'),[status,setStatus]=useState('all');
  const [brand,setBrand]=useState(''),[category,setCategory]=useState(''),[page,setPage]=useState(1),[revision,setRevision]=useState(0);
  const [selected,setSelected]=useState<ProductRecord|null>(null);
+ const [publishingSlug,setPublishingSlug]=useState<string|null>(null),[publishError,setPublishError]=useState('');
+ const router=useRouter();
  const [settledQuery,setSettledQuery]=useState('');
  useEffect(()=>{const timer=setTimeout(()=>{setSettledQuery(q);setPage(1);},250);return()=>clearTimeout(timer);},[q]);
  useEffect(()=>{
@@ -119,13 +117,26 @@ export function AdminProductRecords({token,products,onEdit,onPublish,onNew,onSyn
    .finally(()=>{if(!controller.signal.aborted)setLoading(false);});
   return()=>controller.abort();
  },[token,settledQuery,source,status,brand,category,page,revision,products]);
+ async function publishArchive(record:ProductRecord){
+  if(!token||publishingSlug)return;
+  setPublishError('');
+  if(record.converted_product_id){router.push(archiveEditorUrl(record.converted_product_id));return;}
+  if(!window.confirm('Siapkan "'+record.name+'" untuk katalog? Nama dan foto yang valid akan disalin ke draft privat. Lengkapi data dan tekan Publish ke Katalog di editor agar produk tayang.'))return;
+  setPublishingSlug(record.slug);
+  try{
+   const id=await createArchiveCatalogDraft(token,record.slug);
+   refresh();
+   router.push(archiveEditorUrl(id));
+  }catch(e){setPublishError(e instanceof Error?e.message:'Gagal menyiapkan produk arsip.');}
+  finally{setPublishingSlug(null);}
+ }
  function refresh(){setRevision(n=>n+1);onSynced();}
  function filter(update:()=>void){update();setPage(1);}
  return <section className="vma26-panel vpr-panel" aria-labelledby="product-records-heading">
   <div className="vma26-section-head"><div><p className="vma26-eyebrow">UNIFIED PRODUCT RECORDS</p>
-   <h2 id="product-records-heading">Semua produk <span>{data?.summary.total??'…'}</span></h2></div>
+   <h2 id="product-records-heading">{archiveMode?'Produk Arsip':'Semua produk'} <span>{archiveMode?data?.summary.existing??'…':data?.summary.total??'…'}</span></h2></div>
    <button className="vma26-btn-dark" type="button" onClick={onNew}>+ Produk baru</button></div>
-  <p className="vpr-note">Produk existing dan katalog operasional ditampilkan di satu tempat, langsung dari PostgreSQL. Tidak ada salinan produk baru setiap sinkronisasi.</p>
+  <p className="vpr-note">{archiveMode?'Pilih Publish ke Katalog untuk menyiapkan produk arsip dan melengkapi datanya sebelum tayang. Arsip asli tetap tersimpan.':'Produk existing dan katalog operasional ditampilkan di satu tempat, langsung dari PostgreSQL. Tidak ada salinan produk baru setiap sinkronisasi.'}</p>
   <div className="vpr-toolbar"><button type="button" className="vma26-btn-light" disabled={loading} onClick={refresh}>{loading?'Memuat data…':'↻ Sinkronkan ulang'}</button>
    <span role="status">{data?`${data.summary.existing} existing · ${data.summary.managed} operasional · ${data.summary.existing_media_linked}/${data.summary.existing} foto existing terhubung`:'Memeriksa sumber data…'}</span></div>
   <div className="vpr-search"><label>Cari produk<input type="search" value={q} maxLength={120} onChange={e=>setQ(e.target.value)} placeholder="Nama, SKU, brand, atau slug"/></label></div>
@@ -135,7 +146,8 @@ export function AdminProductRecords({token,products,onEdit,onPublish,onNew,onSyn
    <label>Brand<select aria-label="Filter brand produk" value={brand} onChange={e=>filter(()=>setBrand(e.target.value))}><option value="">Semua brand</option>{data?.facets.brands.map(b=><option key={b} value={b}>{b}</option>)}</select></label>
    <label>Kategori<select aria-label="Filter kategori produk" value={category} onChange={e=>filter(()=>setCategory(e.target.value))}><option value="">Semua kategori</option>{data?.facets.categories.map(c=><option key={c} value={c}>{c}</option>)}</select></label>
   </div>
-  {error&&<p role="alert" className="vpr-error">{error}. Data tidak dianggap kosong. <button type="button" onClick={refresh}>Coba lagi</button></p>}
+  {publishError&&<p role="alert" className="vpr-error">Gagal menyiapkan publikasi: {publishError} <button type="button" onClick={()=>setPublishError('')}>Tutup</button></p>}
+   {error&&<p role="alert" className="vpr-error">{error}. Data tidak dianggap kosong. <button type="button" onClick={refresh}>Coba lagi</button></p>}
   <div className="vpr-list" aria-busy={loading}>
    {data?.items.map(r=><article key={r.record_id} className="vpr-row" data-kind={r.record_kind}>
     <RecordImage record={r} token={token}/>
@@ -144,7 +156,10 @@ export function AdminProductRecords({token,products,onEdit,onPublish,onNew,onSyn
      <small>{r.record_kind==='existing'?'Harga historis: '+(r.historical_price||'Belum tersedia'):'Harga: '+formatIDR(r.price_idr||0)}</small>
      <span className="vpr-source-badge">{r.record_kind==='existing'?(r.converted_product_id?'Existing · Sudah dikonversi':'Existing · Pemeriksaan internal'):r.is_active?'Operasional · Tayang':'Operasional · Draf'}</span></div>
     <div className="vpr-row-actions"><button type="button" onClick={()=>setSelected(r)}>Lihat data</button>
-      {r.record_kind==='existing'&&(r.converted_product_id?<Link href={'/admin/products/'+r.converted_product_id}>Buka draft</Link>:<button type="button" onClick={()=>setSelected(r)}>Jadikan draft</button>)}
+      {r.record_kind==='existing'&&(r.converted_product_id?
+        <Link className="vpr-publish-action" href={archiveEditorUrl(r.converted_product_id)}>Lanjutkan Publish</Link>:
+        <button type="button" className="vpr-publish-action" disabled={!token||publishingSlug!==null||busy}
+          aria-label={'Publish '+r.name+' ke Katalog'} onClick={()=>void publishArchive(r)}>{publishingSlug===r.slug?'Menyiapkan…':'Publish ke Katalog'}</button>)}
      {r.record_kind==='managed'&&r.product&&<><button type="button" disabled={busy} onClick={()=>onEdit(r.product!)}>Edit</button>
       <button type="button" disabled={busy} onClick={()=>onPublish(r.product!)}>{r.is_active?'Unpublish':'Publish'}</button></>}
     </div>
@@ -155,7 +170,7 @@ export function AdminProductRecords({token,products,onEdit,onPublish,onNew,onSyn
   {data&&<footer className="vpr-pagination"><span>{data.matched} hasil · Halaman {data.pages?data.page:0}/{data.pages}</span><div>
    <button type="button" disabled={loading||page===1} onClick={()=>setPage(n=>n-1)} aria-label="Halaman produk sebelumnya">←</button>
    <button type="button" disabled={loading||!data.hasMore} onClick={()=>setPage(n=>n+1)} aria-label="Halaman produk berikutnya">→</button></div></footer>}
-  {data&&<p className="vpr-provenance-note">Dibaca ulang: {new Date(data.syncedAt).toLocaleString('id-ID')}. Cakupan existing: snapshot halaman yang tersedia, belum bukti ekspor lengkap WooCommerce. Harga historis bukan harga jual saat ini; record existing tidak memiliki aksi publikasi.</p>}
+  {data&&<p className="vpr-provenance-note">Dibaca ulang: {new Date(data.syncedAt).toLocaleString('id-ID')}. Cakupan existing: snapshot halaman yang tersedia, belum bukti ekspor lengkap WooCommerce. Harga historis bukan harga jual; tombol Publish ke Katalog memulai review admin, bukan menerbitkan arsip mentah secara otomatis.</p>}
   {selected&&<RecordDetails record={selected} token={token} onClose={()=>setSelected(null)} onConverted={refresh}/>}
  </section>;
 }
