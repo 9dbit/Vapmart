@@ -293,7 +293,16 @@ if __name__=='__main__':
             page=iphone.new_page()
             verify(page,base,touch=True)
             page.close()
-            verify_care(iphone.new_page(),base)
+            iphone.close()
+            webkit.close()
+            # Keep WebKit widget retry/reload QA in an isolated browser process:
+            # storefront navigation and test images otherwise accumulate memory.
+            webkit=playwright.webkit.launch()
+            iphone=webkit.new_context(**playwright.devices['iPhone 13'])
+            widget_page=iphone.new_page()
+            verify_care(widget_page,base)
+            widget_page.close()
+            iphone.close()
             webkit.close()
             print('Chromium and WebKit with iPhone 13 emulation passed.')
     finally:
