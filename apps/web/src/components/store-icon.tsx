@@ -1,7 +1,8 @@
-export type IconName='search'|'cart'|'user'|'home'|'categories'|'star'|'tag'|'back'|'next'|'plus'|'minus'|'sort'|'bag'|'decor'|'electronics'|'whatsapp';
+export type IconName='search'|'cart'|'user'|'home'|'categories'|'star'|'tag'|'back'|'next'|'plus'|'minus'|'sort'|'bag'|'decor'|'electronics'|'whatsapp'|'heart';
 export function Icon({name}:{name:IconName}){
   const common={viewBox:'0 0 24 24',width:21,height:21,fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round' as const,strokeLinejoin:'round' as const,'aria-hidden':true as const};
   if(name==='search')return <svg {...common}><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>;
+  if(name==='heart')return <svg {...common}><path d="M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.4a5.5 5.5 0 0 0 0-7.8Z"/></svg>;
   if(name==='cart')return <svg {...common}><path d="M3 4h2l2.2 11.4a2 2 0 0 0 2 1.6h9.5a2 2 0 0 0 2-1.5L22 8H6"/><circle cx="10" cy="20" r="1"/><circle cx="19" cy="20" r="1"/></svg>;
   if(name==='user')return <svg {...common}><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg>;
   if(name==='home')return <svg {...common}><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg>;
