@@ -1,0 +1,41 @@
+name: Obsidian member card QA
+
+on:
+  pull_request:
+    branches: [release/vapmart-stable]
+    paths:
+      - "apps/web/src/components/member-card.tsx"
+      - "apps/web/src/app/member-obsidian.css"
+      - "apps/web/src/app/layout.tsx"
+      - "scripts/member-obsidian-smoke.mjs"
+      - ".github/workflows/member-card-design-qa.yml"
+  push:
+    branches: [feat/obsidian-member-card-20261119]
+    paths:
+      - "apps/web/src/components/member-card.tsx"
+      - "apps/web/src/app/member-obsidian.css"
+      - "apps/web/src/app/layout.tsx"
+      - "scripts/member-obsidian-smoke.mjs"
+      - ".github/workflows/member-card-design-qa.yml"
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Assert the approved design and live member-data bindings
+        run: node scripts/member-obsidian-smoke.mjs
+      - name: Install frontend dependencies
+        run: npm ci --include=dev --no-audit --no-fund
+        working-directory: apps/web
+      - name: Build Next.js frontend
+        run: npm run build
+        working-directory: apps/web
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
