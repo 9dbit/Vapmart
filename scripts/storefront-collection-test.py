@@ -81,6 +81,8 @@ def verify(page,base,touch=False):
     expect(script).to_have_attribute('src', embed)
     assert page.evaluate('window.careLoads') == 1
     whatsapp = page.get_by_role('link',name='Chat WhatsApp',exact=False)
+    expect(whatsapp).to_have_attribute('href','https://wa.me/6285232324824')
+    expect(whatsapp).to_contain_text('+62 852-3232-4824')
     search = page.locator('.vm-collection-bar button[aria-label="Cari produk"]')
     favorite = page.get_by_role('button',name='Tampilkan hanya produk favorit')
     sort = page.get_by_label('Urutkan produk')
@@ -177,7 +179,7 @@ def verify(page,base,touch=False):
         assert abs(cart['width']-cart['height'])<1
         assert box(page.get_by_role('heading',name='Review pembeli'))['x']>=16
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
-    expect(page.get_by_role('link',name='Chat WhatsApp',exact=False)).to_have_attribute('href','https://wa.me/6282146323633')
+    expect(page.get_by_role('link',name='Chat WhatsApp',exact=False)).to_have_attribute('href','https://wa.me/6285232324824')
     page.set_viewport_size({'width':390,'height':844})
     page.get_by_role('button',name='Tambahkan ke keranjang',exact=True).click()
     drawer=page.get_by_role('dialog',name='Keranjang',exact=False)
