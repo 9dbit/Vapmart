@@ -270,7 +270,7 @@ export class CatalogWorkspaceService{
     ) summary ON true
     WHERE o.idempotency_key IS NOT NULL AND ($1::uuid IS NULL OR o.customer_user_id=$1)
       AND ($2='' OR strpos(lower(concat_ws(' ',o.id::text,o.contact_name,o.city,o.invoice_number,preview.product_name)),lower($2))>0)
-      AND ($3='' OR o.operational_status=$3 OR ($3 IN ('paid','fulfilled','not_initiated','pending') AND (o.status=$3 OR o.payment_status=$3)))
+      AND ($3='' OR o.operational_status=$3 OR ($3='pending_payment' AND o.operational_status='draft' AND o.payment_status IN ('not_initiated','pending')) OR ($3 IN ('paid','fulfilled','not_initiated','pending') AND (o.status=$3 OR o.payment_status=$3)))
       AND ($4='' OR o.created_at>=now()-$4::interval)
       AND ($5='all' OR ($5='single' AND summary.item_count=1) OR ($5='multiple' AND summary.item_count>1))
    ),
