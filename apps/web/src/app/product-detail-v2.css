@@ -369,3 +369,11 @@ html body:has(.vpd-page) #chatvice-widget-button{bottom:calc(90px + env(safe-are
  html body .vpd-page .vm-photo-track{scroll-behavior:auto}
  html body .vpd-page .vpd-bottom-sheet{animation:none}
 }
+
+/* Variant attribute pairs must occupy the specification grid, not an extra row. */
+html body .vpd-page .vpd-spec-variation{display:contents}
+html body .vpd-page .vpd-simple-quantity{
+ border-top:1px solid var(--vpd-line);
+ padding-top:13px;
+ margin-top:16px;
+}
