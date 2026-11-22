@@ -1,5 +1,5 @@
 import {StoreProfileService} from './store-profile';
-import {Body,Controller,Get,Header,Param,Patch,Post,Query,Req,UseGuards} from '@nestjs/common';
+import {Body,Controller,Get,Header,Param,Patch,Post,Query,Req,StreamableFile,UseGuards} from '@nestjs/common';
 import {AdminGuard,CustomerGuard,type Principal} from './auth';
 import {OrderManagementService} from './order-management';
 import {CatalogWorkspaceService} from './catalog-workspace';
@@ -29,6 +29,11 @@ export class CatalogAdminController{
  @Header('Cache-Control','private, no-store') @Patch('categories/:id') category(@Req() r:AuthRequest,@Param('id') id:string,@Body() b:unknown){return this.catalog.categorySave(r.user,id,b);}
  @Header('Cache-Control','private, no-store') @Post('categories/:id/archive') archiveCategory(@Req() r:AuthRequest,@Param('id') id:string,@Body() b:unknown){return this.catalog.categoryArchive(r.user,id,b);}
  @Header('Cache-Control','private, no-store') @Get('reviews') reviewList(@Query() q:Record<string,unknown>){return this.reviews.list(q);}
+ @Header('Cache-Control','private, no-store') @Header('X-Content-Type-Options','nosniff')
+ @Get('review-photos/:id') async adminPhoto(@Param('id') id:string){
+  const photo=await this.reviews.photo(id,true);
+  return new StreamableFile(photo.content,{type:photo.mime_type,length:photo.size_bytes});
+ }
  @Header('Cache-Control','private, no-store') @Post('reviews/:id/moderate') moderate(@Req() r:AuthRequest,@Param('id') id:string,@Body() b:unknown){return this.reviews.moderate(r.user,id,b);}
  @Header('Cache-Control','private, no-store') @Post('imports/columns') importColumns(@Body() b:{csv?:unknown}){const p=parseCSV(b?.csv as string);return {headers:p.headers,delimiter:p.delimiter,warnings:p.warnings};}
  @Header('Cache-Control','private, no-store') @Post('imports/preview') preview(@Req() r:AuthRequest,@Body() b:unknown){return this.imports.preview(r.user,b);}
@@ -60,6 +65,11 @@ export class CatalogPublicController{
  @Header('Cache-Control','private, no-store') @Get('categories') categories(){return this.catalog.categories(true);}
  @Header('Cache-Control','private, no-store') @Get('selection') selection(@Query('ids') ids:unknown){return this.catalog.selection(ids);}
  @Header('Cache-Control','private, no-store') @Get('reviews/:slug') reviewList(@Param('slug') slug:string,@Query() q:Record<string,unknown>){return this.reviews.publicList(slug,q);}
+ @Header('Cache-Control','public, max-age=3600') @Header('X-Content-Type-Options','nosniff')
+ @Get('review-photos/:id') async reviewPhoto(@Param('id') id:string){
+  const photo=await this.reviews.photo(id);
+  return new StreamableFile(photo.content,{type:photo.mime_type,length:photo.size_bytes});
+ }
 }
 @Controller('v1/customer/catalog')
 @UseGuards(CustomerGuard)
@@ -67,5 +77,6 @@ export class CatalogCustomerController{
  constructor(private readonly storeProfile:StoreProfileService,private readonly catalog:CatalogWorkspaceService,private readonly reviews:CatalogReviewsService){}
  @Header('Cache-Control','private, no-store') @Get('review-eligible') eligible(@Req() r:AuthRequest){return this.reviews.eligible(r.user);}
  @Header('Cache-Control','private, no-store') @Post('reviews') review(@Req() r:AuthRequest,@Body() b:unknown){return this.reviews.create(r.user,b);}
+ @Header('Cache-Control','private, no-store') @Post('review-photos') reviewPhotos(@Req() r:AuthRequest,@Body() b:unknown){return this.reviews.uploadPhoto(r.user,b);}
  @Header('Cache-Control','private, no-store') @Get('orders') orders(@Req() r:AuthRequest,@Query() q:Record<string,unknown>){return this.catalog.orders(q,r.user.id);}
 }
