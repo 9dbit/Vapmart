@@ -25,7 +25,7 @@ export function SiteHeader(){
   // Keep the brand anchored in the same header position across every route.
   // Back is a dedicated control below the sticky header, never inserted before the logo.
   const backHref=pathname.startsWith('/product/')||pathname.startsWith('/product-category/')?'/catalog':
-    pathname==='/login'||pathname==='/akun'?'/member-2':
+    pathname==='/login'||pathname==='/akun'?'/':
     pathname==='/checkout'?'/keranjang-2':pathname.startsWith('/pesanan/')?'/catalog':pathname==='/keranjang-2'?'/catalog':'/';
   const routeIndex=pathname==='/'
     ? 0
@@ -33,11 +33,13 @@ export function SiteHeader(){
       ? 1
       : pathname==='/brand-partner'
         ? 2
-        : pathname==='/member-2'||pathname==='/login'||pathname==='/akun'
+        : pathname==='/member-2'
           ? 3
           : pathname==='/keranjang-2'||pathname==='/checkout'||pathname.startsWith('/pesanan/')
             ? 4
-            : 0;
+            : pathname==='/login'||pathname==='/akun'
+              ? -1
+              : 0;
   const activeIndex=navigationIntent??(open?4:routeIndex);
   const onNavigationClick=(event:MouseEvent<HTMLAnchorElement>,index:number,href:string)=>{
     if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
@@ -118,7 +120,7 @@ export function SiteHeader(){
           <button type="button" className="vm-reference-cart" onClick={()=>setOpen(true)} aria-label={'Buka keranjang, '+count+' barang'} aria-haspopup="dialog" aria-expanded={open}>
             <Icon name="cart"/><span className="cart-count">{count}</span>
           </button>
-          <Link href={customer.user?'/member-2':'/login'} className="vm-reference-login"><Icon name="user"/><span>{customer.user?'Akun':'Masuk'}</span></Link>
+          <Link href={customer.user?'/akun':'/login?next=/akun'} className="vm-reference-login" aria-label="Akun Saya" aria-current={pathname==='/akun'?'page':undefined}><Icon name="user"/><span>Akun Saya</span></Link>
         </div>
       </div>
     </header>

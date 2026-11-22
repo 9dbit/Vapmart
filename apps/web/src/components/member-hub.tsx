@@ -3,7 +3,7 @@ import Link from 'next/link';
 import {useEffect,useState} from 'react';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {useCart} from '@/lib/cart';
-import {membershipActivation,digitalPacks,digitalProduct,type DigitalPack} from '@/lib/digital-products';
+import {digitalPacks,digitalProduct,type DigitalPack} from '@/lib/digital-products';
 import {MemberCard} from './member-card';
 import {CoinVisualStack} from './coin-visual-stack';
 import {formatIDR} from '@/lib/types';
@@ -41,7 +41,6 @@ function CoinPackShop(){
 
 export function MemberHub(){
  const auth=useCustomerAuth();
- const {add}=useCart();
  const [tab,setTab]=useState<Tab>('overview');
  const [overview,setOverview]=useState<Overview|null>(null);
  const [error,setError]=useState('');
@@ -75,7 +74,7 @@ export function MemberHub(){
    <div className="vm21-member-header vm22-member-heading">
      <span className="vm21-eyebrow">VAPMART CLUB / DIGITAL MEMBERSHIP</span>
      <h1>Vapmart Member Card</h1>
-     <p>Saldo Coin, status, dan benefit langsung dari akun Vapmart.</p>
+     <p>Member gratis setelah profil akun lengkap. Saldo Coin dan benefit tetap terpisah dari pendaftaran.</p>
    </div>
    <div className="vm21-member-columns">
      <div className="vm21-member-primary">
@@ -88,7 +87,7 @@ export function MemberHub(){
              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="m3 7 4.2 3L12 3l4.8 7L21 7l-2 11H5L3 7Z" fill="currentColor"/><path d="M6 21h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
            </span>
            <span className="vm22-shortcut-copy"><strong>Benefit Member</strong>
-             <small>{status==='ACTIVE'?'Akses benefit yang berlaku untuk akun aktif.':'Keuntungan eksklusif setelah aktivasi member.'}</small></span>
+             <small>{status==='ACTIVE'?'Akses benefit yang berlaku untuk akun aktif.':'Aktivasi gratis dengan melengkapi profil akun.'}</small></span>
            <span className="vm22-shortcut-chevron" aria-hidden="true">›</span>
          </button>
          <button type="button" className="vm22-member-shortcut is-grey"
@@ -115,8 +114,8 @@ export function MemberHub(){
        {!auth.user&&<div className="vm21-guest-actions"><Link href="/login?mode=signup" className="vm21-primary">Daftar Gratis <span aria-hidden="true">↗</span></Link><Link href="/login" className="vm21-secondary">Masuk Akun</Link></div>}
        {auth.user&&overview?.status==='REGISTERED'&&<section className="vm21-activation">
          <div><span className="vm21-eyebrow">ONE-TIME ACTIVATION</span><h2>Aktifkan Vapmart Member</h2>
-           <p>Bayar Rp100.000 satu kali. Setelah pembayaran terverifikasi, status member aktif dan 100.000 Coin dikreditkan tepat satu kali.</p>
-         </div><button type="button" className="vm21-primary" onClick={()=>add(digitalProduct(membershipActivation))}>Aktivasi Member · Rp100.000</button>
+           <p>Aktivasi Member dilakukan gratis dengan melengkapi nama, email, nomor WhatsApp dan alamat di Akun Saya. Tidak perlu membeli produk atau paket Coin.</p>
+         </div><Link className="vm21-primary" href="/akun">Lengkapi Profil &amp; Aktivasi Gratis</Link>
        </section>}
        {auth.user&&overview?.status==='ACTIVE'&&<p className="vm21-member-active-note">Membership aktif. Benefit mengikuti event yang berlaku.</p>}
      </div>
@@ -130,7 +129,7 @@ export function MemberHub(){
        {tab==='overview'&&<div role="tabpanel" className="vm21-overview">
          <div className="vm21-overview-stats">
            <div><span>SALDO COIN</span><strong>{balance===null?'—':balance.toLocaleString('id-ID')}</strong><small>Coin tersedia</small></div>
-           <div><span>STATUS MEMBER</span><strong>{status==='ACTIVE'?'Active':status==='REGISTERED'?'Belum Aktif':status==='GUEST'?'Guest':status==='SUSPENDED'?'Ditangguhkan':'Belum Sinkron'}</strong><small>Benefit sesuai status</small></div>
+           <div><span>STATUS MEMBER</span><strong>{status==='ACTIVE'?'Active':status==='REGISTERED'?'Perlu Profil':status==='GUEST'?'Guest':status==='SUSPENDED'?'Ditangguhkan':'Belum Sinkron'}</strong><small>Benefit sesuai status</small></div>
          </div>
          <div className="vm21-benefit-intro"><span className="vm21-eyebrow">MEMBERSHIP BENEFIT</span><h2>One card. More access.</h2>
            <p>Keanggotaan membuka akses promo event, penawaran khusus, dan benefit yang ditentukan admin. Tidak ada diskon yang diklaim aktif sebelum event dipublikasikan.</p>

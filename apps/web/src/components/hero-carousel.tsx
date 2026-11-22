@@ -4,22 +4,20 @@ import type {HeroSlide} from '@/lib/hero-banners';
 
 export function HeroCarousel({slides}:{slides:HeroSlide[]}){
   const [active,setActive]=useState(0);
-  const [paused,setPaused]=useState(false);
   const [hovered,setHovered]=useState(false);
   const startX=useRef<number|null>(null);
   const count=slides.length;
   const signature=slides.map(s=>s.key).join(',');
   useEffect(()=>{setActive(0);},[signature]);
   useEffect(()=>{
-    if(count<2||paused||hovered||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    if(count<2||hovered||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
     const interval=window.setInterval(()=>setActive(current=>(current+1)%slides.length),5500);
     return()=>window.clearInterval(interval);
-  },[paused,hovered,count]);
+  },[hovered,count]);
   function navigate(direction:number){
-    setPaused(true);
     setActive(current=>(current+direction+slides.length)%slides.length);
   }
-  function jump(index:number){setPaused(true);setActive(index);}
+  function jump(index:number){setActive(index);}
   if(!count)return null;
   const shown=Math.min(active,count-1);
   return <section className="legacy-banner-reference vm-original-banner" aria-label="Banner Vapmart">
@@ -50,18 +48,10 @@ export function HeroCarousel({slides}:{slides:HeroSlide[]}){
         </div>)}
       </div>
       {count>1&&<>
-      <button type="button" className="vm-carousel-arrow vm-carousel-previous" onClick={()=>navigate(-1)} aria-label="Banner sebelumnya">
-        <span aria-hidden="true">‹</span>
-      </button>
-      <button type="button" className="vm-carousel-arrow vm-carousel-next" onClick={()=>navigate(1)} aria-label="Banner berikutnya">
-        <span aria-hidden="true">›</span>
-      </button>
       <div className="vm-carousel-dots" role="group" aria-label="Pilih banner">
         {slides.map((slide,index)=><button key={slide.key} type="button" className={index===shown?'is-active':''}
           aria-label={'Tampilkan banner '+(index+1)} aria-pressed={index===shown} onClick={()=>jump(index)}><span/></button>)}
       </div>
-      <button type="button" className="vm-carousel-pause" aria-label={paused?'Lanjutkan putaran banner':'Jeda putaran banner'}
-        onClick={()=>setPaused(value=>!value)}>{paused?'▶':'Ⅱ'}</button>
       </>}
     </div>
   </section>;

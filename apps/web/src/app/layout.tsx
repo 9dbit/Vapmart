@@ -29,6 +29,7 @@ import './cp24-logo.css';
 import './storefront-collection.css';
 import './member-obsidian.css';
 import './home-compact.css';
+import './hero-account-polish.css';
 import {Icon} from '@/components/store-icon';
 // Runs before React hydration, preventing a bright flash on dark-theme return visits.
 const initialThemeScript="(function(){var root=document.documentElement;var pref='light';try{var stored=localStorage.getItem('vapmart.color-mode.v1');if(stored==='dark'||stored==='light'||stored==='system')pref=stored}catch(e){}var system=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=pref==='system'?(system?'dark':'light'):pref;root.setAttribute('data-vapmart-color-mode',resolved);root.style.colorScheme=resolved;var meta=document.querySelector('meta[name=theme-color]');if(meta)meta.content=resolved==='dark'?'#131317':'#ffffff'})();";
@@ -53,7 +54,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
         <div className="vm-footer-links"><h3>Jelajahi</h3>
           <Link href="/catalog">Katalog</Link><Link href="/brand-partner">Brand Partner</Link>
           <Link href="/member-2">Member</Link>
-          <Link href="/login">Akun pelanggan</Link>
+          <Link href="/akun">Akun Saya</Link>
         </div>
         <div className="vm-footer-links"><h3>Informasi</h3>
           <Link href="/keranjang-2">Keranjang</Link>

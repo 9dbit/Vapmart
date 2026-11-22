@@ -25,7 +25,11 @@ categories = [dict(id=str(i), slug=slug, name=name) for i, (slug,name) in enumer
 class Fixture(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlsplit(self.path).path
-        if path == '/v1/products':
+        if path == '/v1/hero-banners':
+            data = {'items':[dict(key=f'hero-{i}', desktop=f'/legacy/banners/desktop-0{i}.png',
+                                  mobile=f'/legacy/banners/mobile-0{i}.png',label=f'Promo {i}')
+                             for i in [1,2,3]]}
+        elif path == '/v1/products':
             data = {'items':[lamp, bag]}
         elif path == '/v1/products/lampu':
             data = lamp
@@ -206,6 +210,16 @@ def verify_home(page, base):
     page.goto(base+'/',wait_until='domcontentloaded')
     categories=page.locator('.vm-trendora-category')
     expect(categories.first).to_be_visible()
+    hero=page.locator('.vm-trendora-hero .vm-carousel-shell')
+    expect(hero).to_be_visible()
+    expect(hero.locator('.vm-carousel-slide')).to_have_count(3)
+    expect(hero.locator('.vm-carousel-dots button')).to_have_count(3)
+    expect(hero.locator('.vm-carousel-arrow')).to_have_count(0)
+    expect(hero.locator('.vm-carousel-pause')).to_have_count(0)
+    expect(hero.locator('button[aria-label*="Favorit"]')).to_have_count(0)
+    # Carousel still navigates with tiny dots after removing arrows and play UI.
+    hero.get_by_role('button',name='Tampilkan banner 2').click()
+    expect(hero.get_by_role('button',name='Tampilkan banner 2')).to_have_attribute('aria-pressed','true')
     expect(page.locator('.vm-home-member-preview .vmoc-card')).to_be_visible()
     expect(page.locator('.vm-home-member-preview [data-member-card-design="obsidian-premium"]')).to_have_count(1)
     expect(page.locator('.vm-home-member-preview .vmoc-brand-watermark')).to_have_count(1)
@@ -218,6 +232,13 @@ def verify_home(page, base):
         page.set_viewport_size({'width':width,'height':844})
         for theme in ['light','dark']:
             page.evaluate('(value)=>document.documentElement.dataset.vapmartColorMode=value',theme)
+            dots=box(hero.locator('.vm-carousel-dots'))
+            assert dots['height'] <= 30 and dots['width'] < 90,(width,theme,dots)
+            account=page.locator('header .vm-reference-login')
+            expect(account).to_be_visible()
+            expect(account).to_have_attribute('aria-label','Akun Saya')
+            if width<=767:
+                assert abs(box(account)['width']-box(account)['height']) < 2,(width,box(account))
             category_image=categories.first.locator('.vm-trendora-category-image')
             frame=box(category_image)
             assert abs(frame['width']-frame['height']) < 1,frame
@@ -225,7 +246,16 @@ def verify_home(page, base):
             card=box(page.locator('.vm-home-member-preview .vmoc-card'))
             assert abs(card['width']/card['height'] - 85.6/53.98) < .025,card
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),width
-    print('Homepage hero cleanup, category circles, compact headings and Obsidian member preview passed.')
+    page.goto(base+'/akun',wait_until='domcontentloaded')
+    expect(page.get_by_role('heading',name='Akun Saya',exact=True)).to_be_visible()
+    expect(page.get_by_role('link',name='Daftar Gratis')).to_be_visible()
+    assert page.locator('.vm-account-panel .vm-new-member-card').count()==0
+    page.get_by_role('link',name='Daftar Gratis').click()
+    expect(page.get_by_role('heading',name='Buat akun baru')).to_be_visible()
+    expect(page.get_by_role('textbox',name='Nomor WhatsApp')).to_be_visible()
+    expect(page.get_by_role('textbox',name='Alamat lengkap')).to_be_visible()
+    assert page.get_by_role('button',name='Aktivasi Member · Rp100.000').count()==0
+    print('Homepage minimal controls, accessible carousel, header account access and free signup passed.')
 
 def verify_care(page, base):
     embed = 'https://chatvice.app/api/widget/chatvice.js?merchant=m_d74410c444e2726c'
@@ -254,6 +284,7 @@ def verify_care(page, base):
     page.goto(base+'/catalog', wait_until='domcontentloaded')
     fallback = page.get_by_role('link', name='Buka chat Vapmart Care')
     expect(fallback).to_be_visible()
+    assert box(fallback)['width']<=46,'Chatvice fallback must stay compact'
     page.wait_for_function('window.careLoads === 1')
     assert len(attempts) == 2
     expect(page.locator('head #vapmart-chatvice-care')).to_have_count(1)

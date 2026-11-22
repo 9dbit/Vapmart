@@ -29,10 +29,57 @@ export function validateOrder(body:unknown){
    throw new BadRequestException('Idempotency key must be UUID');
  return {sku:b.sku,idempotencyKey:b.idempotencyKey};
 }
+/** Verified customer registration is free. Checkout orders and Coin credits are separate. */
+export function validateFreeRegistration(raw:unknown){
+ if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new BadRequestException('Data pendaftaran tidak valid');
+ const b=raw as Record<string,unknown>;
+ if(Object.keys(b).some(k=>!['name','whatsapp','address'].includes(k)))throw new BadRequestException('Kolom pendaftaran tidak dikenal');
+ const name=typeof b.name==='string'?b.name.trim():'';
+ const whatsapp=typeof b.whatsapp==='string'?b.whatsapp.trim():'';
+ const address=typeof b.address==='string'?b.address.trim():'';
+ if(name.length<2||name.length>90)throw new BadRequestException('Nama lengkap minimal 2 karakter, maksimal 90');
+ if(!/^(?:\+?62|0)[0-9\s-]{8,18}$/.test(whatsapp))throw new BadRequestException('Nomor WhatsApp Indonesia tidak valid');
+ if(address.length<8||address.length>300)throw new BadRequestException('Alamat lengkap minimal 8 karakter, maksimal 300');
+ return {name,whatsapp,address};
+}
 @Injectable()
 export class MemberCommerceService{
  constructor(private readonly db:DatabaseService){}
  packs(){return {items:PACKS,checkoutEnabled:digitalEnabled()};}
+ /**
+  * Register and activate a verified customer as a member without creating an
+  * order, payment event, ledger entry or complimentary Coin. Existing paid
+  * membership records and wallet balances remain untouched.
+  */
+ async completeFreeRegistration(user:Principal,raw:unknown){
+  if(!this.db.configured)throw new ServiceUnavailableException('Member database unavailable');
+  if(!user.email||!user.emailVerified)throw new ForbiddenException('Verifikasi email wajib untuk aktivasi gratis');
+  const registration=validateFreeRegistration(raw);
+  return this.db.transaction(async client=>{
+   await client.query(
+    `INSERT INTO public.customer_profiles(user_id,email,display_name)
+       VALUES($1,$2,$3)
+       ON CONFLICT(user_id) DO UPDATE SET
+        email=EXCLUDED.email,display_name=EXCLUDED.display_name,updated_at=now()`,
+    [user.id,user.email,registration.name]);
+   const existing=await client.query<{status:string}>(
+    'SELECT status FROM membership.accounts WHERE user_id=$1 FOR UPDATE',[user.id]);
+   if(existing.rows[0]?.status==='SUSPENDED')throw new ForbiddenException('Membership ditangguhkan; hubungi Customer Service');
+   if(!existing.rows.length){
+    await client.query(
+     `INSERT INTO membership.accounts(user_id,status,activated_at)
+       VALUES($1,'ACTIVE',now())`,[user.id]);
+   }else if(existing.rows[0].status==='REGISTERED'){
+    await client.query(
+     `UPDATE membership.accounts SET status='ACTIVE',activated_at=COALESCE(activated_at,now())
+       WHERE user_id=$1 AND status='REGISTERED'`,[user.id]);
+   }
+   await client.query('INSERT INTO wallet.accounts(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING',[user.id]);
+   await client.query('INSERT INTO membership.cards(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING',[user.id]);
+   return {status:'ACTIVE',registered:true,requiresPurchase:false,creditedCoins:0};
+  });
+ }
+
  async overview(user:Principal){
   if(!this.db.configured)throw new ServiceUnavailableException('Member database unavailable');
   try {

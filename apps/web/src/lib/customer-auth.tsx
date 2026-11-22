@@ -5,7 +5,8 @@ import {createClient,type Session,type SupabaseClient,type User} from '@supabase
 type CustomerContext={
   user:User|null;accessToken:string|null;loading:boolean;configured:boolean;
   signIn:(email:string,password:string)=>Promise<void>;
-  signUp:(email:string,password:string,name:string)=>Promise<{needsConfirmation:boolean}>;
+  signUp:(email:string,password:string,name:string,whatsapp:string,address:string)=>Promise<{needsConfirmation:boolean}>;
+  updateProfile:(profile:{name:string;whatsapp:string;address:string})=>Promise<void>;
   sendReset:(email:string)=>Promise<void>;
   changePassword:(newPassword:string)=>Promise<void>;
   signOut:()=>Promise<void>;
@@ -44,13 +45,19 @@ export function CustomerAuthProvider({children}:{children:ReactNode}){
    const {error}=await requireClient().auth.signInWithPassword({email,password});
    if(error)throw new Error(error.message);
  },[requireClient]);
- const signUp=useCallback(async(email:string,password:string,name:string)=>{
+ const signUp=useCallback(async(email:string,password:string,name:string,whatsapp:string,address:string)=>{
    const {data,error}=await requireClient().auth.signUp({email,password,options:{
-     data:{display_name:name.trim().slice(0,90)},
-     emailRedirectTo:typeof window==='undefined'?undefined:window.location.origin+'/login'
+     data:{display_name:name.trim().slice(0,90),whatsapp_number:whatsapp.trim(),address_line:address.trim()},
+     emailRedirectTo:typeof window==='undefined'?undefined:window.location.origin+'/login?next=/akun'
    }});
    if(error)throw new Error(error.message);
    return {needsConfirmation:!data.session};
+ },[requireClient]);
+ const updateProfile=useCallback(async(profile:{name:string;whatsapp:string;address:string})=>{
+   const {error}=await requireClient().auth.updateUser({
+     data:{display_name:profile.name.trim().slice(0,90),whatsapp_number:profile.whatsapp.trim(),address_line:profile.address.trim()}
+   });
+   if(error)throw new Error(error.message);
  },[requireClient]);
  const sendReset=useCallback(async(email:string)=>{
    const {error}=await requireClient().auth.resetPasswordForEmail(email,{
@@ -66,8 +73,8 @@ export function CustomerAuthProvider({children}:{children:ReactNode}){
  },[requireClient]);
  const value=useMemo(()=>({
    user:session?.user??null,accessToken:session?.access_token??null,loading,configured:!!client,
-   signIn,signUp,sendReset,changePassword,signOut
- }),[session,loading,client,signIn,signUp,sendReset,changePassword,signOut]);
+   signIn,signUp,updateProfile,sendReset,changePassword,signOut
+ }),[session,loading,client,signIn,signUp,updateProfile,sendReset,changePassword,signOut]);
  return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 export function useCustomerAuth(){
