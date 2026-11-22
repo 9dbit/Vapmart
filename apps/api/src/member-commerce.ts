@@ -38,7 +38,7 @@ export function validateFreeRegistration(raw:unknown){
  const whatsapp=typeof b.whatsapp==='string'?b.whatsapp.trim():'';
  const address=typeof b.address==='string'?b.address.trim():'';
  if(name.length<2||name.length>90)throw new BadRequestException('Nama lengkap minimal 2 karakter, maksimal 90');
- if(!/^(?:\\+?62|0)[0-9\\s-]{8,18}$/.test(whatsapp))throw new BadRequestException('Nomor WhatsApp Indonesia tidak valid');
+ if(!/^(?:\+?62|0)[0-9\s-]{8,18}$/.test(whatsapp))throw new BadRequestException('Nomor WhatsApp Indonesia tidak valid');
  if(address.length<8||address.length>300)throw new BadRequestException('Alamat lengkap minimal 8 karakter, maksimal 300');
  return {name,whatsapp,address};
 }
