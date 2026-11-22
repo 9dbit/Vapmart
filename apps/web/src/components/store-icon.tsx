@@ -1,7 +1,16 @@
-export type IconName='search'|'cart'|'user'|'home'|'categories'|'star'|'tag'|'back'|'next'|'plus'|'minus'|'sort'|'bag'|'decor'|'electronics'|'whatsapp'|'heart';
+export type IconName='search'|'cart'|'user'|'home'|'categories'|'star'|'tag'|'back'|'next'|'plus'|'minus'|'sort'|'bag'|'decor'|'electronics'|'whatsapp'|'heart'|'receipt'|'store'|'settings'|'wallet'|'package'|'package-check'|'undo-2'|'award'|'message-circle';
 export function Icon({name}:{name:IconName}){
   const common={viewBox:'0 0 24 24',width:21,height:21,fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round' as const,strokeLinejoin:'round' as const,'aria-hidden':true as const};
   if(name==='search')return <svg {...common}><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>;
+  if(name==='receipt')return <svg {...common}><path d="M5 2h14v20l-3-2-4 2-4-2-3 2V2Z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>;
+  if(name==='store')return <svg {...common}><path d="m3 9 2-6h14l2 6v2c0 2-2.5 3.5-4.5 1.5-1.5 2-3.5 2-4.5 0C6 14.5 3 13 3 11V9Z"/><path d="M5 14v7h14v-7M9 21v-5h6v5"/></svg>;
+  if(name==='settings')return <svg {...common}><path d="M10 2h4l.7 2.2 2 .9 2.1-1 2.3 3.2-1.5 1.8.2 2.3 2.2 1v3.7l-2.2.8-.8 2.2.7 2-3.2 2-1.7-1.4-2.2.3-1 2H10l-.9-2.2-2.2-.9-2 .8-2.1-3 .9-1.9-.6-2.2L1 13v-3.7l2.2-.7.9-2.3-1-1.9 3.2-2 1.6 1.4L10 2Z" transform="translate(1 1) scale(.9)"/><circle cx="12" cy="12" r="3"/></svg>;
+  if(name==='wallet')return <svg {...common}><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 9V5a3 3 0 0 1 3-3h12M15 13h6M17 13v2"/></svg>;
+  if(name==='package')return <svg {...common}><path d="m3 7 9-4 9 4v10l-9 4-9-4V7ZM3 7l9 4 9-4M12 11v10M7.5 5 16 9"/></svg>;
+  if(name==='package-check')return <svg {...common}><path d="m3 7 9-4 9 4v10l-9 4-9-4V7ZM3 7l9 4 9-4M12 11v10"/><path d="m15 15 2 2 4-4"/></svg>;
+  if(name==='undo-2')return <svg {...common}><path d="M7 6 3 10l4 4M3 10h11a7 7 0 1 1-1 14" transform="translate(0 -2)"/></svg>;
+  if(name==='award')return <svg {...common}><circle cx="12" cy="8" r="6"/><path d="m8 13-2 9 6-3 6 3-2-9"/></svg>;
+  if(name==='message-circle')return <svg {...common}><path d="M21 11.5a8.5 8.5 0 0 1-13 7.3L3 21l1.2-5A8.5 8.5 0 1 1 21 11.5Z"/><path d="M8 11h8M8 14h5"/></svg>;
   if(name==='heart')return <svg {...common}><path d="M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.4a5.5 5.5 0 0 0 0-7.8Z"/></svg>;
   if(name==='cart')return <svg {...common}><path d="M3 4h2l2.2 11.4a2 2 0 0 0 2 1.6h9.5a2 2 0 0 0 2-1.5L22 8H6"/><circle cx="10" cy="20" r="1"/><circle cx="19" cy="20" r="1"/></svg>;
   if(name==='user')return <svg {...common}><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg>;
