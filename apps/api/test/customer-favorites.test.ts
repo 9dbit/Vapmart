@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {BadRequestException,ForbiddenException,NotFoundException} from '@nestjs/common';
 import {CustomerFavoritesService,parseFavorite} from '../src/customer-favorites';
+import {CatalogWorkspaceService} from '../src/catalog-workspace';
 import type {DatabaseService} from '../src/database';
 import {readFileSync} from 'node:fs';
 const user={id:'00000000-0000-4000-8000-000000000901',email:'buyer@vapmart.invalid',emailVerified:true};
@@ -77,4 +78,19 @@ test('order summaries derive item image, quantity and dates from backend, never 
  assert.match(source,/summary\.total_units/);
  assert.match(source,/o\.created_at>=now\(\)-\$4::interval/);
  assert.match(source,/AND \(\$1::uuid IS NULL OR o\.customer_user_id=\$1\)/);
+});
+
+test('order filters accept validated periods and item counts without weakening parsePage',async()=>{
+ let captured:unknown[]|undefined;
+ const service=new CatalogWorkspaceService(db(async(sql,params)=>{
+  assert.match(sql,/preview.product_name/);
+  assert.match(sql,/summary.item_count/);
+  captured=params;return {rows:[{data:{items:[],total:0}}]};
+ }));
+ const x=await service.orders({page:'1',pageSize:'12',q:'Lampu',status:'processing',period:'30d',items:'multiple'},user.id);
+ assert.equal(x.total,0);
+ assert.deepEqual(captured,[user.id,'Lampu','processing','30 days','multiple',12,0]);
+ await assert.rejects(()=>service.orders({period:'12 years'},user.id),BadRequestException);
+ await assert.rejects(()=>service.orders({items:'SQL INJECTION'},user.id),BadRequestException);
+ await assert.rejects(()=>service.orders({period:'all',unknown:'oops'},user.id),BadRequestException);
 });
