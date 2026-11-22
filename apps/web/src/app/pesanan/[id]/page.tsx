@@ -109,7 +109,7 @@ export default function OrderPage(){
     <p className="vco26-footnote">Status lunas hanya bisa diberikan oleh backend setelah notifikasi payment gateway diverifikasi.</p>
     <Link className="vco26-secondary" href="/catalog">Kembali ke katalog ↗</Link>
    </section>:<section className="vco26-card">Detail belum tersedia.</section>}
- {detail&&<BuyerReviewForm orderId={params.id}/>}
+ {detail&&<section id="ulasan" style={{scrollMarginTop:135}}><BuyerReviewForm orderId={params.id}/></section>}
  <Link href="/pesanan">Seluruh pesanan saya</Link>
  </main>;
 }
