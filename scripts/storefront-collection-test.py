@@ -11,11 +11,13 @@ from playwright.sync_api import sync_playwright, expect
 
 photos = [f'/legacy/products/archived-0{i}.png' for i in range(3)]
 lamp = dict(id='lamp', name='Lampu meja', slug='lampu', sku='TIC-L01', category='decor',
-            image_url=photos[0], gallery_urls=photos[1:], price_idr=95000, stock_qty=5,
+            image_url=photos[0], gallery_urls=photos[1:], price_idr=95000, regular_price_idr=125000,
+            promo_active=True, cod_available=True, stock_qty=5,
             is_active=True, product_type='simple', description='Lampu baca',
             brand_name='TIC', brand_logo_url='/legacy/brands/brand-01.png')
 bag = dict(lamp, id='bag', name='Tas kecil', slug='tas', sku='BG-203',
-           category='accessories', price_idr=65000)
+           category='accessories', price_idr=65000, regular_price_idr=65000,
+           promo_active=False, cod_available=False, stock_qty=0)
 variant = dict(lamp,id='lamp-blue',sku='TIC-L01-BL',product_type='variation',option_values={'Warna':'Biru'})
 family = dict(lamp,slug='lampu-warna',sku=None,product_type='variable',variants=[variant],
               attributes=[{'name':'Warna','values':['Biru']}])
@@ -98,6 +100,24 @@ def verify(page,base,touch=False):
     expect(page.locator('#shop-search')).to_be_hidden()
     expect(page.locator('.vm-collection-bar button[aria-label="Cari produk"]')).to_have_count(0)
     expect(page.get_by_role('button',name='Tampilkan hanya produk siap dibeli')).to_have_count(0)
+    lamp_card = page.locator('.vm-product-card').filter(has=page.locator('h3',has_text='Lampu meja'))
+    bag_card = page.locator('.vm-product-card').filter(has=page.locator('h3',has_text='Tas kecil'))
+    expect(lamp_card.locator('h3')).to_have_text('Lampu meja')
+    expect(lamp_card.locator('.vm-product-regular-price')).to_have_count(1)
+    assert '125.000' in lamp_card.locator('.vm-product-regular-price').inner_text()
+    assert '95.000' in lamp_card.locator('.vm-product-tile-price strong').inner_text()
+    expect(lamp_card.locator('.vm-product-regular-price')).to_have_css('text-decoration-line','line-through')
+    expect(lamp_card.get_by_text('COD',exact=True)).to_be_visible()
+    expect(bag_card.locator('.vm-product-cod-label')).to_have_count(0)
+    expect(bag_card.locator('.vm-product-regular-price')).to_have_count(0)
+    expect(bag_card.locator('.vm-stock-out-label')).to_have_text('Stok Habis')
+    expect(bag_card.locator('.vm-stock-out-label')).to_have_css('color','rgb(255, 255, 255)')
+    expect(bag_card.locator('.vm-stock-out-label')).to_have_css('background-color','rgb(227, 38, 76)')
+    expect(bag_card.get_by_role('button',name='Tambahkan Tas kecil ke keranjang')).to_be_disabled()
+    for card in [lamp_card,bag_card]:
+        expect(card.locator('.product-copy .eyebrow')).to_have_count(0)
+        for unwanted in ['hemat s.d.','terjual','Cianjur']:
+            assert unwanted.lower() not in card.inner_text().lower(), unwanted
     for width in [320,390,768,1280]:
         page.set_viewport_size({'width':width,'height':844})
         for theme in ['light','dark']:
@@ -126,6 +146,17 @@ def verify(page,base,touch=False):
                 assert abs(box(category_pill)['height']-36) < 1
             assert box(sort)['x']+box(sort)['width'] <= width
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+            for card in [lamp_card,bag_card]:
+                image_stage=box(card.locator('.product-art'))
+                assert abs(image_stage['width']-image_stage['height'])<1,(width,theme,image_stage)
+                assert card.locator('.product-art img').evaluate("(e)=>getComputedStyle(e).objectFit")=='contain'
+                assert image_stage['x']>=-1 and image_stage['x']+image_stage['width']<=width+1
+            assert lamp_card.locator('.vm-product-tile-price strong').evaluate(
+                "(e)=>getComputedStyle(e).color")==('rgb(196, 139, 255)' if theme=='dark' else 'rgb(128, 25, 215)')
+            first_archive=page.locator('.vm-restored-reference-card .vm-archive-image').first
+            if first_archive.count():
+                b=box(first_archive)
+                assert abs(b['width']-b['height'])<1,(width,theme,b)
             plus=page.locator('.add-circle').first
             p,s=box(plus),box(plus.locator('svg'))
             assert abs(p['width']-p['height'])<1 and same_row(p,s)
