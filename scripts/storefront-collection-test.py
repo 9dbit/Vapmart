@@ -10,15 +10,15 @@ from time import sleep
 from playwright.sync_api import sync_playwright, expect
 
 photos = [f'/legacy/products/archived-0{i}.png' for i in range(3)]
-lamp = dict(id='lamp', name='Lampu meja', slug='lampu', sku='TIC-L01', category='decor',
+lamp = dict(id='00000000-0000-4000-8000-000000000001', name='Lampu meja', slug='lampu', sku='TIC-L01', category='decor',
             image_url=photos[0], gallery_urls=photos[1:], price_idr=95000, regular_price_idr=125000,
             promo_active=True, cod_available=True, stock_qty=5,
             is_active=True, product_type='simple', description='Lampu baca',
             brand_name='TIC', brand_logo_url='/legacy/brands/brand-01.png')
-bag = dict(lamp, id='bag', name='Tas kecil', slug='tas', sku='BG-203',
+bag = dict(lamp, id='00000000-0000-4000-8000-000000000002', name='Tas kecil', slug='tas', sku='BG-203',
            category='accessories', price_idr=65000, regular_price_idr=65000,
            promo_active=False, cod_available=False, stock_qty=0)
-variant = dict(lamp,id='lamp-blue',sku='TIC-L01-BL',product_type='variation',option_values={'Warna':'Biru'})
+variant = dict(lamp,id='00000000-0000-4000-8000-000000000003',sku='TIC-L01-BL',product_type='variation',option_values={'Warna':'Biru'})
 family = dict(lamp,slug='lampu-warna',sku=None,product_type='variable',variants=[variant],
               attributes=[{'name':'Warna','values':['Biru']}])
 categories = [dict(id=str(i), slug=slug, name=name) for i, (slug,name) in enumerate(
@@ -42,7 +42,9 @@ class Fixture(BaseHTTPRequestHandler):
         elif path == '/v1/catalog/selection':
             data = {'items':[lamp]}
         elif path.startswith('/v1/catalog/reviews/'):
-            data = {'items':[], 'total':0}
+            data = {'items':[], 'total':0,'average':0,'hasMore':False}
+        elif path == '/v1/shipping/config':
+            data = {'provider':'jubelio','rateLookupEnabled':False,'requiresArea':True,'originLabel':'Gudang Vapmart'}
         else:
             data = {'items':[]}
         self.send_response(200)
@@ -242,37 +244,75 @@ def verify(page,base,touch=False):
     # Wait for the optimistic state to clear before starting the next navigation.
     page.wait_for_function("""() => document.querySelector('nav[aria-label="Navigasi seluler"]')?.dataset.navPending !== 'true'""")
     expect(mobile_nav).to_have_attribute('data-active-index','1')
+    # Product-detail UX: variant sheet, real gallery, sticky tabs and safe-area actions.
     page.goto(base+'/product/lampu-warna',wait_until='networkidle')
-    expect(page.get_by_role('button',name='Beli sekarang')).to_be_disabled()
-    page.get_by_label('Pilih Warna').select_option('Biru')
-    expect(page.get_by_role('button',name='Beli sekarang')).to_be_enabled()
+    expect(page.locator('main[data-product-detail-upgrade="v2"]')).to_be_visible()
+    expect(page.locator('.vpd-purchase-bar .vpd-buy')).to_be_enabled()
+    page.locator('.vpd-purchase-bar .vpd-buy').click()
+    variant_sheet=page.get_by_role('dialog',name='Pilih varian')
+    expect(variant_sheet).to_be_visible()
+    expect(variant_sheet.get_by_role('button',name='Beli Sekarang')).to_be_disabled()
+    variant_sheet.get_by_role('button',name='Biru',exact=True).click()
+    expect(variant_sheet.get_by_role('button',name='Beli Sekarang')).to_be_enabled()
     expect(page.get_by_text('SKU TIC-L01-BL',exact=False)).to_be_visible()
+    variant_sheet.get_by_role('button',name='Tutup panel').click()
+    expect(variant_sheet).to_have_count(0)
     page.goto(base+'/product/lampu',wait_until='networkidle')
-    expect(page.locator('.vm-product-brand img')).to_have_attribute('src',lamp['brand_logo_url'])
+    expect(page.locator('.vpd-brand img')).to_have_attribute('src',lamp['brand_logo_url'])
     expect(page.get_by_text('SKU TIC-L01',exact=False)).to_be_visible()
+    expect(page.locator('.vpd-selling-price')).to_contain_text('95.000')
+    expect(page.locator('.vpd-price-row del')).to_contain_text('125.000')
     expect(page.locator('.vm-photo-track img')).to_have_count(3)
-    page.get_by_role('button',name='Foto berikutnya').click()
+    page.locator('.vm-photo-track').evaluate("(e)=>e.scrollTo({left:e.clientWidth,behavior:'instant'})")
     expect(page.locator('.vm-photo-nav span')).to_have_text('2 / 3')
-    page.get_by_role('button',name='Tampilkan foto 3').click()
+    page.locator('.vm-photo-track').evaluate("(e)=>e.scrollTo({left:e.clientWidth*2,behavior:'instant'})")
     expect(page.locator('.vm-photo-nav span')).to_have_text('3 / 3')
+    expect(page.locator('.vpd-tabs button')).to_have_count(3)
+    expect(page.get_by_role('heading',name='Ulasan pembeli')).to_be_visible()
+    expect(page.get_by_text('Belum ada ulasan pembeli terverifikasi')).to_be_visible()
+    expect(page.get_by_role('heading',name='Mungkin kamu suka ini')).to_be_visible()
+    assert page.locator('.vpd-reco-item').count()==0,'Never fabricate recommendations'
+    shipping=page.locator('.vpd-info-row').filter(has_text='Pengiriman')
+    shipping.click()
+    shipping_sheet=page.get_by_role('dialog',name='Detail pengiriman')
+    expect(shipping_sheet).to_be_visible()
+    expect(shipping_sheet.get_by_role('link',name='Masuk Akun')).to_be_visible()
+    assert shipping_sheet.get_by_text('Rp0').count()==0,'No fake free shipping'
+    shipping_sheet.get_by_role('button',name='Tutup panel').click()
     for width in [320,390,768,1280]:
         page.set_viewport_size({'width':width,'height':844})
-        buy,cart=box(page.locator('.vcs-buy-cta')),box(page.locator('.vcs-cart-cta'))
-        assert same_row(buy,cart) and buy['x']+buy['width'] < cart['x']
-        assert abs(cart['width']-cart['height'])<1
-        assert box(page.get_by_role('heading',name='Review pembeli'))['x']>=16
-        assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
-    expect(page.get_by_role('link',name='Chat WhatsApp',exact=False)).to_have_attribute('href','https://wa.me/6285232324824')
+        for theme in ['light','dark']:
+            page.evaluate('(t)=>document.documentElement.dataset.vapmartColorMode=t',theme)
+            buy,cart=box(page.locator('.vpd-purchase-bar .vpd-buy')),box(page.locator('.vpd-purchase-bar .vpd-add'))
+            assert same_row(buy,cart) and buy['x']+buy['width'] <= cart['x']
+            assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),(width,theme)
+            track=box(page.locator('.vm-photo-track'))
+            assert abs(track['width']-track['height'])<1,(width,track)
+            price_size=page.locator('.vpd-selling-price').evaluate("(e)=>parseFloat(getComputedStyle(e).fontSize)")
+            assert price_size >= 26,(width,price_size)
+            tabs_top=box(page.locator('.vpd-tabs'))
+            assert tabs_top['x']>=-1 and tabs_top['x']+tabs_top['width']<=width+1
+            purchase=box(page.locator('.vpd-purchase-bar'))
+            assert purchase['y']+purchase['height']>=843
+            assert purchase['x']>=-1 and purchase['x']+purchase['width']<=width+1
+            if width<=767:
+                expect(page.locator('.vm-photo-nav button:visible')).to_have_count(0)
+                expect(page.locator('nav[aria-label="Navigasi seluler"]')).to_be_hidden()
     page.set_viewport_size({'width':390,'height':844})
-    page.get_by_role('button',name='Tambahkan ke keranjang',exact=True).click()
+    # Quantity controls for non-variable products are immediately accessible.
+    counter=page.locator('.vpd-simple-quantity')
+    counter.get_by_role('button',name='Tambah jumlah').click()
+    expect(counter.locator('output')).to_have_text('2')
+    page.locator('.vpd-purchase-bar .vpd-add').click()
     drawer=page.get_by_role('dialog',name='Keranjang',exact=False)
     expect(drawer).to_contain_text('Lampu meja')
-    verify_quantity_controls(drawer,1,touch)
+    verify_quantity_controls(drawer,2,touch)
     page.goto(base+'/keranjang-2',wait_until='networkidle')
-    verify_quantity_controls(page.locator('.vm21-cart-product'),1,touch)
+    verify_quantity_controls(page.locator('.vm21-cart-product'),2,touch)
     page.goto(base+'/product/lampu',wait_until='networkidle')
-    page.get_by_role('button',name='Beli sekarang').click()
-    page.wait_for_url('**/checkout')
+    page.locator('.vpd-purchase-bar .vpd-buy').click()
+    page.wait_for_url('**/checkout?buyNow=*')
+    expect(page.get_by_text('Beli Sekarang',exact=False).first).to_be_visible()
     assert page.evaluate('window.careLoads') == 1
     page.goto(base+'/brand/login', wait_until='load')
     expect(script).to_have_count(0)
