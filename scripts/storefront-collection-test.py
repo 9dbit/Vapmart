@@ -322,7 +322,11 @@ def verify(page,base,touch=False):
     page.goto(base+'/product/lampu',wait_until='networkidle')
     page.locator('.vpd-purchase-bar .vpd-buy').click()
     page.wait_for_url('**/checkout?buyNow=*')
-    expect(page.get_by_text('Beli Sekarang',exact=False).first).to_be_visible()
+    expect(page.locator('main.vco26-root')).to_be_visible()
+    expect(page.locator('.vco26-summary')).to_be_visible(timeout=10000)
+    expect(page.locator('.vco26-summary')).to_contain_text('Lampu meja')
+    expect(page.locator('.vco26-summary')).to_contain_text('Beli Sekarang')
+    expect(page.locator('.vco26-summary')).to_contain_text('1 item')
     assert page.evaluate('window.careLoads') == 1
     page.goto(base+'/brand/login', wait_until='load')
     expect(script).to_have_count(0)
