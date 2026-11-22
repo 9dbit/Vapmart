@@ -15,10 +15,37 @@ function ProductCard({product,index}:{product:Product;index:number}){
   const {add}=useCart();
   const soldOut=product.stock_qty<=0,unpriced=product.price_idr<=0,unavailable=product.available===false;
   const canAdd=!soldOut&&!unpriced&&!unavailable;
-  return <article className="product-card"><Link href={`/product/${product.slug}`} className={`product-art product-art-${index%4}`} aria-label={`Lihat ${product.name}`}>
-    {product.image_url?<img src={product.image_url} alt={product.name} loading="lazy" decoding="async" />:<div className="product-placeholder"><span className="placeholder-spark">✦</span><span>VAPMART OBJECTS</span></div>}
-    {soldOut&&<span className="soldout-tag">Stok habis</span>}{!soldOut&&unpriced&&<span className="soldout-tag">Harga menyusul</span>}{!soldOut&&!unpriced&&unavailable&&<span className="soldout-tag">Belum tersedia</span>}
-  </Link><FavoriteButton id={product.id} name={product.name} className="vm-cp17-card-favorite"/><div className="product-description"><div className="product-copy"><p className="eyebrow">{product.brand_name?product.brand_name+' · ':''}{product.category}{product.sku?` · SKU ${product.sku}`:''}</p><Link href={`/product/${product.slug}`}><h3>{product.name}</h3></Link><span className="vcs-price">{product.promo_active&&product.product_type!=='variable'&&<del>{formatIDR(product.regular_price_idr||product.price_idr)}</del>}<strong>{unpriced?'Harga belum tersedia':(product.product_type==='variable'?'Mulai ':'')+formatIDR(product.price_idr)}</strong></span></div>{product.product_type==='variable'?<Link href={`/product/${product.slug}`} className="add-circle" aria-label={`Pilih variasi ${product.name}`}><Icon name="plus"/></Link>:<button type="button" disabled={!canAdd} onClick={()=>add(product)} className="add-circle" aria-label={`Tambahkan ${product.name} ke keranjang`}><Icon name="plus"/></button>}</div></article>;
+  // Never strike through a fabricated "regular" price. For variable products,
+  // show the precise variant discount only after the buyer selects a variant.
+  const discounted=product.product_type!=='variable'&&product.promo_active===true&&
+    typeof product.regular_price_idr==='number'&&product.regular_price_idr>product.price_idr&&!unpriced;
+  // COD is shown only when the backend explicitly confirms checkout eligibility.
+  // The current checkout does not support COD, so this defaults to hidden.
+  const showCod=canAdd&&product.cod_available===true;
+  return <article className="product-card vm-product-card">
+    <Link href={`/product/${product.slug}`} className={`product-art product-art-${index%4}`} aria-label={`Lihat ${product.name}`}>
+      {product.image_url?<img src={product.image_url} alt={product.name} loading="lazy" decoding="async"/>:
+        <div className="product-placeholder"><span className="placeholder-spark">✦</span><span>VAPMART OBJECTS</span></div>}
+      {soldOut?<span className="soldout-tag vm-stock-out-label">Stok Habis</span>:
+        unpriced?<span className="soldout-tag vm-stock-notice">Harga menyusul</span>:
+        unavailable?<span className="soldout-tag vm-stock-notice">Belum tersedia</span>:null}
+    </Link>
+    <FavoriteButton id={product.id} name={product.name} className="vm-cp17-card-favorite"/>
+    <div className="product-description">
+      <div className="product-copy">
+        <Link href={`/product/${product.slug}`}><h3 title={product.name}>{product.name}</h3></Link>
+        <span className={`vcs-price vm-product-tile-price${discounted?' is-discounted':''}`}>
+          {discounted&&<del className="vm-product-regular-price">{formatIDR(product.regular_price_idr!)}</del>}
+          <strong>{unpriced?'Harga belum tersedia':(product.product_type==='variable'?'Mulai ':'')+formatIDR(product.price_idr)}</strong>
+        </span>
+        {showCod&&<span className="vm-product-cod-label" aria-label="Tersedia pembayaran COD">COD</span>}
+      </div>
+      {product.product_type==='variable'?
+        <Link href={`/product/${product.slug}`} className="add-circle" aria-label={`Pilih variasi ${product.name}`}><Icon name="plus"/></Link>:
+        <button type="button" disabled={!canAdd} onClick={()=>add(product)} className="add-circle"
+          aria-label={`Tambahkan ${product.name} ke keranjang`}><Icon name="plus"/></button>}
+    </div>
+  </article>;
 }
 const normalize=(value:string)=>value.toLocaleLowerCase('id-ID').trim();
 const match=(p:Product,query:string)=>normalize([p.name,p.sku??'',p.brand_name??'',p.description,p.category].join(' ')).includes(query);
