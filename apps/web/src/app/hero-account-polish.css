@@ -1,0 +1,176 @@
+/* Less chrome over campaign artwork; both desktop and mobile. */
+html body .vm-trendora-home .vm-carousel-dots {
+  bottom:clamp(5px,1vw,10px);
+  gap:0;
+  padding:1px 3px;
+  background:rgba(25,18,32,.20);
+  border:0;
+  border-radius:999px;
+  box-shadow:none;
+  -webkit-backdrop-filter:blur(4px);
+  backdrop-filter:blur(4px);
+}
+html body .vm-trendora-home .vm-carousel-dots button {
+  width:25px;height:25px;
+  min-height:25px;
+  padding:0;
+  background:transparent;
+  touch-action:manipulation;
+}
+html body .vm-trendora-home .vm-carousel-dots button span{
+  width:5px;height:5px;
+  background:rgba(255,255,255,.64);
+  border-radius:999px;
+  box-shadow:0 0 1px rgba(0,0,0,.3);
+  transition:width 190ms ease,background 190ms ease;
+}
+html body .vm-trendora-home .vm-carousel-dots button.is-active span {
+  width:12px;height:5px;
+  background:rgba(255,255,255,.96);
+}
+html body .vm-trendora-home .vm-carousel-dots button:focus-visible{
+  outline:2px solid #faf5ff;outline-offset:-2px;
+}
+/* Defensive: product wishlist controls must never cover the hero artwork. */
+html body .vm-trendora-hero :is(.vm-favorite-button,.vm-cp17-card-favorite){display:none}
+/* Keep the original Chatvice merchant widget, just reduce launcher artwork. */
+html body #chatvice-widget-button{
+  scale:.78;
+  transform-origin:right bottom;
+}
+html body #chatvice-eye-toggle{scale:.82;transform-origin:right bottom}
+html body .vm-care-fallback{
+  width:46px;height:46px;font-size:18px;letter-spacing:1px;
+}
+/* The account is always a separate header destination from membership. */
+html body .vm-modern-header .vm-reference-login{
+  white-space:nowrap;
+}
+html body nav.legacy-mobile-nav.vm-reference-mobile-nav[data-active-index="-1"] .vm-liquid-active-pill{
+  opacity:0;
+}
+html body .vm-modern-header a.vm-reference-login:focus-visible{
+  outline:2px solid #a74cff;outline-offset:3px;
+}
+@media(max-width:767px){
+  html body .vm-modern-header .vm-header-main{
+    gap:5px;
+    padding-inline:12px;
+  }
+  html body .vm-modern-header .legacy-logo{
+    flex:0 0 126px!important;
+    width:126px!important;
+  }
+  html body .vm-modern-header .legacy-logo img{
+    width:126px!important;
+    max-width:126px!important;
+  }
+  html body .vm-modern-header .vm-reference-actions{gap:4px;margin-left:auto}
+  html body .vm-modern-header .vm-reference-login,
+  html body .vm-reference-actions .vm-reference-login{
+    display:grid!important;
+    place-items:center;
+    flex:0 0 40px;
+    min-width:40px;
+    width:40px;
+    height:40px;
+    padding:0;
+    border-radius:50%;
+  }
+  html body .vm-modern-header .vm-reference-login svg{width:19px;height:19px}
+  html body .vm-modern-header .vm-reference-login>span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+  html body .vm-trendora-home .vm-carousel-dots{bottom:5px;padding:0 2px;background:rgba(25,18,32,.15)}
+  html body .vm-trendora-home .vm-carousel-dots button{width:24px;height:24px;min-height:24px}
+  html body #chatvice-widget-button{scale:.71}
+  html body #chatvice-eye-toggle{scale:.75}
+  html body .vm-care-fallback{width:44px;height:44px;font-size:16px}
+}
+@media(max-width:359px){
+  html body .vm-modern-header .vm-header-main{padding-inline:8px;gap:3px}
+  html body .vm-modern-header .legacy-logo{
+    width:112px!important;flex-basis:112px!important;
+  }
+  html body .vm-modern-header .legacy-logo img{
+    width:112px!important;max-width:112px!important;
+  }
+  html body .vm-modern-header .vm-reference-actions{gap:3px}
+  html body .vm-modern-header .vm-search-disclosure summary,
+  html body .vm-modern-header .vm-reference-cart{
+    width:37px;min-width:37px;height:38px;
+  }
+  html body .vm23-theme-switcher,html body .vm23-theme-trigger{
+    width:36px;min-width:36px;height:38px;flex-basis:36px;
+  }
+  html body .vm-modern-header .vm-reference-login{
+    width:38px;height:38px;min-width:38px;flex-basis:38px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+ html body .vm-trendora-home .vm-carousel-dots button span{transition:none}
+}
+/* My Account profile form is deliberately distinct from the Member wallet UI. */
+html body .vm-account-page{display:block;padding:clamp(20px,4vw,46px) 16px 100px}
+html body .vm-account-panel{
+  width:min(760px,100%);
+  margin:0 auto;
+  padding:clamp(20px,3.5vw,35px);
+  background:var(--vm21-white,#fff);
+  border:1px solid var(--vm21-border,#e9e1ee);
+  border-radius:25px;
+  box-shadow:0 14px 38px rgba(65,39,83,.08);
+  color:var(--vm21-ink,#26232b);
+  box-sizing:border-box;
+}
+html body .vm-account-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px}
+html body .vm-account-heading h1,html body .vm-account-guest h1{font-size:clamp(25px,3.2vw,36px);letter-spacing:-.045em;line-height:1.14;margin:5px 0 10px}
+html body .vm-account-heading p,html body .vm-account-guest p{font-size:13px;line-height:1.65;margin:0;color:#756b7c}
+html body .vm-account-eyebrow{font-size:10px!important;letter-spacing:.13em;font-weight:800;color:#7f2ad2!important}
+html body .vm-account-member-link{padding:10px 14px;border-radius:99px;background:#f0e3ff;color:#7021b3;font-size:12px;font-weight:750;text-decoration:none;white-space:nowrap}
+html body .vm-account-status{
+  display:flex;align-items:center;gap:9px;
+  padding:12px 14px;border-radius:13px;background:#f5f0fa;
+  color:#6b398d;font-size:12px;font-weight:700;margin:12px 0 20px;
+}
+html body .vm-account-status-dot{width:8px;height:8px;border-radius:50%;background:#c0a6d5}
+html body .vm-account-status-dot.active{background:#3dba7b}
+html body .vm-account-form{display:grid;grid-template-columns:1fr 1fr;gap:15px 16px}
+html body .vm-account-form label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:750}
+html body .vm-account-form label:has(textarea){grid-column:1/-1}
+html body .vm-account-form input,html body .vm-account-form textarea{
+  box-sizing:border-box;width:100%;min-width:0;
+  border:1px solid #e3d8ed;border-radius:13px;background:#faf8fc;color:#2a2431;
+  padding:12px 13px;font:inherit;font-size:14px;
+}
+html body .vm-account-form input{height:46px}
+html body .vm-account-form input[readonly]{background:#f0edf3;color:#77717d}
+html body .vm-account-form input:focus-visible,html body .vm-account-form textarea:focus-visible{outline:2px solid #bb88ed;outline-offset:1px}
+html body .vm-account-field-hint{grid-column:1/-1;margin:-7px 0 2px;font-size:11px;color:#81748b;line-height:1.5}
+html body .vm-account-actions{grid-column:1/-1;display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:8px}
+html body .vm-account-actions>*{text-decoration:none;min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;padding:11px 18px;border-radius:99px}
+html body .vm-account-actions button{border:0}
+html body .vm-account-error,html body .vm-account-success{grid-column:1/-1;padding:11px 13px;border-radius:12px;font-size:12px;line-height:1.5}
+html body .vm-account-error{background:#fdf0f2;color:#b02e51}
+html body .vm-account-success{background:#edf9f0;color:#246c41}
+html body .vm-account-footer-actions{display:flex;justify-content:flex-end;margin-top:20px}
+html body .vm-account-footer-actions button{border:0;background:none;color:#7b3a9e;text-decoration:underline;font-size:12px;cursor:pointer}
+html body .vm-account-guest{max-width:570px}
+html body .vm-account-guest>.vm-account-actions{margin-top:22px}
+html body .vm21-auth-form textarea{
+  min-width:0;width:100%;box-sizing:border-box;
+  border:1px solid #e6dfea;border-radius:15px;background:#faf9fb;
+  padding:13px 15px;color:#2e2930;font:inherit;font-size:13px;
+}
+html[data-vapmart-color-mode=dark] body .vm-account-panel{background:#221a2b;border-color:#50405b;color:#f1e9fa}
+html[data-vapmart-color-mode=dark] body .vm-account-panel p{color:#c9b5d4}
+html[data-vapmart-color-mode=dark] body .vm-account-form input,html[data-vapmart-color-mode=dark] body .vm-account-form textarea,html[data-vapmart-color-mode=dark] body .vm21-auth-form textarea{
+  color:#f4eafa;background:#30243a;border-color:#594269;
+}
+html[data-vapmart-color-mode=dark] body .vm-account-status{color:#f1e4ff;background:#30233b}
+html[data-vapmart-color-mode=dark] body .vm-account-form input[readonly]{color:#baa8c7;background:#292231}
+@media(max-width:600px){
+  html body .vm-account-page{padding:15px 12px calc(116px + env(safe-area-inset-bottom))}
+  html body .vm-account-panel{padding:21px 17px;border-radius:20px}
+  html body .vm-account-form{grid-template-columns:1fr;gap:15px}
+  html body .vm-account-actions>*{flex:1 1 auto}
+  html body .vm-account-heading{gap:10px}
+}
