@@ -174,11 +174,23 @@ function ProductDetailExperienceInner({product,recommended}:{product:Product;rec
  useEffect(()=>{setQuantity(1);setNotice('');},[selection]);
  useEffect(()=>{
   if(!sheet)return;
+  const node=document.querySelector<HTMLElement>('.vpd-bottom-sheet');
+  const previouslyFocused=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  node?.querySelector<HTMLButtonElement>('[aria-label="Tutup panel"]')?.focus();
   const before=document.body.style.overflow;
   document.body.style.overflow='hidden';
-  const onEscape=(e:KeyboardEvent)=>{if(e.key==='Escape')setSheet(null)};
+  const onEscape=(e:KeyboardEvent)=>{
+   if(e.key==='Escape'){setSheet(null);return;}
+   if(e.key!=='Tab'||!node)return;
+   const focusable=Array.from(node.querySelectorAll<HTMLElement>('a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex="0"]'))
+    .filter(x=>x.getClientRects().length>0);
+   if(!focusable.length)return;
+   const first=focusable[0],last=focusable[focusable.length-1];
+   if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+   else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  };
   window.addEventListener('keydown',onEscape);
-  return()=>{document.body.style.overflow=before;window.removeEventListener('keydown',onEscape)};
+  return()=>{document.body.style.overflow=before;window.removeEventListener('keydown',onEscape);previouslyFocused?.focus();};
  },[sheet]);
  function purchase(type:Intent){
   setNotice('');
@@ -229,6 +241,15 @@ function ProductDetailExperienceInner({product,recommended}:{product:Product;rec
      {chosen?<span className={chosen.stock_qty>0?'':'vpd-sold-out'}>{chosen.stock_qty>0?'Stok tersedia: '+chosen.stock_qty:'Stok Habis'}</span>:<span>Pilih kombinasi varian untuk melihat stok.</span>}
      {chosen?.sku&&<small>SKU {chosen.sku}</small>}
     </div>
+    {!variable&&chosen&&chosen.stock_qty>0&&chosen.price_idr>0&&<div className="vpd-simple-quantity vpd-quantity">
+      <div><strong>Jumlah</strong><small>Maks. {Math.min(chosen.stock_qty,99)} per pesanan</small></div>
+      <div className="vpd-counter">
+       <button type="button" aria-label="Kurangi jumlah" disabled={quantity<=1} onClick={()=>setQuantity(n=>Math.max(1,n-1))}>−</button>
+       <output aria-label="Jumlah produk">{quantity}</output>
+       <button type="button" aria-label="Tambah jumlah" disabled={quantity>=Math.min(chosen.stock_qty,99)}
+        onClick={()=>setQuantity(n=>Math.min(n+1,chosen.stock_qty,99))}>+</button>
+      </div>
+     </div>}
     {notice&&<p className="vpd-notice" role="status">{notice}</p>}
    </div>
   </div>
