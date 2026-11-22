@@ -16,6 +16,8 @@ export class MemberController{
  constructor(private readonly member:MemberCommerceService){}
  @Get('overview')
  overview(@Req() req:CustomerRequest){return this.member.overview(req.user);}
+ @Post('registration')
+ register(@Req() req:CustomerRequest,@Body() body:unknown){return this.member.completeFreeRegistration(req.user,body);}
 }
 @Controller('v1/digital-orders')
 @UseGuards(CustomerGuard)
