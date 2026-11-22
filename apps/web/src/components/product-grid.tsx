@@ -54,7 +54,7 @@ function ProductCard({product,index}:{product:Product;index:number}){
 }
 const normalize=(value:string)=>value.toLocaleLowerCase('id-ID').trim();
 const match=(p:Product,query:string)=>normalize([p.name,p.sku??'',p.brand_name??'',p.description,p.category].join(' ')).includes(query);
-export function ProductGrid({products,initialCategory='all',initialTerm=''}:{products:Product[];initialCategory?:string;initialTerm?:string}){
+export function ProductGrid({products,initialCategory='all',initialTerm='',initialBrandId=''}:{products:Product[];initialCategory?:string;initialTerm?:string;initialBrandId?:string}){
   const [category,setCategory]=useState(initialCategory);
   const [categoryTree,setCategoryTree]=useState<any[]>([]);
   useEffect(()=>{const ac=new AbortController();fetch('/api/catalog/categories',{cache:'no-store',signal:ac.signal}).then(r=>r.ok?r.json():null).then(d=>{if(d?.items)setCategoryTree(d.items)}).catch(()=>{});return()=>ac.abort()},[]);
@@ -72,7 +72,7 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
   const [activeSuggestion,setActiveSuggestion]=useState(-1);
   const searchRef=useRef<HTMLInputElement>(null);
   const query=normalize(term);
-  const activeProducts=useMemo(()=>products.filter(p=>p.is_active),[products]);
+  const activeProducts=useMemo(()=>products.filter(p=>p.is_active&&(!initialBrandId||p.brand_id===initialBrandId)),[products,initialBrandId]);
   const suggestions=useMemo(()=>query?activeProducts.filter(p=>match(p,query)).slice(0,5):[],[activeProducts,query]);
   const filtered=useMemo(()=>{
     let result=activeProducts.filter(p=>categoryMatch(p)&&(!query||match(p,query))&&(!favoritesOnly||savedIds.includes(p.id)));
