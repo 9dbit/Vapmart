@@ -50,12 +50,12 @@ export default async function Home(){
        <p className="vm-reference-disclaimer">Galeri ini hanya dokumentasi tampilan lama. Belum ada SKU, stok, atau harga aktif yang diverifikasi di PostgreSQL; gambar tidak bisa dipesan.</p>
      </section>}
 
-   <section className="main-container vm-trendora-member" id="promo">
+   <section className="main-container vm-trendora-member" id="promo" aria-labelledby="vm-club-title">
      <div className="vm-trendora-member-copy">
        <span className="vm-trendora-eyebrow">THE VAPMART CLUB</span>
-       <h2>A little more, just for you.</h2>
-       <p>Temukan akun, koleksi, dan fitur member dalam satu tempat.</p>
-       <Link id="member" href="/member-2" className="vm-trendora-member-link">Explore member <span aria-hidden="true">↗</span></Link>
+       <h2 id="vm-club-title">Belanja lebih seru jadi member.</h2>
+       <p>Akun, Coin, dan benefit dalam satu tempat.</p>
+       <Link id="member" href="/member-2" className="vm-trendora-member-link">Lihat benefit <span aria-hidden="true">→</span></Link>
      </div>
      <HomeMemberCard/>
    </section>
