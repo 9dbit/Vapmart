@@ -235,16 +235,50 @@ export class CatalogWorkspaceService{
   return {items:r.rows.map(p=>publicPrice(p as any)),observedAt:new Date().toISOString()};
  }
  async orders(raw:Record<string,unknown>={},customerId?:string){
-  const f=parsePage(raw),r=await this.db.query(`WITH filtered AS(SELECT o.id,o.status,o.operational_status,o.invoice_number,o.shipping_courier_code,o.shipping_service_code,
-   q.courier_name AS shipping_courier_name,q.service_name AS shipping_service_name,o.shipping_provider,
-   (SELECT coalesce(jsonb_agg(jsonb_build_object('trackingNumber',s.tracking_number,'state',s.state) ORDER BY s.created_at,s.id),'[]'::jsonb) FROM product.shipments s WHERE s.order_id=o.id) AS shipments,
-   o.payment_status,o.contact_name,o.city,o.province,o.total_idr::text,o.discount_idr::text,o.voucher_discount_idr::text,o.voucher_code,o.promotion_discount_idr::text,o.promotion_event_id,o.promotion_title,o.created_at,o.expires_at,o.payment_method
-   FROM product.orders o LEFT JOIN product.shipping_rate_quotes q ON q.id=o.shipping_quote_id
-   WHERE o.idempotency_key IS NOT NULL AND ($1::uuid IS NULL OR o.customer_user_id=$1)
-   AND ($2='' OR strpos(lower(concat_ws(' ',o.id::text,o.contact_name,o.city)),lower($2))>0)
-   AND ($3='' OR o.operational_status=$3 OR ($3 IN ('paid','fulfilled','not_initiated','pending') AND (o.status=$3 OR o.payment_status=$3)))),s AS(SELECT * FROM filtered ORDER BY created_at DESC,id DESC LIMIT $4 OFFSET $5)
-   SELECT jsonb_build_object('items',coalesce((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.created_at DESC,s.id DESC) FROM s),'[]'::jsonb),'total',(SELECT count(*)::int FROM filtered)) data`,[customerId||null,f.q,f.status,f.pageSize,(f.page-1)*f.pageSize]);const d=r.rows[0].data;return {...pageResult(d.items,d.total,f.page,f.pageSize),paymentEnabled:false};
+  const f=parsePage(raw);
+  const period=typeof raw.period==='string'?raw.period:'all';
+  const itemFilter=typeof raw.items==='string'?raw.items:'all';
+  if(!['all','7d','30d','90d','365d'].includes(period))throw new BadRequestException('Periode transaksi tidak valid');
+  if(!['all','single','multiple'].includes(itemFilter))throw new BadRequestException('Filter jumlah produk tidak valid');
+  const since:Record<string,string>={all:'','7d':'7 days','30d':'30 days','90d':'90 days','365d':'365 days'};
+  const r=await this.db.query(`
+   WITH filtered AS(
+    SELECT o.id,o.status,o.operational_status,o.invoice_number,
+     o.shipping_courier_code,o.shipping_service_code,
+     q.courier_name AS shipping_courier_name,q.service_name AS shipping_service_name,o.shipping_provider,
+     (SELECT coalesce(jsonb_agg(jsonb_build_object('trackingNumber',s.tracking_number,'state',s.state) ORDER BY s.created_at,s.id),'[]'::jsonb)
+      FROM product.shipments s WHERE s.order_id=o.id) AS shipments,
+     o.payment_status,o.contact_name,o.city,o.province,o.total_idr::text,
+     o.discount_idr::text,o.voucher_discount_idr::text,o.voucher_code,
+     o.promotion_discount_idr::text,o.promotion_event_id,o.promotion_title,
+     o.created_at,o.expires_at,o.payment_method,
+     preview.product_id,preview.product_name,preview.image_url,preview.slug,
+     summary.item_count,summary.total_units
+    FROM product.orders o
+    LEFT JOIN product.shipping_rate_quotes q ON q.id=o.shipping_quote_id
+    LEFT JOIN LATERAL (
+     SELECT oi.product_id,oi.product_name,p.image_url,p.slug FROM product.order_items oi
+     LEFT JOIN product.products p ON p.id=oi.product_id
+     WHERE oi.order_id=o.id ORDER BY oi.id LIMIT 1
+    ) preview ON true
+    LEFT JOIN LATERAL (
+     SELECT count(*)::int item_count,coalesce(sum(oi.quantity),0)::int total_units
+     FROM product.order_items oi WHERE oi.order_id=o.id
+    ) summary ON true
+    WHERE o.idempotency_key IS NOT NULL AND ($1::uuid IS NULL OR o.customer_user_id=$1)
+      AND ($2='' OR strpos(lower(concat_ws(' ',o.id::text,o.contact_name,o.city,o.invoice_number,preview.product_name)),lower($2))>0)
+      AND ($3='' OR o.operational_status=$3 OR ($3 IN ('paid','fulfilled','not_initiated','pending') AND (o.status=$3 OR o.payment_status=$3)))
+      AND ($4='' OR o.created_at>=now()-$4::interval)
+      AND ($5='all' OR ($5='single' AND summary.item_count=1) OR ($5='multiple' AND summary.item_count>1))
+   ),
+   selected AS (SELECT * FROM filtered ORDER BY created_at DESC,id DESC LIMIT $6 OFFSET $7)
+   SELECT jsonb_build_object(
+    'items',coalesce((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.created_at DESC,s.id DESC) FROM selected s),'[]'::jsonb),
+    'total',(SELECT count(*)::int FROM filtered)) data`,
+   [customerId||null,f.q,f.status,since[period],itemFilter,f.pageSize,(f.page-1)*f.pageSize]);
+  const d=r.rows[0].data;return {...pageResult(d.items,d.total,f.page,f.pageSize),paymentEnabled:false};
  }
+
  async orderDetail(id:string){
   requireUuid(id,'pesanan');const order=(await this.db.query(`SELECT o.id,o.status,o.payment_status,o.contact_name,o.contact_email,o.contact_phone,o.address_line,o.city,o.province,o.postal_code,o.subtotal_idr::text,o.discount_idr::text,o.voucher_discount_idr::text,o.voucher_code,o.promotion_discount_idr::text,o.promotion_event_id,o.promotion_title,o.shipping_fee_idr::text,o.total_idr::text,o.payment_method,o.shipping_courier_code,o.shipping_service_code,q.courier_name AS shipping_courier_name,q.service_name AS shipping_service_name,o.shipping_provider,o.created_at,o.expires_at FROM product.orders o LEFT JOIN product.shipping_rate_quotes q ON q.id=o.shipping_quote_id WHERE o.id=$1`,[id])).rows[0];if(!order)throw new NotFoundException();
   const lines=await this.db.query('SELECT id,product_id,product_name,sku,quantity,unit_price_idr::text,brand_id FROM product.order_items WHERE order_id=$1 ORDER BY id',[id]);return {order,items:lines.rows,paymentEnabled:false};
