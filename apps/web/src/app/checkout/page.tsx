@@ -93,7 +93,12 @@ export default function CheckoutPage(){
  const selectedShipping=shippingRates.find(r=>r.quoteId===selectedQuoteId)||null;
  const shippingPrice=shippingConfig?.rateLookupEnabled?(selectedShipping?.priceIdr??null):(quote?.shippingFeeIdr??null);
  const totalPreview=quote&&shippingPrice!==null?quote.subtotalIdr-quote.discountIdr+shippingPrice:null;
- useEffect(()=>{fetch('/api/checkout/config',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error('Gateway config unavailable'))).then(setCheckoutConfig).catch(()=>setCheckoutConfig({paymentEnabled:false,providerConnected:false,methods:['bank_transfer']}));},[]);
+ useEffect(()=>{fetch('/api/checkout/config',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error('Gateway config unavailable')))
+  .then(raw=>{
+   // A partial or outdated response must never crash the purchase screen.
+   const methods=Array.isArray(raw?.methods)?raw.methods.filter((m:unknown)=>['bank_transfer','qris','virtual_account','ewallet'].includes(String(m))):[];
+   setCheckoutConfig({...raw,paymentEnabled:Boolean(raw?.paymentEnabled),providerConnected:Boolean(raw?.providerConnected),methods});
+  }).catch(()=>setCheckoutConfig({paymentEnabled:false,providerConnected:false,methods:['bank_transfer']}));},[]);
  useEffect(()=>{fetch('/api/shipping/config',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error('Shipping unavailable'))).then(setShippingConfig).catch(()=>setShippingError('Pengaturan ongkir belum dapat dimuat. Muat ulang halaman untuk mencoba lagi.'));},[]);
  useEffect(()=>{
   if(includesDigital||requestItems.length===0){setQuote(null);setError('');return;}
