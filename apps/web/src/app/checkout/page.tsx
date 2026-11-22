@@ -21,7 +21,14 @@ const initial:DraftForm={name:'',phone:'',address:'',city:'',province:'',postalC
 type CheckoutConfig={paymentEnabled:boolean;providerConnected:boolean;methods:DraftForm['paymentMethod'][];gateway?:{provider:string|null;status:string;environment:string}};
 const methods=[{id:'bank_transfer',name:'Bank Transfer',hint:'Buat pesanan sekarang; pembayaran diverifikasi manual oleh admin'},{id:'qris',name:'QRIS',hint:'Menunggu integrasi payment gateway'},{id:'virtual_account',name:'Virtual Account',hint:'Menunggu integrasi payment gateway'},{id:'ewallet',name:'E-Wallet',hint:'Menunggu integrasi payment gateway'}] as const;
 export default function CheckoutPage(){
- const {items,count}=useCart();
+ const {items}=useCart();
+ const [buyNowId,setBuyNowId]=useState<string|null>(null);
+ const [scopeReady,setScopeReady]=useState(false);
+ useEffect(()=>{
+  const id=new URLSearchParams(window.location.search).get('buyNow');
+  setBuyNowId(id&&/^[0-9a-f-]{36}$/i.test(id)?id:null);
+  setScopeReady(true);
+ },[]);
  const auth=useCustomerAuth();
  const router=useRouter();
  const [form,setForm]=useState<DraftForm>(initial);
@@ -44,8 +51,9 @@ export default function CheckoutPage(){
  const [order,setOrder]=useState<{id:string;status:string;paymentStatus:string}|null>(null);
  const requestKey=useRef<string|null>(null);
  const shippingRequest=useRef(0);
- const physical=useMemo(()=>items.filter(x=>!isDigitalProduct(x.product)),[items]);
- const includesDigital=items.some(x=>isDigitalProduct(x.product));
+ const physical=useMemo(()=>scopeReady?items.filter(x=>!isDigitalProduct(x.product)&&(!buyNowId||x.product.id===buyNowId)):[],[items,buyNowId,scopeReady]);
+ const includesDigital=!scopeReady||(!buyNowId&&items.some(x=>isDigitalProduct(x.product)));
+ const scopedCount=physical.reduce((total,item)=>total+item.quantity,0);
  const requestItems=useMemo(()=>physical.map(x=>({productId:x.product.id,quantity:x.quantity})),[physical]);
  const key=JSON.stringify({items:requestItems,voucherCode:appliedVoucher});
  const selectedShipping=shippingRates.find(r=>r.quoteId===selectedQuoteId)||null;
@@ -121,13 +129,14 @@ export default function CheckoutPage(){
   }catch(e){setError(e instanceof Error?e.message:'Gagal membuat draft pesanan');}
   finally{setBusy(false);}
  };
+ if(!scopeReady)return <main className="vco26-root main-container"><p role="status">Menyiapkan checkout…</p></main>;
  return <main className="vco26-root main-container">
   <div className="vco26-intro">
    <p className="vco26-eyebrow">VAPMART / CHECKOUT</p><h1>Checkout</h1>
    <p>Tinjau barang, penerima, ongkos kirim, dan metode pembayaran. {live?'Pilih kanal pembayaran Xendit atau transfer manual.':'Pilih transfer manual atau kanal Xendit sandbox yang tersedia.'}</p>
    <div className="vco26-steps"><span className="done">1. Keranjang</span><span className="current">2. Checkout</span><span>3. Pembayaran</span></div>
   </div>
-  {items.length===0?<section className="vco26-card"><h2>Belum ada barang.</h2><p>Pilih produk di katalog terlebih dahulu.</p><Link href="/catalog" className="vco26-button">Lihat katalog</Link></section>:
+  {(buyNowId?physical.length===0:items.length===0)?<section className="vco26-card"><h2>Belum ada barang.</h2><p>Pilih produk di katalog terlebih dahulu.</p><Link href="/catalog" className="vco26-button">Lihat katalog</Link></section>:
   includesDigital?<section className="vco26-card"><h2>Produk digital diproses terpisah</h2><p>Pisahkan Coin atau Membership dari barang fisik sebelum checkout. Saldo dan benefit hanya berlaku setelah pembayaran terverifikasi.</p><Link href="/keranjang-2" className="vco26-button">Kembali ke keranjang</Link></section>:
   <div className="vco26-grid">
    <form className="vco26-card vco26-form" onSubmit={submit}>
@@ -166,7 +175,7 @@ export default function CheckoutPage(){
     {order&&<p className="vco26-success">Pesanan #{order.id} dibuat dan masuk dashboard. Status pembayaran: {order.paymentStatus}.</p>}
    </form>
    <aside className="vco26-card vco26-summary">
-    <div className="vco26-card-heading"><span>05</span><div><h2>Ringkasan pesanan</h2><p>{count} item di keranjang</p></div></div>
+    <div className="vco26-card-heading"><span>05</span><div><h2>Ringkasan pesanan</h2><p>{scopedCount} item {buyNowId?'Beli Sekarang':'di keranjang'}</p></div></div>
     {physical.map(({product,quantity})=><div className="vco26-line" key={product.id}>
       <div className="vco26-thumb">{product.image_url?<img src={product.image_url} alt=""/>:<strong>V</strong>}</div>
       <div><strong>{product.name}</strong><small>{product.sku||'SKU belum tersedia'} · {quantity} pcs</small></div>
