@@ -38,6 +38,26 @@ export class CustomerFavoritesService{
  }
  async set(user:Principal,raw:unknown){
   if(!user.emailVerified)throw new ForbiddenException('Verifikasi email untuk favorit akun');
+  // One-time guest-to-account import, constrained by published catalog visibility.
+  if(raw&&typeof raw==='object'&&!Array.isArray(raw)&&'ids' in raw){
+   const b=raw as Record<string,unknown>;
+   if(Object.keys(b).some(k=>!['type','ids'].includes(k)))throw new BadRequestException('Parameter impor tidak dikenal');
+   if(b.type!=='product'&&b.type!=='brand')throw new BadRequestException('Jenis favorit tidak valid');
+   if(!Array.isArray(b.ids)||b.ids.length>100||b.ids.some(x=>typeof x!=='string'||!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(x)))
+    throw new BadRequestException('Daftar ID favorit tidak valid');
+   const ids=[...new Set(b.ids as string[])];
+   if(!ids.length)return {type:b.type,imported:0};
+   const table=b.type==='product'?'product.products':'product.brands';
+   const active=b.type==='product'?"AND x.archived_at IS NULL AND x.product_type<>'variation'":'';
+   const cap=b.type==='product'?100:60;
+   const result=await this.db.query(
+    `INSERT INTO public.customer_favorites(user_id,entity_type,entity_id)
+       SELECT $1,$2,x.id FROM ${table} x WHERE x.id=ANY($3::uuid[]) AND x.is_active=true ${active}
+       AND (SELECT count(*) FROM public.customer_favorites f WHERE f.user_id=$1 AND f.entity_type=$2)<$4
+       LIMIT $4 ON CONFLICT DO NOTHING`,
+    [user.id,b.type,ids,cap]);
+   return {type:b.type,imported:result.rowCount||0};
+  }
   const {type,entityId,saved}=parseFavorite(raw);
   if(!saved){
    await this.db.query('DELETE FROM public.customer_favorites WHERE user_id=$1 AND entity_type=$2 AND entity_id=$3',[user.id,type,entityId]);
