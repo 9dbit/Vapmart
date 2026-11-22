@@ -1,6 +1,16 @@
 name: Compact Vapmart Club UI QA
 
 on:
+  push:
+    branches: [release/vapmart-stable]
+    paths:
+      - "apps/web/src/app/page.tsx"
+      - "apps/web/src/components/customer-auth-panel.tsx"
+      - "apps/web/src/components/home-member-card.tsx"
+      - "apps/web/src/app/club-compact.css"
+      - "apps/web/src/app/layout.tsx"
+      - "scripts/club-compact-ui-smoke.mjs"
+      - ".github/workflows/club-compact-ui-qa.yml"
   pull_request:
     branches: [release/vapmart-stable]
     paths:
