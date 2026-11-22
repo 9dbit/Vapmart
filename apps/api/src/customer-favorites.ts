@@ -53,8 +53,9 @@ export class CustomerFavoritesService{
    const result=await this.db.query(
     `INSERT INTO public.customer_favorites(user_id,entity_type,entity_id)
        SELECT $1,$2,x.id FROM ${table} x WHERE x.id=ANY($3::uuid[]) AND x.is_active=true ${active}
-       AND (SELECT count(*) FROM public.customer_favorites f WHERE f.user_id=$1 AND f.entity_type=$2)<$4
-       LIMIT $4 ON CONFLICT DO NOTHING`,
+       ORDER BY x.id
+       LIMIT GREATEST(0,$4-(SELECT count(*)::int FROM public.customer_favorites f WHERE f.user_id=$1 AND f.entity_type=$2))
+       ON CONFLICT DO NOTHING`,
     [user.id,b.type,ids,cap]);
    return {type:b.type,imported:result.rowCount||0};
   }
