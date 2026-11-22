@@ -377,3 +377,14 @@ html body .vpd-page .vpd-simple-quantity{
  padding-top:13px;
  margin-top:16px;
 }
+
+/* Product pages retain the main header while scrolling, matching the benchmark.
+   The tab strip then locks directly beneath its measured desktop/mobile heights. */
+html body:has(.vpd-page) .vm-modern-header{
+ position:sticky;
+ top:0;
+ z-index:81;
+}
+html body:has(.vpd-page) .vm-modern-header .vm-header-main{
+ position:relative;
+}
