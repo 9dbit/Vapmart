@@ -34,9 +34,14 @@ function ProductCard({product,index}:{product:Product;index:number}){
     <div className="product-description">
       <div className="product-copy">
         <Link href={`/product/${product.slug}`}><h3 title={product.name}>{product.name}</h3></Link>
-        <span className={`vcs-price vm-product-tile-price${discounted?' is-discounted':''}`}>
+        <span className={`vcs-price vm-product-tile-price${discounted?' is-discounted':''}${unpriced?' is-unpriced':''}`}>
+          <strong className="vm-product-current-price">
+            {unpriced?'Harga belum tersedia':<>
+              {product.product_type==='variable'&&<small className="vm-price-from">Mulai</small>}
+              <span className="vm-price-currency">Rp</span><span className="vm-price-amount">{new Intl.NumberFormat('id-ID').format(product.price_idr)}</span>
+            </>}
+          </strong>
           {discounted&&<del className="vm-product-regular-price">{formatIDR(product.regular_price_idr!)}</del>}
-          <strong>{unpriced?'Harga belum tersedia':(product.product_type==='variable'?'Mulai ':'')+formatIDR(product.price_idr)}</strong>
         </span>
         {showCod&&<span className="vm-product-cod-label" aria-label="Tersedia pembayaran COD">COD</span>}
       </div>

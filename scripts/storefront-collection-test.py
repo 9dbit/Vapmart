@@ -106,6 +106,10 @@ def verify(page,base,touch=False):
     expect(lamp_card.locator('.vm-product-regular-price')).to_have_count(1)
     assert '125.000' in lamp_card.locator('.vm-product-regular-price').inner_text()
     assert '95.000' in lamp_card.locator('.vm-product-tile-price strong').inner_text()
+    expect(lamp_card.locator('.vm-product-current-price .vm-price-currency')).to_have_text('Rp')
+    expect(lamp_card.locator('.vm-product-current-price .vm-price-amount')).to_have_text('95.000')
+    assert lamp_card.locator('.vm-product-tile-price').evaluate(
+        "(e)=>e.firstElementChild.classList.contains('vm-product-current-price')")
     expect(lamp_card.locator('.vm-product-regular-price')).to_have_css('text-decoration-line','line-through')
     expect(lamp_card.get_by_text('COD',exact=True)).to_be_visible()
     expect(bag_card.locator('.vm-product-cod-label')).to_have_count(0)
@@ -151,8 +155,31 @@ def verify(page,base,touch=False):
                 assert abs(image_stage['width']-image_stage['height'])<1,(width,theme,image_stage)
                 assert card.locator('.product-art img').evaluate("(e)=>getComputedStyle(e).objectFit")=='contain'
                 assert image_stage['x']>=-1 and image_stage['x']+image_stage['width']<=width+1
-            assert lamp_card.locator('.vm-product-tile-price strong').evaluate(
-                "(e)=>getComputedStyle(e).color")==('rgb(196, 139, 255)' if theme=='dark' else 'rgb(128, 25, 215)')
+            # Screenshot benchmark: readable medium-weight two-line name, dominant
+            # purple price, small muted crossed original price on the same price row.
+            title=lamp_card.locator('.product-copy h3')
+            current=lamp_card.locator('.vm-product-current-price')
+            currency=lamp_card.locator('.vm-price-currency')
+            previous=lamp_card.locator('.vm-product-regular-price')
+            expected_title_size=12.5 if width<360 else 13 if width<=767 else 14 if width<1024 else 14.5
+            expected_price_size=15 if width<360 else 16 if width<=767 else 18 if width<1024 else 19
+            title_style=title.evaluate("(e)=>({size:parseFloat(getComputedStyle(e).fontSize),weight:parseInt(getComputedStyle(e).fontWeight),lineHeight:parseFloat(getComputedStyle(e).lineHeight),color:getComputedStyle(e).color})")
+            price_style=current.evaluate("(e)=>({size:parseFloat(getComputedStyle(e).fontSize),weight:parseInt(getComputedStyle(e).fontWeight),color:getComputedStyle(e).color})")
+            assert abs(title_style['size']-expected_title_size)<.1,(width,title_style)
+            assert 450<=title_style['weight']<=550,(width,title_style)
+            assert 1.3<=title_style['lineHeight']/title_style['size']<=1.5,(width,title_style)
+            assert abs(price_style['size']-expected_price_size)<.1,(width,price_style)
+            assert price_style['weight']>=700,(width,price_style)
+            assert price_style['size']>title_style['size'],(width,title_style,price_style)
+            assert price_style['color']==('rgb(197, 139, 255)' if theme=='dark' else 'rgb(123, 25, 214)'),(width,theme,price_style)
+            assert title_style['color']==('rgb(241, 236, 247)' if theme=='dark' else 'rgb(48, 43, 54)'),(width,theme,title_style)
+            assert float(currency.evaluate("(e)=>parseFloat(getComputedStyle(e).fontSize)")) < price_style['size']
+            assert float(previous.evaluate("(e)=>parseFloat(getComputedStyle(e).fontSize)")) < title_style['size']
+            assert previous.evaluate("(e)=>getComputedStyle(e).color")==('rgb(175, 162, 187)' if theme=='dark' else 'rgb(144, 138, 151)')
+            # Tiny screens may wrap the original price; at regular and desktop
+            # widths it must follow the selling price, never precede it.
+            assert box(previous)['y']>=box(current)['y']-1
+            assert box(previous)['x']>=box(current)['x'] or box(previous)['y']>box(current)['y']+2
             first_archive=page.locator('.vm-restored-reference-card .vm-archive-image').first
             if first_archive.count():
                 b=box(first_archive)
