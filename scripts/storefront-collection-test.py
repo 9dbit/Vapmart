@@ -234,8 +234,9 @@ def verify_home(page, base):
             page.evaluate('(value)=>document.documentElement.dataset.vapmartColorMode=value',theme)
             dots=box(hero.locator('.vm-carousel-dots'))
             assert dots['height'] <= 30 and dots['width'] < 90,(width,theme,dots)
-            account=page.get_by_role('link',name='Akun Saya',exact=True)
+            account=page.locator('header .vm-reference-login')
             expect(account).to_be_visible()
+            expect(account).to_have_attribute('aria-label','Akun Saya')
             if width<=767:
                 assert abs(box(account)['width']-box(account)['height']) < 2,(width,box(account))
             category_image=categories.first.locator('.vm-trendora-category-image')
