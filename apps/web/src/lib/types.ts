@@ -19,6 +19,8 @@ export interface Product {
   regular_price_idr?:number;
   price_max_idr?:number;
   promo_active?:boolean;
+  /** Explicit backend confirmation that COD checkout is available for this product. */
+  cod_available?:boolean;
   available?:boolean;
   price_idr: number;
   stock_qty: number;
