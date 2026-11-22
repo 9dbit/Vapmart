@@ -49,6 +49,8 @@ class Fixture(BaseHTTPRequestHandler):
             data = {'items':[], 'total':0,'average':0,'hasMore':False}
         elif path == '/v1/shipping/config':
             data = {'provider':'jubelio','rateLookupEnabled':False,'requiresArea':True,'originLabel':'Gudang Vapmart'}
+        elif path == '/v1/checkout/config':
+            data = {'paymentEnabled':False,'providerConnected':False,'methods':['bank_transfer']}
         else:
             data = {'items':[]}
         self.send_response(200)
