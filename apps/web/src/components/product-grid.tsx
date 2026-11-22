@@ -31,7 +31,7 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
   const [term,setTerm]=useState(initialTerm);
   const [sort,setSort]=useState('newest');
   const [searchOpen,setSearchOpen]=useState(Boolean(initialTerm));
-  const searchToggle=useRef<HTMLButtonElement>(null);
+  useEffect(()=>{setTerm(initialTerm);setSearchOpen(Boolean(initialTerm));},[initialTerm]);
   useEffect(()=>{if(searchOpen)searchRef.current?.focus({preventScroll:true})},[searchOpen]);
   const [favoritesOnly,setFavoritesOnly]=useState(false);
  const [visibleCount,setVisibleCount]=useState(24);
@@ -50,9 +50,9 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
   },[activeProducts,category,query,sort,favoritesOnly,savedIds,categoryTree]);
   useEffect(()=>setVisibleCount(24),[category,query,sort,favoritesOnly]);
   const pick=(p:Product)=>{setTerm(p.name);setCategory('all');setShowSuggestions(false);setActiveSuggestion(-1);searchRef.current?.focus();};
-  const reset=()=>{setCategory('all');setTerm('');setSort('newest');setFavoritesOnly(false);setShowSuggestions(false);setActiveSuggestion(-1);searchRef.current?.focus();};
+  const reset=()=>{setCategory('all');setTerm('');setSort('newest');setFavoritesOnly(false);setShowSuggestions(false);setActiveSuggestion(-1);setSearchOpen(false);};
   const onSearchKey=(event:KeyboardEvent<HTMLInputElement>)=>{
-    if(event.key==='Escape'){setShowSuggestions(false);setActiveSuggestion(-1);setSearchOpen(false);searchToggle.current?.focus();return;}
+    if(event.key==='Escape'){setShowSuggestions(false);setActiveSuggestion(-1);setTerm('');setSearchOpen(false);return;}
     if(!suggestions.length)return;
     if(event.key==='ArrowDown'){event.preventDefault();setShowSuggestions(true);setActiveSuggestion(n=>(n+1)%suggestions.length);}
     if(event.key==='ArrowUp'){event.preventDefault();setShowSuggestions(true);setActiveSuggestion(n=>(n-1+suggestions.length)%suggestions.length);}
@@ -61,8 +61,6 @@ export function ProductGrid({products,initialCategory='all',initialTerm=''}:{pro
   return <section className="shop-section vm-collection" id="shop">
     <header className="vm-collection-heading"><h2>Produk Pilihan</h2></header>
     <div className="vm-collection-bar">
-      <button ref={searchToggle} type="button" className="vm-tool-circle" aria-label="Cari produk" title="Cari produk" aria-expanded={searchOpen}
-        aria-controls="vm-search-drawer" onClick={()=>{setSearchOpen(!searchOpen);setShowSuggestions(false)}}><Icon name="search"/></button>
       <button type="button" className="vm-tool-circle vm-favorites-control"
         aria-label="Tampilkan hanya produk favorit" aria-pressed={favoritesOnly}
         title={favoritesOnly?'Nonaktifkan filter favorit':`Favorit (${savedIds.length} tersimpan)`}

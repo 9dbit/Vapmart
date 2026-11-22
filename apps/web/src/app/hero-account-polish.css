@@ -174,3 +174,103 @@ html[data-vapmart-color-mode=dark] body .vm-account-form input[readonly]{color:#
   html body .vm-account-actions>*{flex:1 1 auto}
   html body .vm-account-heading{gap:10px}
 }
+
+/* CP62: all round header actions share the 36px size of the catalog favorite icon.
+   Preserve the larger header frame and brand size to avoid crowding the logo. */
+html body .vm-modern-header .vm-reference-cart,
+html body .vm-modern-header .vm-search-disclosure summary,
+html body .vm-modern-header .vm23-theme-trigger {
+  box-sizing:border-box;
+  width:36px;
+  height:36px;
+  min-width:36px;
+  min-height:36px;
+  border-radius:50%;
+  padding:0;
+  display:grid;
+  place-items:center;
+}
+html body .vm-modern-header .vm-search-disclosure summary{
+  border:1px solid #e8e2ed;
+  background:#f8f6fa;
+  color:#352a40;
+}
+html body .vm-modern-header .vm23-theme-switcher {
+  box-sizing:border-box;
+  width:36px;
+  height:36px;
+  min-width:36px;
+  flex:0 0 36px;
+}
+html body .vm-modern-header .vm-reference-actions {align-items:center;gap:7px;}
+html body .vm-modern-header .vm-reference-cart svg,
+html body .vm-modern-header .vm-search-disclosure summary svg,
+html body .vm-modern-header .vm23-theme-trigger svg,
+html body .vm-modern-header .vm-reference-login svg{
+  width:17px;
+  height:17px;
+}
+html body .vm-modern-header .vm-reference-cart .cart-count{
+  box-sizing:border-box;
+  top:-4px;
+  right:-4px;
+  width:16px;
+  height:16px;
+  min-width:16px;
+  line-height:12px;
+  font-size:9px;
+  border-width:2px;
+}
+@media(min-width:768px){
+  html body .vm-modern-header .vm-header-pill-search{height:36px;}
+  html body .vm-modern-header .vm-header-pill-search button{
+    box-sizing:border-box;width:28px;height:28px;min-width:28px;font-size:16px;
+  }
+  html body .vm-modern-header .vm-reference-login{
+    box-sizing:border-box;height:36px;min-height:36px;padding:0 13px;
+  }
+}
+@media(max-width:767px){
+  html body .vm-modern-header .vm-header-main{align-items:center;}
+  html body .vm-modern-header .vm-reference-actions{gap:6px;}
+  html body .vm-modern-header .vm-search-disclosure summary,
+  html body .vm-modern-header .vm-reference-cart,
+  html body .vm-modern-header .vm-reference-login,
+  html body .vm-modern-header .vm23-theme-trigger{
+    box-sizing:border-box;
+    width:36px;
+    height:36px;
+    min-width:36px;
+    min-height:36px;
+    padding:0;
+  }
+  html body .vm-modern-header .vm-reference-login,
+  html body .vm-reference-actions .vm-reference-login{
+    flex:0 0 36px;
+    width:36px;
+    height:36px;
+    min-width:36px;
+    min-height:36px;
+  }
+  html body .vm-modern-header .vm23-theme-switcher{
+    box-sizing:border-box;
+    height:36px;
+    min-width:36px;
+    width:36px;
+    flex:0 0 36px;
+  }
+}
+@media(max-width:359px){
+  html body .vm-modern-header .vm-header-main{gap:3px;padding-inline:8px;}
+  html body .vm-modern-header .vm-reference-actions{gap:4px;}
+  html body .vm-modern-header .vm-search-disclosure summary,
+  html body .vm-modern-header .vm-reference-cart,
+  html body .vm-modern-header .vm-reference-login,
+  html body .vm-modern-header .vm23-theme-trigger{
+    width:36px;height:36px;min-width:36px;min-height:36px;
+  }
+  html body .vm-modern-header .vm23-theme-switcher,
+  html body .vm-modern-header .vm-reference-login{
+    min-width:36px;width:36px;height:36px;flex-basis:36px;
+  }
+}
