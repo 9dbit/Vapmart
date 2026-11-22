@@ -54,7 +54,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
         <div className="vm-footer-links"><h3>Jelajahi</h3>
           <Link href="/catalog">Katalog</Link><Link href="/brand-partner">Brand Partner</Link>
           <Link href="/member-2">Member</Link>
-          <Link href="/login">Akun pelanggan</Link>
+          <Link href="/akun">Akun Saya</Link>
         </div>
         <div className="vm-footer-links"><h3>Informasi</h3>
           <Link href="/keranjang-2">Keranjang</Link>
