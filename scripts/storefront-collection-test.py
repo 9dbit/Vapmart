@@ -323,10 +323,22 @@ def verify(page,base,touch=False):
     page.locator('.vpd-purchase-bar .vpd-buy').click()
     page.wait_for_url('**/checkout?buyNow=*')
     expect(page.locator('main.vco26-root')).to_be_visible()
-    expect(page.locator('.vco26-summary')).to_be_visible(timeout=10000)
-    expect(page.locator('.vco26-summary')).to_contain_text('Lampu meja')
-    expect(page.locator('.vco26-summary')).to_contain_text('Beli Sekarang')
-    expect(page.locator('.vco26-summary')).to_contain_text('1 item')
+    try:
+        expect(page.locator('.vco26-summary')).to_be_visible(timeout=10000)
+        expect(page.locator('.vco26-summary')).to_contain_text('Lampu meja',timeout=12000)
+        expect(page.locator('.vco26-summary')).to_contain_text('Beli Sekarang')
+        expect(page.locator('.vco26-summary')).to_contain_text('1 item')
+    except Exception:
+        # Capture the real failure state rather than assuming checkout is ready
+        # solely because the browser URL changed.
+        print('CHECKOUT_DIAG', json.dumps({
+            'url':page.url,
+            'mainText':page.locator('main').first.inner_text()[:1800] if page.locator('main').count() else 'NO_MAIN',
+            'cartStorage':page.evaluate("localStorage.getItem('vapmart-staging-cart-v1')"),
+            'summaryCount':page.locator('.vco26-summary').count(),
+            'readyState':page.evaluate('document.readyState')
+        }),flush=True)
+        raise
     assert page.evaluate('window.careLoads') == 1
     page.goto(base+'/brand/login', wait_until='load')
     expect(script).to_have_count(0)
