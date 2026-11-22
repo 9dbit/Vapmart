@@ -1,0 +1,36 @@
+name: Compact Vapmart Club UI QA
+
+on:
+  pull_request:
+    branches: [release/vapmart-stable]
+    paths:
+      - "apps/web/src/app/page.tsx"
+      - "apps/web/src/components/customer-auth-panel.tsx"
+      - "apps/web/src/components/home-member-card.tsx"
+      - "apps/web/src/app/club-compact.css"
+      - "apps/web/src/app/layout.tsx"
+      - "scripts/club-compact-ui-smoke.mjs"
+      - ".github/workflows/club-compact-ui-qa.yml"
+
+jobs:
+  club-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Assert compact Club, no duplicate welcome logo, and live member data
+        run: node scripts/club-compact-ui-smoke.mjs
+      - name: Install frontend dependencies
+        working-directory: apps/web
+        run: npm ci --include=dev --no-audit --no-fund
+      - name: Typecheck frontend
+        working-directory: apps/web
+        run: npm run typecheck
+      - name: Build Next.js storefront
+        working-directory: apps/web
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: npm run build
