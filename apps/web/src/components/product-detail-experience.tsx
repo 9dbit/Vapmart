@@ -207,7 +207,7 @@ function ProductDetailExperienceInner({product,recommended}:{product:Product;rec
     cart.setOpen(false);
     setSheet(null);
    });
-   router.push('/checkout?buyNow='+encodeURIComponent(active.id));
+   router.push('/checkout?buyNow='+encodeURIComponent(active.id)+'&qty='+quantity);
   }else{
    cart.add(active,quantity);
    setSheet(null);
