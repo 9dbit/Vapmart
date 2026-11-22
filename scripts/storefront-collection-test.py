@@ -87,12 +87,16 @@ def verify(page,base,touch=False):
     whatsapp = page.get_by_role('link',name='Chat WhatsApp',exact=False)
     expect(whatsapp).to_have_attribute('href','https://wa.me/6285232324824')
     expect(whatsapp).to_contain_text('+62 852-3232-4824')
-    search = page.locator('.vm-collection-bar button[aria-label="Cari produk"]')
+    header_search = page.locator('header .vm-search-disclosure summary')
+    header_cart = page.locator('header .vm-reference-cart')
+    header_theme = page.locator('header .vm23-theme-trigger')
+    header_account = page.locator('header .vm-reference-login')
     favorite = page.get_by_role('button',name='Tampilkan hanya produk favorit')
     sort = page.get_by_label('Urutkan produk')
     tabs = page.locator('.vm-category-tabs')
     all_tab = tabs.get_by_role('button',name='Semua Pilihan')
     expect(page.locator('#shop-search')).to_be_hidden()
+    expect(page.locator('.vm-collection-bar button[aria-label="Cari produk"]')).to_have_count(0)
     expect(page.get_by_role('button',name='Tampilkan hanya produk siap dibeli')).to_have_count(0)
     for width in [320,390,768,1280]:
         page.set_viewport_size({'width':width,'height':844})
@@ -100,10 +104,22 @@ def verify(page,base,touch=False):
             page.evaluate('(theme)=>document.documentElement.dataset.vapmartColorMode=theme',theme)
             expect(whatsapp).to_have_css('background-color', 'rgb(37, 211, 102)')
             expect(whatsapp).to_have_css('border-top-left-radius', '999px')
-            assert same_row(box(tabs),box(search)) and same_row(box(search),box(favorite)) and same_row(box(favorite),box(sort))
-            assert box(search)['x'] < box(favorite)['x'] < box(sort)['x'] < box(all_tab)['x']
-            assert abs(box(search)['height']-36) < 1
+            assert same_row(box(tabs),box(favorite)) and same_row(box(favorite),box(sort))
+            assert box(favorite)['x'] < box(sort)['x'] < box(all_tab)['x']
             assert abs(box(favorite)['height']-36) < 1
+            # Header actions follow the catalog favorite's 36px circular size.
+            for action in [header_cart,header_theme]:
+                frame=box(action)
+                assert abs(frame['height']-36)<1 and abs(frame['width']-36)<1,(width,frame)
+            if width<=1100:
+                expect(header_search).to_be_visible()
+                frame=box(header_search)
+                assert abs(frame['height']-36)<1 and abs(frame['width']-36)<1,(width,frame)
+            if width<=767:
+                frame=box(header_account)
+                assert abs(frame['height']-36)<1 and abs(frame['width']-36)<1,(width,frame)
+            else:
+                assert abs(box(header_account)['height']-36)<1
             assert abs(box(favorite)['width']-box(favorite)['height']) < 1
             assert abs(box(sort)['height']-36) < 1
             for category_pill in tabs.locator('button').all():
@@ -134,14 +150,19 @@ def verify(page,base,touch=False):
     expect(page.locator('.product-card h3').first).to_have_text('Tas kecil')
     sort.select_option('priceHigh')
     expect(page.locator('.product-card h3').first).to_have_text('Lampu meja')
-    if touch: search.tap()
-    else: search.click()
-    expect(page.locator('#shop-search')).to_be_focused()
-    page.locator('#shop-search').fill('BG-203')
+    # Search remains in the header; no second icon below Produk Pilihan.
+    if touch: header_search.tap()
+    else: header_search.click()
+    page.locator('#vm-popover-search').fill('BG-203')
+    page.locator('#vm-popover-search').press('Enter')
+    page.wait_for_url('**/catalog?q=BG-203')
+    expect(page.locator('#shop-search')).to_be_visible()
+    expect(page.locator('#shop-search')).to_have_value('BG-203')
     expect(page.locator('.product-card')).to_have_count(1)
     expect(page.locator('.product-card h3')).to_have_text('Tas kecil')
     page.locator('#shop-search').press('Escape')
     expect(page.locator('#shop-search')).to_be_hidden()
+    expect(page.locator('.product-card')).to_have_count(2)
     # Floating menu responds immediately and keeps an SPA document/session.
     mobile_nav = page.locator('nav[aria-label="Navigasi seluler"]')
     expect(mobile_nav).to_have_attribute('data-active-index','1')
