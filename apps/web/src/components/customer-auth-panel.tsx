@@ -48,8 +48,7 @@ export function CustomerAuthPanel(){
  };
  const nextPath=params.get('next');
  const safeNext=nextPath?.startsWith('/')&&!nextPath.startsWith('//')?nextPath:'/akun';
- return <section className="vm21-auth-card">
-   <div className="vm21-auth-ident"><img src="/branding/vapmart-logo.png" alt="Vapmart" width={180} height={50}/></div>
+ return <section className={auth.user?'vm21-auth-card vm21-welcome-card':'vm21-auth-card'}>
    {auth.loading?<p role="status">Memeriksa sesi akun…</p>:auth.user?
    <>
      <span className="vm21-eyebrow">AKUN TERHUBUNG</span>
@@ -62,6 +61,7 @@ export function CustomerAuthPanel(){
      {error&&<p role="alert" className="vm21-form-error">{error}</p>}
    </>:
    <>
+     <div className="vm21-auth-ident"><img src="/branding/vapmart-logo.png" alt="Vapmart" width={180} height={50}/></div>
      <span className="vm21-eyebrow">YOUR VAPMART ACCOUNT</span>
      <h1>{mode==='signin'?'Masuk ke Vapmart':mode==='signup'?'Buat akun baru':mode==='forgot'?'Reset password':'Buat password baru'}</h1>
      <p>Pendaftaran akun dan Member gratis. Simpan data kontak serta alamat; top-up Coin adalah pilihan terpisah, bukan syarat pendaftaran.</p>
