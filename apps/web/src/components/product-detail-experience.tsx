@@ -66,7 +66,7 @@ function ShippingQuote({product,quantity}:{product:Product|null;quantity:number}
   if(!auth.user)return;
   try{
    const raw=localStorage.getItem('vapmart.shipping.region.'+auth.user.id);
-   if(raw){const parsed:unknown=JSON.parse(raw);if(validRegion(parsed))setRestore(parsed);}
+   if(raw){const parsed:unknown=JSON.parse(raw);if(validRegion(parsed)){setRestore(parsed);setRegion(parsed);}}
   }catch{}
  },[auth.user?.id]);
  const onRegion=(next:AddressSelection|null)=>{
@@ -110,7 +110,7 @@ function ShippingQuote({product,quantity}:{product:Product|null;quantity:number}
    <p className="vpd-soft">Alamat akun: <strong>{address||'Belum tersimpan'}</strong></p>
    {!address&&<Link href="/akun" className="vpd-secondary-link">Lengkapi alamat di Akun Saya</Link>}
    <p className="vpd-soft">Pilih wilayah tujuan yang sesuai dengan alamat Anda. Data wilayah disimpan pada perangkat ini untuk pemeriksaan ongkir berikutnya.</p>
-   <IndonesiaAddressPicker onChange={onRegion} initialValue={restore||undefined}/>
+   <IndonesiaAddressPicker key={restore?.areaId||'new'} onChange={onRegion} initialValue={restore||undefined}/>
    {region&&<p className="vpd-region-selected">Tujuan: {region.label}</p>}
    {product&&!product.weight_grams&&<p role="status" className="vpd-notice">Berat produk belum dilengkapi penjual. Ongkir belum dapat dihitung.</p>}
    {config&&!config.rateLookupEnabled&&<p className="vpd-notice">Cek ongkir real-time belum aktif. Biaya final akan diperiksa di checkout bila layanan tersedia.</p>}
@@ -246,7 +246,7 @@ function ProductDetailExperienceInner({product,recommended}:{product:Product;rec
      {product.sku&&<><dt>SKU</dt><dd>{product.sku}</dd></>}
      {product.weight_grams&&<><dt>Berat</dt><dd>{product.weight_grams} g</dd></>}
      {product.length_cm&&product.width_cm&&product.height_cm&&<><dt>Dimensi</dt><dd>{product.length_cm} × {product.width_cm} × {product.height_cm} cm</dd></>}
-     {defs.map(d=><><dt key={'d-'+d.name}>{d.name}</dt><dd key={'v-'+d.name}>{d.values.join(', ')}</dd></>)}
+     {defs.map(d=><div className="vpd-spec-variation" key={d.name}><dt>{d.name}</dt><dd>{d.values.join(', ')}</dd></div>)}
     </dl>
     <h3>Deskripsi</h3>
     {product.description?<><p className={expanded?'vpd-description is-expanded':'vpd-description'}>{product.description}</p>
