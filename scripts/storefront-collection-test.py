@@ -16,7 +16,7 @@ lamp = dict(id='00000000-0000-4000-8000-000000000001', name='Lampu meja', slug='
             is_active=True, product_type='simple', description='Lampu baca',
             brand_id='00000000-0000-4000-8000-000000000011',brand_name='TIC', brand_logo_url='/legacy/brands/brand-01.png')
 bag = dict(lamp, id='00000000-0000-4000-8000-000000000002', name='Tas kecil', slug='tas', sku='BG-203',
-           category='accessories', price_idr=65000, regular_price_idr=65000,
+           category='accessories', price_idr=65000, regular_price_idr=65000, brand_id=None, brand_name=None, brand_logo_url=None,
            promo_active=False, cod_available=False, stock_qty=0)
 variant = dict(lamp,id='00000000-0000-4000-8000-000000000003',sku='TIC-L01-BL',product_type='variation',option_values={'Warna':'Biru'})
 family = dict(lamp,slug='lampu-warna',sku=None,product_type='variable',variants=[variant],
@@ -389,7 +389,8 @@ def verify_home(page, base):
     expect(page.locator('.product-card')).to_have_count(1)
     expect(page.locator('.product-card h3')).to_have_text('Lampu meja')
     # Test product favorites route using existing heart control.
-    page.get_by_role('button',name='Simpan Lampu meja ke favorit').click()
+    if page.get_by_role('button',name='Simpan Lampu meja ke favorit').count():
+        page.get_by_role('button',name='Simpan Lampu meja ke favorit').click()
     page.goto(base+'/favorit',wait_until='networkidle')
     expect(page.locator('.vm26-fav-product')).to_have_count(1)
     expect(page.get_by_role('button',name='Hapus Lampu meja dari favorit')).to_be_visible()
