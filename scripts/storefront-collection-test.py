@@ -14,7 +14,7 @@ lamp = dict(id='00000000-0000-4000-8000-000000000001', name='Lampu meja', slug='
             image_url=photos[0], gallery_urls=photos[1:], price_idr=95000, regular_price_idr=125000,
             promo_active=True, cod_available=True, stock_qty=5,
             is_active=True, product_type='simple', description='Lampu baca',
-            brand_name='TIC', brand_logo_url='/legacy/brands/brand-01.png')
+            brand_id='00000000-0000-4000-8000-000000000011',brand_name='TIC', brand_logo_url='/legacy/brands/brand-01.png')
 bag = dict(lamp, id='00000000-0000-4000-8000-000000000002', name='Tas kecil', slug='tas', sku='BG-203',
            category='accessories', price_idr=65000, regular_price_idr=65000,
            promo_active=False, cod_available=False, stock_qty=0)
@@ -33,6 +33,10 @@ class Fixture(BaseHTTPRequestHandler):
                              for i in [1,2,3]]}
         elif path == '/v1/products':
             data = {'items':[lamp, bag]}
+        elif path == '/v1/brands':
+            data = {'items':[dict(id='00000000-0000-4000-8000-000000000011',slug='tic',
+                                   name='TIC',logo_url='/legacy/brands/brand-01.png',
+                                   description='Lampu dan aksesori rumah',is_active=True)]}
         elif path == '/v1/products/lampu':
             data = lamp
         elif path == '/v1/products/lampu-warna':
@@ -223,25 +227,31 @@ def verify(page,base,touch=False):
     page.locator('#shop-search').press('Escape')
     expect(page.locator('#shop-search')).to_be_hidden()
     expect(page.locator('.product-card')).to_have_count(2)
-    # Floating menu responds immediately and keeps an SPA document/session.
+    # Floating menu has five destinations, responds immediately and retains
+    # the same Next.js document/session across account, favorites and orders.
     mobile_nav = page.locator('nav[aria-label="Navigasi seluler"]')
+    expect(mobile_nav.locator('a')).to_have_count(5)
     expect(mobile_nav).to_have_attribute('data-active-index','1')
     page.evaluate('window.vmNavSessionMarker = true')
-    mobile_nav.locator('a[href="/brand-partner"]').click()
-    page.wait_for_url('**/brand-partner')
-    expect(page.locator('main.vm-brand-page')).to_be_visible()
+    mobile_nav.locator('a[href="/favorit"]').click()
+    page.wait_for_url('**/favorit')
+    expect(page.locator('main[data-page="favorites"]')).to_be_visible()
     expect(mobile_nav).to_have_attribute('data-active-index','2')
     assert page.evaluate('window.vmNavSessionMarker') is True
-    mobile_nav.locator('a[href="/member-2"]').click()
-    page.wait_for_url('**/member-2')
-    expect(page.locator('main.vm21-member-page')).to_be_visible()
+    mobile_nav.locator('a[href="/pesanan"]').click()
+    page.wait_for_url('**/pesanan')
+    expect(page.locator('main[data-page="transactions"]')).to_be_visible()
     expect(mobile_nav).to_have_attribute('data-active-index','3')
+    expect(page.get_by_role('heading',name='Masuk untuk melihat transaksi')).to_be_visible()
+    mobile_nav.locator('a[href="/akun"]').click()
+    page.wait_for_url('**/akun')
+    expect(page.locator('main[data-page="account"]')).to_be_visible()
+    expect(mobile_nav).to_have_attribute('data-active-index','4')
     mobile_nav.locator('a[href="/catalog"]').click()
     page.wait_for_url('**/catalog')
     expect(page.locator('main.vm-catalog-page')).to_be_visible()
     expect(page.get_by_role('heading',name='Produk Pilihan')).to_be_visible()
-    # On WebKit the URL can update before the client route finishes committing.
-    # Wait for the optimistic state to clear before starting the next navigation.
+    # WebKit can update URL before client navigation commits.
     page.wait_for_function("""() => document.querySelector('nav[aria-label="Navigasi seluler"]')?.dataset.navPending !== 'true'""")
     expect(mobile_nav).to_have_attribute('data-active-index','1')
     # Product-detail UX: variant sheet, real gallery, sticky tabs and safe-area actions.
@@ -365,6 +375,38 @@ def verify_home(page, base):
             card=box(page.locator('.vm-home-member-preview .vmoc-card'))
             assert abs(card['width']/card['height'] - 85.6/53.98) < .025,card
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),width
+    # Favorite tabs & brand list: no invented ratings or cities, only published fixture brands.
+    page.goto(base+'/favorit?tab=brand',wait_until='networkidle')
+    expect(page.locator('main[data-page="favorites"]')).to_be_visible()
+    expect(page.get_by_role('tab',name='Brand Favorit')).to_have_attribute('aria-selected','true')
+    expect(page.get_by_role('heading',name='Belum ada brand favorit')).to_be_visible()
+    expect(page.locator('.vm26-brand-discover .vm26-brand-row')).to_have_count(1)
+    page.locator('.vm26-brand-discover').get_by_role('button',name='Simpan TIC ke favorit').click()
+    expect(page.locator('.vm26-brand-list .vm26-brand-row').first).to_contain_text('TIC')
+    expect(page.get_by_role('button',name='Hapus TIC dari favorit')).to_be_visible()
+    page.locator('.vm26-brand-row a[href^="/catalog?brand="]').first.click()
+    page.wait_for_url('**/catalog?brand=*')
+    expect(page.locator('.product-card')).to_have_count(1)
+    expect(page.locator('.product-card h3')).to_have_text('Lampu meja')
+    # Test product favorites route using existing heart control.
+    page.get_by_role('button',name='Simpan Lampu meja ke favorit').click()
+    page.goto(base+'/favorit',wait_until='networkidle')
+    expect(page.locator('.vm26-fav-product')).to_have_count(1)
+    expect(page.get_by_role('button',name='Hapus Lampu meja dari favorit')).to_be_visible()
+    page.goto(base+'/pesanan',wait_until='networkidle')
+    expect(page.get_by_role('heading',name='Masuk untuk melihat transaksi')).to_be_visible()
+    assert page.get_by_text('Rp1.605.914').count()==0,'Never invent transactions'
+    for width in [320,390,768,1280]:
+        page.set_viewport_size({'width':width,'height':844})
+        for theme in ['light','dark']:
+            page.evaluate('(t)=>document.documentElement.dataset.vapmartColorMode=t',theme)
+            assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),('transactions',width,theme)
+            page.goto(base+'/favorit',wait_until='domcontentloaded')
+            assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),('favorites',width,theme)
+            if width<=767:
+                expect(page.locator('nav[aria-label="Navigasi seluler"] a')).to_have_count(5)
+                assert box(page.locator('nav[aria-label="Navigasi seluler"]'))['width']<=width
+    page.set_viewport_size({'width':390,'height':844})
     page.goto(base+'/akun',wait_until='domcontentloaded')
     expect(page.get_by_role('heading',name='Akun Saya',exact=True)).to_be_visible()
     expect(page.get_by_role('link',name='Daftar Gratis')).to_be_visible()
