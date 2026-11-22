@@ -47,7 +47,7 @@ html body .vm-collection .vm-product-card .vm-product-tile-price{
   line-height:1.18;
   font-family:inherit;
 }
-html body .vm-collection .vm-product-card .vm-product-tile-price .vm-product-current-price{
+html body .vm-collection .vm-product-card .product-copy .vm-product-tile-price .vm-product-current-price{
   display:inline-flex;
   align-items:baseline;
   flex:0 0 auto;
@@ -113,7 +113,7 @@ html body .vm-collection .vm-product-card .vm-product-cod-label{
 html[data-vapmart-color-mode="dark"] body .vm-collection .vm-product-card .product-copy h3{
   color:#f1ecf7;
 }
-html[data-vapmart-color-mode="dark"] body .vm-collection .vm-product-card .vm-product-tile-price .vm-product-current-price{
+html[data-vapmart-color-mode="dark"] body .vm-collection .vm-product-card .product-copy .vm-product-tile-price .vm-product-current-price{
   color:#c58bff;
 }
 html[data-vapmart-color-mode="dark"] body .vm-collection .vm-product-card .vm-product-tile-price .vm-product-regular-price{
@@ -137,7 +137,7 @@ html[data-vapmart-color-mode="dark"] body .vm-collection .vm-product-card .vm-pr
     margin-bottom:6px;
     letter-spacing:0;
   }
-  html body .vm-collection .vm-product-card .vm-product-tile-price .vm-product-current-price{
+  html body .vm-collection .vm-product-card .product-copy .vm-product-tile-price .vm-product-current-price{
     font-size:16px;
   }
   html body .vm-collection .vm-product-card .vm-product-tile-price .vm-product-regular-price{
@@ -152,7 +152,7 @@ html[data-vapmart-color-mode="dark"] body .vm-collection .vm-product-card .vm-pr
   html body .vm-collection .vm-product-card .product-copy h3{
     font-size:12.5px;
   }
-  html body .vm-collection .vm-product-card .vm-product-tile-price .vm-product-current-price{
+  html body .vm-collection .vm-product-card .product-copy .vm-product-tile-price .vm-product-current-price{
     font-size:15px;
   }
   html body .vm-collection .vm-product-card .vm-product-tile-price .vm-product-regular-price{
@@ -163,7 +163,7 @@ html[data-vapmart-color-mode="dark"] body .vm-collection .vm-product-card .vm-pr
   html body .vm-collection .vm-product-card .product-copy h3{
     font-size:14.5px;
   }
-  html body .vm-collection .vm-product-card .vm-product-tile-price .vm-product-current-price{
+  html body .vm-collection .vm-product-card .product-copy .vm-product-tile-price .vm-product-current-price{
     font-size:19px;
   }
 }
