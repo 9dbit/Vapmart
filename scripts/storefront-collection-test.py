@@ -82,6 +82,8 @@ def verify_quantity_controls(container, start, touch):
     expect(count).to_have_text(str(start))
 
 def verify(page,base,touch=False):
+    page.on('pageerror',lambda e: print('CHECKOUT_PAGEERROR',str(e),flush=True))
+    page.on('console',lambda e: print('CHECKOUT_CONSOLE',e.type,e.text[:600],flush=True) if e.type=='error' else None)
     embed = 'https://chatvice.app/api/widget/chatvice.js?merchant=m_d74410c444e2726c'
     # Exercise the real header load without sending fixture visitors to the merchant.
     page.route(embed, lambda route: route.fulfill(content_type='application/javascript',
@@ -334,6 +336,7 @@ def verify(page,base,touch=False):
         print('CHECKOUT_DIAG', json.dumps({
             'url':page.url,
             'mainText':page.locator('main').first.inner_text()[:1800] if page.locator('main').count() else 'NO_MAIN',
+            'bodyText':page.locator('body').inner_text()[:2200],
             'cartStorage':page.evaluate("localStorage.getItem('vapmart-staging-cart-v1')"),
             'summaryCount':page.locator('.vco26-summary').count(),
             'readyState':page.evaluate('document.readyState')
