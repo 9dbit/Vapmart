@@ -18,7 +18,7 @@ export function CustomerAuthPanel(){
  const [busy,setBusy]=useState(false);
  const [notice,setNotice]=useState('');
  const [error,setError]=useState('');
- useEffect(()=>{if(params.get('mode')==='reset')setMode('newpassword');},[params]);
+ useEffect(()=>{if(params.get('mode')==='reset')setMode('newpassword');else if(params.get('mode')==='signup')setMode('signup');},[params]);
  const choose=(next:Mode)=>{setMode(next);setPassword('');setNotice('');setError('');};
  const onSubmit=async(e:FormEvent<HTMLFormElement>)=>{
    e.preventDefault();setBusy(true);setError('');setNotice('');
