@@ -47,8 +47,7 @@ html body .vm-collection .vm-product-card .vm-product-tile-price{
   line-height:1.18;
   font-family:inherit;
 }
-html body .vm-collection .vm-product-card .vm-product-tile-price .vm-product-current-price,
-html body .vm-catalog-page .vm-collection .vm-product-card .vm-product-tile-price .vm-product-current-price{
+html body .vm-collection .vm-product-card .vm-product-tile-price .vm-product-current-price{
   display:inline-flex;
   align-items:baseline;
   flex:0 0 auto;
