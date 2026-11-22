@@ -235,7 +235,10 @@ export class CatalogWorkspaceService{
   return {items:r.rows.map(p=>publicPrice(p as any)),observedAt:new Date().toISOString()};
  }
  async orders(raw:Record<string,unknown>={},customerId?:string){
-  const f=parsePage(raw);
+  // parsePage validates shared pagination/search fields; period and item-count
+  // are validated independently below, without allowing unknown filters.
+  const standard=Object.fromEntries(Object.entries(raw).filter(([key])=>key!=='period'&&key!=='items'));
+  const f=parsePage(standard);
   const period=typeof raw.period==='string'?raw.period:'all';
   const itemFilter=typeof raw.items==='string'?raw.items:'all';
   if(!['all','7d','30d','90d','365d'].includes(period))throw new BadRequestException('Periode transaksi tidak valid');
