@@ -1,7 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
 import {useCustomerAuth} from '@/lib/customer-auth';
-import {MemberCard} from '@/components/member-card';
 
 type Overview={
   status:'REGISTERED'|'ACTIVE'|'SUSPENDED';
@@ -10,7 +9,9 @@ type Overview={
   cardLast4:string|null;
 };
 
-/** Homepage card uses the same approved design and authenticated wallet data as the member page. */
+/** Compact homepage preview, using live member data.
+ * The full, ISO ID-1 Obsidian card remains on the dedicated Member page.
+ */
 export function HomeMemberCard(){
   const auth=useCustomerAuth();
   const [overview,setOverview]=useState<Overview|null>(null);
@@ -33,7 +34,25 @@ export function HomeMemberCard(){
   const member=matched?overview:null;
   const status=account?(member?.status??'UNAVAILABLE'):'GUEST';
   const name=account?(account.user_metadata?.display_name||member?.name||account.email?.split('@')[0]||'VAPMART MEMBER'):'VAPMART GUEST';
-  return <div className="vm-home-member-preview" data-preview-status={status.toLowerCase()}>
-    <MemberCard name={String(name)} balance={member?.balanceCoin??null} status={status} cardLast4={member?.cardLast4??null}/>
-  </div>;
+  const statusLabel=status==='ACTIVE'?'Aktif':status==='REGISTERED'?'Belum Aktif':
+    status==='SUSPENDED'?'Ditangguhkan':status==='UNAVAILABLE'?'Mengecek…':'Gabung gratis';
+  const coin=member&&Number.isFinite(member.balanceCoin)?Math.max(0,member.balanceCoin).toLocaleString('id-ID'):'—';
+  return <aside className="vm-home-member-preview" data-preview-status={status.toLowerCase()} aria-label="Preview status Vapmart Club">
+    <div className="vm-club-mini-card">
+      <div className="vm-club-mini-top">
+        <img src="/branding/vapmart-logo.png" alt="Vapmart" width={100} height={30} loading="lazy"/>
+        <span>CLUB</span>
+      </div>
+      <div className="vm-club-mini-identity">
+        <small>MEMBER</small>
+        <strong title={String(name)}>{String(name)}</strong>
+      </div>
+      <div className="vm-club-mini-bottom">
+        <span className="vm-club-mini-status">{statusLabel}</span>
+        <span className="vm-club-mini-balance" aria-label={'Saldo Coin '+coin}>
+          <span className="vm-club-mini-coin" aria-hidden="true">V</span>{coin}
+        </span>
+      </div>
+    </div>
+  </aside>;
 }
