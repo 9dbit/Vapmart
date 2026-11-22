@@ -243,7 +243,7 @@ export class CatalogWorkspaceService{
   const itemFilter=typeof raw.items==='string'?raw.items:'all';
   if(!['all','7d','30d','90d','365d'].includes(period))throw new BadRequestException('Periode transaksi tidak valid');
   if(!['all','single','multiple'].includes(itemFilter))throw new BadRequestException('Filter jumlah produk tidak valid');
-  const since:Record<string,string>={all:'','7d':'7 days','30d':'30 days','90d':'90 days','365d':'365 days'};
+  const since:Record<string,string>={all:'100 years','7d':'7 days','30d':'30 days','90d':'90 days','365d':'365 days'};
   const r=await this.db.query(`
    WITH filtered AS(
     SELECT o.id,o.status,o.operational_status,o.invoice_number,
@@ -271,7 +271,7 @@ export class CatalogWorkspaceService{
     WHERE o.idempotency_key IS NOT NULL AND ($1::uuid IS NULL OR o.customer_user_id=$1)
       AND ($2='' OR strpos(lower(concat_ws(' ',o.id::text,o.contact_name,o.city,o.invoice_number,preview.product_name)),lower($2))>0)
       AND ($3='' OR o.operational_status=$3 OR ($3='pending_payment' AND o.operational_status='draft' AND o.payment_status IN ('not_initiated','pending')) OR ($3 IN ('paid','fulfilled','not_initiated','pending') AND (o.status=$3 OR o.payment_status=$3)))
-      AND ($4='' OR o.created_at>=now()-$4::interval)
+      AND ($4='100 years' OR o.created_at>=now()-$4::interval)
       AND ($5='all' OR ($5='single' AND summary.item_count=1) OR ($5='multiple' AND summary.item_count>1))
    ),
    selected AS (SELECT * FROM filtered ORDER BY created_at DESC,id DESC LIMIT $6 OFFSET $7)
