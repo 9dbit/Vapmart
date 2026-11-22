@@ -7,18 +7,19 @@ import {DataStatus} from '@/components/data-status';
 import '../restored-home.css';
 export const dynamic='force-dynamic';
 export const metadata={title:'Katalog | Vapmart',robots:{index:false,follow:false}};
-export default async function CatalogPage({searchParams}:{searchParams:Promise<{category?:string;q?:string;reference?:string}>}){
+export default async function CatalogPage({searchParams}:{searchParams:Promise<{category?:string;q?:string;reference?:string;brand?:string}>}){
  const params=await searchParams;
  const category=typeof params.category==='string'?params.category:'all';
  const query=typeof params.q==='string'?params.q.slice(0,80):'';
  const ref=typeof params.reference==='string'?params.reference:'all';
+ const brandId=typeof params.brand==='string'&&/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(params.brand)?params.brand:'';
  const validCategory=/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(category)&&category.length<=120;
  const result=await getProductsResult();
  const active=result.items.filter(p=>p.is_active&&!p.slug.startsWith('demo-'));
  const referenceItems=isArchiveCategory(ref)?allArchiveItems.filter(p=>p.category===ref):allArchiveItems;
  return <main className="main-container legacy-product-wrapper vm-catalog-page vm-restored-catalog">
    <h1 className="sr-only">Katalog Vapmart</h1>
-   {!result.ok?<DataStatus kind="produk" code={result.error}/>:active.length>0?<ProductGrid products={active} initialTerm={query} initialCategory={validCategory?category:'all'}/>:
+   {!result.ok?<DataStatus kind="produk" code={result.error}/>:active.length>0?<ProductGrid products={active} initialTerm={query} initialCategory={validCategory?category:'all'} initialBrandId={brandId}/>:
     <section className="vm-restored-catalog-status" aria-label="Status katalog aktif"><span className="vm-trendora-eyebrow">LIVE CATALOG</span>
       <h2>Katalog aktif sedang diverifikasi</h2>
       <p>Belum ada SKU dengan status tayang di PostgreSQL. Galeri foto referensi lama tetap dapat dilihat di bawah tanpa harga, stok, atau pembelian.</p>

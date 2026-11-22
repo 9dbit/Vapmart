@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {useRouter} from 'next/navigation';
+import {flushSync} from 'react-dom';
 import {useCart} from '@/lib/cart';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {formatIDR,type Product} from '@/lib/types';
@@ -197,13 +198,21 @@ function ProductDetailExperienceInner({product,recommended}:{product:Product;rec
   if(!chosen){setIntent(type);setSheet('variants');return;}
   if(!canBuy){setNotice(chosen.stock_qty<=0?'Stok habis.':'Produk, harga, atau jumlah belum tersedia.');return;}
   if(!active)return;
-  cart.add(active,quantity);
-  setSheet(null);
   if(type==='buy'){
-   cart.setQuantity(active.id,quantity);
-   cart.setOpen(false);
-   router.push('/checkout?buyNow='+encodeURIComponent(active.id));
-  }else{setNotice(quantity+' produk ditambahkan ke keranjang.');}
+   // Commit the selected product and quantity before client-side navigation.
+   // WebKit can otherwise render checkout ahead of a batched cart update.
+   flushSync(()=>{
+    cart.add(active,quantity);
+    cart.setQuantity(active.id,quantity);
+    cart.setOpen(false);
+    setSheet(null);
+   });
+   router.push('/checkout?buyNow='+encodeURIComponent(active.id)+'&qty='+quantity);
+  }else{
+   cart.add(active,quantity);
+   setSheet(null);
+   setNotice(quantity+' produk ditambahkan ke keranjang.');
+  }
  }
  function openChat(){
   const care=window as Window & {chatvice?:{open:()=>void}};

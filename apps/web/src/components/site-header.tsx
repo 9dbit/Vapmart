@@ -18,29 +18,24 @@ export function SiteHeader(){
   const searchRef=useRef<HTMLDetailsElement>(null);
   const [navigationIntent,setNavigationIntent]=useState<number|null>(null);
   const navigationTimer=useRef<number|null>(null);
-  const isSubpage=/^\/(product\/|product-category\/|catalog|brand-partner|keranjang-2|checkout|pesanan|login|akun|member-2|asset-review)/.test(pathname);
+  const isSubpage=/^\/(product\/|product-category\/|catalog|brand-partner|keranjang-2|checkout|pesanan|login|akun|favorit|member-2|asset-review)/.test(pathname);
   const categoryName:Record<string,string>={pod:'Pod',mod:'Mod',cartridge:'Cartridge','e-juice':'Liquid'};
   const segment=pathname.split('/')[2]||'';
-  const caption=pathname.startsWith('/product-category/')?(categoryName[segment]||'Kategori'):pathname.startsWith('/product/')?'Detail Produk':pathname==='/catalog'?'Katalog':pathname==='/keranjang-2'?'Keranjang':pathname==='/checkout'?'Checkout':pathname.startsWith('/pesanan/')?'Pesanan':pathname==='/brand-partner'?'Brand Partner':pathname==='/member-2'?'Member':pathname==='/login'||pathname==='/akun'?'Akun':'';
+  const caption=pathname.startsWith('/product-category/')?(categoryName[segment]||'Kategori'):pathname.startsWith('/product/')?'Detail Produk':pathname==='/catalog'?'Katalog':pathname==='/keranjang-2'?'Keranjang':pathname==='/checkout'?'Checkout':pathname.startsWith('/pesanan')?'Transaksi':pathname==='/favorit'?'Favorit':pathname==='/brand-partner'?'Brand Partner':pathname==='/member-2'?'Member':pathname.startsWith('/akun')||pathname==='/login'?'Akun':'';
   // Keep the brand anchored in the same header position across every route.
   // Back is a dedicated control below the sticky header, never inserted before the logo.
   const backHref=pathname.startsWith('/product/')||pathname.startsWith('/product-category/')?'/catalog':
-    pathname==='/login'||pathname==='/akun'?'/':
-    pathname==='/checkout'?'/keranjang-2':pathname.startsWith('/pesanan/')?'/catalog':pathname==='/keranjang-2'?'/catalog':'/';
-  const routeIndex=pathname==='/'
-    ? 0
-    : pathname==='/catalog'||pathname.startsWith('/product/')||pathname.startsWith('/product-category/')||pathname==='/asset-review'
-      ? 1
-      : pathname==='/brand-partner'
-        ? 2
-        : pathname==='/member-2'
-          ? 3
-          : pathname==='/keranjang-2'||pathname==='/checkout'||pathname.startsWith('/pesanan/')
-            ? 4
-            : pathname==='/login'||pathname==='/akun'
-              ? -1
-              : 0;
-  const activeIndex=navigationIntent??(open?4:routeIndex);
+    pathname==='/akun/profil'||pathname==='/member-2'?'/akun':
+    pathname==='/favorit'?'/catalog':
+    pathname.startsWith('/pesanan/')?'/pesanan':
+    pathname==='/checkout'?'/keranjang-2':
+    pathname==='/keranjang-2'?'/catalog':'/';
+  const routeIndex=pathname==='/'?0:
+    pathname==='/catalog'||pathname.startsWith('/product/')||pathname.startsWith('/product-category/')?1:
+    pathname==='/favorit'?2:
+    pathname.startsWith('/pesanan')?3:
+    pathname.startsWith('/akun')||pathname==='/login'||pathname==='/member-2'?4:-1;
+  const activeIndex=navigationIntent??routeIndex;
   const onNavigationClick=(event:MouseEvent<HTMLAnchorElement>,index:number,href:string)=>{
     if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
     if(href===pathname){setNavigationIntent(null);return;}
@@ -89,10 +84,11 @@ export function SiteHeader(){
   },[open]);
 
   const menu=[
-    {href:'/',label:'Beranda',icon:'home' as const,active:routeIndex===0},
+    {href:'/',label:'Home',icon:'home' as const,active:routeIndex===0},
     {href:'/catalog',label:'Katalog',icon:'categories' as const,active:routeIndex===1},
-    {href:'/brand-partner',label:'Brand',icon:'star' as const,active:routeIndex===2},
-    {href:'/member-2',label:'Member',icon:'tag' as const,active:routeIndex===3},
+    {href:'/favorit',label:'Favorit',icon:'heart' as const,active:routeIndex===2},
+    {href:'/pesanan',label:'Transaksi',icon:'receipt' as const,active:routeIndex===3},
+    {href:'/akun',label:'Akun',icon:'user' as const,active:routeIndex===4},
   ];
   return <>
     <header className={isSubpage?'legacy-header vm-reference-header vm-subpage vm-modern-header':'legacy-header vm-reference-header vm-modern-header'}>
@@ -142,11 +138,6 @@ export function SiteHeader(){
         className={activeIndex===index?'is-active':''} aria-current={item.active?'page':undefined}>
         <Icon name={item.icon}/><span>{item.label}</span>
       </Link>)}
-      <Link href="/keranjang-2" prefetch={true} onClick={event=>onNavigationClick(event,4,'/keranjang-2')} className={activeIndex===4?'is-active':''}
-        aria-current={pathname==='/keranjang-2'?'page':undefined}
-        aria-label={'Keranjang, '+count+' barang'}>
-        <Icon name="cart"/><span>Keranjang</span>{count>0&&<b className="vm-mobile-cart-count">{count}</b>}
-      </Link>
     </nav>
     <CartDrawer/>
   </>;

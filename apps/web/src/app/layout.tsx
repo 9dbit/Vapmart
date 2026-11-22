@@ -32,6 +32,7 @@ import './home-compact.css';
 import './hero-account-polish.css';
 import './product-typography.css';
 import './product-detail-v2.css';
+import './account-transactions-favorites.css';
 import {Icon} from '@/components/store-icon';
 // Runs before React hydration, preventing a bright flash on dark-theme return visits.
 const initialThemeScript="(function(){var root=document.documentElement;var pref='light';try{var stored=localStorage.getItem('vapmart.color-mode.v1');if(stored==='dark'||stored==='light'||stored==='system')pref=stored}catch(e){}var system=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=pref==='system'?(system?'dark':'light'):pref;root.setAttribute('data-vapmart-color-mode',resolved);root.style.colorScheme=resolved;var meta=document.querySelector('meta[name=theme-color]');if(meta)meta.content=resolved==='dark'?'#131317':'#ffffff'})();";
@@ -57,6 +58,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
           <Link href="/catalog">Katalog</Link><Link href="/brand-partner">Brand Partner</Link>
           <Link href="/member-2">Member</Link>
           <Link href="/akun">Akun Saya</Link>
+          <Link href="/pesanan">Transaksi</Link><Link href="/favorit">Favorit</Link>
         </div>
         <div className="vm-footer-links"><h3>Informasi</h3>
           <Link href="/keranjang-2">Keranjang</Link>

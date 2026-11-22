@@ -5,7 +5,7 @@ import {useRouter} from 'next/navigation';
 import {useCart} from '@/lib/cart';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {isDigitalProduct} from '@/lib/digital-products';
-import {formatIDR} from '@/lib/types';
+import {formatIDR,type Product} from '@/lib/types';
 import {IndonesiaAddressPicker} from '@/components/indonesia-address-picker';
 import type {AddressSelection} from '@/lib/address-location';
 import '../checkout-v26.css';
@@ -23,12 +23,38 @@ const methods=[{id:'bank_transfer',name:'Bank Transfer',hint:'Buat pesanan sekar
 export default function CheckoutPage(){
  const {items}=useCart();
  const [buyNowId,setBuyNowId]=useState<string|null>(null);
+ const [buyNowQty,setBuyNowQty]=useState(1);
+ const [buyNowProduct,setBuyNowProduct]=useState<Product|null>(null);
+ const [buyNowLoading,setBuyNowLoading]=useState(false);
+ const [buyNowError,setBuyNowError]=useState('');
  const [scopeReady,setScopeReady]=useState(false);
  useEffect(()=>{
-  const id=new URLSearchParams(window.location.search).get('buyNow');
+  const params=new URLSearchParams(window.location.search);
+  const id=params.get('buyNow');
+  const requested=Number(params.get('qty')||'1');
   setBuyNowId(id&&/^[0-9a-f-]{36}$/i.test(id)?id:null);
+  setBuyNowQty(Number.isSafeInteger(requested)?Math.min(99,Math.max(1,requested)):1);
   setScopeReady(true);
  },[]);
+ useEffect(()=>{
+  if(!scopeReady||!buyNowId)return;
+  const ac=new AbortController();
+  setBuyNowLoading(true);setBuyNowError('');
+  // Buy Now must survive an SPA navigation and even a reload with an
+  // otherwise empty cart. Product data is reloaded only from published API.
+  fetch('/api/catalog/selection?ids='+encodeURIComponent(buyNowId),{cache:'no-store',signal:ac.signal})
+   .then(async r=>{
+    const data=await r.json();
+    if(!r.ok)throw Error('Produk belum dapat diverifikasi');
+    const product=Array.isArray(data.items)?data.items.find((p:Product)=>p.id===buyNowId):null;
+    if(!product||!product.is_active||product.price_idr<=0||product.stock_qty<=0||product.available===false)
+     throw Error('Produk yang dipilih belum tersedia untuk checkout');
+    if(!ac.signal.aborted)setBuyNowProduct(product);
+   })
+   .catch(e=>{if(!ac.signal.aborted)setBuyNowError(e instanceof Error?e.message:'Produk belum dapat diverifikasi')})
+   .finally(()=>{if(!ac.signal.aborted)setBuyNowLoading(false)});
+  return()=>ac.abort();
+ },[buyNowId,scopeReady]);
  const auth=useCustomerAuth();
  const router=useRouter();
  const [form,setForm]=useState<DraftForm>(initial);
@@ -51,7 +77,15 @@ export default function CheckoutPage(){
  const [order,setOrder]=useState<{id:string;status:string;paymentStatus:string}|null>(null);
  const requestKey=useRef<string|null>(null);
  const shippingRequest=useRef(0);
- const physical=useMemo(()=>scopeReady?items.filter(x=>!isDigitalProduct(x.product)&&(!buyNowId||x.product.id===buyNowId)):[],[items,buyNowId,scopeReady]);
+ const physical=useMemo(()=>{
+  if(!scopeReady)return [];
+  if(!buyNowId)return items.filter(x=>!isDigitalProduct(x.product));
+  // Use current, published server data for Buy Now when possible; the
+  // existing cart is only a fallback while that request is in flight.
+  const selected=buyNowProduct||items.find(x=>x.product.id===buyNowId)?.product;
+  if(!selected||isDigitalProduct(selected))return [];
+  return [{product:selected,quantity:Math.max(1,Math.min(buyNowQty,selected.stock_qty||1,99))}];
+ },[items,buyNowId,buyNowProduct,buyNowQty,scopeReady]);
  const includesDigital=!scopeReady||(!buyNowId&&items.some(x=>isDigitalProduct(x.product)));
  const scopedCount=physical.reduce((total,item)=>total+item.quantity,0);
  const requestItems=useMemo(()=>physical.map(x=>({productId:x.product.id,quantity:x.quantity})),[physical]);
@@ -59,7 +93,12 @@ export default function CheckoutPage(){
  const selectedShipping=shippingRates.find(r=>r.quoteId===selectedQuoteId)||null;
  const shippingPrice=shippingConfig?.rateLookupEnabled?(selectedShipping?.priceIdr??null):(quote?.shippingFeeIdr??null);
  const totalPreview=quote&&shippingPrice!==null?quote.subtotalIdr-quote.discountIdr+shippingPrice:null;
- useEffect(()=>{fetch('/api/checkout/config',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error('Gateway config unavailable'))).then(setCheckoutConfig).catch(()=>setCheckoutConfig({paymentEnabled:false,providerConnected:false,methods:['bank_transfer']}));},[]);
+ useEffect(()=>{fetch('/api/checkout/config',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error('Gateway config unavailable')))
+  .then(raw=>{
+   // A partial or outdated response must never crash the purchase screen.
+   const methods=Array.isArray(raw?.methods)?raw.methods.filter((m:unknown)=>['bank_transfer','qris','virtual_account','ewallet'].includes(String(m))):[];
+   setCheckoutConfig({...raw,paymentEnabled:Boolean(raw?.paymentEnabled),providerConnected:Boolean(raw?.providerConnected),methods});
+  }).catch(()=>setCheckoutConfig({paymentEnabled:false,providerConnected:false,methods:['bank_transfer']}));},[]);
  useEffect(()=>{fetch('/api/shipping/config',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error('Shipping unavailable'))).then(setShippingConfig).catch(()=>setShippingError('Pengaturan ongkir belum dapat dimuat. Muat ulang halaman untuk mencoba lagi.'));},[]);
  useEffect(()=>{
   if(includesDigital||requestItems.length===0){setQuote(null);setError('');return;}
@@ -136,7 +175,9 @@ export default function CheckoutPage(){
    <p>Tinjau barang, penerima, ongkos kirim, dan metode pembayaran. {live?'Pilih kanal pembayaran Xendit atau transfer manual.':'Pilih transfer manual atau kanal Xendit sandbox yang tersedia.'}</p>
    <div className="vco26-steps"><span className="done">1. Keranjang</span><span className="current">2. Checkout</span><span>3. Pembayaran</span></div>
   </div>
-  {(buyNowId?physical.length===0:items.length===0)?<section className="vco26-card"><h2>Belum ada barang.</h2><p>Pilih produk di katalog terlebih dahulu.</p><Link href="/catalog" className="vco26-button">Lihat katalog</Link></section>:
+  {buyNowId&&buyNowError&&<p role="alert" className="vco26-footnote">{buyNowError}. Silakan periksa kembali ketersediaan produk.</p>}
+  {buyNowId&&buyNowLoading&&physical.length===0?<section className="vco26-card" role="status">Memeriksa produk untuk Beli Sekarang…</section>:
+   (buyNowId?physical.length===0:items.length===0)?<section className="vco26-card"><h2>Belum ada barang.</h2><p>Pilih produk di katalog terlebih dahulu.</p><Link href="/catalog" className="vco26-button">Lihat katalog</Link></section>:
   includesDigital?<section className="vco26-card"><h2>Produk digital diproses terpisah</h2><p>Pisahkan Coin atau Membership dari barang fisik sebelum checkout. Saldo dan benefit hanya berlaku setelah pembayaran terverifikasi.</p><Link href="/keranjang-2" className="vco26-button">Kembali ke keranjang</Link></section>:
   <div className="vco26-grid">
    <form className="vco26-card vco26-form" onSubmit={submit}>

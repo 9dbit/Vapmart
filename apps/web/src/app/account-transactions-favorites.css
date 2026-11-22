@@ -1,0 +1,305 @@
+/* CP66: Customer account, transactions and favorites.
+   Tokopedia screenshots informed information hierarchy; colors, cards and icon system are Vapmart. */
+html body .vm26-customer-page{
+ --vm26-bg:#f7f5f9;
+ --vm26-panel:#fff;
+ --vm26-text:#302b36;
+ --vm26-muted:#81768a;
+ --vm26-line:#ede5f2;
+ --vm26-violet:#8423d4;
+ --vm26-violet-soft:#f4e8ff;
+ --vm26-strong:#4c255f;
+ box-sizing:border-box;
+ min-height:65vh;
+ max-width:1240px;
+ width:100%;
+ margin:0 auto;
+ padding:clamp(22px,3vw,42px) clamp(12px,3vw,32px) 130px;
+ color:var(--vm26-text);
+ background:var(--vm26-bg);
+ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+html body .vm26-customer-page *{box-sizing:border-box}
+html body .vm26-customer-page a{text-decoration:none;color:inherit}
+html body .vm26-customer-page button,html body .vm26-customer-page select,html body .vm26-customer-page input{font:inherit}
+html body .vm26-customer-page :is(a,button,input,select):focus-visible{outline:2px solid var(--vm26-violet);outline-offset:3px}
+html body .vm26-customer-page button:disabled{opacity:.5;cursor:not-allowed}
+html body .vm26-customer-page .vm26-eyebrow{color:var(--vm26-violet);font-size:10px;letter-spacing:.13em;font-weight:800;text-transform:uppercase}
+html body .vm26-customer-page .vm26-page-head{display:flex;justify-content:space-between;gap:16px;align-items:start;margin-bottom:25px}
+html body .vm26-customer-page .vm26-page-head h1{font-weight:780;font-size:clamp(25px,3.5vw,38px);line-height:1.15;letter-spacing:-.045em;margin:7px 0 10px}
+html body .vm26-customer-page .vm26-page-head p{font-size:13px;line-height:1.65;color:var(--vm26-muted);margin:0;max-width:560px}
+html body .vm26-customer-page .vm26-text-link{color:var(--vm26-violet);font-size:12px;font-weight:750;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+html body .vm26-customer-page .vm26-text-link svg{height:16px;width:16px}
+html body .vm26-customer-page .vm26-primary,html body .vm26-customer-page .vm26-secondary{
+ display:inline-flex;gap:7px;align-items:center;justify-content:center;min-height:43px;
+ padding:11px 17px;border-radius:999px;font-size:12px;font-weight:760;white-space:nowrap;
+ border:1px solid var(--vm26-violet);cursor:pointer;
+}
+html body .vm26-customer-page .vm26-primary{background:var(--vm26-violet);color:#fff}
+html body .vm26-customer-page .vm26-secondary{background:transparent;color:var(--vm26-violet)}
+html body .vm26-customer-page .vm26-inline-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
+html body .vm26-customer-page .vm26-soft{color:var(--vm26-muted);font-size:12px;line-height:1.6}
+html body .vm26-customer-page .vm26-inline-error{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f8e9ee;color:#ab2d48;font-size:12px;border-radius:12px;padding:13px 15px;margin:15px 0}
+html body .vm26-customer-page .vm26-inline-error button{border:0;color:#8325be;background:transparent;text-decoration:underline;cursor:pointer;font-size:12px}
+html body .vm26-customer-page .vm26-empty{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+ margin:18px auto 0;padding:clamp(28px,5vw,56px) 18px;max-width:700px;width:100%;
+ border:1px solid var(--vm26-line);border-radius:20px;background:var(--vm26-panel);
+}
+html body .vm26-customer-page .vm26-empty>svg{width:38px;height:38px;color:var(--vm26-violet);margin-bottom:9px}
+html body .vm26-customer-page .vm26-empty h2{font-size:18px;line-height:1.4;letter-spacing:-.02em;margin:7px 0}
+html body .vm26-customer-page .vm26-empty p{font-size:12px;color:var(--vm26-muted);line-height:1.65;max-width:350px}
+html body .vm26-customer-page .vm26-loading{color:var(--vm26-muted);font-size:13px;padding:18px}
+/* Account identity */
+html body .vm26-account .vm26-account-identity{
+ display:flex;align-items:center;gap:16px;
+ padding:15px 0 25px;
+ border-bottom:1px solid var(--vm26-line);
+}
+html body .vm26-account .vm26-avatar{
+ flex:0 0 68px;width:68px;height:68px;
+ display:grid;place-items:center;border-radius:50%;
+ background:linear-gradient(135deg,#7c18c4,#b76fff 74%);
+ box-shadow:0 7px 20px rgba(108,34,159,.18);
+ color:#fff;font-weight:800;font-size:22px;letter-spacing:-.04em;
+}
+html body .vm26-account .vm26-identity-copy{flex:1;min-width:0}
+html body .vm26-account .vm26-identity-copy h1{font-size:clamp(19px,2.4vw,28px);font-weight:760;letter-spacing:-.035em;line-height:1.25;margin:5px 0 4px;overflow-wrap:anywhere}
+html body .vm26-account .vm26-identity-copy p{color:var(--vm26-muted);font-size:12px;overflow-wrap:anywhere;margin:0}
+html body .vm26-account .vm26-identity-copy small{display:block;color:#a45420;font-size:11px;margin-top:5px}
+html body .vm26-account .vm26-settings{
+ flex:0 0 38px;width:38px;height:38px;border-radius:50%;
+ border:1px solid var(--vm26-line);display:grid;place-items:center;
+ color:var(--vm26-text);background:var(--vm26-panel);
+}
+html body .vm26-account .vm26-settings svg{width:19px;height:19px}
+html body .vm26-account .vm26-member-board{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:14px;padding:20px 0}
+html body .vm26-account .vm26-member-card{min-width:0;display:flex;justify-content:center}
+html body .vm26-account .vm26-member-card .vm-new-member-card{max-width:380px;width:100%;margin:0}
+html body .vm26-account .vm26-member-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-content:center}
+html body .vm26-account .vm26-member-stat{
+ position:relative;display:flex;flex-direction:column;gap:8px;
+ min-height:128px;border-radius:16px;padding:18px 15px;
+ background:var(--vm26-panel);border:1px solid var(--vm26-line);
+}
+html body .vm26-account .vm26-member-stat small{font-size:12px;color:var(--vm26-muted);font-weight:600}
+html body .vm26-account .vm26-member-stat strong{font-size:clamp(23px,3.2vw,33px);font-weight:800;letter-spacing:-.045em;color:var(--vm26-violet)}
+html body .vm26-account .vm26-member-stat span{font-size:10px;color:var(--vm26-muted);line-height:1.5}
+html body .vm26-account .vm26-member-stat>svg{position:absolute;top:17px;right:12px;width:15px;height:15px}
+html body .vm26-account .vm26-member-actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px}
+html body .vm26-account .vm26-member-actions a{
+ flex:1;min-height:40px;display:flex;justify-content:center;align-items:center;gap:5px;
+ padding:9px 13px;border-radius:999px;background:var(--vm26-violet-soft);
+ color:var(--vm26-violet);font-size:12px;font-weight:760;
+}
+html body .vm26-account .vm26-member-actions svg{height:16px;width:16px}
+html body .vm26-account .vm26-account-section{
+ padding:22px;border-radius:18px;
+ background:var(--vm26-panel);border:1px solid var(--vm26-line);
+ margin:0 0 17px;
+}
+html body .vm26-customer-page .vm26-section-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:19px}
+html body .vm26-customer-page .vm26-section-heading h2{font-size:clamp(18px,2.1vw,22px);font-weight:770;letter-spacing:-.025em;line-height:1.3;margin:0}
+html body .vm26-customer-page .vm26-section-heading a{display:inline-flex;align-items:center;gap:4px;color:var(--vm26-violet);font-size:12px;font-weight:760;white-space:nowrap}
+html body .vm26-customer-page .vm26-section-heading svg{width:16px;height:16px}
+html body .vm26-account .vm26-stage-shortcuts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;padding:3px 0 17px}
+html body .vm26-account .vm26-stage-shortcut{
+ position:relative;min-width:0;display:flex;flex-direction:column;align-items:center;
+ justify-content:flex-start;gap:7px;padding:10px 3px 5px;border-radius:12px;
+ color:var(--vm26-text);font-size:11px;text-align:center;line-height:1.45;
+}
+html body .vm26-account .vm26-stage-shortcut:hover{background:var(--vm26-violet-soft)}
+html body .vm26-account .vm26-stage-icon{
+ width:42px;height:42px;border-radius:14px;background:var(--vm26-violet-soft);
+ display:grid;place-items:center;color:var(--vm26-violet);
+}
+html body .vm26-account .vm26-stage-icon svg{width:23px;height:23px}
+html body .vm26-account .vm26-stage-shortcut b{position:absolute;top:2px;right:calc(50% - 31px);background:var(--vm26-violet);color:#fff;min-width:17px;height:17px;border-radius:99px;display:grid;place-items:center;padding:1px 4px;font-size:10px;font-weight:750}
+html body .vm26-account .vm26-recent-orders{display:grid;gap:0;border-top:1px solid var(--vm26-line)}
+html body .vm26-account .vm26-recent-order{display:flex;gap:11px;align-items:center;padding:13px 0;border-bottom:1px solid var(--vm26-line)}
+html body .vm26-account .vm26-recent-image{flex:0 0 56px;width:56px;height:56px;border-radius:9px;background:var(--vm26-violet-soft);display:grid;place-items:center;overflow:hidden}
+html body .vm26-account .vm26-recent-image img{width:100%;height:100%;object-fit:contain}
+html body .vm26-account .vm26-recent-image svg{width:23px;height:23px;color:var(--vm26-violet)}
+html body .vm26-account .vm26-recent-order>span:nth-child(2){flex:1;min-width:0;display:grid;gap:4px}
+html body .vm26-account .vm26-recent-order>span:nth-child(2) strong{font-size:12px;font-weight:680;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html body .vm26-account .vm26-recent-order small{font-size:10px;color:var(--vm26-muted)}
+html body .vm26-account .vm26-recent-order>b{font-size:12px;font-weight:780;color:var(--vm26-text);white-space:nowrap}
+html body .vm26-account .vm26-account-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+html body .vm26-account .vm26-account-menu a{
+ min-width:0;display:flex;align-items:center;gap:11px;
+ border:1px solid var(--vm26-line);border-radius:13px;
+ padding:13px 12px;background:var(--vm26-panel);
+}
+html body .vm26-account .vm26-account-menu a:hover{background:var(--vm26-violet-soft)}
+html body .vm26-account .vm26-account-menu a>svg:first-child{width:21px;height:21px;flex:none;color:var(--vm26-violet)}
+html body .vm26-account .vm26-account-menu a>span{flex:1;display:grid;gap:4px;min-width:0}
+html body .vm26-account .vm26-account-menu strong{font-size:12px;font-weight:740}
+html body .vm26-account .vm26-account-menu small{font-size:10px;line-height:1.5;color:var(--vm26-muted)}
+html body .vm26-account .vm26-account-menu a>svg:last-child{width:14px;height:14px;color:var(--vm26-muted)}
+html body .vm26-account .vm26-account-product-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+html body .vm26-account .vm26-account-product{display:flex;flex-direction:column;gap:7px;min-width:0}
+html body .vm26-account .vm26-account-product>span{display:grid;place-items:center;aspect-ratio:1;border-radius:12px;background:var(--vm26-violet-soft);overflow:hidden}
+html body .vm26-account .vm26-account-product img{width:100%;height:100%;object-fit:contain}
+html body .vm26-account .vm26-account-product strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;font-weight:550;line-height:1.4}
+html body .vm26-account .vm26-account-product b{font-size:14px;color:var(--vm26-violet)}
+/* Transactions */
+html body .vm26-orders .vm26-orders-controls{display:grid;gap:12px;margin-bottom:24px}
+html body .vm26-orders .vm26-order-search{display:flex;align-items:center;gap:11px;max-width:700px;width:100%;min-height:49px;padding:0 14px;border:1px solid var(--vm26-line);border-radius:15px;background:var(--vm26-panel);color:var(--vm26-muted)}
+html body .vm26-orders .vm26-order-search>svg{width:20px;height:20px;flex:none}
+html body .vm26-orders .vm26-order-search input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--vm26-text);font-size:13px}
+html body .vm26-orders .vm26-order-search input:focus{outline:0}
+html body .vm26-orders .vm26-order-search button{color:var(--vm26-muted);border:0;background:transparent;font-size:20px;line-height:1;padding:5px}
+html body .vm26-orders .vm26-filter-rail{display:flex;align-items:center;gap:9px;max-width:100%;overflow-x:auto;scrollbar-width:none;padding:3px 0}
+html body .vm26-orders .vm26-filter-rail::-webkit-scrollbar{display:none}
+html body .vm26-orders .vm26-filter-rail label{display:block;flex:0 0 auto;position:relative}
+html body .vm26-orders .vm26-filter-rail label::after{content:"⌄";position:absolute;right:14px;top:50%;transform:translateY(-56%);pointer-events:none;color:var(--vm26-muted);font-size:17px}
+html body .vm26-orders .vm26-filter-rail select{
+ min-height:40px;max-width:200px;appearance:none;-webkit-appearance:none;
+ border:1px solid var(--vm26-line);border-radius:999px;background:var(--vm26-panel);
+ color:var(--vm26-text);font-size:12px;font-weight:600;padding:10px 32px 10px 14px;
+}
+html body .vm26-orders .vm26-order-results{max-width:940px;display:grid;gap:13px}
+html body .vm26-orders .vm26-results-caption{font-size:11px;color:var(--vm26-muted);margin:0 0 2px}
+html body .vm26-orders .vm26-order-card{
+ padding:17px 19px;background:var(--vm26-panel);border:1px solid var(--vm26-line);
+ border-radius:16px;box-shadow:0 5px 14px rgba(38,23,48,.025);min-width:0;
+}
+html body .vm26-orders .vm26-order-card-head{display:flex;align-items:center;gap:9px;padding-bottom:13px;border-bottom:1px solid var(--vm26-line)}
+html body .vm26-orders .vm26-order-card-origin{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+html body .vm26-orders .vm26-order-bag{width:32px;height:32px;flex:0 0 32px;border-radius:10px;display:grid;place-items:center;color:var(--vm26-violet);background:var(--vm26-violet-soft)}
+html body .vm26-orders .vm26-order-bag svg{width:19px;height:19px}
+html body .vm26-orders .vm26-order-card-origin>div{display:grid;gap:3px}
+html body .vm26-orders .vm26-order-card-origin strong{font-size:12px;font-weight:760}
+html body .vm26-orders .vm26-order-card-origin time{font-size:11px;color:var(--vm26-muted)}
+html body .vm26-orders .vm26-order-status{padding:5px 9px;border-radius:8px;font-size:11px;white-space:nowrap;font-weight:700}
+html body .vm26-orders .vm26-order-status.is-success{background:#e6f7ee;color:#217a4c}
+html body .vm26-orders .vm26-order-status.is-warning{background:#fff1db;color:#a56420}
+html body .vm26-orders .vm26-order-status.is-purple{background:var(--vm26-violet-soft);color:var(--vm26-violet)}
+html body .vm26-orders .vm26-order-status.is-muted{background:#f1edf4;color:#74687d}
+html body .vm26-orders .vm26-order-more{display:grid;place-items:center;flex:0 0 25px;color:var(--vm26-muted);font-size:24px}
+html body .vm26-orders .vm26-order-item{display:flex;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid var(--vm26-line)}
+html body .vm26-orders .vm26-order-thumbnail{display:grid;place-items:center;flex:0 0 72px;width:72px;height:72px;overflow:hidden;border-radius:11px;background:var(--vm26-violet-soft)}
+html body .vm26-orders .vm26-order-thumbnail img{width:100%;height:100%;object-fit:contain}
+html body .vm26-orders .vm26-order-thumbnail svg{width:25px;height:25px;color:var(--vm26-violet)}
+html body .vm26-orders .vm26-order-item-copy{flex:1;min-width:0;display:grid;gap:7px}
+html body .vm26-orders .vm26-order-item-copy strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:14px;font-weight:710;line-height:1.43}
+html body .vm26-orders .vm26-order-item-copy small{font-size:12px;color:var(--vm26-muted)}
+html body .vm26-orders .vm26-order-item>svg{width:16px;height:16px;color:var(--vm26-muted);flex:none}
+html body .vm26-orders .vm26-order-card-foot{display:flex;justify-content:space-between;align-items:end;gap:15px;padding-top:14px}
+html body .vm26-orders .vm26-order-card-foot>div{display:grid;gap:5px}
+html body .vm26-orders .vm26-order-card-foot>div span{font-size:11px;color:var(--vm26-muted)}
+html body .vm26-orders .vm26-order-card-foot strong{font-size:17px;font-weight:800;letter-spacing:-.025em;color:var(--vm26-text)}
+html body .vm26-orders .vm26-order-card-foot small{font-size:10px;color:var(--vm26-muted);overflow-wrap:anywhere}
+html body .vm26-orders .vm26-order-cta{display:grid;place-items:center;text-align:center;min-height:38px;padding:10px 14px;border-radius:10px;background:var(--vm26-violet);color:#fff;font-size:11px;font-weight:760;max-width:200px}
+html body .vm26-orders .vm26-order-skeleton{height:230px;border-radius:16px;background:linear-gradient(110deg,var(--vm26-panel) 20%,var(--vm26-violet-soft) 45%,var(--vm26-panel) 70%);background-size:200% 100%;animation:vm26-skeleton 1.4s ease-in-out infinite}
+html body .vm26-customer-page .vm26-pagination{display:flex;gap:11px;align-items:center;justify-content:center;padding:16px 0}
+html body .vm26-customer-page .vm26-pagination button{border:1px solid var(--vm26-line);background:var(--vm26-panel);border-radius:999px;padding:9px 15px;color:var(--vm26-text);font-size:12px;cursor:pointer}
+html body .vm26-customer-page .vm26-pagination span{font-size:12px;color:var(--vm26-muted)}
+@keyframes vm26-skeleton{to{background-position-x:-200%}}
+/* Saved favorites */
+html body .vm26-favorites .vm26-favorites-hint{display:flex;align-items:center;gap:11px;border-radius:12px;background:var(--vm26-violet-soft);padding:12px 14px;color:var(--vm26-muted);font-size:11px;margin:0 0 15px;line-height:1.55}
+html body .vm26-favorites .vm26-favorites-hint>svg{width:20px;height:20px;flex:none;color:var(--vm26-violet)}
+html body .vm26-favorites .vm26-favorites-hint a{color:var(--vm26-violet);font-weight:700;text-decoration:underline}
+html body .vm26-favorites .vm26-favorite-tabs{display:flex;gap:8px;border-bottom:1px solid var(--vm26-line);margin:16px 0 24px;padding-bottom:0}
+html body .vm26-favorites .vm26-favorite-tabs button{display:inline-flex;align-items:center;gap:9px;min-height:47px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--vm26-muted);padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer}
+html body .vm26-favorites .vm26-favorite-tabs button.is-current{border-bottom-color:var(--vm26-violet);color:var(--vm26-violet)}
+html body .vm26-favorites .vm26-favorite-tabs svg{width:17px;height:17px}
+html body .vm26-favorites .vm26-favorite-tabs span{font-size:10px;border-radius:99px;background:var(--vm26-violet-soft);padding:3px 7px}
+html body .vm26-favorites .vm26-fav-products{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+html body .vm26-favorites .vm26-fav-product{position:relative;display:flex;flex-direction:column;min-width:0;background:var(--vm26-panel);padding:10px;border:1px solid var(--vm26-line);border-radius:15px}
+html body .vm26-favorites .vm26-fav-product-visual{position:relative}
+html body .vm26-favorites .vm26-fav-product-visual>a{position:relative;display:block;aspect-ratio:1;background:var(--vm26-violet-soft);overflow:hidden;border-radius:11px}
+html body .vm26-favorites .vm26-fav-product-visual img{width:100%;height:100%;object-fit:contain}
+html body .vm26-favorites .vm26-fav-product-visual small{position:absolute;left:6px;top:6px;border-radius:999px;color:#fff;background:#d52549;padding:5px 8px;font-size:10px;font-weight:750}
+html body .vm26-favorites .vm26-fav-noimage{position:absolute;inset:0;display:grid;place-items:center;color:var(--vm26-violet)}
+html body .vm26-favorites .vm26-fav-noimage svg{width:34px;height:34px}
+html body .vm26-favorites .vm26-favorite-heart{
+ display:grid;place-items:center;flex:none;width:36px;height:36px;
+ border:1px solid var(--vm26-line);border-radius:50%;
+ background:var(--vm26-panel);color:var(--vm26-muted);cursor:pointer;
+}
+html body .vm26-favorites .vm26-favorite-heart.is-saved{color:var(--vm26-violet);background:var(--vm26-violet-soft)}
+html body .vm26-favorites .vm26-favorite-heart svg{width:19px;height:19px}
+html body .vm26-favorites .vm26-fav-product-visual>.vm26-favorite-heart{position:absolute;top:7px;right:7px}
+html body .vm26-favorites .vm26-fav-name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:35px;margin:10px 0 5px;font-size:12px;font-weight:550;line-height:1.45}
+html body .vm26-favorites .vm26-fav-price{color:var(--vm26-violet);font-size:16px;letter-spacing:-.02em}
+html body .vm26-favorites .vm26-brand-search{display:flex;align-items:center;gap:9px;max-width:550px;min-height:46px;padding:0 13px;margin:0 0 17px;border-radius:13px;background:var(--vm26-panel);border:1px solid var(--vm26-line)}
+html body .vm26-favorites .vm26-brand-search svg{width:18px;height:18px;color:var(--vm26-muted)}
+html body .vm26-favorites .vm26-brand-search input{width:100%;min-width:0;border:0;background:transparent;color:var(--vm26-text);font-size:13px;outline:0}
+html body .vm26-favorites .vm26-brand-list{display:grid;gap:2px;background:var(--vm26-panel);border:1px solid var(--vm26-line);border-radius:16px;padding:6px 14px}
+html body .vm26-favorites .vm26-brand-row{display:flex;align-items:center;gap:14px;min-width:0;padding:13px 1px;border-bottom:1px solid var(--vm26-line)}
+html body .vm26-favorites .vm26-brand-row:last-child{border-bottom:0}
+html body .vm26-favorites .vm26-brand-logo{width:63px;height:63px;flex:0 0 63px;display:grid;place-items:center;overflow:hidden;border-radius:12px;background:var(--vm26-violet-soft)}
+html body .vm26-favorites .vm26-brand-logo img{width:100%;height:100%;object-fit:contain;background:#fff}
+html body .vm26-favorites .vm26-brand-logo svg{color:var(--vm26-violet);width:27px;height:27px}
+html body .vm26-favorites .vm26-brand-row>div{flex:1;min-width:0}
+html body .vm26-favorites .vm26-brand-row>div>a{display:block;font-size:14px;font-weight:690;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html body .vm26-favorites .vm26-brand-row p{font-size:11px;line-height:1.5;color:var(--vm26-muted);margin:5px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+html body .vm26-favorites .vm26-brand-discover{margin-top:27px}
+html[data-vapmart-color-mode="dark"] body .vm26-customer-page{
+ --vm26-bg:#111014;--vm26-panel:#1d1b22;--vm26-text:#f1edf6;--vm26-muted:#aea5b8;
+ --vm26-line:#39313f;--vm26-violet:#c18bff;--vm26-violet-soft:#33213f;--vm26-strong:#d5b7f5;
+}
+html[data-vapmart-color-mode="dark"] body .vm26-orders .vm26-order-status.is-success{background:#183c2c;color:#7be1b0}
+html[data-vapmart-color-mode="dark"] body .vm26-orders .vm26-order-status.is-warning{background:#4e351c;color:#ffc980}
+html[data-vapmart-color-mode="dark"] body .vm26-orders .vm26-order-status.is-muted{background:#312a38;color:#b8aebd}
+html[data-vapmart-color-mode="dark"] body .vm26-customer-page .vm26-inline-error{background:#431f2e;color:#ffb3cc}
+html[data-vapmart-color-mode="dark"] body .vm26-customer-page .vm26-primary,html[data-vapmart-color-mode="dark"] body .vm26-orders .vm26-order-cta{background:#8524d4;border-color:#8524d4;color:#fff}
+html[data-vapmart-color-mode="dark"] body .vm26-favorites .vm26-brand-logo img{background:#e9e6ef}
+@media(max-width:900px){
+ html body .vm26-account .vm26-member-board{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ html body .vm26-account .vm26-member-stats{grid-template-columns:1fr}
+ html body .vm26-account .vm26-member-actions{grid-column:auto}
+ html body .vm26-favorites .vm26-fav-products{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:767px){
+ html body .vm26-customer-page{padding:19px 12px calc(104px + env(safe-area-inset-bottom))}
+ html body .vm26-customer-page .vm26-page-head{margin-bottom:19px}
+ html body .vm26-customer-page .vm26-page-head h1{font-size:25px}
+ html body .vm26-account .vm26-account-identity{padding:10px 2px 21px;gap:12px}
+ html body .vm26-account .vm26-avatar{flex-basis:56px;width:56px;height:56px;font-size:19px}
+ html body .vm26-account .vm26-identity-copy h1{font-size:19px}
+ html body .vm26-account .vm26-member-board{grid-template-columns:1fr;gap:12px;padding:16px 0}
+ html body .vm26-account .vm26-member-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ html body .vm26-account .vm26-member-actions{grid-column:1/-1}
+ html body .vm26-account .vm26-member-stat{padding:14px 12px;min-height:115px;border-radius:13px}
+ html body .vm26-account .vm26-member-stat strong{font-size:23px}
+ html body .vm26-account .vm26-member-card .vm-new-member-card{max-width:420px}
+ html body .vm26-account .vm26-account-section{padding:16px 14px;border-radius:15px;margin-bottom:12px}
+ html body .vm26-account .vm26-stage-shortcuts{gap:4px}
+ html body .vm26-account .vm26-stage-shortcut{font-size:10px;gap:6px;padding:7px 1px}
+ html body .vm26-account .vm26-stage-icon{width:38px;height:38px;border-radius:12px}
+ html body .vm26-account .vm26-stage-icon svg{width:21px;height:21px}
+ html body .vm26-account .vm26-recent-order>b{font-size:11px}
+ html body .vm26-account .vm26-account-menu{grid-template-columns:1fr}
+ html body .vm26-account .vm26-account-product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ html body .vm26-orders .vm26-order-search{min-height:46px}
+ html body .vm26-orders .vm26-order-card{padding:13px 13px;border-radius:14px}
+ html body .vm26-orders .vm26-order-item{gap:10px}
+ html body .vm26-orders .vm26-order-thumbnail{width:63px;height:63px;flex-basis:63px}
+ html body .vm26-orders .vm26-order-item-copy strong{font-size:12px}
+ html body .vm26-orders .vm26-order-item-copy small{font-size:11px}
+ html body .vm26-orders .vm26-order-card-foot strong{font-size:15px}
+ html body .vm26-orders .vm26-order-cta{min-height:36px;padding:8px 10px;font-size:10px}
+ html body .vm26-favorites .vm26-fav-products{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ html body .vm26-favorites .vm26-fav-product{padding:7px}
+ html body .vm26-favorites .vm26-favorite-tabs{justify-content:space-between;gap:3px}
+ html body .vm26-favorites .vm26-favorite-tabs button{gap:6px;font-size:12px;padding:10px 7px}
+ html body .vm26-favorites .vm26-brand-list{padding:5px 11px}
+ html body .vm26-favorites .vm26-brand-logo{width:56px;height:56px;flex-basis:56px}
+ html body .vm26-favorites .vm26-brand-row{gap:11px}
+ html body .vm26-favorites .vm26-brand-row>div>a{font-size:13px}
+ html body .legacy-mobile-nav.vm-reference-mobile-nav.vm-modern-mobile-nav a{min-width:0;flex:1 1 0}
+}
+@media(max-width:359px){
+ html body .vm26-customer-page{padding-left:9px;padding-right:9px}
+ html body .vm26-account .vm26-account-identity{gap:8px}
+ html body .vm26-account .vm26-avatar{width:48px;height:48px;flex-basis:48px}
+ html body .vm26-orders .vm26-order-card{padding:12px 10px}
+ html body .vm26-orders .vm26-order-status{font-size:10px;padding:4px 6px}
+ html body .vm26-orders .vm26-order-card-foot{gap:7px}
+ html body .vm26-favorites .vm26-favorite-tabs button{font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){
+ html body .vm26-orders .vm26-order-skeleton{animation:none}
+}
