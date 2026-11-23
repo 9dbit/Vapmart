@@ -1,4 +1,4 @@
-import {BadRequestException,ConflictException,Injectable,NotFoundException} from '@nestjs/common';
+import {BadRequestException,ConflictException,HttpException,Injectable,NotFoundException} from '@nestjs/common';
 import {createHash,randomUUID} from 'node:crypto';
 import type {PoolClient} from 'pg';
 import {DatabaseService} from './database';
@@ -8,6 +8,35 @@ import {inventoryLock,ensureBalance,writeEvent,refreshProductAvailability,requir
 import * as V from './catalog-validation';
 import {publicPrice} from './catalog-pricing';
 type Reader={query:(sql:string,values?:any[])=>Promise<{rows:any[]}>};
+export const BULK_PUBLISH_LIMIT=50;
+export type BulkPublishItem={id:string;expectedVersion:number};
+export type BulkPublishResult={id:string;status:'ready'|'blocked'|'published'|'failed'|'skipped';name?:string;message?:string};
+
+export function parseBulkPublishItems(raw:unknown):BulkPublishItem[]{
+ const input=V.record(raw,['items']);
+ if(!Array.isArray(input.items)||input.items.length<1||input.items.length>BULK_PUBLISH_LIMIT)
+  throw new BadRequestException('Pilih 1 sampai 50 produk draft untuk sekali publish.');
+ const seen=new Set<string>();
+ return input.items.map((item:unknown)=>{
+  const entry=V.record(item,['id','expectedVersion']);
+  const id=requireUuid(entry.id,'produk');
+  if(seen.has(id))throw new BadRequestException('Pilihan produk ganda tidak diperbolehkan.');
+  seen.add(id);
+  return {id,expectedVersion:V.version(entry.expectedVersion)};
+ });
+}
+function publicationError(error:unknown):string{
+ if(!(error instanceof HttpException))throw error;
+ const response=error.getResponse();
+ if(typeof response==='string')return response;
+ if(response&&typeof response==='object'){
+  const msg=(response as Record<string,unknown>).message;
+  if(typeof msg==='string')return msg;
+  if(Array.isArray(msg))return msg.filter(v=>typeof v==='string').join(', ');
+ }
+ return 'Produk belum memenuhi syarat publikasi.';
+}
+
 const fields=['name','slug','sku','description','category','brand_id','fulfillment_owner_brand_id','image_url','gallery_urls','price_idr','sale_price_idr','sale_starts_at','sale_ends_at','weight_grams','length_cm','width_cm','height_cm','product_type','attributes','option_values'];
 const bodyFields=['name','slug','sku','description','categoryId','categoryIds','brand_id','fulfillment_owner_brand_id','image_url','gallery_urls','price_idr','sale_price_idr','sale_starts_at','sale_ends_at','weight_grams','length_cm','width_cm','height_cm','product_type','attributes'];
 function value(p:Record<string,any>,key:string){return ['attributes','option_values'].includes(key)?JSON.stringify(p[key]):p[key];}
@@ -183,19 +212,75 @@ export class CatalogWorkspaceService{
    await recordAudit(client,'product',who,before,r.rows[0]);return family(client,before.parent_product_id||id);
   });
  }
+ private async verifyPublication(q:Reader,product:Record<string,any>,lockChildren=false){
+  V.safeCatalogTerms(product.name,product.description,product.slug,product.sku,product.attributes??[],product.option_values??{});
+  if(product.product_type==='variable'){
+   const variants=(await q.query(
+    'SELECT * FROM product.products WHERE parent_product_id=$1 AND is_active AND archived_at IS NULL'+(lockChildren?' FOR UPDATE':''),
+    [product.id])).rows;
+   if(!variants.length)throw new ConflictException('Tambahkan varian aktif sebelum publikasi.');
+   for(const variant of variants)await assertPublishable(q,variant);
+   assertFamilyGallery(product);
+  }else await assertPublishable(q,product);
+ }
+
+ /** Preflight is read-only. Every real publication rechecks under the transaction lock. */
+ async bulkPreview(actor:Principal,raw:unknown){
+  requireActor(actor);
+  const selected=parseBulkPublishItems(raw);
+  const results:BulkPublishResult[]=[];
+  for(const item of selected){
+   let name:string|undefined;
+   try{
+    const row=(await this.db.query(
+     'SELECT * FROM product.products WHERE id=$1 AND parent_product_id IS NULL AND archived_at IS NULL',
+     [item.id])).rows[0];
+    if(!row)throw new NotFoundException('Produk draft tidak ditemukan.');
+    name=row.name;
+    if(row.is_active)throw new ConflictException('Produk sudah tayang. Muat ulang daftar draft.');
+    assertVersion(row.edit_version,item.expectedVersion);
+    await this.verifyPublication(this.db,row);
+    results.push({id:item.id,name,status:'ready'});
+   }catch(error){
+    results.push({id:item.id,name,status:'blocked',message:publicationError(error)});
+   }
+  }
+  return {ready:results.filter(r=>r.status==='ready').length,
+   blocked:results.filter(r=>r.status==='blocked').length,results,limit:BULK_PUBLISH_LIMIT};
+ }
+
+ /** Versioned, audited state changes per item. Invalid drafts remain private. */
+ async bulkPublish(actor:Principal,raw:unknown){
+  requireActor(actor);
+  const selected=parseBulkPublishItems(raw);
+  const results:BulkPublishResult[]=[];
+  for(const [index,item] of selected.entries()){
+   try{
+    const saved=await this.state(actor,item.id,{expectedVersion:item.expectedVersion,active:true});
+    results.push({id:item.id,name:saved.product.name,status:'published'});
+   }catch(error){
+    if(error instanceof HttpException){
+     results.push({id:item.id,status:'failed',message:publicationError(error)});
+    }else{
+     results.push({id:item.id,status:'failed',message:'Gangguan server saat publish. Periksa status sebelum mencoba lagi.'});
+     for(const rest of selected.slice(index+1))
+      results.push({id:rest.id,status:'skipped',message:'Belum dicoba karena gangguan server.'});
+     break;
+    }
+   }
+  }
+  return {published:results.filter(r=>r.status==='published').length,
+   failed:results.filter(r=>r.status==='failed').length,
+   skipped:results.filter(r=>r.status==='skipped').length,results};
+ }
+
  async state(actor:Principal,id:string,raw:unknown){
   const who=requireActor(actor);requireUuid(id,'produk');const x=V.record(raw,['expectedVersion','active']);if(typeof x.active!=='boolean')throw new BadRequestException('Status tidak valid');
   return this.db.transaction(async client=>{await inventoryLock(client);
-   const before=(await client.query('SELECT * FROM product.products WHERE id=$1 AND parent_product_id IS NULL AND archived_at IS NULL FOR UPDATE',[id])).rows[0];if(!before)throw new NotFoundException();assertVersion(before.edit_version,V.version(x.expectedVersion));
-   if(x.active){
-    V.safeCatalogTerms(before.name,before.description,before.slug,before.sku,before.attributes??[],before.option_values??{});
-    if(before.product_type==='variable'){
-     const variants=(await client.query('SELECT * FROM product.products WHERE parent_product_id=$1 AND is_active AND archived_at IS NULL FOR UPDATE',[id])).rows;
-     if(!variants.length)throw new ConflictException('Tambahkan varian aktif sebelum publikasi');
-     for(const v of variants)await assertPublishable(client,v);
-     assertFamilyGallery(before);
-    }else await assertPublishable(client,before);
-   }
+   const before=(await client.query('SELECT * FROM product.products WHERE id=$1 AND parent_product_id IS NULL AND archived_at IS NULL FOR UPDATE',[id])).rows[0];if(!before)throw new NotFoundException('Produk tidak ditemukan.');assertVersion(before.edit_version,V.version(x.expectedVersion));
+   if(before.is_active===x.active)
+    throw new ConflictException(x.active?'Produk sudah dipublikasikan. Muat ulang daftar.':'Produk sudah dinonaktifkan.');
+   if(x.active)await this.verifyPublication(client,before,true);
    const after=(await client.query('UPDATE product.products SET is_active=$2,edit_version=edit_version+1,updated_at=now() WHERE id=$1 RETURNING *',[id,x.active])).rows[0];await recordAudit(client,'product',who,before,after);return family(client,id);
   });
  }
