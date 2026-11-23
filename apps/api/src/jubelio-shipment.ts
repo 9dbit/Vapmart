@@ -10,7 +10,7 @@ const API='https://api-shipment.jubelio.com';
 export type ShippingRegion={areaId:string;postalCode:string;label:string;province:string;city:string;district:string;area:string};
 export type JubelioGoods={weight:number;quantity:number;value:number;length?:number;width?:number;height?:number};
 export type JubelioRate={courierCode:string;courierName:string;serviceCode:string;serviceName:string;priceIdr:number;duration:string;
- providerServiceId:number;basePriceIdr:number;insuranceIdr:number;requiresPin?:boolean};
+ providerServiceId:number;basePriceIdr:number;insuranceIdr:number;requiresPin?:boolean;category?:string;codAvailable?:boolean};
 function object(x:unknown):Record<string,unknown>{return x&&typeof x==='object'&&!Array.isArray(x)?x as Record<string,unknown>:{};}
 function money(x:unknown):number|null{
  if(typeof x!=='number'&&!(typeof x==='string'&&/^\d+(\.0+)?$/.test(x)))return null;
@@ -44,7 +44,9 @@ export function normalizeJubelioRates(raw:unknown,now=Date.now(),allowInstant=fa
   // not be promised without reserving their usage/quota at booking time.
   return [{courierCode:String(r.courier_id),courierName:r.courier_name.slice(0,100),serviceCode:r.courier_service_code,
    serviceName:r.courier_service_name.slice(0,150),priceIdr:base+insurance,basePriceIdr:base,insuranceIdr:insurance,
-   providerServiceId:Number(r.courier_service_id),...(requiresPin?{requiresPin:true}:{}),duration}];
+   providerServiceId:Number(r.courier_service_id),...(requiresPin?{requiresPin:true}:{}),
+    category:String(r.courier_service_category||'').slice(0,50),
+    ...(r.is_cod_supported===true?{codAvailable:true}:{}),duration}];
  }).sort((a,b)=>a.priceIdr-b.priceIdr).slice(0,40);
 }
 export function buildJubelioRatePayload(origin:{areaId:string;postalCode:string},destination:ShippingRegion,goods:JubelioGoods[],pins?:{origin:DeliveryPin|null;destination:DeliveryPin|null}){
