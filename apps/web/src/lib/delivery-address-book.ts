@@ -38,14 +38,15 @@ export function validDeliveryPin(raw:unknown):raw is DeliveryPin{
 }
 export function normalizeSavedAddress(raw:unknown):SavedDeliveryAddress|null{
  const v=object(raw),region=v.region,pin=v.pin;
- if(!/^[0-9a-f-]{36}$/i.test(String(v.id??''))||!validAddressRegion(region))return null;
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(v.id??''))||!validAddressRegion(region))return null;
  const result:SavedDeliveryAddress={
   id:String(v.id),label:string(v.label,40),recipientName:string(v.recipientName,90),
   contactName:string(v.contactName,90),phone:string(v.phone,22),street:string(v.street,300),
   unit:string(v.unit,100),region,pin:validDeliveryPin(pin)?pin:null
  };
  if(!result.label||result.recipientName.length<2||result.contactName.length<2
-    ||result.street.length<8||!/^(?:\+?62|0)[0-9\s-]{8,18}$/.test(result.phone))return null;
+    ||result.street.length<8||!/^(?:\+?62|0)[0-9\s-]{8,18}$/.test(result.phone)
+    ||checkoutAddressLine(result).length>300)return null;
  return result;
 }
 export function readAddressBook(metadata:unknown):AddressBook{
@@ -75,6 +76,10 @@ export function preferredAddress(book:AddressBook,sessionChoice?:string|null):Sa
 }
 export function addressStreet(addr:SavedDeliveryAddress):string{
  return [addr.street,addr.unit].filter(Boolean).join(', ');
+}
+export function checkoutAddressLine(addr:SavedDeliveryAddress):string{
+ const separateContact=addr.contactName.trim().toLowerCase()!==addr.recipientName.trim().toLowerCase();
+ return [addressStreet(addr),...(separateContact?['Kontak lokasi: '+addr.contactName]:[])].join(', ');
 }
 export function legacyAccountAddress(metadata:unknown):{
  label:string;recipientName:string;contactName:string;phone:string;street:string
