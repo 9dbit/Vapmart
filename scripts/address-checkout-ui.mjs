@@ -158,9 +158,12 @@ try{
  browser=await chromium.launch({headless:true});
  context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});
  context.setDefaultTimeout(15000);
- await context.addInitScript(data=>{
+ await context.addInitScript(({data,origin})=>{
+  // New tabs start on about:blank, where storage is unavailable. Seed only
+  // the disposable storefront origin, and preserve later SDK updates.
+  if(location.origin!==origin)return;
   if(!localStorage.getItem('vapmart-customer-auth-v1'))localStorage.setItem('vapmart-customer-auth-v1',JSON.stringify(data));
- },session);
+ },{data:session,origin:BASE});
  await context.route('**/*',route=>{
   const url=new URL(route.request().url());
   if(forbidden(url.pathname)){state.orderAttempts++;return route.abort();}
