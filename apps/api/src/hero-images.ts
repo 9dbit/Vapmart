@@ -43,7 +43,7 @@ export async function validateHeroImage(file:HeroUpload|undefined,options:WebpCo
   const attempts=maxOutputBytes>=HERO_MAX_BYTES
    ?[{size:2560,quality:88}]
    :[{size:2560,quality:88},{size:2048,quality:83},{size:1600,quality:78},{size:1280,quality:74}];
-  let output:Awaited<ReturnType<ReturnType<typeof sharp>['toBuffer']>>|undefined;
+  let output:{data:Buffer;info:{format:string;width:number;height:number}}|undefined;
   for(const attempt of attempts){
    const encoded=await sharp(file.buffer,{limitInputPixels:16777216,failOn:'warning'})
     .rotate()
