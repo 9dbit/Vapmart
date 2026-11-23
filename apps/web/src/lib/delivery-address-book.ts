@@ -4,6 +4,7 @@ import type {DeliveryPin} from '@/lib/delivery-pin';
 export const ADDRESS_BOOK_MAX=10;
 export const ADDRESS_BOOK_META_KEY='vapmart_address_book_v1';
 export const CHOSEN_ADDRESS_KEY='vapmart.checkout.address.';
+export const CHOSEN_COURIER_KEY='vapmart.checkout.courier';
 
 export type SavedDeliveryAddress={
  id:string;
