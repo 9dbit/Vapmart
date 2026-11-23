@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
  readAddressBook,validatedBook,preferredAddress,legacyAccountAddress,
- normalizeSavedAddress,validAddressRegion,ADDRESS_BOOK_MAX,addressStreet
+ normalizeSavedAddress,validAddressRegion,ADDRESS_BOOK_MAX,addressStreet,checkoutAddressLine
 } from '../../web/src/lib/delivery-address-book';
 import {pathFromLocation,regionFromPath,type AddressOption,type AddressList} from '../../web/src/lib/address-location';
 const region={
@@ -31,6 +31,8 @@ test('a valid saved address has all location levels, recipient and confirmed pin
  assert.equal(validAddressRegion(region),true);
  assert.equal(normalizeSavedAddress(addr)?.label,'Kantor');
  assert.equal(addressStreet(addr),'Jalan Cideng Timur 11B, Lantai 2');
+ assert.equal(checkoutAddressLine({...addr,contactName:'Rani Operator'}),'Jalan Cideng Timur 11B, Lantai 2, Kontak lokasi: Rani Operator');
+ assert.equal(normalizeSavedAddress({...addr,street:'A'.repeat(290),contactName:'Rani Operator'}),null);
  assert.equal(normalizeSavedAddress({...addr,recipientName:''}),null);
  assert.equal(normalizeSavedAddress({...addr,region:{...region,areaId:''}}),null);
  assert.equal(normalizeSavedAddress({...addr,pin:{latitude:0,longitude:0,confirmed:true}})?.pin,null);
