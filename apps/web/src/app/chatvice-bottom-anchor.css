@@ -62,5 +62,16 @@ html body:has(.vpd-page) :is(
   }
 }
 
+/* The cart drawer is modal on any route; keep its special clearance when opened. */
+html body:has(.vm21-cart-shell) :is(
+  #chatvice-widget-button,
+  #chatvice-eye-toggle,
+  #chatvice-hidden-label,
+  #chatvice-welcome-bubble,
+  .vm-care-fallback
+) {
+  margin-bottom:calc(176px + env(safe-area-inset-bottom))!important;
+}
+
 /* Never consume taps outside the launcher or change Chatvice iframe layout.
    In particular, the open chat frame remains governed by the provider. */
