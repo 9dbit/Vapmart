@@ -4,7 +4,7 @@ import {
  readAddressBook,validatedBook,preferredAddress,legacyAccountAddress,
  normalizeSavedAddress,validAddressRegion,ADDRESS_BOOK_MAX,addressStreet,checkoutAddressLine
 } from '../../web/src/lib/delivery-address-book';
-import {pathFromLocation,regionFromPath,type AddressOption,type AddressList} from '../../web/src/lib/address-location';
+import {pathFromLocation,regionFromPath,locationCompletion,normalizedRegionName,type AddressOption,type AddressList} from '../../web/src/lib/address-location';
 const region={
  provinceId:'31',cityId:'3171',districtId:'317101',areaId:'3171011002',
  province:'DKI JAKARTA',city:'KOTA ADM. JAKARTA PUSAT',district:'GAMBIR',
@@ -74,4 +74,62 @@ test('GPS reverse result matches all five courier levels and fills unique postal
  }},lookup);
  assert.equal(regionFromPath(ambiguous),null);
  await assert.rejects(()=>pathFromLocation({...raw,countryCode:'SG'},lookup),/luar Indonesia/);
+});
+
+test('actual BigDataCloud Jakarta result uses Jawa / ID-JW but province is DKI JAKARTA',async()=>{
+ const raw={
+  countryCode:'ID',principalSubdivision:'Jawa',principalSubdivisionCode:'ID-JW',
+  city:'Jakarta',locality:'Gambir',postcode:'10130',
+  localityInfo:{administrative:[
+   {adminLevel:2,name:'Indonesia'}, {adminLevel:3,name:'Jawa'},
+   {adminLevel:4,name:'Jakarta'},{adminLevel:4,name:'Jakarta'},
+   {adminLevel:5,name:'Jakarta Pusat'},{adminLevel:6,name:'Gambir'}
+  ]}
+ };
+ assert.equal(normalizedRegionName('DKI JAKARTA'),normalizedRegionName('Jakarta'));
+ const path=await pathFromLocation(raw,lookup);
+ assert.equal(path.provinceId,'31');
+ assert.equal(path.cityId,'3171');
+ assert.equal(path.districtId,'317101');
+ assert.equal(regionFromPath(path)?.areaId,'3171011002');
+ const partial=await pathFromLocation({...raw,postcode:'10110'},lookup);
+ assert.equal(partial.provinceId,'31');
+ assert.equal(partial.cityId,'3171');
+ assert.equal(partial.districtId,'317101');
+ assert.equal(partial.areaId,'');
+ assert.equal(locationCompletion(partial),'kelurahan dan kode pos');
+});
+test('identical Tangerang city labels are disambiguated by the GPS district',async()=>{
+ const calls:string[]=[];
+ const resolve:AddressList=async(level,parent='')=>{
+  calls.push(level+':'+parent);
+  if(level==='provinces')return [{id:'36',name:'BANTEN'}];
+  if(level==='cities')return [
+   {id:'3603',name:'KABUPATEN TANGERANG',parentId:'36'},
+   {id:'3671',name:'KOTA TANGERANG',parentId:'36'}
+  ];
+  if(level==='districts'){
+   if(parent==='3603')return [{id:'360301',name:'KELAPA DUA',parentId:'3603'}];
+   if(parent==='3671')return [{id:'367101',name:'KARAWACI',parentId:'3671'}];
+  }
+  if(level==='areas')return [{id:'3671011001',name:'CIMONE',parentId:'367101',postalCode:'15114'}];
+  return [];
+ };
+ const raw={countryCode:'ID',principalSubdivision:'Jawa',principalSubdivisionCode:'ID-JW',
+  city:'Tangerang',locality:'Karawaci',postcode:'15114',
+  localityInfo:{administrative:[
+   {adminLevel:4,name:'Banten'}, {adminLevel:5,name:'Tangerang'},{adminLevel:6,name:'Karawaci'}
+  ]}
+ };
+ const path=await pathFromLocation(raw,resolve);
+ assert.equal(path.provinceId,'36');
+ assert.equal(path.cityId,'3671');
+ assert.equal(path.districtId,'367101');
+ assert.equal(path.areaId,'3671011001');
+ assert.ok(calls.includes('districts:3603'));
+ assert.ok(calls.includes('districts:3671'));
+ const ambiguous=await pathFromLocation({...raw,locality:'',
+  localityInfo:{administrative:[{adminLevel:4,name:'Banten'},{adminLevel:5,name:'Tangerang'}]}},resolve);
+ assert.equal(ambiguous.cityId,'','never silently choose between Kota and Kabupaten');
+ assert.equal(locationCompletion(ambiguous),'kota/kabupaten');
 });
