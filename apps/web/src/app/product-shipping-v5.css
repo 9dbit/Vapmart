@@ -1,0 +1,246 @@
+/* Vapmart Address Book / Shipping V5: compact reference hierarchy, honest live rates. */
+html body .vpd-page .vpd-address-manager{
+ --addr-ink:var(--vpd-text,#f5f1fa);--addr-muted:var(--vpd-muted,#b7a8c1);
+ --addr-line:var(--vpd-line,#383043);--addr-bg:var(--vpd-surface,#211d27);
+ --addr-soft:var(--vpd-violet-soft,#33203c);
+}
+html body .vco26-root .vpd-address-manager{
+ --addr-ink:#211c27;--addr-muted:#73687b;--addr-line:#e7e0eb;
+ --addr-bg:#fff;--addr-soft:#f3e9fc;
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-manager{grid-column:1/-1;min-width:0;max-width:100%;font-size:13px}
+html body .vpd-page .vpd-ship-route>.vpd-ship-route-point{grid-column:1/-1}
+html body :is(.vpd-page,.vco26-root) .vpd-ship-destination{
+ display:flex;align-items:flex-start;gap:10px;justify-content:space-between;
+ min-width:0;max-width:100%;padding:10px 0 0;
+ border-top:1px solid var(--addr-line);
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-destination-copy{
+ display:flex;flex:1 1 auto;flex-direction:column;gap:3px;min-width:0
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-destination-copy small{
+ color:var(--addr-muted);font-size:11px;line-height:1.3
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-destination-copy strong{
+ color:var(--addr-ink);font-size:13px;font-weight:760;line-height:1.4;overflow-wrap:anywhere
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-destination-copy>span{
+ color:var(--addr-muted);font-size:11px;line-height:1.45;overflow-wrap:anywhere
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-toggle{
+ display:inline-flex;align-items:center;justify-content:flex-end;flex:0 0 auto;
+ border:0!important;background:transparent!important;color:#b776f4!important;
+ font-size:12px!important;line-height:1.3!important;font-weight:740!important;
+ padding:7px 0 7px 6px!important;min-height:35px!important;
+ white-space:nowrap;cursor:pointer
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-toggle>span{font-size:17px;font-weight:400}
+html body :is(.vpd-page,.vco26-root) .vpd-address-book{
+ display:grid;gap:10px;min-width:0;margin-top:13px;padding:13px;
+ border:1px solid var(--addr-line);border-radius:13px;background:var(--addr-bg)
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-book>header{
+ display:flex;justify-content:space-between;gap:10px;align-items:center;
+ color:var(--addr-ink);font-size:13px
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-book>header span{color:var(--addr-muted);font-size:11px}
+html body :is(.vpd-page,.vco26-root) .vpd-address-option{
+ display:grid;gap:6px;padding:11px 12px;border:1px solid var(--addr-line);
+ border-radius:11px;background:var(--addr-bg);min-width:0
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-option.is-selected{
+ border-color:#a55bdd;background:var(--addr-soft)
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-title{
+ display:flex;gap:7px;align-items:center;color:var(--addr-ink)
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-title b{font-size:13px}
+html body :is(.vpd-page,.vco26-root) .vpd-address-title small{
+ padding:3px 7px;border-radius:999px;background:#7029b0;color:#fff;
+ font-size:10px;font-weight:750
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-option>strong{font-size:12px;color:var(--addr-ink)}
+html body :is(.vpd-page,.vco26-root) .vpd-address-option p,
+html body :is(.vpd-page,.vco26-root) .vpd-address-legacy p{
+ margin:0;font-size:11px;line-height:1.5;color:var(--addr-muted);overflow-wrap:anywhere
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-legacy{display:grid;gap:8px}
+html body :is(.vpd-page,.vco26-root) .vpd-address-actions{
+ display:flex;flex-wrap:wrap;align-items:center;gap:8px
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-actions button,
+html body :is(.vpd-page,.vco26-root) .vpd-address-add,
+html body :is(.vpd-page,.vco26-root) .vpd-address-legacy button{
+ display:inline-flex;align-items:center;justify-content:center;
+ width:fit-content;min-height:32px;padding:6px 10px;
+ border:1px solid #7e2bc4;border-radius:8px;
+ background:transparent;color:#b66af6;font-size:11px;
+ line-height:1.3;font-weight:750;cursor:pointer
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-actions button.is-current{
+ background:#7826ce;color:#fff
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-add{width:100%;min-height:38px}
+html body :is(.vpd-page,.vco26-root) .vpd-address-form{
+ display:grid;gap:12px;margin-top:13px;padding:13px;
+ border:1px solid var(--addr-line);border-radius:12px;
+ min-width:0;max-width:100%;background:var(--addr-bg);color:var(--addr-ink)
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-form-heading{
+ display:flex;align-items:center;justify-content:space-between;gap:10px
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-form-heading h3{
+ margin:0;font-size:14px;line-height:1.3;font-weight:780
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-form-heading button{
+ border:0;background:transparent;color:#bb85eb;font-size:11px;padding:6px
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-geohint{
+ margin:0;color:var(--addr-muted);font-size:11px;line-height:1.5
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-fields{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:11px;min-width:0;width:100%
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-fields>label{
+ display:flex!important;flex-direction:column!important;align-items:stretch!important;
+ gap:5px!important;min-width:0!important;max-width:100%;
+ margin:0!important;color:var(--addr-ink);font-size:11px!important;line-height:1.4;
+ font-weight:650
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-fields>label small{color:var(--addr-muted);font-size:10px}
+html body :is(.vpd-page,.vco26-root) .vpd-address-fields>label.vpd-address-wide{grid-column:1/-1}
+html body :is(.vpd-page,.vco26-root) .vpd-address-fields :is(input,textarea){
+ box-sizing:border-box;display:block;width:100%!important;min-width:0!important;
+ min-height:40px!important;max-width:100%!important;
+ margin:0!important;padding:9px 10px!important;
+ border:1px solid var(--addr-line)!important;border-radius:9px!important;
+ background:var(--addr-bg)!important;color:var(--addr-ink)!important;
+ font:inherit!important;font-size:12px!important;line-height:1.45!important;box-shadow:none
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-fields textarea{resize:vertical}
+html body :is(.vpd-page,.vco26-root) .vpd-address-default-check{
+ display:flex!important;flex-direction:row!important;align-items:center!important;
+ gap:8px!important;margin:0!important;font-size:11px!important;line-height:1.5
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-default-check input{width:16px;height:16px;accent-color:#8b1ae8}
+html body :is(.vpd-page,.vco26-root) .vpd-address-gps-confirm{
+ display:grid;gap:4px;padding:10px 12px;background:var(--addr-soft);
+ border:1px solid var(--addr-line);border-radius:9px;
+ font-size:11px;color:var(--addr-ink)
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-gps-confirm a{color:#ac61e5;font-size:11px}
+html body :is(.vpd-page,.vco26-root) .vpd-address-gps-confirm small{color:var(--addr-muted);font-size:10px}
+html body :is(.vpd-page,.vco26-root) .vpd-address-form-actions{
+ display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-form-actions button:not(.vpd-ship-action){
+ border:1px solid var(--addr-line);border-radius:9px;padding:9px 14px;min-height:36px;
+ color:var(--addr-muted);background:transparent;font-size:11px;cursor:pointer
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-form-actions button:disabled{opacity:.5;cursor:not-allowed}
+/* The inherited global checkout label styles must not break address picker. */
+html body .vco26-root .vpd-address-form .vm-address-picker{
+ display:block;width:100%;min-width:0;max-width:100%;padding:0;margin:0;
+ border:0;background:transparent;box-shadow:none
+}
+html body .vco26-root .vpd-address-form .vm-address-location{
+ display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:0 0 9px
+}
+html body .vco26-root .vpd-address-form .vm-address-location>button{
+ display:inline-flex;min-height:36px;padding:7px 12px;border:1px solid #8d40d0;
+ border-radius:9px;background:#f2eafb;color:#7223b1;font-size:12px;font-weight:750
+}
+html body .vco26-root .vpd-address-form .vm-address-location>small{
+ display:block;font-size:10px;line-height:1.4;color:#796b83;overflow-wrap:anywhere
+}
+html body .vco26-root .vpd-address-form .vm-address-grid{
+ display:grid;grid-template-columns:minmax(0,1fr);gap:9px;margin:0;min-width:0
+}
+html body .vco26-root .vpd-address-form .vm-address-grid>label{
+ display:flex!important;flex-direction:column!important;gap:5px!important;
+ align-items:stretch!important;width:100%!important;max-width:100%;min-width:0;
+ margin:0!important;font-size:11px!important;color:#383140
+}
+html body .vco26-root .vpd-address-form .vm-address-grid>label :is(select,input){
+ box-sizing:border-box;width:100%!important;max-width:100%!important;
+ min-width:0!important;height:41px!important;min-height:41px!important;
+ margin:0!important;padding:8px 12px!important;border:1px solid #ded5e6!important;
+ border-radius:9px!important;background:#fff!important;color:#31273e!important;
+ font:inherit!important;font-size:13px!important;box-shadow:none!important
+}
+html body .vco26-root .vpd-address-form .vm-address-note,
+html body .vco26-root .vpd-address-form .vm-address-help{
+ font-size:11px;color:#766983;line-height:1.5
+}
+html body .vco26-root .vpd-address-form .vm-address-preview,
+html body .vco26-root .vpd-address-form .vm-address-suggestion{
+ background:#f2eafb;color:#3e2c4d;padding:10px;margin-top:8px;border-radius:9px
+}
+html body .vco26-root .vpd-address-form .vm-address-suggestion p{font-size:12px;margin:5px 0}
+html body .vco26-root .vpd-address-manager .vpd-ship-state{
+ display:grid;gap:10px;margin:12px 0;padding:12px 14px;
+ background:#f6eefb;color:#3c2b44;border-radius:10px
+}
+html body .vco26-root .vpd-address-manager .vpd-ship-action{
+ border:0;border-radius:9px;background:#8122d5;color:white;
+ padding:9px 14px;min-height:37px;font-size:12px;font-weight:750
+}
+html body .vco26-root .vpd-address-manager .vpd-ship-error{color:#a32a51;font-size:11px}
+html body .vco26-root .vpd-address-manager .vpd-ship-selected{color:#8327b8;font-size:11px}
+html body .vco26-root .vco-checkout-address-book{
+ border:1px solid #e6dce9;border-radius:13px;padding:12px 14px;margin-bottom:15px;
+ background:#fefcff
+}
+html body .vco26-root .vco-checkout-address-book .vpd-ship-destination{
+ border-top:0;padding-top:0
+}
+html body .vco26-root .vco-checkout-manual-region{
+ margin:8px 0 14px;min-width:0;max-width:100%
+}
+html body .vco26-root .vco-checkout-manual-region>summary{
+ cursor:pointer;color:#7b2abc;font-size:12px;font-weight:740;padding:8px 0
+}
+html body .vco26-root .vco-checkout-manual-region .vm-address-grid{
+ display:grid;grid-template-columns:minmax(0,1fr);gap:9px
+}
+html body .vco26-root .vco-checkout-manual-region .vm-address-grid>label{
+ display:flex;flex-direction:column;gap:5px;margin:0;font-size:12px
+}
+html body .vco26-root .vco-checkout-manual-region .vm-address-grid select{
+ width:100%;min-height:43px;padding:9px;border:1px solid #e1dbe8;border-radius:8px;
+ color:#2e2535;background:#fff
+}
+/* Shipping service category rows and provider-backed badges, no fake discounts. */
+html body .vpd-page .vpd-shipping-group{
+ display:grid;gap:0;border-bottom:1px solid var(--vpd-line);padding:0
+}
+html body .vpd-page .vpd-shipping-group h4{
+ margin:10px 0 0;padding:9px 0 4px;color:var(--vpd-text);
+ font-size:13px;font-weight:780;letter-spacing:-.01em
+}
+html body .vpd-page .vpd-shipping-group>label:last-child{border-bottom:0}
+html body .vpd-page .vpd-shipping-badges{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+html body .vpd-page .vpd-shipping-badges em{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:20px;max-width:100%;padding:3px 7px;border-radius:999px;
+ border:1px solid #714099;background:#392347;color:#dcb9ff;
+ font-size:10px;font-weight:750;font-style:normal;line-height:1.15
+}
+html body .vpd-page .vpd-shipping-badges .is-fast{background:#552793;border-color:#7e50ba;color:#fff}
+html body .vpd-page .vpd-shipping-badges .is-cheapest{color:#d8b4ff}
+html body .vpd-page .vpd-shipping-badges .is-cod{background:#272231;border-color:#66546c;color:#e5dbe8}
+html body .vpd-page .vpd-shipping-retry{
+ border:1px solid var(--vpd-violet);border-radius:8px;color:var(--vpd-violet);
+ background:transparent;padding:5px 9px;min-height:30px;font-size:11px;font-weight:740
+}
+@media(max-width:680px){
+ html body :is(.vpd-page,.vco26-root) .vpd-address-fields{grid-template-columns:minmax(0,1fr)}
+ html body :is(.vpd-page,.vco26-root) .vpd-address-form{padding:11px}
+ html body :is(.vpd-page,.vco26-root) .vpd-address-book{padding:10px}
+ html body :is(.vpd-page,.vco26-root) .vpd-address-toggle{font-size:11px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ html body .vpd-page .vpd-address-manager *,
+ html body .vco26-root .vpd-address-manager *{transition:none!important;animation:none!important}
+}
