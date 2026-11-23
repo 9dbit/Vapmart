@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {pathFromLocation,regionFromPath,type AddressOption,type AddressList} from '../../web/src/lib/address-location';
+import {pathFromLocation,regionFromPath,type AddressOption,type AddressList} from '../../../web/src/lib/address-location';
 
 const origin='https://vapmart.id';
 const fixtures=[
