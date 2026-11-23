@@ -180,7 +180,7 @@ export function DeliveryAddressManager({onSelected}:{onSelected:(address:SavedDe
      <label className="vpd-address-default-check"><input type="checkbox" checked={makeDefault} onChange={e=>setMakeDefault(e.target.checked)}/> Jadikan alamat utama</label>
      {error&&<p role="alert" className="vpd-ship-error">{error}</p>}
      <div className="vpd-address-form-actions"><button type="button" onClick={()=>{setEditingId(null);setGps(null);}}>Batal</button>
-      <button type="button" className="vpd-ship-action" disabled={busy||!draft.region} onClick={()=>void save()}>{busy?'Menyimpan…':'Simpan & gunakan alamat'}</button>
+      <button type="button" className="vpd-ship-action vpd-address-save-button" disabled={busy||!draft.region} onClick={()=>void save()}>{busy?'Menyimpan…':'Simpan & gunakan alamat'}</button>
      </div>
     </section>}
     {!editingId&&error&&<p role="alert" className="vpd-ship-error">{error}</p>}
