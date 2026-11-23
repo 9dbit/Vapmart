@@ -1,0 +1,299 @@
+/* Detail pengiriman V4, Tokopedia-like information hierarchy with Vapmart purple.
+   Scoped to product-detail only. No synthetic rates, vouchers or ETAs. */
+html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-shipping-sheet{
+  display:flex; flex-direction:column; overflow:hidden; padding:0;
+  width:min(650px,100%); height:min(88dvh,860px); max-height:calc(100dvh - env(safe-area-inset-top) - 16px);
+  background:var(--vpd-surface); border-radius:18px 18px 0 0;
+  color:var(--vpd-text); box-shadow:0 -16px 55px rgba(0,0,0,.32);
+}
+html body .vpd-page .vpd-shipping-sheet .vpd-shipping-header{
+  box-sizing:border-box; position:relative; flex:0 0 auto; display:flex;
+  align-items:center; justify-content:flex-start; gap:12px;
+  min-height:65px; margin:0; padding:13px 17px;
+  border-bottom:1px solid var(--vpd-line); background:var(--vpd-surface);
+  z-index:2;
+}
+html body .vpd-page .vpd-shipping-sheet .vpd-shipping-header h2{
+  margin:0; font-size:19px; line-height:1.22; font-weight:750; letter-spacing:-.025em;
+}
+html body .vpd-page .vpd-shipping-sheet .vpd-shipping-close{
+  box-sizing:border-box; display:grid; flex:0 0 35px; place-items:center;
+  width:35px; height:35px; min-width:35px; min-height:35px; margin:0; padding:0 0 3px;
+  border:0; border-radius:50%; background:transparent; color:var(--vpd-text);
+  font-size:32px; font-weight:300; line-height:1; box-shadow:none;
+}
+html body .vpd-page .vpd-shipping-sheet .vpd-shipping-close:active{background:var(--vpd-violet-soft)}
+html body .vpd-page .vpd-shipping-sheet .vpd-shipping-body{
+  box-sizing:border-box; display:block; flex:1 1 auto; min-height:0;
+  width:100%; max-height:100%; overflow-x:hidden; overflow-y:auto;
+  overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch;
+  padding:16px 16px calc(26px + env(safe-area-inset-bottom));
+  scrollbar-width:thin; font-size:13px; line-height:1.5;
+}
+html body .vpd-page .vpd-shipping-sheet .vpd-shipping-body *{box-sizing:border-box}
+html body .vpd-page .vpd-ship-route{
+  display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center;
+  gap:5px 9px; margin:0; padding:13px 12px;
+  border:1px solid var(--vpd-line); border-radius:12px;
+  background:var(--vpd-surface); min-width:0;
+}
+html body .vpd-page .vpd-ship-route-point{
+  grid-column:1; display:flex; align-items:flex-start; gap:10px; min-width:0; width:100%;
+}
+html body .vpd-page .vpd-ship-route-icon{
+  display:grid; place-items:center; flex:0 0 22px; width:22px; height:22px;
+  color:var(--vpd-muted); margin-top:1px;
+}
+html body .vpd-page .vpd-ship-route-icon svg{width:19px;height:19px}
+html body .vpd-page .vpd-ship-route-detail{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1 1 auto}
+html body .vpd-page .vpd-ship-route-detail>small{
+  display:block; min-width:0; color:var(--vpd-muted); font-size:11px; line-height:1.4; font-weight:500;
+}
+html body .vpd-page .vpd-ship-route-detail strong{
+  font-size:13px; font-weight:690; line-height:1.42;
+  color:var(--vpd-text); overflow-wrap:anywhere; hyphens:auto;
+}
+html body .vpd-page .vpd-ship-route-detail .vpd-ship-street{
+  color:var(--vpd-muted); overflow-wrap:anywhere; white-space:normal;
+}
+html body .vpd-page .vpd-ship-change{
+  grid-column:2; grid-row:1 / span 2; align-self:center;
+  display:inline-flex; align-items:center; justify-content:flex-end; gap:3px;
+  max-width:100px; margin:0; padding:9px 0 9px 5px;
+  border:0; background:none; color:var(--vpd-violet);
+  white-space:nowrap; text-align:right; font-size:11px; line-height:1.2; font-weight:760;
+}
+html body .vpd-page .vpd-ship-change>span{font-size:20px;font-weight:400;line-height:1}
+html body .vpd-page .vpd-ship-weight{
+  margin:12px 2px 0; color:var(--vpd-muted); font-size:12px; line-height:1.55;
+}
+html body .vpd-page .vpd-ship-weight strong{color:var(--vpd-text);font-weight:750}
+html body .vpd-page .vpd-ship-state{
+  display:grid;gap:12px;margin:16px 0;padding:15px;border-radius:10px;
+  background:var(--vpd-violet-soft);color:var(--vpd-text);
+}
+html body .vpd-page .vpd-ship-state p{margin:0;font-size:12px;line-height:1.55}
+html body .vpd-page :is(.vpd-ship-action,a.vpd-ship-action){
+  box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
+  width:fit-content;min-height:37px;max-width:100%;padding:9px 14px;
+  border:1px solid var(--vpd-violet);border-radius:8px;
+  color:#fff;background:var(--vpd-violet);
+  text-decoration:none;font-size:12px;line-height:1.2;font-weight:760;cursor:pointer;
+}
+html body .vpd-page .vpd-ship-address-editor{
+  display:grid;gap:7px;min-width:0;margin:15px 0 6px;
+  padding:14px 13px;border-radius:10px;border:1px solid var(--vpd-line);
+  background:var(--vpd-page-bg);
+}
+html body .vpd-page .vpd-ship-address-editor h3{
+  margin:0;font-size:14px;font-weight:740;line-height:1.35;
+}
+html body .vpd-page .vpd-ship-address-editor>p{
+  margin:0 0 6px;font-size:11px;line-height:1.45;color:var(--vpd-muted);
+}
+/* Defensive field reset: legacy global form selectors previously caused inline overflow. */
+html body .vpd-page .vpd-shipping-sheet .vm-address-picker{
+  box-sizing:border-box;display:block;width:100%;max-width:100%;
+  min-width:0;margin:0;padding:0;border:0;border-radius:0;
+  background:transparent;box-shadow:none;
+}
+html body .vpd-page .vpd-shipping-sheet .vm-address-location{
+  box-sizing:border-box;display:flex;align-items:flex-start;
+  flex-direction:column;gap:8px;max-width:100%;margin:0 0 10px;
+}
+html body .vpd-page .vpd-shipping-sheet .vm-address-location>button{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:fit-content;max-width:100%;min-height:36px;padding:8px 12px;
+  border:1px solid var(--vpd-line);border-radius:8px;
+  background:var(--vpd-surface);color:var(--vpd-violet);
+  font-size:12px;line-height:1.25;font-weight:740;
+}
+html body .vpd-page .vpd-shipping-sheet .vm-address-location>small{
+  display:block;width:100%;max-width:100%;color:var(--vpd-muted);
+  font-size:10px;line-height:1.45;overflow-wrap:anywhere;
+}
+html body .vpd-page .vpd-shipping-sheet .vm-address-help,
+html body .vpd-page .vpd-shipping-sheet .vm-address-note{
+  display:block;max-width:100%;margin:8px 0 12px;
+  color:var(--vpd-muted);font-size:11px;line-height:1.5;overflow-wrap:anywhere;
+}
+html body .vpd-page .vpd-shipping-sheet .vm-address-grid{
+  box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr);
+  gap:11px;width:100%;max-width:100%;min-width:0;margin:0;
+}
+html body .vpd-page .vpd-shipping-sheet .vm-address-grid>label{
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;
+  gap:5px!important;width:100%!important;min-width:0!important;max-width:100%;
+  margin:0;padding:0;border:0; font-size:12px!important;font-weight:650;
+  line-height:1.35;color:var(--vpd-text);white-space:normal;overflow:visible;
+}
+html body .vpd-page .vpd-shipping-sheet .vm-address-grid>label>select,
+html body .vpd-page .vpd-shipping-sheet .vm-address-grid>label>input{
+  box-sizing:border-box!important;display:block!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  height:42px!important;min-height:42px!important;
+  margin:0!important;padding:9px 34px 9px 12px!important;
+  border:1px solid var(--vpd-line)!important;border-radius:8px!important;
+  background:var(--vpd-surface)!important;color:var(--vpd-text)!important;
+  font-family:inherit;font-size:13px!important;line-height:1.4!important;
+  box-shadow:none!important;overflow:hidden;text-overflow:ellipsis;
+}
+html body .vpd-page .vpd-shipping-sheet .vm-address-grid>label>input{
+  padding-right:12px!important;
+}
+html body .vpd-page .vpd-shipping-sheet .vm-address-grid>label>select:disabled,
+html body .vpd-page .vpd-shipping-sheet .vm-address-grid>label>input:read-only{
+  opacity:.65;cursor:not-allowed;
+}
+html body .vpd-page .vpd-shipping-sheet .vm-address-preview,
+html body .vpd-page .vpd-shipping-sheet .vm-address-suggestion{
+  box-sizing:border-box;display:block;max-width:100%;
+  padding:12px;margin-top:10px;border-radius:8px;
+  background:var(--vpd-violet-soft);color:var(--vpd-text);
+}
+html body .vpd-page .vpd-shipping-sheet .vm-address-preview p,
+html body .vpd-page .vpd-shipping-sheet .vm-address-suggestion p{
+  margin:3px 0 0;font-size:12px;line-height:1.5;overflow-wrap:anywhere;
+}
+html body .vpd-page .vpd-shipping-options{min-width:0;margin:20px 0 0}
+html body .vpd-page .vpd-shipping-options-heading{
+  display:flex;align-items:baseline;justify-content:space-between;gap:9px;
+  margin:0 0 5px;padding:0;
+}
+html body .vpd-page .vpd-shipping-options-heading h3{
+  margin:0;font-size:15px;line-height:1.4;font-weight:750;letter-spacing:-.01em;
+}
+html body .vpd-page .vpd-shipping-options-heading span{
+  font-size:10px;color:var(--vpd-muted);text-align:right;white-space:nowrap;
+}
+html body .vpd-page .vpd-shipping-rate-list{
+  display:flex;flex-direction:column;gap:0;margin:0;
+  padding:0;width:100%;border:0;
+}
+html body .vpd-page .vpd-shipping-rate-list>label{
+  display:flex;align-items:flex-start;gap:10px;min-width:0;
+  margin:0;padding:17px 0;border:0;border-bottom:1px solid var(--vpd-line);
+  border-radius:0;background:transparent;color:var(--vpd-text);cursor:pointer;
+}
+html body .vpd-page .vpd-shipping-rate-list>label.is-selected{
+  background:var(--vpd-violet-soft);padding-inline:8px;border-radius:8px;
+  border-color:var(--vpd-violet);
+}
+html body .vpd-page .vpd-shipping-rate-list input{
+  box-sizing:border-box;flex:0 0 17px;width:17px;height:17px;
+  margin:2px 0 0;accent-color:var(--vpd-violet);
+}
+html body .vpd-page .vpd-ship-rate-text{
+  display:flex;flex:1 1 auto;flex-direction:column;gap:5px;
+  min-width:0;overflow-wrap:anywhere;
+}
+html body .vpd-page .vpd-ship-rate-text strong{
+  display:block;color:var(--vpd-text);font-size:13px;
+  line-height:1.32;font-weight:730;
+}
+html body .vpd-page .vpd-ship-rate-text small{
+  font-size:11px;line-height:1.4;color:var(--vpd-muted);
+}
+html body .vpd-page .vpd-ship-rate-value{
+  display:flex;align-items:flex-end;flex-direction:column;
+  flex:0 0 auto;gap:4px;margin-left:auto;text-align:right;
+}
+html body .vpd-page .vpd-ship-rate-value b{
+  font-size:13px;font-weight:760;white-space:nowrap;
+  font-variant-numeric:tabular-nums;color:var(--vpd-text);
+}
+html body .vpd-page .vpd-ship-rate-value small{
+  display:block;color:var(--vpd-violet);
+  font-size:10px;font-weight:720;
+}
+html body .vpd-page .vpd-ship-helper,
+html body .vpd-page .vpd-ship-disclaimer{
+  margin:10px 0 0;font-size:11px;line-height:1.55;
+  color:var(--vpd-muted);overflow-wrap:anywhere;
+}
+html body .vpd-page .vpd-ship-error{color:#d95770}
+html body .vpd-page .vpd-ship-selected{
+  margin:12px 0 0;font-size:11px;line-height:1.5;
+  color:var(--vpd-violet);
+}
+html body .vpd-page .vpd-shipping-sheet :is(button,a,input,select):focus-visible{
+  outline:2px solid var(--vpd-violet);outline-offset:2px;
+}
+/* Checkout CTA: three smaller solid-purple controls, including WhatsApp. */
+html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar{
+  gap:7px;padding:8px max(12px,calc((100vw - 1220px)/2)) calc(8px + env(safe-area-inset-bottom));
+}
+html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar :is(.vpd-chat,.vpd-buy,.vpd-add){
+  box-sizing:border-box;display:flex;align-items:center;justify-content:center;
+  min-height:42px!important;height:42px!important;padding:7px 8px!important;
+  border:1px solid #8310e8!important;border-radius:9px!important;
+  background:#8310e8!important;color:white!important;box-shadow:none!important;
+  font-size:12px!important;line-height:1.15!important;font-weight:760!important;
+}
+html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar .vpd-chat{
+  min-width:42px!important;width:42px!important;padding:0!important;
+}
+html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar .vpd-chat svg{
+  width:21px;height:21px;color:#fff!important;
+}
+html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar :is(.vpd-chat,.vpd-buy,.vpd-add):active{
+  filter:brightness(.88);
+}
+html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar button:disabled{
+  opacity:.48;cursor:not-allowed;
+}
+html[data-vapmart-color-mode=dark] body .vpd-page .vpd-shipping-sheet .vpd-ship-state{
+  background:#30243b;
+}
+html[data-vapmart-color-mode=dark] body .vpd-page .vpd-shipping-sheet .vpd-ship-address-editor{
+  background:#201b27;
+}
+/* Modal stays above external support widget: no overlapping head or selects. */
+html body:has(.vpd-shipping-sheet) :is(
+  #chatvice-widget-button,#chatvice-eye-toggle,#chatvice-hidden-label,
+  #chatvice-welcome-bubble,#chatvice-widget-frame,.vm-care-fallback
+){
+  visibility:hidden!important;pointer-events:none!important;
+}
+@media(max-width:767px){
+  html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-shipping-sheet{
+    height:89dvh;max-height:calc(100dvh - env(safe-area-inset-top) - 9px);
+    width:100%;border-radius:17px 17px 0 0;
+  }
+  html body .vpd-page .vpd-shipping-sheet .vpd-shipping-header{
+    min-height:62px;padding:12px 14px;gap:8px;
+  }
+  html body .vpd-page .vpd-shipping-sheet .vpd-shipping-header h2{font-size:18px}
+  html body .vpd-page .vpd-shipping-sheet .vpd-shipping-body{
+    padding:14px 15px calc(28px + env(safe-area-inset-bottom));
+  }
+  html body .vpd-page .vpd-ship-route{padding:12px 10px}
+  html body .vpd-page .vpd-purchase-bar :is(.vpd-buy,.vpd-add){white-space:nowrap}
+  html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar{
+    grid-template-columns:42px minmax(0,1fr) minmax(0,1.12fr);
+    padding:8px 11px calc(8px + env(safe-area-inset-bottom));
+    gap:7px;
+  }
+}
+@media(max-width:359px){
+  html body .vpd-page .vpd-ship-route{
+    grid-template-columns:minmax(0,1fr);
+  }
+  html body .vpd-page .vpd-ship-change{
+    grid-column:1;grid-row:auto;justify-self:end;margin-top:2px;
+  }
+  html body .vpd-page .vpd-shipping-sheet .vpd-shipping-body{padding-inline:12px}
+  html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar{
+    grid-template-columns:39px minmax(0,1fr) minmax(0,1.05fr);
+    gap:6px;padding-inline:9px;
+  }
+  html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar :is(.vpd-chat,.vpd-buy,.vpd-add){
+    height:40px!important;min-height:40px!important;font-size:11px!important;padding-inline:4px!important;
+  }
+  html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar .vpd-chat{
+    min-width:39px!important;width:39px!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  html body .vpd-page .vpd-shipping-sheet{animation:none}
+}
