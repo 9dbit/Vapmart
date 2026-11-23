@@ -1,0 +1,61 @@
+/** Vapmart product-detail V3 regression and screenshot-benchmark guard.
+ * Run from repository root: node scripts/product-detail-v3-smoke.mjs
+ */
+import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+
+const detail=readFileSync('apps/web/src/components/product-detail-experience.tsx','utf8');
+const gallery=readFileSync('apps/web/src/components/product-detail-gallery.tsx','utf8');
+const rating=readFileSync('apps/web/src/components/product-review-summary.tsx','utf8');
+const styles=readFileSync('apps/web/src/app/product-detail-v3.css','utf8');
+const layout=readFileSync('apps/web/src/app/layout.tsx','utf8');
+const oldStyles=readFileSync('apps/web/src/app/product-detail-v2.css','utf8');
+
+assert.match(detail,/data-product-detail-upgrade="v3"/);
+assert.match(detail,/<ProductDetailGallery images=\{galleryImages\} title=\{product\.name\}/);
+assert.doesNotMatch(detail,/ArchiveGallery/);
+assert.match(detail,/galleryImages=\[\.\.\.new Set\(/);
+assert.match(detail,/galleryImages=[\s\S]*?\.slice\(0,10\)/);
+assert.match(gallery,/new Set\(images\.filter/);
+assert.match(gallery,/\.slice\(0,10\)/,'ten authentic photos maximum');
+assert.match(gallery,/className="vpd-media-stage"/);
+assert.match(gallery,/className="vpd-media-track"/);
+assert.match(gallery,/className="vpd-media-thumbs"/);
+assert.match(gallery,/className="vpd-media-thumb"/);
+assert.match(gallery,/onScroll=\{/,'swiping updates the active count');
+assert.match(gallery,/onKeyDown=\{/,'keyboard access retained');
+assert.match(gallery,/onClick=\{\(\)=>show\(i\)\}/,'thumbnail tapping changes primary image');
+assert.match(gallery,/Keep the active thumb visible/,'active thumbnail tracks primary swipe');
+assert.match(gallery,/aria-pressed=\{active===i\}/);
+assert.match(gallery,/\{active\+1\}\/\{photos\.length\}/,'compact image count');
+assert.doesNotMatch(gallery,/vm-photo-nav|vm-photo-track|vm-photo-thumbs/,'do not use old gallery pill/overlay');
+assert.match(styles,/\.vpd-media-stage\s*\{[\s\S]*?aspect-ratio:1\/1/,'unmasked square photo frame');
+assert.match(styles,/\.vpd-media-track>img\s*\{[\s\S]*?object-fit:contain/,'full product photograph without cutting it');
+assert.match(styles,/\.vpd-media-thumbs\s*\{[\s\S]*?flex-wrap:nowrap/);
+assert.match(styles,/\.vpd-media-thumbs\s*\{[\s\S]*?overflow-x:auto/);
+assert.match(styles,/border-radius:0!important/,'gallery corners must not be masked');
+assert.match(styles,/\.vpd-media-count/);
+assert.match(styles,/@media\(max-width:767px\)/);
+assert.match(styles,/@media\(max-width:359px\)/);
+assert.match(styles,/data-vapmart-color-mode="dark"/);
+assert.match(styles,/prefers-reduced-motion:reduce/);
+assert.match(layout,/import '\.\/product-detail-v3\.css';/);
+assert.ok(layout.indexOf("import './product-detail-v3.css';")>layout.indexOf("import './product-detail-v2.css';"),'V3 styles load after prior detail');
+assert.ok(layout.indexOf("import './product-detail-v3.css';")>layout.indexOf("import './club-compact.css';"),'V3 overrides later UI');
+assert.match(detail,/<ProductReviewSummary slug=\{product\.slug\}/);
+assert.match(rating,/\/api\/catalog\/reviews\//);
+assert.match(rating,/data\.total>0/,'only show real, available ratings');
+assert.match(detail,/vpd-price-promo/);
+assert.match(detail,/discountPercent>0/);
+assert.match(detail,/chosen!\.regular_price_idr/,'crossed price uses verified regular price');
+assert.match(detail,/vpd-inline-variants/);
+assert.match(detail,/selection\[d\.name\]===value/,'color and size select from actual product attributes');
+assert.match(detail,/optionsAvailable\(d\.name,value\)/,'unavailable combinations are disabled');
+assert.match(detail,/className="vpd-info-row vpd-delivery-row"/);
+assert.match(detail,/setSheet\('shipping'\)/);
+assert.match(detail,/Cek ongkir &amp; estimasi tiba/);
+assert.match(detail,/flushSync\(/,'Buy Now data must remain synchronized');
+assert.match(detail,/router\.push\('\/checkout\?buyNow='/,'Buy Now checkout route preserved');
+assert.match(detail,/cart\.add\(active,quantity\)/,'cart action preserved');
+assert.match(oldStyles,/vm-photo-thumbs\{display:none\}/,'V3 must not use the old hidden mobile thumb class');
+console.log('PASS: square gallery, max-10 swipe thumbs, actual pricing/variants/reviews/shipping, brand and checkout safe.');
