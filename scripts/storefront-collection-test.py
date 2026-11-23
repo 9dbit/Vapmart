@@ -382,10 +382,16 @@ def verify_home(page, base):
     # Carousel still navigates with tiny dots after removing arrows and play UI.
     hero.get_by_role('button',name='Tampilkan banner 2').click()
     expect(hero.get_by_role('button',name='Tampilkan banner 2')).to_have_attribute('aria-pressed','true')
-    expect(page.locator('.vm-home-member-preview .vmoc-card')).to_be_visible()
-    expect(page.locator('.vm-home-member-preview [data-member-card-design="obsidian-premium"]')).to_have_count(1)
-    expect(page.locator('.vm-home-member-preview .vmoc-brand-watermark')).to_have_count(1)
-    expect(page.locator('.vm-home-member-preview .vm22-card-coin-value strong')).to_have_text('—')
+    # Home now uses the compact Club preview; the full Obsidian card belongs
+    # to the Member page. A guest must not be shown an invented Coin balance.
+    preview=page.locator('.vm-home-member-preview')
+    expect(preview).to_have_attribute('data-preview-status','guest')
+    expect(preview.locator('.vm-club-mini-card')).to_be_visible()
+    expect(preview.locator('[data-member-card-design="obsidian-premium"]')).to_have_count(0)
+    expect(preview.locator('.vm-club-mini-top img')).to_have_attribute('src','/branding/vapmart-logo.png')
+    expect(preview.locator('.vm-club-mini-identity strong')).to_have_text('VAPMART GUEST')
+    expect(preview.locator('.vm-club-mini-status')).to_have_text('Gabung gratis')
+    expect(preview.locator('.vm-club-mini-balance')).to_have_attribute('aria-label','Saldo Coin —')
     for label in ['Materi banner terdahulu','EXPLORE MORE','Temukan favorit baru',
                   'Lihat semua','Tampilan Vapmart dipulihkan']:
         assert label.lower() not in page.locator('main').inner_text().lower(),label
@@ -414,8 +420,13 @@ def verify_home(page, base):
             frame=box(category_image)
             assert abs(frame['width']-frame['height']) < 1,frame
             assert category_image.evaluate('(e)=>getComputedStyle(e).borderRadius') == '50%'
-            card=box(page.locator('.vm-home-member-preview .vmoc-card'))
-            assert abs(card['width']/card['height'] - 85.6/53.98) < .025,card
+            # The compact card is deliberately rotated and can grow to fit its
+            # content on narrow phones; the full Member card owns the fixed ratio.
+            # Measure layout dimensions and require its compact rail to fit.
+            card=preview.locator('.vm-club-mini-card').evaluate("(e)=>({width:parseFloat(getComputedStyle(e).width),height:parseFloat(getComputedStyle(e).height)})")
+            assert 0<card['width']<= (150 if width<=767 else 270)+1,(width,card)
+            assert card['width']<=box(preview)['width']+1,(width,card)
+            assert card['height']>0 and card['height']<card['width'],(width,card)
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),width
     # Favorite tabs & brand list: no invented ratings or cities, only published fixture brands.
     page.goto(base+'/favorit?tab=brand',wait_until='networkidle')
@@ -453,7 +464,7 @@ def verify_home(page, base):
     page.goto(base+'/akun',wait_until='domcontentloaded')
     expect(page.get_by_role('heading',name='Akun Saya',exact=True)).to_be_visible()
     expect(page.get_by_role('link',name='Daftar Gratis')).to_be_visible()
-    assert page.locator('.vm-account-panel .vm-new-member-card').count()==0
+    expect(page.locator('.vm26-account .vm26-member-board')).to_have_count(0)
     page.get_by_role('link',name='Daftar Gratis').click()
     expect(page.get_by_role('heading',name='Buat akun baru')).to_be_visible()
     expect(page.get_by_role('textbox',name='Nomor WhatsApp')).to_be_visible()
