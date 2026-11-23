@@ -1,0 +1,40 @@
+name: Vapmart Chatvice Bottom Anchor QA
+
+on:
+  push:
+    branches: [fix/chatvice-bottom-anchor-product-20261123, release/vapmart-stable]
+    paths:
+      - "apps/web/src/app/chatvice-bottom-anchor.css"
+      - "apps/web/src/app/layout.tsx"
+      - "scripts/chatvice-bottom-anchor-smoke.mjs"
+      - ".github/workflows/chatvice-bottom-anchor-qa.yml"
+  pull_request:
+    branches: [release/vapmart-stable]
+    paths:
+      - "apps/web/src/app/chatvice-bottom-anchor.css"
+      - "apps/web/src/app/layout.tsx"
+      - "scripts/chatvice-bottom-anchor-smoke.mjs"
+      - ".github/workflows/chatvice-bottom-anchor-qa.yml"
+
+jobs:
+  widget-position:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Assert home, product and mobile safe-area bottom positioning
+        run: node scripts/chatvice-bottom-anchor-smoke.mjs
+      - name: Install frontend dependencies
+        working-directory: apps/web
+        run: npm ci --include=dev --no-audit --no-fund
+      - name: Typecheck frontend
+        working-directory: apps/web
+        run: npm run typecheck
+      - name: Build storefront
+        working-directory: apps/web
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: npm run build
