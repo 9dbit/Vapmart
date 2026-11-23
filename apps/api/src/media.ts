@@ -28,7 +28,7 @@ export class MediaService{
  constructor(private readonly db:DatabaseService){}
  async upload(user:Principal,input:unknown){
   const parsed=parseImageUpload(input);
-  const image=await validateHeroImage({buffer:parsed.content,originalname:parsed.filename,mimetype:parsed.mimeType,size:parsed.content.length});
+  const image=await validateHeroImage({buffer:parsed.content,originalname:parsed.filename,mimetype:parsed.mimeType,size:parsed.content.length},{maxOutputBytes:MAX_IMAGE_BYTES});
   if(image.display.length>MAX_IMAGE_BYTES)throw new BadRequestException('Gambar terlalu besar setelah optimasi; kurangi dimensi atau ukuran file');
   return this.db.transaction(async client=>{
    await client.query('SELECT pg_advisory_xact_lock(2026110309)');
@@ -36,8 +36,8 @@ export class MediaService{
    if(quota.recent>=60||Number(quota.bytes)+image.original.length+image.display.length>536870912)throw new BadRequestException('Batas upload tercapai. Maksimal 60 file per jam dan 512 MiB penyimpanan produk.');
    const r=await client.query<{id:string}>(
     'INSERT INTO product.media_assets(uploaded_by,filename,mime_type,size_bytes,content,original_content,original_mime_type) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id',
-    [user.id,parsed.filename,'image/webp',image.display.length,image.display,image.original,image.mime]);
-   return {id:r.rows[0].id,mimeType:'image/webp',sizeBytes:image.display.length};
+    [user.id,image.filename,image.displayMime,image.display.length,image.display,image.original,image.mime]);
+   return {id:r.rows[0].id,filename:image.filename,mimeType:image.displayMime,sizeBytes:image.display.length,width:image.width,height:image.height};
   });
  }
  async get(id:string){
