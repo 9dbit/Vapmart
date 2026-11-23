@@ -19,6 +19,8 @@ export class CatalogAdminController{
  @Header('Cache-Control','private, no-store') @Post('orders/:id/confirm-payment') confirmPayment(@Req() r:AuthRequest,@Param('id') id:string,@Body() b:unknown){return this.orderManagement.confirmPayment(r.user,id,b);}
  @Header('Cache-Control','private, no-store') @Get('lookups') lookups(){return this.catalog.lookups();}
  @Header('Cache-Control','private, no-store') @Get('products') products(@Query() q:Record<string,unknown>){return this.catalog.list(q);}
+ @Header('Cache-Control','private, no-store') @Post('products/bulk/preview') bulkPreview(@Req() r:AuthRequest,@Body() b:unknown){return this.catalog.bulkPreview(r.user,b);}
+ @Header('Cache-Control','private, no-store') @Post('products/bulk/publish') bulkPublish(@Req() r:AuthRequest,@Body() b:unknown){return this.catalog.bulkPublish(r.user,b);}
  @Header('Cache-Control','private, no-store') @Get('products/:id') product(@Param('id') id:string){return this.catalog.detail(id);}
  @Header('Cache-Control','private, no-store') @Post('products') create(@Req() r:AuthRequest,@Body() b:unknown){return this.catalog.save(r.user,null,b);}
  @Header('Cache-Control','private, no-store') @Patch('products/:id') edit(@Req() r:AuthRequest,@Param('id') id:string,@Body() b:unknown){return this.catalog.save(r.user,id,b);}
