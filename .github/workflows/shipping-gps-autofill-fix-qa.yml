@@ -1,0 +1,60 @@
+name: Vapmart GPS Autofill Fix QA
+on:
+  push:
+    branches: [fix/shipping-gps-autofill-20261123, release/vapmart-stable]
+    paths:
+      - apps/web/src/lib/address-location.ts
+      - apps/web/src/components/indonesia-address-picker.tsx
+      - apps/api/test/delivery-address-book.test.ts
+      - apps/api/test/integration/gps-live-reference.ts
+      - .github/workflows/shipping-gps-autofill-fix-qa.yml
+  pull_request:
+    branches: [release/vapmart-stable]
+  workflow_dispatch:
+
+jobs:
+  gps-address-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install API dependencies
+        working-directory: apps/api
+        run: npm ci --include=dev --no-audit --no-fund
+      - name: Test Jakarta, Tangerang and existing address books
+        working-directory: apps/api
+        run: npx tsx --test test/delivery-address-book.test.ts test/shipping-address.test.ts
+      - name: Verify four reference GPS points against live courier hierarchy (manual)
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: apps/api
+        run: npx tsx test/integration/gps-live-reference.ts
+      - name: Typecheck API
+        working-directory: apps/api
+        run: npm run typecheck
+      - name: Build API
+        working-directory: apps/api
+        run: npm run build
+  gps-web-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install web
+        working-directory: apps/web
+        run: npm ci --include=dev --no-audit --no-fund
+      - name: Product and checkout UX smoke checks
+        run: node scripts/shipping-address-book-v5-smoke.mjs
+      - name: Typecheck frontend
+        working-directory: apps/web
+        run: npm run typecheck
+      - name: Build Next.js
+        working-directory: apps/web
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: npm run build

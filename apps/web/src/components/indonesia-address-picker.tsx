@@ -1,6 +1,6 @@
 'use client';
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {pathFromLocation,regionFromPath,resetAddressPath,type AddressPath,type AddressSelection,type AddressList} from '@/lib/address-location';
+import {pathFromLocation,regionFromPath,resetAddressPath,locationCompletion,type AddressPath,type AddressSelection,type AddressList} from '@/lib/address-location';
 const empty:AddressPath={provinces:[],cities:[],districts:[],areas:[],provinceId:'',cityId:'',districtId:'',areaId:''};
 export function IndonesiaAddressPicker({onChange,initialValue,onLocationCandidate}:{onChange:(region:AddressSelection|null)=>void;initialValue?:AddressSelection;onLocationCandidate?:(coords:{latitude:number;longitude:number;accuracy:number})=>void}){
  const [path,setPath]=useState<AddressPath>(()=>({...empty,provinceId:initialValue?.provinceId||'',cityId:initialValue?.cityId||'',districtId:initialValue?.districtId||'',areaId:initialValue?.areaId||''})),[loading,setLoading]=useState('provinces'),[error,setError]=useState(''),[reload,setReload]=useState(0),[locating,setLocating]=useState(false),[suggestion,setSuggestion]=useState<AddressPath|null>(null),[locationNote,setLocationNote]=useState('');
@@ -22,35 +22,75 @@ export function IndonesiaAddressPicker({onChange,initialValue,onLocationCandidat
   version.current++;locationRun.current++;setLocating(false);setSuggestion(null);setLocationNote('');setError('');const next=resetAddressPath(path,level,id);setPath(next);callback.current(regionFromPath(next));
  }
  async function locate(){
-  if(!navigator.geolocation){setLocationNote('Perangkat ini belum mendukung lokasi. Pilih wilayah secara manual.');return;}
-  const run=++locationRun.current;setLocating(true);setSuggestion(null);setLocationNote('');
+  if(!window.isSecureContext){
+   setLocationNote('GPS hanya tersedia pada koneksi HTTPS. Buka vapmart.id langsung di Safari atau Chrome.');
+   return;
+  }
+  if(!navigator.geolocation){
+   setLocationNote('GPS tidak tersedia di browser ini. Buka vapmart.id langsung di Safari/Chrome dan izinkan akses Lokasi.');
+   return;
+  }
+  const run=++locationRun.current;
+  setLocating(true);setSuggestion(null);setLocationNote('Meminta izin GPS perangkat...');
+  const requestPosition=(highAccuracy:boolean,timeout:number,maximumAge:number)=>
+   new Promise<GeolocationPosition>((resolve,reject)=>
+    navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:highAccuracy,timeout,maximumAge}));
+  let gps:{latitude:number;longitude:number;accuracy:number}|null=null;
   try{
-   const position=await new Promise<GeolocationPosition>((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:15000,maximumAge:0}));
+   let position:GeolocationPosition;
+   try{
+    position=await requestPosition(true,12000,0);
+   }catch(e){
+    // Indoor GPS on Safari can time out; retry Wi-Fi/cell-based location.
+    // Never retry a denied permission or silently infer location by IP.
+    if((e as GeolocationPositionError)?.code!==3)throw e;
+    if(mounted.current&&run===locationRun.current)setLocationNote('GPS presisi belum tersedia. Mencoba lokasi Wi-Fi atau jaringan seluler...');
+    position=await requestPosition(false,12000,120000);
+   }
    if(!mounted.current||run!==locationRun.current)return;
-   // Only the calling device's current, permission-granted location is sent.
-   // No IP fallback, background lookup, proxy or stored coordinates are used.
+   const {latitude,longitude,accuracy}=position.coords;
+   if(!Number.isFinite(latitude)||!Number.isFinite(longitude)||latitude< -11.5||latitude>6.5||longitude<94.5||longitude>141.5)
+    throw Error('Lokasi GPS terdeteksi di luar Indonesia. Pastikan lokasi perangkat benar.');
+   gps={latitude:Number(latitude.toFixed(6)),longitude:Number(longitude.toFixed(6)),accuracy:Math.round(accuracy)};
+   setLocationNote('GPS terdeteksi. Mencocokkan wilayah hingga kelurahan...');
    const r=await fetch('/api/shipping/reverse-location',{
     method:'POST',cache:'no-store',signal:AbortSignal.timeout(12000),
     headers:{'content-type':'application/json'},
-    body:JSON.stringify({latitude:position.coords.latitude,longitude:position.coords.longitude})
+    body:JSON.stringify({latitude:gps.latitude,longitude:gps.longitude})
    });
-   if(!r.ok)throw Error('Wilayah lokasi belum dapat ditemukan. Pilih secara manual.');const raw=await r.json();
-   const found=await pathFromLocation(raw,list);if(!mounted.current||run!==locationRun.current)return;
+   const raw=await r.json().catch(()=>({message:'Respons lokasi tidak valid.'}));
+   if(!r.ok)throw Error(typeof raw.message==='string'?raw.message:'Wilayah lokasi belum dapat ditemukan.');
+   if(!mounted.current||run!==locationRun.current)return;
+   const found=await pathFromLocation(raw,list);
+   if(!mounted.current||run!==locationRun.current)return;
    version.current++;
    setPath(found);
    const region=regionFromPath(found);
    callback.current(region);
-   coordinateCallback.current?.({
-    latitude:Number(position.coords.latitude.toFixed(6)),
-    longitude:Number(position.coords.longitude.toFixed(6)),
-    accuracy:Math.round(position.coords.accuracy)
-   });
+   coordinateCallback.current?.(gps);
    setSuggestion(null);
-   setLocationNote((position.coords.accuracy>1000?'Akurasi GPS rendah. ':'')+
-    (region?'Provinsi, kota, kecamatan, kelurahan dan kode pos berhasil diisi otomatis. Periksa detailnya sebelum menyimpan alamat.':
-    'Sebagian wilayah terdeteksi. Lengkapi kolom yang belum terpilih, lalu konfirmasi alamat.'));
-  }catch(e){if(mounted.current&&run===locationRun.current)setLocationNote(typeof (e as GeolocationPositionError)?.code==='number'?(e as GeolocationPositionError).code===1?'Izin lokasi ditolak. Anda tetap bisa memilih wilayah secara manual.':'Lokasi belum tersedia atau waktu pencarian habis. Coba lagi atau pilih manual.':e instanceof Error?e.message:'Lokasi belum tersedia.');}
-  finally{if(mounted.current&&run===locationRun.current)setLocating(false);}
+   const needed=locationCompletion(found);
+   setLocationNote((accuracy>1000?'Akurasi lokasi rendah. ':'')+
+    (region?'Alamat wilayah terisi otomatis sampai kode pos. Periksa dan konfirmasi detail penerima sebelum menyimpan.':
+    'GPS berhasil. Wilayah terdeteksi sebagian. Pilih '+needed+' dari daftar untuk melengkapi alamat.'+
+    (typeof raw.postcode==='string'&&/^\d{5}$/.test(raw.postcode)?' Saran kode pos GPS: '+raw.postcode+'.':''))
+   );
+  }catch(e){
+   if(!mounted.current||run!==locationRun.current)return;
+   // Even if the geocoder fails, the confirmed GPS location remains available
+   // as a candidate pin while customers choose the region manually.
+   if(gps)coordinateCallback.current?.(gps);
+   const geolocation=e as GeolocationPositionError;
+   if(typeof geolocation?.code==='number'){
+    setLocationNote(geolocation.code===1
+     ?'Izin lokasi ditolak. Di iPhone: Pengaturan > Privasi & Keamanan > Layanan Lokasi > Safari Websites, izinkan Saat App Digunakan. Di Safari, buka pengaturan situs vapmart.id dan pilih Lokasi > Izinkan, lalu coba lagi.'
+     :geolocation.code===2?'Sinyal GPS tidak tersedia. Aktifkan layanan lokasi, cek jaringan, atau pilih alamat secara manual.'
+     :'GPS belum merespons. Coba di area dengan sinyal lebih baik atau pilih alamat secara manual.');
+   }else{
+    setLocationNote((e instanceof Error?e.message:'Pencarian lokasi gagal.')+
+     (gps?' Titik GPS tersedia, tetapi wilayah belum lengkap. Pilih wilayah secara manual dan periksa pin sebelum menyimpan.':' Pilih wilayah secara manual.'));
+   }
+  }finally{if(mounted.current&&run===locationRun.current)setLocating(false);}
  }
  const selected=regionFromPath(path),suggested=suggestion?regionFromPath(suggestion):null;
  const fields=[['provinceId','provinces','Provinsi',''],['cityId','cities','Kota / Kabupaten',path.provinceId],['districtId','districts','Kecamatan / Distrik',path.cityId],['areaId','areas','Kelurahan / Desa',path.districtId]] as const;
