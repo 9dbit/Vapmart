@@ -1,16 +1,16 @@
 /* Vapmart CP21 - Member + Coin Wallet / premium purple and gold.
    All checkout monetary actions remain feature-gated; no green emoji UI. */
-:root{--vm21-purple:#8310e8;--vm21-purple-dark:#6610b0;--vm21-ink:#241d2d;--vm21-muted:#77717f;
+:root{--vm21-purple:var(--vm-brand-purple);--vm21-purple-dark:var(--vm-brand-purple-hover);--vm21-ink:#241d2d;--vm21-muted:#77717f;
 --vm21-paper:#fff;--vm21-canvas:#f5f3f7;--vm21-border:#e8e1ed;--vm21-gold:#f4be49}
 html body .vm21-eyebrow{font-size:10px;letter-spacing:.17em;color:#8e50bf;font-weight:800;line-height:1.5;text-transform:uppercase}
 html body .vm21-primary,html body .vm21-secondary{display:inline-flex;align-items:center;justify-content:center;gap:14px;min-height:48px;padding:12px 20px;border-radius:999px;
  font-size:13px;font-weight:750;line-height:1.3;text-align:center;transition:background .2s,transform .2s,border-color .2s;cursor:pointer;text-decoration:none}
 html body .vm21-primary{border:1px solid var(--vm21-purple);background:var(--vm21-purple);color:#fff;box-shadow:0 8px 18px #6610b01f}
-html body .vm21-primary:hover:not(:disabled){background:#6f08c9;transform:translateY(-1px)}
-html body .vm21-secondary{background:white;border:1px solid #d5b4ed;color:#6827ae}
+html body .vm21-primary:hover:not(:disabled){background:var(--vm-brand-purple-hover);transform:translateY(-1px)}
+html body .vm21-secondary{background:white;border:1px solid #d5b4ed;color:var(--vm-brand-purple)}
 html body .vm21-secondary:hover:not(:disabled){background:#f3e9ff}
 html body .vm21-primary:disabled,html body .vm21-secondary:disabled{opacity:.58;cursor:not-allowed;box-shadow:none;transform:none}
-html body .vm21-text-link{border:0;padding:8px 0;background:none;color:#7624c3;text-decoration:none;font-size:13px;font-weight:750;cursor:pointer}
+html body .vm21-text-link{border:0;padding:8px 0;background:none;color:var(--vm-brand-purple);text-decoration:none;font-size:13px;font-weight:750;cursor:pointer}
 html body .vm21-text-link:hover{text-decoration:underline;text-underline-offset:4px}
 html body .vm21-config-warning,html body .vm21-info{padding:13px 16px;border:1px solid #d9c5e8;border-radius:15px;background:#f4eaff;color:#59326f;font-size:12px;line-height:1.7}
 html body .vm21-fine-print{font-size:11px;color:#86808b;line-height:1.6}
@@ -25,14 +25,14 @@ html body .vm21-auth-card h1{font-size:clamp(27px,3vw,35px);line-height:1.13;let
 html body .vm21-auth-card>p{font-size:13px;color:#77717f;line-height:1.7}
 html body .vm21-auth-tabs{display:flex;gap:5px;margin:25px 0 22px;border-radius:999px;background:#f6f3f9;padding:5px;border:1px solid #ece5f3}
 html body .vm21-auth-tabs button{flex:1;min-height:42px;border:0;border-radius:999px;background:transparent;color:#77717e;font-size:13px;font-weight:700}
-html body .vm21-auth-tabs button.is-active{background:#8310e8;color:white;box-shadow:0 5px 13px #6815af29}
+html body .vm21-auth-tabs button.is-active{background:var(--vm-brand-purple);color:white;box-shadow:0 5px 13px #6815af29}
 html body .vm21-auth-form{display:flex;flex-direction:column;gap:14px;margin-top:18px}
 html body .vm21-auth-form label{display:flex;flex-direction:column;gap:7px;font-size:12px;color:#4e4358;font-weight:700}
 html body .vm21-auth-form input{min-width:0;height:49px;border:1px solid #e6dfea;border-radius:15px;background:#faf9fb;padding:0 15px;color:#2e2930;font-size:13px}
 html body .vm21-auth-form input:focus{border-color:#9e4ee9;outline:2px solid #b38bff40;outline-offset:0}
 html body .vm21-auth-form>button{margin-top:8px;width:100%}
 html body .vm21-auth-links{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px}
-html body .vm21-auth-links a,html body .vm21-auth-links button{border:0;background:none;color:#7321b8;font-size:12px;font-weight:700;padding:7px 0;text-decoration:none}
+html body .vm21-auth-links a,html body .vm21-auth-links button{border:0;background:none;color:var(--vm-brand-purple);font-size:12px;font-weight:700;padding:7px 0;text-decoration:none}
 /* Gold coin stack: individual deterministic layers, increasing by tier.
    Each coin is a CSS metallic embossed visual, not an image or a real currency token. */
 html body .vm-gold-coins{position:relative;isolation:isolate;display:block;width:100%;height:112px;min-height:112px;overflow:hidden;pointer-events:none}
@@ -96,7 +96,7 @@ html body .vm21-member-active-note{border:1px solid #c9ace5;border-radius:16px;b
 html body .vm21-member-secondary{background:white;border:1px solid var(--vm21-border);border-radius:28px;padding:19px;box-shadow:0 9px 24px #3c27570d}
 html body .vm21-member-tabs{display:flex;gap:5px;background:#f5f2f9;padding:5px;border-radius:999px;overflow-x:auto}
 html body .vm21-member-tabs button{min-height:42px;flex:1 0 auto;border:0;border-radius:999px;background:transparent;color:#766d7f;padding:7px 11px;font-size:11px;font-weight:740}
-html body .vm21-member-tabs button.active{background:#8310e8;color:white;box-shadow:0 5px 12px #8310e82c}
+html body .vm21-member-tabs button.active{background:var(--vm-brand-purple);color:white;box-shadow:0 5px 12px #8310e82c}
 html body .vm21-overview-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:17px 0}
 html body .vm21-overview-stats>div{min-width:0;background:#f8f6fa;border:1px solid #eee8f3;border-radius:21px;padding:20px 15px;display:flex;flex-direction:column;gap:10px}
 html body .vm21-overview-stats>div>span{font-size:10px;font-weight:780;letter-spacing:.12em;color:#9478a9}
@@ -112,11 +112,11 @@ html body .vm21-coin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1
 html body .vm21-coin-pack{display:flex;flex-direction:column;align-items:stretch;min-width:0;padding:12px 12px 15px;gap:4px;overflow:hidden;isolation:isolate;
  background:#fbf9fc;border:1.5px solid #ede6f0;border-radius:23px;color:#24212a;box-shadow:0 5px 11px #2b173008;
  transition:border-color .22s,background .22s,transform .22s,box-shadow .22s;cursor:pointer}
-html body .vm21-coin-pack.is-selected{background:#f6efff;border-color:#8310e8;box-shadow:0 0 0 2px #8310e826,0 12px 23px #50216a17;transform:translateY(-1px)}
+html body .vm21-coin-pack.is-selected{background:#f6efff;border-color:var(--vm-brand-purple);box-shadow:0 0 0 2px #8310e826,0 12px 23px #50216a17;transform:translateY(-1px)}
 html body .vm21-coin-pack:hover{border-color:#ab73e5}
 html body .vm21-coin-pack-top{display:flex;align-items:center;justify-content:space-between;gap:5px;color:#7d7085;font-size:10px;font-weight:760}
 html body .vm21-pack-check{width:24px;height:24px;border-radius:50%;border:1px solid #e4c9f6;background:#fff;display:grid;place-items:center;color:#7d35b6;font-size:12px}
-html body .vm21-coin-pack.is-selected .vm21-pack-check{background:#8310e8;color:white;border-color:#8310e8}
+html body .vm21-coin-pack.is-selected .vm21-pack-check{background:var(--vm-brand-purple);color:white;border-color:var(--vm-brand-purple)}
 html body .vm21-coin-pack>strong{font-size:clamp(16px,1.75vw,21px);line-height:1.1;color:#281e30;letter-spacing:-.035em}
 html body .vm21-coin-pack>strong small{font-size:10px;letter-spacing:0;font-weight:650;color:#6d6173}
 html body .vm21-pack-price{font-size:11px;color:#7c5e8f}
@@ -173,7 +173,7 @@ html body .vm21-drawer-item-illustration>span{font-size:30px;color:#8329dd;font-
 html body .vm21-drawer-item-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-right:18px}
 html body .vm21-drawer-item-body>small{font-size:9px;color:#8744b6;font-weight:770}
 html body .vm21-drawer-item-body strong{font-size:12px;color:#302a35;line-height:1.4}
-html body .vm21-drawer-item-body>span{font-size:11px;color:#655e6e}
+html body .vm21-drawer-item-body>span{font-size:11px;color:var(--vm-brand-purple)}
 html body .vm21-drawer-item-remove{position:absolute;right:0;top:14px;background:#f6f3fa;color:#6b6473;border:0;border-radius:50%;width:30px;height:30px;font-size:22px}
 html body .vm21-drawer-qty{display:flex;align-items:center;gap:9px;width:max-content;background:#f3f0f8;border-radius:999px;padding:3px}
 html body .vm21-drawer-qty button{
@@ -186,7 +186,7 @@ html body .vm21-drawer-qty span{font-size:12px;font-weight:700;color:#2e2435}
 html body .vm21-digital-qty{font-size:10px;color:#78568b;background:#f4edfb;border-radius:999px;padding:6px 10px;width:max-content}
 html body .vm21-drawer-footer{flex:0 0 auto;background:white;border-top:1px solid #eae4ee;padding:19px 24px calc(22px + env(safe-area-inset-bottom))}
 html body .vm21-drawer-footer>div{display:flex;justify-content:space-between;margin-bottom:16px;font-size:13px;color:#6a6270}
-html body .vm21-drawer-footer strong{font-size:17px;color:#302638}
+html body .vm21-drawer-footer strong{font-size:17px;color:var(--vm-brand-purple)}
 html body .vm21-drawer-footer>.vm21-primary{width:100%}
 html body .vm21-drawer-footer p{font-size:10px;text-align:center;color:#8a828f;line-height:1.5;margin:12px 0 0}
 /* Full cart */
@@ -210,14 +210,14 @@ html body .vm21-cart-product-image img{height:100%;width:100%;object-fit:contain
 html body .vm21-cart-product-body{flex:1;min-width:0}
 html body .vm21-cart-product-body h2{color:#2e2734;font-size:15px;line-height:1.35;margin:6px 0}
 html body .vm21-cart-product-body p{font-size:11px;color:#837b8a;line-height:1.5;margin:0 0 8px}
-html body .vm21-cart-product-body>strong{font-size:14px;color:#342c3a}
+html body .vm21-cart-product-body>strong{font-size:14px;color:var(--vm-brand-purple)}
 html body .vm21-cart-product-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:12px}
-html body .vm21-remove-action{color:#7721ba;border:0;background:none;font-size:11px;font-weight:720;padding:8px}
-html body .vm21-line-total{font-size:13px;color:#322b36;text-align:right;white-space:nowrap}
+html body .vm21-remove-action{color:var(--vm-brand-purple);border:0;background:none;font-size:11px;font-weight:720;padding:8px}
+html body .vm21-line-total{font-size:13px;color:var(--vm-brand-purple);text-align:right;white-space:nowrap}
 html body .vm21-cart-order-summary{display:flex;flex-direction:column;gap:14px}
 html body .vm21-cart-order-summary h2{margin:0;font-size:22px;letter-spacing:-.045em;color:#292331}
 html body .vm21-cart-order-summary>div:not(.vm21-checkout-action){display:flex;align-items:center;justify-content:space-between;gap:10px;color:#746b7b;font-size:12px}
-html body .vm21-cart-order-summary>div strong{color:#312936}
+html body .vm21-cart-order-summary>div strong{color:var(--vm-brand-purple)}
 html body .vm21-cart-order-summary>.vm21-cart-total{padding-top:16px;border-top:1px solid #ece5f1;font-weight:770;font-size:14px}
 html body .vm21-cart-order-summary>.vm21-cart-total strong{font-size:18px}
 html body .vm21-cart-order-summary>p{font-size:10px;color:#918997;line-height:1.7}

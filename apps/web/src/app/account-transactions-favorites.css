@@ -6,8 +6,8 @@ html body .vm26-customer-page{
  --vm26-text:#302b36;
  --vm26-muted:#81768a;
  --vm26-line:#ede5f2;
- --vm26-violet:#8423d4;
- --vm26-violet-soft:#f4e8ff;
+ --vm26-violet:var(--vm-brand-purple);
+ --vm26-violet-soft:var(--vm-brand-purple-soft);
  --vm26-strong:#4c255f;
  box-sizing:border-box;
  min-height:65vh;
@@ -40,7 +40,7 @@ html body .vm26-customer-page .vm26-secondary{background:transparent;color:var(-
 html body .vm26-customer-page .vm26-inline-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
 html body .vm26-customer-page .vm26-soft{color:var(--vm26-muted);font-size:12px;line-height:1.6}
 html body .vm26-customer-page .vm26-inline-error{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f8e9ee;color:#ab2d48;font-size:12px;border-radius:12px;padding:13px 15px;margin:15px 0}
-html body .vm26-customer-page .vm26-inline-error button{border:0;color:#8325be;background:transparent;text-decoration:underline;cursor:pointer;font-size:12px}
+html body .vm26-customer-page .vm26-inline-error button{border:0;color:var(--vm-brand-purple);background:transparent;text-decoration:underline;cursor:pointer;font-size:12px}
 html body .vm26-customer-page .vm26-empty{
  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
  margin:18px auto 0;padding:clamp(28px,5vw,56px) 18px;max-width:700px;width:100%;
@@ -123,7 +123,7 @@ html body .vm26-account .vm26-recent-image svg{width:23px;height:23px;color:var(
 html body .vm26-account .vm26-recent-order>span:nth-child(2){flex:1;min-width:0;display:grid;gap:4px}
 html body .vm26-account .vm26-recent-order>span:nth-child(2) strong{font-size:12px;font-weight:680;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 html body .vm26-account .vm26-recent-order small{font-size:10px;color:var(--vm26-muted)}
-html body .vm26-account .vm26-recent-order>b{font-size:12px;font-weight:780;color:var(--vm26-text);white-space:nowrap}
+html body .vm26-account .vm26-recent-order>b{font-size:12px;font-weight:780;color:var(--vm26-violet);white-space:nowrap}
 html body .vm26-account .vm26-account-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 html body .vm26-account .vm26-account-menu a{
  min-width:0;display:flex;align-items:center;gap:11px;
@@ -188,7 +188,7 @@ html body .vm26-orders .vm26-order-item>svg{width:16px;height:16px;color:var(--v
 html body .vm26-orders .vm26-order-card-foot{display:flex;justify-content:space-between;align-items:end;gap:15px;padding-top:14px}
 html body .vm26-orders .vm26-order-card-foot>div{display:grid;gap:5px}
 html body .vm26-orders .vm26-order-card-foot>div span{font-size:11px;color:var(--vm26-muted)}
-html body .vm26-orders .vm26-order-card-foot strong{font-size:17px;font-weight:800;letter-spacing:-.025em;color:var(--vm26-text)}
+html body .vm26-orders .vm26-order-card-foot strong{font-size:17px;font-weight:800;letter-spacing:-.025em;color:var(--vm26-violet)}
 html body .vm26-orders .vm26-order-card-foot small{font-size:10px;color:var(--vm26-muted);overflow-wrap:anywhere}
 html body .vm26-orders .vm26-order-cta{display:grid;place-items:center;text-align:center;min-height:38px;padding:10px 14px;border-radius:10px;background:var(--vm26-violet);color:#fff;font-size:11px;font-weight:760;max-width:200px}
 html body .vm26-orders .vm26-order-skeleton{height:230px;border-radius:16px;background:linear-gradient(110deg,var(--vm26-panel) 20%,var(--vm26-violet-soft) 45%,var(--vm26-panel) 70%);background-size:200% 100%;animation:vm26-skeleton 1.4s ease-in-out infinite}
@@ -238,13 +238,13 @@ html body .vm26-favorites .vm26-brand-row p{font-size:11px;line-height:1.5;color
 html body .vm26-favorites .vm26-brand-discover{margin-top:27px}
 html[data-vapmart-color-mode="dark"] body .vm26-customer-page{
  --vm26-bg:#111014;--vm26-panel:#1d1b22;--vm26-text:#f1edf6;--vm26-muted:#aea5b8;
- --vm26-line:#39313f;--vm26-violet:#c18bff;--vm26-violet-soft:#33213f;--vm26-strong:#d5b7f5;
+ --vm26-line:#39313f;--vm26-violet:var(--vm-brand-purple);--vm26-violet-soft:var(--vm-brand-purple-soft);--vm26-strong:#d5b7f5;
 }
 html[data-vapmart-color-mode="dark"] body .vm26-orders .vm26-order-status.is-success{background:#183c2c;color:#7be1b0}
 html[data-vapmart-color-mode="dark"] body .vm26-orders .vm26-order-status.is-warning{background:#4e351c;color:#ffc980}
 html[data-vapmart-color-mode="dark"] body .vm26-orders .vm26-order-status.is-muted{background:#312a38;color:#b8aebd}
 html[data-vapmart-color-mode="dark"] body .vm26-customer-page .vm26-inline-error{background:#431f2e;color:#ffb3cc}
-html[data-vapmart-color-mode="dark"] body .vm26-customer-page .vm26-primary,html[data-vapmart-color-mode="dark"] body .vm26-orders .vm26-order-cta{background:#8524d4;border-color:#8524d4;color:#fff}
+html[data-vapmart-color-mode="dark"] body .vm26-customer-page .vm26-primary,html[data-vapmart-color-mode="dark"] body .vm26-orders .vm26-order-cta{background:var(--vm-brand-purple);border-color:var(--vm-brand-purple);color:#fff}
 html[data-vapmart-color-mode="dark"] body .vm26-favorites .vm26-brand-logo img{background:#e9e6ef}
 @media(max-width:900px){
  html body .vm26-account .vm26-member-board{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
