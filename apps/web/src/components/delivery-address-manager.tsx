@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import Link from 'next/link';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {IndonesiaAddressPicker} from '@/components/indonesia-address-picker';
@@ -92,8 +92,7 @@ export function DeliveryAddressManager({onSelected}:{onSelected:(address:SavedDe
   setEditingId(a.id);setDraft(fromAddress(a));setGps(null);setExpanded(true);
   setMakeDefault(a.id===book.defaultId);setError('');setNotice('');
  }
- async function save(event:FormEvent<HTMLFormElement>){
-  event.preventDefault();
+ async function save(){
   if(!auth.user||busy)return;
   if(!validAddressRegion(draft.region)){setError('Lengkapi provinsi, kota, kecamatan, kelurahan, dan kode pos terlebih dahulu.');return;}
   if(!draft.street.trim()||!draft.unit.trim()) {
@@ -159,7 +158,7 @@ export function DeliveryAddressManager({onSelected}:{onSelected:(address:SavedDe
       <button type="button" onClick={()=>startAdd(true)}>Lengkapi dan simpan alamat</button></div>}
      {book.addresses.length<ADDRESS_BOOK_MAX&&<button type="button" className="vpd-address-add" onClick={()=>startAdd(false)}>+ Tambah alamat lain</button>}
     </section>}
-    {editingId&&<form onSubmit={e=>void save(e)} className="vpd-address-form" aria-label={editingId==='new'?'Tambah alamat baru':'Edit alamat'}>
+    {editingId&&<section onKeyDown={e=>{if(e.key==='Enter'&&!(e.target instanceof HTMLTextAreaElement))e.preventDefault();}} className="vpd-address-form" aria-label={editingId==='new'?'Tambah alamat baru':'Edit alamat'}>
      <div className="vpd-address-form-heading"><h3>{editingId==='new'?'Tambah alamat baru':'Edit alamat tersimpan'}</h3>
       <button type="button" onClick={()=>{setEditingId(null);setGps(null);setError('');}}>Batal</button></div>
      <p className="vpd-address-geohint">Gunakan GPS untuk mendeteksi provinsi, kota, kecamatan, kelurahan, dan kode pos. Periksa wilayah yang terisi sebelum menyimpan.</p>
@@ -181,9 +180,9 @@ export function DeliveryAddressManager({onSelected}:{onSelected:(address:SavedDe
      <label className="vpd-address-default-check"><input type="checkbox" checked={makeDefault} onChange={e=>setMakeDefault(e.target.checked)}/> Jadikan alamat utama</label>
      {error&&<p role="alert" className="vpd-ship-error">{error}</p>}
      <div className="vpd-address-form-actions"><button type="button" onClick={()=>{setEditingId(null);setGps(null);}}>Batal</button>
-      <button type="submit" className="vpd-ship-action" disabled={busy||!draft.region}>{busy?'Menyimpan…':'Simpan & gunakan alamat'}</button>
+      <button type="button" className="vpd-ship-action" disabled={busy||!draft.region} onClick={()=>void save()}>{busy?'Menyimpan…':'Simpan & gunakan alamat'}</button>
      </div>
-    </form>}
+    </section>}
     {!editingId&&error&&<p role="alert" className="vpd-ship-error">{error}</p>}
     {!editingId&&notice&&<p role="status" className="vpd-ship-selected">{notice}</p>}
    </>}
