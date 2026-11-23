@@ -49,6 +49,9 @@ export function ShippingQuote({product,quantity}:{product:Product|null;quantity:
  },[auth.user?.id]);
 
  const onRegion=(next:AddressSelection|null)=>{
+  // Province/city changes produce incomplete drafts. Keep the last confirmed
+  // destination until a complete new region is selected or editor is closed.
+  if(!next){setError('');return;}
   request.current++;setRegion(next);setRates([]);setSelected('');setError('');
   if(auth.user)try{
    const key='vapmart.shipping.region.'+auth.user.id;
@@ -103,7 +106,7 @@ export function ShippingQuote({product,quantity}:{product:Product|null;quantity:
     </span>
    </div>
    {auth.user&&<button type="button" className="vpd-ship-change"
-      aria-expanded={editing} aria-controls="vpd-shipping-editor"
+      aria-expanded={editing} aria-controls={editing?'vpd-shipping-editor':undefined}
       onClick={()=>setEditing(value=>!value)}>
       {editing?'Tutup':'Ubah alamat'} <span aria-hidden="true">›</span>
     </button>}
@@ -127,7 +130,7 @@ export function ShippingQuote({product,quantity}:{product:Product|null;quantity:
     <p>Wilayah pengiriman belum dipilih. Pilih lokasi agar tarif dan estimasi kurir tersedia.</p>
     <button type="button" className="vpd-ship-action" onClick={()=>setEditing(true)}>Pilih wilayah tujuan</button>
    </div>}
-   {region&&<section className="vpd-shipping-options" aria-label="Opsi kurir">
+   {region&&!editing&&<section className="vpd-shipping-options" aria-label="Opsi kurir">
     <header className="vpd-shipping-options-heading">
      <h3>Pilihan pengiriman</h3>
      {rates.length>0&&<span>{rates.length} layanan tersedia</span>}
