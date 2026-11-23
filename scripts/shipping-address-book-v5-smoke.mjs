@@ -35,7 +35,7 @@ assert.match(checkout,/Ubah wilayah secara manual/);
 assert.match(picker,/fetch\('\/api\/shipping\/reverse-location'/);
 assert.match(picker,/callback\.current\(region\)/,'GPS auto-fills detected region');
 assert.match(picker,/coordinateCallback\.current\?\./,'GPS pin handed to confirmation flow');
-assert.match(proxy,/method:'POST'/); // implementation should accept explicit POST and not IP inference
+assert.match(proxy,/export async function POST/); // only explicit GPS lookup requests; no IP inference
 assert.match(proxy,/cache:'no-store'/);
 assert.match(proxy,/countryCode/);
 assert.match(quote,/fetch\('\/api\/shipping\/estimate'/,'product view must not write durable courier quotes');
