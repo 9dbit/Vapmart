@@ -131,7 +131,7 @@ export function HeroBannerManager({token}:{token:string}){
       </label>)}</div>
       <div className="vh-preview-heading"><strong>Preview</strong><div className="vh-switch"><button type="button" aria-pressed={preview==='desktop'} onClick={()=>setPreview('desktop')}>Desktop</button><button type="button" aria-pressed={preview==='mobile'} onClick={()=>setPreview('mobile')}>Mobile</button></div></div>
       <div className={'vh-preview '+preview}><PreviewImage source={draft[preview]} token={token} alt={draft.alt||'Preview banner'}/></div>
-      <p className="vh-help">Preview mengikuti crop tengah homepage. File original dipertahankan; versi tampil dioptimalkan untuk web. SVG dan gambar animasi tidak diterima.</p>
+      <p className="vh-help">Preview mengikuti crop tengah homepage. File original dipertahankan secara privat; versi tampil otomatis dikonversi ke WebP. SVG dan gambar animasi tidak diterima.</p>
       <div className="vh-save"><button type="submit" className="vh-primary" disabled={!draft.title.trim()||!draft.alt.trim()}>{busy?'Menyimpan...':editing?'Simpan perubahan':'Simpan draft'}</button><button type="button" onClick={()=>choose(null)}>Batalkan</button></div>
      </fieldset>
     </form>

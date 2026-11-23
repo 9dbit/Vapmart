@@ -1,0 +1,43 @@
+name: Vapmart WebP Upload QA
+
+on:
+  push:
+    branches: [feat/automatic-webp-image-upload-20261123, release/vapmart-stable]
+    paths:
+      - "apps/api/src/hero-images.ts"
+      - "apps/api/src/media.ts"
+      - "apps/api/src/catalog-reviews.ts"
+      - "apps/api/test/webp-image-uploads.test.ts"
+      - "apps/api/test/hero-banners.test.ts"
+      - ".github/workflows/webp-image-uploads-qa.yml"
+  pull_request:
+    branches: [release/vapmart-stable]
+    paths:
+      - "apps/api/src/hero-images.ts"
+      - "apps/api/src/media.ts"
+      - "apps/api/src/catalog-reviews.ts"
+      - "apps/api/test/webp-image-uploads.test.ts"
+      - "apps/api/test/hero-banners.test.ts"
+      - ".github/workflows/webp-image-uploads-qa.yml"
+
+jobs:
+  verify-webp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install API dependencies
+        working-directory: apps/api
+        run: npm ci --include=dev --no-audit --no-fund
+      - name: Check TypeScript
+        working-directory: apps/api
+        run: npm run typecheck
+      - name: Test media upload normalization and regression
+        working-directory: apps/api
+        run: npx tsx --test test/webp-image-uploads.test.ts test/hero-banners.test.ts test/product-review-photos.test.ts
+      - name: Build API
+        working-directory: apps/api
+        run: npm run build

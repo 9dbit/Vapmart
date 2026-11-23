@@ -128,7 +128,7 @@ export function BuyerReviewForm({orderId}:{orderId:string}){
   <label className="vcs-review-photos-input">Foto produk (opsional, maksimal 3)
    <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy}
     onChange={e=>{setPhotos(Array.from(e.target.files||[]));setUploadedIds([]);}}/>
-   <small>Foto hanya ditampilkan setelah pembelian dan ulasan diverifikasi. JPEG/PNG/WebP, maksimum 1,5 MB tiap foto.</small>
+   <small>Foto hanya ditampilkan setelah pembelian dan ulasan diverifikasi. JPEG/PNG/WebP otomatis dikonversi ke WebP, maksimum 1,5 MB tiap foto.</small>
    {photos.length>0&&<small>{photos.length} foto dipilih: {photos.map(x=>x.name).join(', ')}</small>}
   </label>
   <button className="vco26-button" type="submit" disabled={busy||!line}>{busy?'Mengirim ulasan…':'Kirim ulasan'}</button>

@@ -20,7 +20,7 @@ test('hero validation accepts only explicit content fields and UUID assets',()=>
 test('upload decodes bytes, strips metadata, stores a web-safe derivative and preserves original',async()=>{
  const original=await sharp({create:{width:1024,height:320,channels:3,background:'#7250aa'}}).png().toBuffer();
  const result=await validateHeroImage({buffer:original,originalname:'../../information.png',mimetype:'image/png',size:original.length});
- assert.equal(result.filename,'information.png');assert.ok(result.original.equals(original));
+ assert.equal(result.filename,'information.webp');assert.equal(result.originalFilename,'information.png');assert.ok(result.original.equals(original));
  assert.equal((await sharp(result.display).metadata()).format,'webp');assert.equal(result.width,1024);
  await assert.rejects(()=>validateHeroImage(undefined));
  await assert.rejects(()=>validateHeroImage({buffer:original,originalname:'spoof.webp',mimetype:'image/webp',size:original.length}));
