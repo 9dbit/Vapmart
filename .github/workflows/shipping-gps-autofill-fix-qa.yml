@@ -10,6 +10,7 @@ on:
       - .github/workflows/shipping-gps-autofill-fix-qa.yml
   pull_request:
     branches: [release/vapmart-stable]
+  workflow_dispatch:
 
 jobs:
   gps-address-regressions:
@@ -26,7 +27,8 @@ jobs:
       - name: Test Jakarta, Tangerang and existing address books
         working-directory: apps/api
         run: npx tsx --test test/delivery-address-book.test.ts test/shipping-address.test.ts
-      - name: Verify four reference GPS points against live courier hierarchy
+      - name: Verify four reference GPS points against live courier hierarchy (manual)
+        if: github.event_name == 'workflow_dispatch'
         working-directory: apps/api
         run: npx tsx test/integration/gps-live-reference.ts
       - name: Typecheck API
@@ -46,6 +48,8 @@ jobs:
       - name: Install web
         working-directory: apps/web
         run: npm ci --include=dev --no-audit --no-fund
+      - name: Product and checkout UX smoke checks
+        run: node scripts/shipping-address-book-v5-smoke.mjs
       - name: Typecheck frontend
         working-directory: apps/web
         run: npm run typecheck
