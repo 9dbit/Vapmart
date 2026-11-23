@@ -16,6 +16,7 @@ const list:AddressList=async(level,parent='')=>{
  if(!Array.isArray(data.items))throw Error('Daftar wilayah kurir tidak valid');
  return data.items;
 };
+async function main(){
 for(const fixture of fixtures){
  const response=await fetch(origin+'/api/shipping/reverse-location',{
   method:'POST',headers:{'content-type':'application/json'},
@@ -33,3 +34,6 @@ for(const fixture of fixtures){
  assert.ok(result.districtId,'district '+fixture.name);
 }
 console.log('PASS: 4 real reference GPS points resolved through live reverse geocoder + courier hierarchy');
+
+}
+void main().catch(error=>{console.error(error);process.exitCode=1;});
