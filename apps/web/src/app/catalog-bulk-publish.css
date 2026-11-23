@@ -24,7 +24,7 @@
 }
 .vc-root .vc-bulk-pick{
  box-sizing:border-box;display:flex!important;flex-direction:row!important;
- align-items:center!important;gap:8px!important;min-height:34px;
+ align-items:center!important;gap:8px!important;min-height:34px;flex:0 0 100%;
  margin:0 0 8px;font-size:12px!important;font-weight:730!important;
  color:#6826a6;cursor:pointer
 }
