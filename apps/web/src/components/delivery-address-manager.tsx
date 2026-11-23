@@ -73,7 +73,9 @@ export function DeliveryAddressManager({onSelected}:{onSelected:(address:SavedDe
   // server metadata without switching away from another selected address.
   if(chosen){
    callback.current(chosen);
-   if(!selectedId)setSelectedId(chosen.id);
+   // The auth initialization effect restores the session choice. Do not set
+   // selectedId here: both effects run with the initial empty state, which
+   // would otherwise overwrite that restored choice with the account default.
   }else callback.current(legacyChoice);
  },[book,legacyChoice,selectedId,auth.user?.id]);
 
