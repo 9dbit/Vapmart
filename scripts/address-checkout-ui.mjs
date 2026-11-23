@@ -167,6 +167,9 @@ try{
   // Stub the optional support widget; never contact its production service.
   if(url.origin==='https://chatvice.app'&&url.pathname==='/api/widget/chatvice.js')
    return route.fulfill({status:200,contentType:'application/javascript',body:'/* disabled in isolated UI tests */'});
+  // The storefront imports Google Fonts; use its system-font fallback offline.
+  if(url.origin==='https://fonts.googleapis.com'&&url.pathname==='/css2')
+   return route.fulfill({status:200,contentType:'text/css',body:'/* system fonts in isolated UI tests */'});
   if(![BASE,API].includes(url.origin)){state.unexpectedExternal.push(url.origin+url.pathname);return route.abort();}
   return route.continue();
  });
@@ -246,6 +249,8 @@ try{
   orderAttempts:state.orderAttempts,mobile:geometry,themes:['light','dark']},null,2));
  console.log('ADDRESS_CHECKOUT_UI_PASS: Buy Now, four labels, add/save, default/selection, persistence and keyboard safety.');
 }catch(error){
+ console.error('ADDRESS_CHECKOUT_UI_FAILURE',JSON.stringify({authUpdates:state.authUpdates,
+  orderAttempts:state.orderAttempts,unexpectedExternal:state.unexpectedExternal,runtimeErrors:state.runtimeErrors}));
  if(other||page)await (other||page).screenshot({path:OUTPUT+'/failure.png',fullPage:true}).catch(()=>{});
  await writeFile(OUTPUT+'/failure.txt',String(error));
  throw error;

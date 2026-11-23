@@ -404,8 +404,16 @@ def verify_home(page, base):
             # absolute favorite must stay inside that card, never over the hero.
             expect(page.locator('.vm-product-card')).to_have_count(2)
             for product_card in page.locator('.vm-product-card').all():
-                card_bounds=box(product_card)
-                heart_bounds=box(product_card.locator('.vm-cp17-card-favorite'))
+                # Read both rectangles in one browser task: responsive reflow or
+                # scroll anchoring between two remote reads can move them together.
+                bounds=product_card.evaluate("""(card) => {
+                    const rect = (element) => {
+                        const {x,y,width,height} = element.getBoundingClientRect();
+                        return {x,y,width,height};
+                    };
+                    return {card:rect(card),heart:rect(card.querySelector('.vm-cp17-card-favorite'))};
+                }""")
+                card_bounds,heart_bounds=bounds['card'],bounds['heart']
                 assert heart_bounds['x']>=card_bounds['x']-1 and heart_bounds['y']>=card_bounds['y']-1,(width,theme,card_bounds,heart_bounds)
                 assert heart_bounds['x']+heart_bounds['width']<=card_bounds['x']+card_bounds['width']+1,(width,theme,card_bounds,heart_bounds)
                 assert heart_bounds['y']+heart_bounds['height']<=card_bounds['y']+card_bounds['height']+1,(width,theme,card_bounds,heart_bounds)
