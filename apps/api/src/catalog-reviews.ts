@@ -22,7 +22,7 @@ export class CatalogReviewsService{
   const x=V.record(raw,['orderItemId','filename','mimeType','base64']);
   const line=requireUuid(x.orderItemId,'item pesanan');
   const input=parseImageUpload({filename:x.filename,mimeType:x.mimeType,base64:x.base64});
-  const image=await validateHeroImage({buffer:input.content,originalname:input.filename,mimetype:input.mimeType,size:input.content.length});
+  const image=await validateHeroImage({buffer:input.content,originalname:input.filename,mimetype:input.mimeType,size:input.content.length},{maxOutputBytes:MAX_IMAGE_BYTES});
   if(image.display.length>MAX_IMAGE_BYTES)throw new BadRequestException('Ukuran gambar melebihi 1,5 MB');
   return this.db.transaction(async client=>{
    const row=await client.query(`SELECT oi.id FROM product.order_items oi JOIN product.orders o ON o.id=oi.order_id
