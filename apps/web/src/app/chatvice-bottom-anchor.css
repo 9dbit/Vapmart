@@ -1,0 +1,66 @@
+/*
+ * Chatvice launcher position policy for Vapmart.
+ * The mobile global floating navigation needs more clearance than the product
+ * detail page, which replaces that navigation with the shorter buy/cart bar.
+ *
+ * The provider's eye toggle, hide label and welcome bubble are moved by the
+ * same margin offset. Do not force their individual bottom positions: those
+ * offsets are owned by Chatvice and keep its controls grouped together.
+ *
+ * Loaded last so the old product-detail-v2 bottom:90px and the storefront's
+ * global margin-bottom:75px never stack on the product page.
+ */
+html body:has(.vpd-page) #chatvice-widget-button,
+html body:has(.vpd-page) .vm-care-fallback {
+  position:fixed!important;
+  bottom:20px!important;
+  top:auto!important;
+}
+
+/* Product desktop: keep clear of the fixed buy/cart CTA bar (about 73px). */
+html body:has(.vpd-page) :is(
+  #chatvice-widget-button,
+  #chatvice-eye-toggle,
+  #chatvice-hidden-label,
+  #chatvice-welcome-bubble,
+  .vm-care-fallback
+) {
+  margin-bottom:calc(54px + env(safe-area-inset-bottom))!important;
+}
+
+@media(max-width:767px) {
+  /* Home, catalog, account, and other routes have a 75px floating menu.
+     The icon stays close to its top edge, not stranded in mid-screen. */
+  html body:not(:has(.vpd-page)):not(:has(.vm21-cart-shell))
+  :is(#chatvice-widget-button,.vm-care-fallback) {
+    position:fixed!important;
+    top:auto!important;
+    bottom:20px!important;
+  }
+
+  html body:not(:has(.vpd-page)):not(:has(.vm21-cart-shell))
+  :is(
+    #chatvice-widget-button,
+    #chatvice-eye-toggle,
+    #chatvice-hidden-label,
+    #chatvice-welcome-bubble,
+    .vm-care-fallback
+  ) {
+    margin-bottom:calc(78px + env(safe-area-inset-bottom))!important;
+  }
+
+  /* Product has no floating nav: the CTA bar is lower and shorter.
+     This lowers Chatvice ~30px relative to Home without covering Buy Now. */
+  html body:has(.vpd-page) :is(
+    #chatvice-widget-button,
+    #chatvice-eye-toggle,
+    #chatvice-hidden-label,
+    #chatvice-welcome-bubble,
+    .vm-care-fallback
+  ) {
+    margin-bottom:calc(48px + env(safe-area-inset-bottom))!important;
+  }
+}
+
+/* Never consume taps outside the launcher or change Chatvice iframe layout.
+   In particular, the open chat frame remains governed by the provider. */
