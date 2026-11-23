@@ -8,7 +8,7 @@ import {isDigitalProduct} from '@/lib/digital-products';
 import {formatIDR,type Product} from '@/lib/types';
 import {IndonesiaAddressPicker} from '@/components/indonesia-address-picker';
 import {DeliveryAddressManager} from '@/components/delivery-address-manager';
-import {CHOSEN_COURIER_KEY,addressStreet,legacyAccountAddress,type SavedDeliveryAddress} from '@/lib/delivery-address-book';
+import {CHOSEN_COURIER_KEY,checkoutAddressLine,legacyAccountAddress,type SavedDeliveryAddress} from '@/lib/delivery-address-book';
 import type {AddressSelection} from '@/lib/address-location';
 import '../checkout-v26.css';
 import {DeliveryPinPicker} from '@/components/delivery-pin-picker';
@@ -159,7 +159,7 @@ export default function CheckoutPage(){
   if(!addr)return;
   setSelectedAddressId(addr.id);setDestination(addr.region);setDestinationPin(addr.pin);
   setForm(previous=>({...previous,name:addr.recipientName,phone:addr.phone,
-    address:addressStreet(addr),city:addr.region.city,province:addr.region.province,postalCode:addr.region.postalCode}));
+    address:checkoutAddressLine(addr),city:addr.region.city,province:addr.region.province,postalCode:addr.region.postalCode}));
   setOrder(null);requestKey.current=null;
  }
  useEffect(()=>{
