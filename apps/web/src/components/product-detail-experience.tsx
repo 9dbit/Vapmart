@@ -10,6 +10,7 @@ import {ProductReviewSummary} from '@/components/product-review-summary';
 import {FavoriteButton} from '@/components/favorite-button';
 import {CatalogPublicReviews} from '@/components/catalog-public-reviews';
 import {ShippingQuote} from '@/components/shipping-quote';
+import {ShippingEmblem} from '@/components/shipping-emblem';
 import {Icon} from '@/components/store-icon';
 
 type Sheet='variants'|'shipping'|null;
@@ -166,11 +167,7 @@ function ProductDetailExperienceInner({product,recommended}:{product:Product;rec
     {variable&&defs.length===0&&<button type="button" className="vpd-info-row" onClick={()=>{setIntent('cart');setSheet('variants');}}
      aria-haspopup="dialog"><span><strong>Pilih varian</strong><small>Pilih produk yang tersedia</small></span><Icon name="next"/></button>}
     <button type="button" className="vpd-info-row vpd-delivery-row" onClick={()=>setSheet('shipping')} aria-haspopup="dialog">
-     <span className="vpd-delivery-icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-       <path d="M2 6h12v11H2zM14 10h4l4 4v3h-8zM5 20a2 2 0 1 0 4 0 2 2 0 0 0-4 0ZM16 20a2 2 0 1 0 4 0 2 2 0 0 0-4 0Z"/>
-      </svg>
-     </span>
+     <ShippingEmblem className="vpd-delivery-icon"/>
      <span className="vpd-info-text"><strong>Pengiriman</strong><small>Cek ongkir &amp; estimasi tiba ke alamatmu</small></span>
      <Icon name="next"/>
     </button>

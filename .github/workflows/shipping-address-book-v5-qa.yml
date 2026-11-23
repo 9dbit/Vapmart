@@ -18,6 +18,7 @@ on:
       - "apps/web/src/app/product-shipping-v5.css"
       - "apps/web/src/app/layout.tsx"
       - "scripts/shipping-address-book-v5-smoke.mjs"
+      - "scripts/address-checkout-ui.mjs"
       - ".github/workflows/shipping-address-book-v5-qa.yml"
   pull_request:
     branches: [release/vapmart-stable]
@@ -45,7 +46,10 @@ jobs:
         run: npm run build
 
   shipping-web:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright/python:v1.56.0-noble
+      options: --shm-size=1g
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -64,4 +68,22 @@ jobs:
         working-directory: apps/web
         env:
           NEXT_TELEMETRY_DISABLED: '1'
+          NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:4100'
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'fixture-only-not-a-real-key'
         run: npm run build
+      - name: Install isolated browser test harness
+        run: |
+          npm init -y >/dev/null
+          npm install --no-save --no-package-lock --no-audit --no-fund playwright@1.56.0
+      - name: Test Buy Now, saved addresses and default selection
+        env:
+          ADDRESS_UI_FIXTURES: '1'
+          NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:4100'
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'fixture-only-not-a-real-key'
+        run: node scripts/address-checkout-ui.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: address-checkout-ui
+          path: artifacts/address-checkout-ui/
+          if-no-files-found: ignore

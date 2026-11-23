@@ -44,6 +44,9 @@ html body :is(.vpd-page,.vco26-root) .vpd-address-book>header{
  color:var(--addr-ink);font-size:13px
 }
 html body :is(.vpd-page,.vco26-root) .vpd-address-book>header span{color:var(--addr-muted);font-size:11px}
+html body :is(.vpd-page,.vco26-root) .vpd-address-book-hint{
+ margin:0;color:var(--addr-muted);font-size:11px;line-height:1.5
+}
 html body :is(.vpd-page,.vco26-root) .vpd-address-option{
  display:grid;gap:6px;padding:11px 12px;border:1px solid var(--addr-line);
  border-radius:11px;background:var(--addr-bg);min-width:0
@@ -98,6 +101,33 @@ html body :is(.vpd-page,.vco26-root) .vpd-address-form-heading button{
 html body :is(.vpd-page,.vco26-root) .vpd-address-geohint{
  margin:0;color:var(--addr-muted);font-size:11px;line-height:1.5
 }
+html body :is(.vpd-page,.vco26-root) .vpd-address-labels{
+ min-width:0;max-width:100%;padding:0;margin:0;border:0
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-labels legend{
+ padding:0;margin:0 0 7px;color:var(--addr-ink);font-size:11px;font-weight:700
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-label-options{
+ display:flex;flex-wrap:wrap;gap:7px;min-width:0
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-label-options>label{
+ display:inline-flex!important;flex-direction:row!important;align-items:center!important;
+ gap:6px!important;margin:0!important;min-width:0;min-height:36px;padding:7px 10px;
+ border:1px solid var(--addr-line);border-radius:9px;background:var(--addr-bg);
+ color:var(--addr-ink);font-size:11px!important;line-height:1.3;font-weight:650;cursor:pointer
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-label-options>label.is-selected{
+ border-color:#8310e8;background:var(--addr-soft)
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-label-options>label:focus-within{
+ outline:2px solid #b676f5;outline-offset:2px
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-label-options>label>span{min-width:0;overflow-wrap:anywhere}
+html body :is(.vpd-page,.vco26-root) .vpd-address-label-options input{
+ appearance:auto!important;flex:0 0 14px;width:14px!important;height:14px!important;
+ min-width:14px!important;min-height:14px!important;margin:0!important;padding:0!important;
+ accent-color:#8310e8;box-shadow:none!important
+}
 html body :is(.vpd-page,.vco26-root) .vpd-address-fields{
  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
  gap:11px;min-width:0;width:100%
@@ -123,7 +153,15 @@ html body :is(.vpd-page,.vco26-root) .vpd-address-default-check{
  display:flex!important;flex-direction:row!important;align-items:center!important;
  gap:8px!important;margin:0!important;font-size:11px!important;line-height:1.5
 }
-html body :is(.vpd-page,.vco26-root) .vpd-address-default-check input{width:16px;height:16px;accent-color:#8b1ae8}
+html body :is(.vpd-page,.vco26-root) .vpd-address-default-check input{
+ appearance:auto!important;flex:0 0 16px;width:16px!important;height:16px!important;
+ min-width:16px!important;min-height:16px!important;padding:0!important;margin:0!important;
+ accent-color:#8310e8;box-shadow:none!important
+}
+html body :is(.vpd-page,.vco26-root) .vpd-address-default-setting{display:grid;gap:5px}
+html body :is(.vpd-page,.vco26-root) .vpd-address-default-setting>small{
+ color:var(--addr-muted);font-size:10px;line-height:1.5
+}
 html body :is(.vpd-page,.vco26-root) .vpd-address-gps-confirm{
  display:grid;gap:4px;padding:10px 12px;background:var(--addr-soft);
  border:1px solid var(--addr-line);border-radius:9px;
@@ -229,8 +267,11 @@ html body .vco26-root .vco-checkout-manual-region .vm-address-grid>label{
  display:flex;flex-direction:column;gap:5px;margin:0;font-size:12px
 }
 html body .vco26-root .vco-checkout-manual-region .vm-address-grid select{
- width:100%;min-height:43px;padding:9px;border:1px solid #e1dbe8;border-radius:8px;
- color:#2e2535;background:#fff
+ width:100%;min-height:43px;padding:9px 42px 9px 9px;border:1px solid #e1dbe8;border-radius:8px;
+ color:#2e2535;background-color:#fff
+}
+html[data-vapmart-color-mode="dark"] body .vco26-root .vco-checkout-manual-region .vm-address-grid select{
+ color:#faf5ff;background-color:#251f2b;border-color:#53465c
 }
 /* Shipping service category rows and provider-backed badges, no fake discounts. */
 html body .vpd-page .vpd-shipping-group{
@@ -260,6 +301,9 @@ html body .vpd-page .vpd-shipping-retry{
  html body :is(.vpd-page,.vco26-root) .vpd-address-form{padding:11px}
  html body :is(.vpd-page,.vco26-root) .vpd-address-book{padding:10px}
  html body :is(.vpd-page,.vco26-root) .vpd-address-toggle{font-size:11px!important}
+}
+@media(max-width:480px){
+ html body :is(.vpd-page,.vco26-root) .vpd-address-label-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(prefers-reduced-motion:reduce){
  html body .vpd-page .vpd-address-manager *,

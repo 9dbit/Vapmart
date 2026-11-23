@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
  readAddressBook,validatedBook,preferredAddress,legacyAccountAddress,
- normalizeSavedAddress,validAddressRegion,ADDRESS_BOOK_MAX,addressStreet,checkoutAddressLine
+ normalizeSavedAddress,validAddressRegion,ADDRESS_BOOK_MAX,ADDRESS_LABELS,addressStreet,checkoutAddressLine,
+ withSavedAddress,withDefaultAddress,EMPTY_ADDRESS_BOOK
 } from '../../web/src/lib/delivery-address-book';
 import {pathFromLocation,regionFromPath,locationCompletion,normalizedRegionName,type AddressOption,type AddressList} from '../../web/src/lib/address-location';
 const region={
@@ -48,6 +49,43 @@ test('book picks signed-in default unless session chose another address',()=>{
  assert.equal(readAddressBook({vapmart_address_book_v1:{...book,addresses:[addr,addr]}}).addresses.length,1);
  assert.throws(()=>validatedBook({...book,addresses:Array(ADDRESS_BOOK_MAX+1).fill(addr)}));
  assert.throws(()=>validatedBook({...book,addresses:[addr,addr]}));
+});
+test('new address labels survive persistence and custom existing labels remain compatible',()=>{
+ for(const label of ADDRESS_LABELS){
+  const book=withSavedAddress(EMPTY_ADDRESS_BOOK,{...addr,label});
+  assert.equal(readAddressBook({vapmart_address_book_v1:book}).addresses[0].label,label);
+ }
+ const custom={...addr,label:'Gudang Bandung'};
+ const oldBook=readAddressBook({vapmart_address_book_v1:{version:1,addresses:[custom],defaultId:custom.id}});
+ assert.equal(withSavedAddress(oldBook,{...custom,unit:'Pintu belakang'}).addresses[0].label,'Gudang Bandung');
+});
+test('adding and selecting another address preserves the default until explicitly changed',()=>{
+ const home={...addr,label:'Rumah'};
+ const office={...addr,id:'11111111-2222-4333-8444-000000000002',label:'Kantor'};
+ const apartment={...addr,id:'11111111-2222-4333-8444-000000000003',label:'Apartment'};
+ const first=withSavedAddress(EMPTY_ADDRESS_BOOK,home);
+ assert.equal(first.defaultId,home.id,'the first saved address is automatically the default');
+ const second=withSavedAddress(first,office);
+ assert.equal(second.defaultId,home.id,'saving another destination must not silently replace the default');
+ assert.equal(preferredAddress(second,office.id)?.id,office.id,'this shipment may use a different address');
+ assert.equal(preferredAddress(second)?.id,home.id,'without a current choice, use the account default');
+ const third=withSavedAddress(second,apartment,true);
+ assert.equal(third.defaultId,apartment.id,'explicit default choice is saved with the new address');
+ const switched=withDefaultAddress(third,office.id);
+ assert.equal(readAddressBook({vapmart_address_book_v1:switched}).defaultId,office.id);
+ assert.equal(preferredAddress(switched,apartment.id)?.id,apartment.id,'changing the default must preserve an explicit shipment destination');
+ assert.throws(()=>withDefaultAddress(switched,'missing'),/Alamat tidak ditemukan/);
+ assert.equal(first.addresses.length,1,'saving returns a new book without mutating the old one');
+});
+test('editing keeps address order and one default, including at the ten-address limit',()=>{
+ const addresses=Array.from({length:ADDRESS_BOOK_MAX},(_,index)=>({...addr,id:'11111111-2222-4333-8444-'+String(index+1).padStart(12,'0')}));
+ const book=validatedBook({version:1,addresses,defaultId:addresses[3].id});
+ const updated=withSavedAddress(book,{...addresses[3],label:'Sementara',unit:'Unit 9'});
+ assert.equal(updated.defaultId,addresses[3].id);
+ assert.deepEqual(updated.addresses.map(a=>a.id),addresses.map(a=>a.id),'edit should not move the card to the end');
+ assert.equal(updated.addresses[3].unit,'Unit 9');
+ assert.throws(()=>withSavedAddress(book,{...addr,id:'11111111-2222-4333-8444-000000000011'}),/Buku alamat sudah penuh/);
+ assert.throws(()=>withSavedAddress(book,{...addresses[0],recipientName:''}),/Lengkapi/);
 });
 test('legacy text profile is shown without inventing missing geographic codes',()=>{
  assert.equal(legacyAccountAddress({address_line:'Jalan Cideng Timur 11B',display_name:'Budi Testing',whatsapp_number:'081234567890'})?.street,'Jalan Cideng Timur 11B');

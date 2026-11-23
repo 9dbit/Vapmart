@@ -8,6 +8,7 @@ import {isDigitalProduct} from '@/lib/digital-products';
 import {formatIDR,type Product} from '@/lib/types';
 import {IndonesiaAddressPicker} from '@/components/indonesia-address-picker';
 import {DeliveryAddressManager} from '@/components/delivery-address-manager';
+import {ShippingEmblem} from '@/components/shipping-emblem';
 import {CHOSEN_COURIER_KEY,checkoutAddressLine,legacyAccountAddress,type SavedDeliveryAddress} from '@/lib/delivery-address-book';
 import type {AddressSelection} from '@/lib/address-location';
 import '../checkout-v26.css';
@@ -214,7 +215,7 @@ export default function CheckoutPage(){
     <label>Detail alamat<textarea value={form.address} onChange={e=>change('address',e.target.value)} minLength={8} maxLength={300} required rows={3} autoComplete="street-address" placeholder="Nama jalan, nomor rumah/gedung, RT/RW, patokan"/></label>
     <p className="vm-address-help">Isi jalan dan nomor rumah di sini. Wilayah dan kode pos mengikuti pilihan di atas.</p>
     <DeliveryPinPicker key={(destination?.areaId||'none')+form.address} value={destinationPin} onChange={p=>{setDestinationPin(p);requestKey.current=null;}} region={destination?.label||''} address={[form.address,destination?.label].filter(Boolean).join(', ')}/>
-    <div className="vco26-card-heading vco26-payment-head"><span>02</span><div><h2>Kurir & Ongkos Kirim</h2><p>Lihat estimasi biaya dan waktu kirim sebelum membuat pesanan. Belum ada booking kurir maupun resi.</p></div></div>
+    <div className="vco26-card-heading vco26-payment-head"><ShippingEmblem/><div><h2>Kurir & Ongkos Kirim</h2><p>Lihat estimasi biaya dan waktu kirim sebelum membuat pesanan. Belum ada booking kurir maupun resi.</p></div></div>
     {shippingConfig?.rateLookupEnabled?<div className="vco26-shipping-picker">
      <p className="vco26-shipping-status" aria-live="polite">{!/^[0-9]{5}$/.test(form.postalCode)?'Masukkan kode pos tujuan untuk menghitung ongkir.':shippingConfig.requiresArea&&!destination?'Pilih kelurahan tujuan agar tarif sesuai alamat.':shippingLoading?'Menghitung estimasi ongkir...':shippingRates.length?shippingRates.length+' layanan tersedia. Pilihan termurah dipilih sebagai awal.':'Estimasi akan dihitung otomatis setelah alamat lengkap.'}</p>
      {shippingRates.length>0&&<label className="vco26-courier-select">Kurir & layanan

@@ -50,7 +50,9 @@ html[data-vapmart-color-mode="dark"] body .vm-modern-header .legacy-logo{
   box-shadow:none!important;
 }
 html body .vm-modern-header .legacy-logo > .vm24-brand-logo{
-  width:100%;
+  /* Reduce the visible header mark by 10% at every existing breakpoint.
+     Keep its anchor and hit area stable when navigating between pages. */
+  width:90%;
   max-width:100%;
 }
 html body .vm-modern-header .legacy-logo .vm24-brand-logo > img{
@@ -96,7 +98,7 @@ html body .vm-reference-footer .vm24-brand-logo > img{
 /* No layout shift: both images have identical 400:79 intrinsic dimensions.
    The system theme is already resolved by CP23's pre-hydration script. */
 @media(max-width:767px){
-  html body .vm-modern-header .legacy-logo > .vm24-brand-logo{width:100%}
+  html body .vm-modern-header .legacy-logo > .vm24-brand-logo{width:90%}
   html body .vm-reference-footer .vm-footer-intro > .vm24-brand-logo{width:188px}
   html body .vm-reference-footer .vm-footer-powered > .vm24-brand-logo{width:115px}
 }

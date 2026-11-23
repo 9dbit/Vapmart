@@ -258,9 +258,11 @@ def verify(page,base,touch=False):
     # WebKit can update URL before client navigation commits.
     page.wait_for_function("""() => document.querySelector('nav[aria-label="Navigasi seluler"]')?.dataset.navPending !== 'true'""")
     expect(mobile_nav).to_have_attribute('data-active-index','1')
-    # Product-detail UX: variant sheet, real gallery, sticky tabs and safe-area actions.
+    # Product-detail V3: inline variants and sheet, square swipe gallery,
+    # visible thumbnail navigation, sticky tabs and safe-area actions.
     page.goto(base+'/product/lampu-warna',wait_until='networkidle')
-    expect(page.locator('main[data-product-detail-upgrade="v2"]')).to_be_visible()
+    expect(page.locator('main[data-product-detail-upgrade="v3"]')).to_be_visible()
+    expect(page.get_by_role('region',name='Pilihan varian produk')).to_be_visible()
     expect(page.locator('.vpd-purchase-bar .vpd-buy')).to_be_enabled()
     page.locator('.vpd-purchase-bar .vpd-buy').click()
     variant_sheet=page.get_by_role('dialog',name='Pilih varian')
@@ -276,11 +278,16 @@ def verify(page,base,touch=False):
     expect(page.get_by_text('SKU TIC-L01',exact=False)).to_be_visible()
     expect(page.locator('.vpd-selling-price')).to_contain_text('95.000')
     expect(page.locator('.vpd-price-row del')).to_contain_text('125.000')
-    expect(page.locator('.vm-photo-track img')).to_have_count(3)
-    page.locator('.vm-photo-track').evaluate("(e)=>e.scrollTo({left:e.clientWidth,behavior:'instant'})")
-    expect(page.locator('.vm-photo-nav span')).to_have_text('2 / 3')
-    page.locator('.vm-photo-track').evaluate("(e)=>e.scrollTo({left:e.clientWidth*2,behavior:'instant'})")
-    expect(page.locator('.vm-photo-nav span')).to_have_text('3 / 3')
+    expect(page.locator('.vpd-media-track img')).to_have_count(3)
+    page.locator('.vpd-media-track').evaluate("(e)=>e.scrollTo({left:e.clientWidth,behavior:'instant'})")
+    expect(page.locator('.vpd-media-count')).to_have_text('2/3')
+    expect(page.get_by_role('button',name='Lihat foto 2 dari 3')).to_have_attribute('aria-pressed','true')
+    page.locator('.vpd-media-track').evaluate("(e)=>e.scrollTo({left:e.clientWidth*2,behavior:'instant'})")
+    expect(page.locator('.vpd-media-count')).to_have_text('3/3')
+    expect(page.get_by_role('button',name='Foto berikutnya',exact=True)).to_be_disabled()
+    page.get_by_role('button',name='Lihat foto 1 dari 3').click()
+    expect(page.locator('.vpd-media-count')).to_have_text('1/3')
+    expect(page.get_by_role('button',name='Lihat foto 1 dari 3')).to_have_attribute('aria-pressed','true')
     expect(page.locator('.vpd-tabs button')).to_have_count(3)
     expect(page.get_by_role('heading',name='Ulasan pembeli')).to_be_visible()
     expect(page.get_by_text('Belum ada ulasan pembeli terverifikasi')).to_be_visible()
@@ -300,17 +307,22 @@ def verify(page,base,touch=False):
             buy,cart=box(page.locator('.vpd-purchase-bar .vpd-buy')),box(page.locator('.vpd-purchase-bar .vpd-add'))
             assert same_row(buy,cart) and buy['x']+buy['width'] <= cart['x']
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),(width,theme)
-            track=box(page.locator('.vm-photo-track'))
+            track=box(page.locator('.vpd-media-track'))
             assert abs(track['width']-track['height'])<1,(width,track)
+            expect(page.locator('.vpd-media-stage')).to_have_css('border-radius','0px')
+            expect(page.locator('.vpd-media-track img').first).to_have_css('object-fit','contain')
             price_size=page.locator('.vpd-selling-price').evaluate("(e)=>parseFloat(getComputedStyle(e).fontSize)")
-            assert price_size >= 26,(width,price_size)
+            # V3 uses 24px on narrow phones and at least 25px on other phones.
+            assert price_size >= (24 if width<360 else 25 if width<=767 else 26),(width,price_size)
             tabs_top=box(page.locator('.vpd-tabs'))
             assert tabs_top['x']>=-1 and tabs_top['x']+tabs_top['width']<=width+1
             purchase=box(page.locator('.vpd-purchase-bar'))
             assert purchase['y']+purchase['height']>=843
             assert purchase['x']>=-1 and purchase['x']+purchase['width']<=width+1
             if width<=767:
-                expect(page.locator('.vm-photo-nav button:visible')).to_have_count(0)
+                expect(page.locator('.vm-photo-nav')).to_have_count(0)
+                expect(page.locator('.vpd-media-thumbs')).to_be_visible()
+                expect(page.locator('.vpd-media-thumb')).to_have_count(3)
                 expect(page.locator('nav[aria-label="Navigasi seluler"]')).to_be_hidden()
     page.set_viewport_size({'width':390,'height':844})
     # Quantity controls for non-variable products are immediately accessible.
@@ -366,14 +378,20 @@ def verify_home(page, base):
     expect(hero.locator('.vm-carousel-dots button')).to_have_count(3)
     expect(hero.locator('.vm-carousel-arrow')).to_have_count(0)
     expect(hero.locator('.vm-carousel-pause')).to_have_count(0)
-    expect(hero.locator('button[aria-label*="Favorit"]')).to_have_count(0)
+    expect(hero.locator('.vm-favorite-button')).to_have_count(0)
     # Carousel still navigates with tiny dots after removing arrows and play UI.
     hero.get_by_role('button',name='Tampilkan banner 2').click()
     expect(hero.get_by_role('button',name='Tampilkan banner 2')).to_have_attribute('aria-pressed','true')
-    expect(page.locator('.vm-home-member-preview .vmoc-card')).to_be_visible()
-    expect(page.locator('.vm-home-member-preview [data-member-card-design="obsidian-premium"]')).to_have_count(1)
-    expect(page.locator('.vm-home-member-preview .vmoc-brand-watermark')).to_have_count(1)
-    expect(page.locator('.vm-home-member-preview .vm22-card-coin-value strong')).to_have_text('—')
+    # Home now uses the compact Club preview; the full Obsidian card belongs
+    # to the Member page. A guest must not be shown an invented Coin balance.
+    preview=page.locator('.vm-home-member-preview')
+    expect(preview).to_have_attribute('data-preview-status','guest')
+    expect(preview.locator('.vm-club-mini-card')).to_be_visible()
+    expect(preview.locator('[data-member-card-design="obsidian-premium"]')).to_have_count(0)
+    expect(preview.locator('.vm-club-mini-top img')).to_have_attribute('src','/branding/vapmart-logo.png')
+    expect(preview.locator('.vm-club-mini-identity strong')).to_have_text('VAPMART GUEST')
+    expect(preview.locator('.vm-club-mini-status')).to_have_text('Gabung gratis')
+    expect(preview.locator('.vm-club-mini-balance')).to_have_attribute('aria-label','Saldo Coin —')
     for label in ['Materi banner terdahulu','EXPLORE MORE','Temukan favorit baru',
                   'Lihat semua','Tampilan Vapmart dipulihkan']:
         assert label.lower() not in page.locator('main').inner_text().lower(),label
@@ -382,6 +400,23 @@ def verify_home(page, base):
         page.set_viewport_size({'width':width,'height':844})
         for theme in ['light','dark']:
             page.evaluate('(value)=>document.documentElement.dataset.vapmartColorMode=value',theme)
+            # A home card lacks the catalog's legacy-product-wrapper. Its
+            # absolute favorite must stay inside that card, never over the hero.
+            expect(page.locator('.vm-product-card')).to_have_count(2)
+            for product_card in page.locator('.vm-product-card').all():
+                # Read both rectangles in one browser task: responsive reflow or
+                # scroll anchoring between two remote reads can move them together.
+                bounds=product_card.evaluate("""(card) => {
+                    const rect = (element) => {
+                        const {x,y,width,height} = element.getBoundingClientRect();
+                        return {x,y,width,height};
+                    };
+                    return {card:rect(card),heart:rect(card.querySelector('.vm-cp17-card-favorite'))};
+                }""")
+                card_bounds,heart_bounds=bounds['card'],bounds['heart']
+                assert heart_bounds['x']>=card_bounds['x']-1 and heart_bounds['y']>=card_bounds['y']-1,(width,theme,card_bounds,heart_bounds)
+                assert heart_bounds['x']+heart_bounds['width']<=card_bounds['x']+card_bounds['width']+1,(width,theme,card_bounds,heart_bounds)
+                assert heart_bounds['y']+heart_bounds['height']<=card_bounds['y']+card_bounds['height']+1,(width,theme,card_bounds,heart_bounds)
             dots=box(hero.locator('.vm-carousel-dots'))
             assert dots['height'] <= 30 and dots['width'] < 90,(width,theme,dots)
             account=page.locator('header .vm-reference-login')
@@ -393,8 +428,13 @@ def verify_home(page, base):
             frame=box(category_image)
             assert abs(frame['width']-frame['height']) < 1,frame
             assert category_image.evaluate('(e)=>getComputedStyle(e).borderRadius') == '50%'
-            card=box(page.locator('.vm-home-member-preview .vmoc-card'))
-            assert abs(card['width']/card['height'] - 85.6/53.98) < .025,card
+            # The compact card is deliberately rotated and can grow to fit its
+            # content on narrow phones; the full Member card owns the fixed ratio.
+            # Measure layout dimensions and require its compact rail to fit.
+            card=preview.locator('.vm-club-mini-card').evaluate("(e)=>({width:parseFloat(getComputedStyle(e).width),height:parseFloat(getComputedStyle(e).height)})")
+            assert 0<card['width']<= (150 if width<=767 else 270)+1,(width,card)
+            assert card['width']<=box(preview)['width']+1,(width,card)
+            assert card['height']>0 and card['height']<card['width'],(width,card)
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),width
     # Favorite tabs & brand list: no invented ratings or cities, only published fixture brands.
     page.goto(base+'/favorit?tab=brand',wait_until='networkidle')
@@ -432,7 +472,7 @@ def verify_home(page, base):
     page.goto(base+'/akun',wait_until='domcontentloaded')
     expect(page.get_by_role('heading',name='Akun Saya',exact=True)).to_be_visible()
     expect(page.get_by_role('link',name='Daftar Gratis')).to_be_visible()
-    assert page.locator('.vm-account-panel .vm-new-member-card').count()==0
+    expect(page.locator('.vm26-account .vm26-member-board')).to_have_count(0)
     page.get_by_role('link',name='Daftar Gratis').click()
     expect(page.get_by_role('heading',name='Buat akun baru')).to_be_visible()
     expect(page.get_by_role('textbox',name='Nomor WhatsApp')).to_be_visible()
@@ -542,7 +582,7 @@ if __name__=='__main__':
     threading.Thread(target=fixture.serve_forever,daemon=True).start()
     base='http://127.0.0.1:3211'
     env={**os.environ,'API_INTERNAL_URL':f'http://127.0.0.1:{fixture.server_port}'}
-    app=subprocess.Popen(['node','node_modules/next/dist/bin/next','start','-p','3211'],cwd='apps/web',env=env)
+    app=subprocess.Popen(['node','node_modules/next/dist/bin/next','start','-H','127.0.0.1','-p','3211'],cwd='apps/web',env=env)
     try:
         for _ in range(60):
             try:

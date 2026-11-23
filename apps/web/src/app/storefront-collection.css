@@ -113,6 +113,9 @@ html body .vm-collection .vm-cp17-result-actions {display:flex;align-items:cente
 html body .vm-collection .product-copy {min-width:0;overflow-wrap:anywhere;}
 html body .vm-collection .product-card,html body .vm-collection .product-art,
 html body .vm-collection .product-description,html body .vm-collection .vm-cp17-card-favorite {border:0;box-shadow:none;}
+/* The home product section has no legacy-product-wrapper ancestor. Anchor
+   each favorite to its own card so it cannot escape onto the hero banner. */
+html body .vm-collection .vm-product-card {position:relative;isolation:isolate;}
 html body .vm-collection .product-description {align-items:center;gap:6px;padding:10px 0;}
 html body .vm-collection .add-circle, html body .vm-product-detail .vcs-cart-cta {
   display:inline-grid;place-items:center;flex:0 0 auto;width:44px;height:44px;min-width:44px;min-height:44px;

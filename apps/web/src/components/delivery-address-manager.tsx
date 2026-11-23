@@ -1,12 +1,12 @@
 'use client';
 
-import {useEffect,useMemo,useRef,useState} from 'react';
+import {useEffect,useId,useMemo,useRef,useState} from 'react';
 import Link from 'next/link';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {IndonesiaAddressPicker} from '@/components/indonesia-address-picker';
 import type {AddressSelection} from '@/lib/address-location';
-import {ADDRESS_BOOK_MAX,CHOSEN_ADDRESS_KEY,legacyAccountAddress,readAddressBook,
- validAddressRegion,validatedBook,preferredAddress,addressStreet,type SavedDeliveryAddress
+import {ADDRESS_BOOK_MAX,ADDRESS_LABELS,CHOSEN_ADDRESS_KEY,legacyAccountAddress,readAddressBook,
+ validAddressRegion,withSavedAddress,withDefaultAddress,preferredAddress,addressStreet,type SavedDeliveryAddress
 } from '@/lib/delivery-address-book';
 import {googleMapsPinUrl,type DeliveryPin} from '@/lib/delivery-pin';
 
@@ -24,6 +24,7 @@ const coord=(x:{latitude:number;longitude:number;accuracy:number})=>
 
 export function DeliveryAddressManager({onSelected}:{onSelected:(address:SavedDeliveryAddress|null)=>void}){
  const auth=useCustomerAuth();
+ const labelGroupId=useId();
  const book=useMemo(()=>readAddressBook(auth.user?.user_metadata),[auth.user?.user_metadata]);
  const callback=useRef(onSelected);callback.current=onSelected;
  const [selectedId,setSelectedId]=useState('');
@@ -45,6 +46,11 @@ export function DeliveryAddressManager({onSelected}:{onSelected:(address:SavedDe
   } satisfies SavedDeliveryAddress;
  },[book.addresses.length,legacy,legacyRegion]);
  const selectedAddress=defaultChoice||legacyChoice;
+ const defaultAddress=book.addresses.find(a=>a.id===book.defaultId);
+ const existingLabel=book.addresses.find(a=>a.id===editingId)?.label;
+ const labelOptions:string[]=existingLabel&&!ADDRESS_LABELS.some(label=>label===existingLabel)
+  ?[...ADDRESS_LABELS,existingLabel]:[...ADDRESS_LABELS];
+ const defaultRequired=!book.addresses.length||editingId===book.defaultId;
 
  useEffect(()=>{
   if(!auth.user){setSelectedId('');setLegacyRegion(null);callback.current(null);return;}
@@ -67,7 +73,9 @@ export function DeliveryAddressManager({onSelected}:{onSelected:(address:SavedDe
   // server metadata without switching away from another selected address.
   if(chosen){
    callback.current(chosen);
-   if(!selectedId)setSelectedId(chosen.id);
+   // The auth initialization effect restores the session choice. Do not set
+   // selectedId here: both effects run with the initial empty state, which
+   // would otherwise overwrite that restored choice with the account default.
   }else callback.current(legacyChoice);
  },[book,legacyChoice,selectedId,auth.user?.id]);
 
@@ -80,7 +88,7 @@ export function DeliveryAddressManager({onSelected}:{onSelected:(address:SavedDe
   if(book.addresses.length>=ADDRESS_BOOK_MAX){setError('Maksimal 10 alamat tersimpan. Edit alamat yang sudah ada.');return;}
   setDraft({...emptyDraft,
    ...(fromLegacy&&legacy?{
-    label:legacy.label,recipientName:legacy.recipientName,contactName:legacy.contactName,
+    label:'Rumah',recipientName:legacy.recipientName,contactName:legacy.contactName,
     phone:legacy.phone,street:legacy.street,region:legacyRegion
    }:{recipientName:typeof auth.user?.user_metadata?.display_name==='string'?auth.user.user_metadata.display_name:'',
      contactName:typeof auth.user?.user_metadata?.display_name==='string'?auth.user.user_metadata.display_name:'',
@@ -95,10 +103,7 @@ export function DeliveryAddressManager({onSelected}:{onSelected:(address:SavedDe
  async function save(){
   if(!auth.user||busy)return;
   if(!validAddressRegion(draft.region)){setError('Lengkapi provinsi, kota, kecamatan, kelurahan, dan kode pos terlebih dahulu.');return;}
-  if(!draft.street.trim()||!draft.unit.trim()) {
-   // Unit may not exist in a detached house; the user is explicitly offered "Tidak ada".
-   if(draft.street.trim().length<8){setError('Isi nama jalan dan nomor rumah atau patokan lengkap.');return;}
-  }
+  if(draft.street.trim().length<8){setError('Isi nama jalan dan nomor rumah atau patokan lengkap.');return;}
   const id=editingId&&editingId!=='new'?editingId:crypto.randomUUID();
   const next:SavedDeliveryAddress={
    id,label:draft.label.trim(),recipientName:draft.recipientName.trim(),
@@ -106,21 +111,22 @@ export function DeliveryAddressManager({onSelected}:{onSelected:(address:SavedDe
    street:draft.street.trim(),unit:draft.unit.trim(),region:draft.region,
    pin:gps?coord(gps):draft.pin
   };
-  let addresses=book.addresses.filter(a=>a.id!==id);
-  if(editingId==='new'&&addresses.length>=ADDRESS_BOOK_MAX){setError('Buku alamat sudah penuh (10 alamat).');return;}
-  addresses=[...addresses,next];
-  const defaultId=makeDefault||!book.defaultId?id:book.defaultId;
   setBusy(true);setError('');
   try{
-   const updated=validatedBook({version:1,addresses,defaultId});
+   const updated=withSavedAddress(book,next,makeDefault);
    await auth.saveAddressBook(updated);
-   selectAddress(next);setEditingId(null);setNotice('Alamat tersimpan dan dipilih untuk pengiriman.');
+   selectAddress(next);setEditingId(null);
+   setNotice(updated.defaultId===next.id?'Alamat tersimpan sebagai alamat utama dan dipilih untuk pengiriman.':'Alamat tersimpan dan dipilih untuk pengiriman. Alamat utama tetap '+(defaultAddress?.label||'seperti sebelumnya')+'.');
   }catch(e){setError(e instanceof Error?e.message:'Alamat gagal disimpan. Coba lagi.');}
   finally{setBusy(false);}
  }
  async function setDefault(id:string){
   if(!auth.user||busy)return;setBusy(true);setError('');
-  try{await auth.saveAddressBook({...book,defaultId:id});setNotice('Alamat utama diperbarui.');}
+  try{
+   await auth.saveAddressBook(withDefaultAddress(book,id));
+   const label=book.addresses.find(a=>a.id===id)?.label||'Alamat ini';
+   setNotice(label+' menjadi alamat utama.'+(selectedAddress?.id!==id?' Pilih alamat ini jika ingin menggunakannya untuk pengiriman sekarang.':''));
+  }
   catch(e){setError(e instanceof Error?e.message:'Gagal mengubah alamat utama.');}
   finally{setBusy(false);}
  }
@@ -133,34 +139,44 @@ export function DeliveryAddressManager({onSelected}:{onSelected:(address:SavedDe
      legacy?<span>{legacy.street} · Lengkapi wilayah untuk cek ongkir</span>:
      <span>Belum ada alamat tersimpan di akun ini.</span>}
    </div>
-   {auth.user&&<button type="button" className="vpd-address-toggle" onClick={()=>{setExpanded(x=>!x);setEditingId(null);setError('');}} aria-expanded={expanded}>
+   {auth.user&&<button type="button" className="vpd-address-toggle" disabled={busy} onClick={()=>{setExpanded(x=>!x);setEditingId(null);setError('');setNotice('');}} aria-expanded={expanded}>
     {expanded?'Tutup':'Pilih alamat'} <span aria-hidden="true">⌄</span>
    </button>}
   </div>
   {!auth.user?<div className="vpd-ship-state"><p>Masuk untuk menyimpan dan memilih alamat pengiriman.</p><Link className="vpd-ship-action" href="/login?next=/akun">Masuk Akun</Link></div>:
    <>
     {!selectedAddress&&<div className="vpd-ship-state"><p>{legacy?'Lengkapi wilayah alamat akun agar tarif kurir dapat dihitung.':'Tambahkan alamat tujuan untuk melihat kurir dan harga.'}</p>
-     <button type="button" className="vpd-ship-action" onClick={()=>startAdd(Boolean(legacy))}>{legacy?'Lengkapi alamat akun':'Tambah alamat pertama'}</button>
+     <button type="button" className="vpd-ship-action" disabled={busy} onClick={()=>startAdd(Boolean(legacy))}>{legacy?'Lengkapi alamat akun':'Tambah alamat pertama'}</button>
     </div>}
     {expanded&&<section className="vpd-address-book" aria-label="Alamat tersimpan">
      <header><strong>Daftar alamat saya</strong><span>{book.addresses.length}/{ADDRESS_BOOK_MAX}</span></header>
+     <p className="vpd-address-book-hint">Pilih tujuan untuk pengiriman ini. Alamat utama digunakan saat belum ada pilihan.</p>
      {book.addresses.map(addr=><article className={'vpd-address-option'+(selectedAddress?.id===addr.id?' is-selected':'')} key={addr.id}>
       <div className="vpd-address-title"><b>{addr.label}</b>{book.defaultId===addr.id&&<small>Utama</small>}</div>
       <strong>{addr.recipientName} · {addr.phone}</strong>
       <p>{addressStreet(addr)}, {addr.region.label}</p>
       <div className="vpd-address-actions">
-       <button type="button" disabled={busy} className={selectedAddress?.id===addr.id?'is-current':''} onClick={()=>selectAddress(addr)}>{selectedAddress?.id===addr.id?'Dipilih':'Pilih alamat'}</button>
+       <button type="button" disabled={busy} aria-pressed={selectedAddress?.id===addr.id} className={selectedAddress?.id===addr.id?'is-current':''} onClick={()=>selectAddress(addr)}>{selectedAddress?.id===addr.id?'Dipilih':'Pilih alamat'}</button>
        <button type="button" disabled={busy} onClick={()=>startEdit(addr)}>Edit</button>
        {book.defaultId!==addr.id&&<button type="button" disabled={busy} onClick={()=>void setDefault(addr.id)}>Jadikan utama</button>}
       </div>
      </article>)}
      {!book.addresses.length&&legacy&&<div className="vpd-address-legacy"><strong>Alamat akun</strong><p>{legacy.street}</p>
-      <button type="button" onClick={()=>startAdd(true)}>Lengkapi dan simpan alamat</button></div>}
-     {book.addresses.length<ADDRESS_BOOK_MAX&&<button type="button" className="vpd-address-add" onClick={()=>startAdd(false)}>+ Tambah alamat lain</button>}
+      <button type="button" disabled={busy} onClick={()=>startAdd(true)}>Lengkapi dan simpan alamat</button></div>}
+     {book.addresses.length<ADDRESS_BOOK_MAX&&<button type="button" className="vpd-address-add" disabled={busy} onClick={()=>startAdd(false)}>+ Tambah alamat lain</button>}
     </section>}
-    {editingId&&<section onKeyDown={e=>{if(e.key==='Enter'&&!(e.target instanceof HTMLTextAreaElement))e.preventDefault();}} className="vpd-address-form" aria-label={editingId==='new'?'Tambah alamat baru':'Edit alamat'}>
+    {editingId&&<section onKeyDown={e=>{if(e.key==='Enter'&&(e.target instanceof HTMLInputElement||e.target instanceof HTMLSelectElement))e.preventDefault();}} className="vpd-address-form" aria-label={editingId==='new'?'Tambah alamat baru':'Edit alamat'} aria-busy={busy}>
      <div className="vpd-address-form-heading"><h3>{editingId==='new'?'Tambah alamat baru':'Edit alamat tersimpan'}</h3>
-      <button type="button" onClick={()=>{setEditingId(null);setGps(null);setError('');}}>Batal</button></div>
+      <button type="button" disabled={busy} onClick={()=>{setEditingId(null);setGps(null);setError('');}}>Batal</button></div>
+     <fieldset className="vpd-address-labels" disabled={busy}>
+      <legend>Label alamat</legend>
+      <div className="vpd-address-label-options">
+       {labelOptions.map(label=><label className={draft.label===label?'is-selected':''} key={label}>
+        <input type="radio" name={labelGroupId} value={label} checked={draft.label===label} onChange={()=>setDraft(d=>({...d,label}))}/>
+        <span>{label}</span>
+       </label>)}
+      </div>
+     </fieldset>
      <p className="vpd-address-geohint">Gunakan GPS untuk mendeteksi provinsi, kota, kecamatan, kelurahan, dan kode pos. Periksa wilayah yang terisi sebelum menyimpan.</p>
      <IndonesiaAddressPicker key={editingId} initialValue={draft.region||undefined}
       onChange={region=>{setDraft(old=>({...old,region,pin:old.region?.areaId===region?.areaId?old.pin:null}));setGps(null);}}
@@ -169,7 +185,6 @@ export function DeliveryAddressManager({onSelected}:{onSelected:(address:SavedDe
       <a href={googleMapsPinUrl(coord(gps))} target="_blank" rel="noopener noreferrer">Periksa pin di Google Maps</a>
       <small>Pin GPS baru akan disimpan setelah Anda mengonfirmasi alamat di bawah.</small></div>}
      <div className="vpd-address-fields">
-      <label>Label alamat<input value={draft.label} maxLength={40} required placeholder="Rumah / Kantor" onChange={e=>setDraft(d=>({...d,label:e.target.value}))}/></label>
       <label>Nama penerima<input value={draft.recipientName} minLength={2} maxLength={90} autoComplete="name" required onChange={e=>setDraft(d=>({...d,recipientName:e.target.value}))}/></label>
       <label>Kontak person<input value={draft.contactName} minLength={2} maxLength={90} required onChange={e=>setDraft(d=>({...d,contactName:e.target.value}))}/></label>
       <label>No. telepon penerima<input type="tel" inputMode="tel" autoComplete="tel" value={draft.phone} maxLength={22} required placeholder="08xxxxxxxxxx" onChange={e=>setDraft(d=>({...d,phone:e.target.value}))}/></label>
@@ -177,9 +192,12 @@ export function DeliveryAddressManager({onSelected}:{onSelected:(address:SavedDe
       <label className="vpd-address-wide">Nomor rumah / unit / lantai <small>(jika ada)</small>
        <input value={draft.unit} maxLength={100} placeholder="Contoh: Tower A, Lantai 5, Unit 06" onChange={e=>setDraft(d=>({...d,unit:e.target.value}))}/></label>
      </div>
-     <label className="vpd-address-default-check"><input type="checkbox" checked={makeDefault} onChange={e=>setMakeDefault(e.target.checked)}/> Jadikan alamat utama</label>
+     <div className="vpd-address-default-setting">
+      <label className="vpd-address-default-check"><input type="checkbox" checked={makeDefault||defaultRequired} disabled={busy||defaultRequired} onChange={e=>setMakeDefault(e.target.checked)}/> Jadikan alamat utama (default)</label>
+      <small>{!book.addresses.length?'Alamat pertama otomatis menjadi alamat utama.':editingId===book.defaultId?'Ini alamat utama Anda. Untuk menggantinya, pilih Jadikan utama pada alamat lain.':makeDefault?'Alamat ini akan menggantikan '+(defaultAddress?.label||'alamat sebelumnya')+' sebagai alamat utama.':'Alamat utama saat ini: '+(defaultAddress?.label||'belum dipilih')+'. Menyimpan alamat ini hanya memilihnya untuk pengiriman sekarang.'}</small>
+     </div>
      {error&&<p role="alert" className="vpd-ship-error">{error}</p>}
-     <div className="vpd-address-form-actions"><button type="button" onClick={()=>{setEditingId(null);setGps(null);}}>Batal</button>
+     <div className="vpd-address-form-actions"><button type="button" disabled={busy} onClick={()=>{setEditingId(null);setGps(null);}}>Batal</button>
       <button type="button" className="vpd-ship-action vpd-address-save-button" disabled={busy||!draft.region} onClick={()=>void save()}>{busy?'Menyimpan…':'Simpan & gunakan alamat'}</button>
      </div>
     </section>}

@@ -5,6 +5,7 @@ export const ADDRESS_BOOK_MAX=10;
 export const ADDRESS_BOOK_META_KEY='vapmart_address_book_v1';
 export const CHOSEN_ADDRESS_KEY='vapmart.checkout.address.';
 export const CHOSEN_COURIER_KEY='vapmart.checkout.courier';
+export const ADDRESS_LABELS=['Rumah','Kantor','Apartment','Sementara'] as const;
 
 export type SavedDeliveryAddress={
  id:string;
@@ -73,6 +74,20 @@ export function validatedBook(book:AddressBook):AddressBook{
 }
 export function preferredAddress(book:AddressBook,sessionChoice?:string|null):SavedDeliveryAddress|null{
  return book.addresses.find(a=>a.id===sessionChoice)||book.addresses.find(a=>a.id===book.defaultId)||book.addresses[0]||null;
+}
+export function withSavedAddress(book:AddressBook,address:SavedDeliveryAddress,makeDefault=false):AddressBook{
+ const current=validatedBook(book);
+ const exists=current.addresses.some(a=>a.id===address.id);
+ if(!exists&&current.addresses.length>=ADDRESS_BOOK_MAX)throw Error('Buku alamat sudah penuh (10 alamat).');
+ // Editing keeps the list order and adding an address does not replace the
+ // account default unless the customer explicitly chooses that option.
+ const addresses=exists?current.addresses.map(a=>a.id===address.id?address:a):[...current.addresses,address];
+ return validatedBook({version:1,addresses,defaultId:makeDefault||!current.defaultId?address.id:current.defaultId});
+}
+export function withDefaultAddress(book:AddressBook,id:string):AddressBook{
+ const current=validatedBook(book);
+ if(!current.addresses.some(a=>a.id===id))throw Error('Alamat tidak ditemukan. Pilih salah satu alamat tersimpan.');
+ return {...current,defaultId:id};
 }
 export function addressStreet(addr:SavedDeliveryAddress):string{
  return [addr.street,addr.unit].filter(Boolean).join(', ');

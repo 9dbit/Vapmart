@@ -1,0 +1,70 @@
+/* Current storefront loading: square media, compact controls, and the same
+   layout rails as the rendered page. Supersedes the removed CP17 skeleton. */
+html body .vm-loading{
+ --vm-loading-base:#eeebf2;
+ --vm-loading-highlight:rgba(255,255,255,.7);
+ min-height:70vh;
+}
+html body .vm-loading .vm-loading-shape{
+ position:relative;overflow:hidden;min-width:0;flex-shrink:0;
+ border-radius:5px;background:var(--vm-loading-base);
+}
+html body .vm-loading .vm-loading-shape::after{
+ content:"";position:absolute;inset:0;
+ background:linear-gradient(100deg,transparent 20%,var(--vm-loading-highlight) 50%,transparent 80%);
+ transform:translateX(-100%);animation:vm-loading-sweep 1.65s ease-in-out infinite;
+}
+html body .vm-loading .vm-loading-product-image{width:100%;aspect-ratio:1;border-radius:0}
+html body .vm-loading .vm-loading-thumbnails{display:flex;gap:8px;padding:11px 12px 13px;overflow:hidden;background:var(--vpd-surface)}
+html body .vm-loading .vm-loading-thumbnail{width:65px;height:65px}
+html body .vm-loading .vm-loading-breadcrumb{width:100px;height:11px;margin-bottom:25px}
+html body .vm-loading .vm-loading-price{width:48%;height:32px;margin-bottom:18px}
+html body .vm-loading .vm-loading-title{width:92%;height:15px;margin-bottom:9px}
+html body .vm-loading .vm-loading-short{width:66%}
+html body .vm-loading .vm-loading-rating{width:148px;height:12px;margin:16px 0}
+html body .vm-loading .vm-loading-brand{display:flex;align-items:center;gap:9px;margin:16px 0}
+html body .vm-loading .vm-loading-avatar{width:30px;height:30px;border-radius:9px}
+html body .vm-loading .vm-loading-line{height:11px;width:100%;max-width:220px}
+html body .vm-loading .vm-loading-brand .vm-loading-line{width:110px}
+html body .vm-loading .vm-loading-caption{height:12px;width:110px;margin-bottom:10px}
+html body .vm-loading .vm-loading-variants{padding:16px 0;border-top:1px solid var(--vpd-line)}
+html body .vm-loading .vm-loading-chips{display:flex;gap:8px}
+html body .vm-loading .vm-loading-chip{width:68px;height:35px;border-radius:8px}
+html body .vm-loading .vm-loading-delivery{display:flex;align-items:center;gap:11px;padding:15px 0;border-top:1px solid var(--vpd-line)}
+html body .vm-loading .vm-loading-delivery>div:last-child{flex:1;min-width:0}
+html body .vm-loading .vm-loading-purchase>.vm-loading-shape{height:49px;border-radius:9px}
+html body .vm-loading.vm-loading-catalog{padding-top:24px;padding-bottom:100px}
+html body .vm-loading .vm-loading-heading{height:29px;width:190px;margin-bottom:18px}
+html body .vm-loading .vm-loading-toolbar{display:flex;align-items:center;gap:6px;overflow:hidden}
+html body .vm-loading .vm-loading-tool{width:36px;height:36px;border-radius:50%}
+html body .vm-loading .vm-loading-filter{width:104px;height:36px;border-radius:999px}
+html body .vm-loading .vm-loading-count{width:130px;height:11px;margin:13px 0 18px}
+html body .vm-loading .vm-loading-card{min-width:0}
+html body .vm-loading .vm-loading-catalog-image{width:100%;aspect-ratio:1;border-radius:16px}
+html body .vm-loading .vm-loading-card-copy{display:flex;align-items:center;gap:8px;padding:12px 0 8px}
+html body .vm-loading .vm-loading-card-copy>div:first-child{flex:1;min-width:0}
+html body .vm-loading .vm-loading-card-copy .vm-loading-title{height:12px;width:100%;margin-bottom:9px}
+html body .vm-loading .vm-loading-card-price{height:14px;width:68%}
+html[data-vapmart-color-mode="dark"] body .vm-loading{
+ --vm-loading-base:#302a39;
+ --vm-loading-highlight:rgba(198,170,224,.09);
+}
+@keyframes vm-loading-sweep{to{transform:translateX(100%)}}
+@media(max-width:767px){
+ html body .vm-loading.vm-loading-catalog{padding-top:16px;padding-bottom:120px}
+ html body .vm-loading .vm-loading-heading{height:24px;width:165px;margin-bottom:15px}
+ html body .vm-loading .vm-loading-thumbnails{gap:7px;padding:9px 12px 11px}
+ html body .vm-loading .vm-loading-thumbnail{width:59px;height:59px}
+ html body .vm-loading .vm-loading-price{height:28px;margin-bottom:15px}
+ html body .vm-loading .vm-loading-breadcrumb{margin-bottom:18px}
+ html body .vm-loading .vm-loading-variants{padding:13px 0}
+ html body .vm-loading .vm-loading-purchase>.vm-loading-shape{height:47px}
+ html body .vm-loading .vm-loading-catalog-image{border-radius:14px}
+}
+@media(max-width:359px){
+ html body .vm-loading .vm-loading-thumbnails{gap:6px;padding:8px 9px 10px}
+ html body .vm-loading .vm-loading-thumbnail{width:52px;height:52px}
+}
+@media(prefers-reduced-motion:reduce){
+ html body .vm-loading .vm-loading-shape::after{display:none;animation:none}
+}
