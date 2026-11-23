@@ -47,6 +47,9 @@ jobs:
 
   shipping-web:
     runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright/python:v1.56.0-noble
+      options: --shm-size=1g
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -72,7 +75,6 @@ jobs:
         run: |
           npm init -y >/dev/null
           npm install --no-save --no-package-lock --no-audit --no-fund playwright@1.56.0
-          npx playwright install --with-deps chromium
       - name: Test Buy Now, saved addresses and default selection
         env:
           ADDRESS_UI_FIXTURES: '1'
