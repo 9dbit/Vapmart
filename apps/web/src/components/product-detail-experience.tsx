@@ -1,10 +1,9 @@
 'use client';
 import Link from 'next/link';
-import {useEffect,useMemo,useRef,useState} from 'react';
+import {useEffect,useMemo,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {flushSync} from 'react-dom';
 import {useCart} from '@/lib/cart';
-import {useCustomerAuth} from '@/lib/customer-auth';
 import {formatIDR,type Product} from '@/lib/types';
 import {ProductDetailGallery} from '@/components/product-detail-gallery';
 import {ProductReviewSummary} from '@/components/product-review-summary';
