@@ -29,8 +29,11 @@ export function IndonesiaAddressPicker({onChange,initialValue,onLocationCandidat
    if(!mounted.current||run!==locationRun.current)return;
    // Only the calling device's current, permission-granted location is sent.
    // No IP fallback, background lookup, proxy or stored coordinates are used.
-   const q=new URLSearchParams({latitude:String(position.coords.latitude),longitude:String(position.coords.longitude),localityLanguage:'id'});
-   const r=await fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?'+q,{credentials:'omit',referrerPolicy:'no-referrer',cache:'no-store',signal:AbortSignal.timeout(10000)});
+   const r=await fetch('/api/shipping/reverse-location',{
+    method:'POST',cache:'no-store',signal:AbortSignal.timeout(12000),
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({latitude:position.coords.latitude,longitude:position.coords.longitude})
+   });
    if(!r.ok)throw Error('Wilayah lokasi belum dapat ditemukan. Pilih secara manual.');const raw=await r.json();
    const found=await pathFromLocation(raw,list);if(!mounted.current||run!==locationRun.current)return;
    version.current++;
@@ -53,7 +56,7 @@ export function IndonesiaAddressPicker({onChange,initialValue,onLocationCandidat
  const fields=[['provinceId','provinces','Provinsi',''],['cityId','cities','Kota / Kabupaten',path.provinceId],['districtId','districts','Kecamatan / Distrik',path.cityId],['areaId','areas','Kelurahan / Desa',path.districtId]] as const;
  return <section className="vm-address-picker" aria-label="Wilayah alamat Indonesia">
   <div className="vm-address-location"><button type="button" className="vco26-secondary" disabled={locating} onClick={()=>void locate()}>{locating?'Mencari lokasi...':'⌖ Gunakan lokasi saat ini'}</button>
-   <small>Dengan memilih lokasi saat ini, lokasi perangkat dikirim ke BigDataCloud untuk saran wilayah. Periksa hasilnya sebelum digunakan.</small></div>
+   <small>Lokasi GPS yang Anda izinkan diperiksa melalui Vapmart dan BigDataCloud untuk mencocokkan wilayah. Periksa hasil sebelum menyimpan.</small></div>
   {locationNote&&<p role="status" className="vm-address-note">{locationNote}</p>}
   {suggestion&&<div className="vm-address-suggestion"><strong>Saran wilayah</strong><p>{suggested?.label||[suggestion.provinces.find(x=>x.id===suggestion.provinceId)?.name,suggestion.cities.find(x=>x.id===suggestion.cityId)?.name,suggestion.districts.find(x=>x.id===suggestion.districtId)?.name].filter(Boolean).join(', ')}</p><button type="button" onClick={()=>{version.current++;locationRun.current++;setPath(suggestion);callback.current(regionFromPath(suggestion));setSuggestion(null);setError('');setLocationNote(suggested?'Wilayah dipilih. Periksa kembali detail alamat pengiriman.':'Saran diterapkan. Lanjutkan memilih kecamatan dan kelurahan yang sesuai.');}}>Gunakan saran wilayah</button></div>}
   <p className="vm-address-help">Pilih berurutan dari provinsi. Kode pos mengikuti kelurahan/desa yang dipilih.</p>
