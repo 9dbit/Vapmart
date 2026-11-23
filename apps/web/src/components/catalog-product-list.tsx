@@ -23,10 +23,14 @@ export function CatalogProductList(){
  const everyDraftOnPage=draftOnPage.length>0&&draftOnPage.every((p:any)=>Boolean(selected[p.id]));
  function toggleDraft(p:any){
   if(busy||p.is_active)return;
+  if(!selected[p.id]&&selectedRows.length>=MAX_BULK_PUBLISH){
+   setError('Maksimal 50 draft dalam sekali publish. Kurangi pilihan terlebih dahulu.');
+   return;
+  }
   setError('');setReport(null);
   setSelected(prev=>{
    if(prev[p.id]){const next={...prev};delete next[p.id];return next;}
-   if(Object.keys(prev).length>=MAX_BULK_PUBLISH){setError('Maksimal 50 draft dalam sekali publish. Kurangi pilihan terlebih dahulu.');return prev;}
+   if(Object.keys(prev).length>=MAX_BULK_PUBLISH)return prev;
    return {...prev,[p.id]:{id:p.id,name:p.name,sku:p.sku||null,expectedVersion:p.edit_version}};
   });
  }
