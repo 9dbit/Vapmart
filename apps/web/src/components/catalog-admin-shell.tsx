@@ -6,6 +6,7 @@ import {useCustomerAuth} from '@/lib/customer-auth';
 import {AdminWorkspace,type AdminSection} from './admin-workspace';
 import '../app/admin-v26.css';
 import '../app/catalog-admin.css';
+import '../app/catalog-bulk-publish.css';
 type Client={request:<T=any>(path:string,body?:unknown,method?:'POST'|'PATCH')=>Promise<T>;upload:(file:File)=>Promise<string>};
 const Context=createContext<Client|null>(null);
 export function useCatalogAdmin(){const x=useContext(Context);if(!x)throw Error('Catalog admin context required');return x;}
