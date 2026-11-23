@@ -24,9 +24,24 @@ export async function pathFromLocation(raw:any,list:AddressList):Promise<Address
  const admins=Array.isArray(raw.localityInfo?.administrative)?raw.localityInfo.administrative:[];
  const names=(level:number)=>admins.filter((x:any)=>x.adminLevel===level&&typeof x.name==='string').map((x:any)=>x.name);
  const p:AddressPath={provinces:await list('provinces'),cities:[],districts:[],areas:[],provinceId:'',cityId:'',districtId:'',areaId:''};
- const province=uniqueRegionMatch(p.provinces,[raw.principalSubdivision||'',...names(4)]);if(!province)throw Error('Provinsi lokasi belum dapat dipastikan. Pilih wilayah secara manual.');p.provinceId=province.id;
- p.cities=await list('cities',p.provinceId);const city=uniqueRegionMatch(p.cities,[...names(5),raw.city||'']);if(!city)return p;p.cityId=city.id;
- p.districts=await list('districts',p.cityId);const district=uniqueRegionMatch(p.districts,[...names(6),raw.locality||'']);if(!district)return p;p.districtId=district.id;
- p.areas=await list('areas',p.districtId);const area=uniqueRegionMatch(p.areas,[...names(7),raw.locality||'']);if(area)p.areaId=area.id;
+ const provinceCandidates=[raw.principalSubdivision||'',...(raw.principalSubdivisionCode==='ID-JK'?['DKI JAKARTA']:[]),...names(4)];
+ const province=uniqueRegionMatch(p.provinces,provinceCandidates);
+ if(!province)throw Error('Provinsi lokasi belum dapat dipastikan. Pilih wilayah secara manual.');
+ p.provinceId=province.id;
+ p.cities=await list('cities',p.provinceId);
+ const city=uniqueRegionMatch(p.cities,[...names(5),raw.city||'',...names(6)]);
+ if(!city)return p;
+ p.cityId=city.id;
+ p.districts=await list('districts',p.cityId);
+ const district=uniqueRegionMatch(p.districts,[...names(6),raw.locality||'',...names(7)]);
+ if(!district)return p;
+ p.districtId=district.id;
+ p.areas=await list('areas',p.districtId);
+ const namedArea=uniqueRegionMatch(p.areas,[...names(7),...names(8),raw.locality||'']);
+ const postal=typeof raw.postcode==='string'&&/^\d{5}$/.test(raw.postcode)?raw.postcode:'';
+ const matchesPostal=postal?p.areas.filter(x=>x.postalCode===postal):[];
+ // A postcode may span several kelurahan. Only auto-fill on a unique match.
+ const area=namedArea||((matchesPostal.length===1)?matchesPostal[0]:null);
+ if(area)p.areaId=area.id;
  return p;
 }

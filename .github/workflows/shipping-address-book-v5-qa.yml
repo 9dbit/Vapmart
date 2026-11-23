@@ -1,0 +1,67 @@
+name: Vapmart Shipping Address Book V5 QA
+
+on:
+  push:
+    branches: [feat/shipping-address-book-live-rates-20261123, release/vapmart-stable]
+    paths:
+      - "apps/api/src/jubelio-shipment.ts"
+      - "apps/api/test/jubelio-shipment.test.ts"
+      - "apps/api/test/delivery-address-book.test.ts"
+      - "apps/web/src/components/delivery-address-manager.tsx"
+      - "apps/web/src/components/shipping-quote.tsx"
+      - "apps/web/src/components/indonesia-address-picker.tsx"
+      - "apps/web/src/lib/delivery-address-book.ts"
+      - "apps/web/src/lib/customer-auth.tsx"
+      - "apps/web/src/lib/address-location.ts"
+      - "apps/web/src/app/checkout/page.tsx"
+      - "apps/web/src/app/api/shipping/reverse-location/route.ts"
+      - "apps/web/src/app/product-shipping-v5.css"
+      - "apps/web/src/app/layout.tsx"
+      - "scripts/shipping-address-book-v5-smoke.mjs"
+      - ".github/workflows/shipping-address-book-v5-qa.yml"
+  pull_request:
+    branches: [release/vapmart-stable]
+
+jobs:
+  shipping-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install API
+        working-directory: apps/api
+        run: npm ci --include=dev --no-audit --no-fund
+      - name: Typecheck API
+        working-directory: apps/api
+        run: npm run typecheck
+      - name: Verify five-level address / saved defaults / GPS and courier badges
+        working-directory: apps/api
+        run: npx tsx --test test/delivery-address-book.test.ts test/jubelio-shipment.test.ts test/shipping-address.test.ts
+      - name: Build API
+        working-directory: apps/api
+        run: npm run build
+
+  shipping-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install web
+        working-directory: apps/web
+        run: npm ci --include=dev --no-audit --no-fund
+      - name: Static UX regression checks
+        run: node scripts/shipping-address-book-v5-smoke.mjs
+      - name: Typecheck web
+        working-directory: apps/web
+        run: npm run typecheck
+      - name: Build Next.js
+        working-directory: apps/web
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: npm run build

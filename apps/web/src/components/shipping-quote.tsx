@@ -1,164 +1,141 @@
 'use client';
 
-import Link from 'next/link';
 import {useEffect,useRef,useState} from 'react';
-import {useCustomerAuth} from '@/lib/customer-auth';
 import {formatIDR,type Product} from '@/lib/types';
-import {IndonesiaAddressPicker} from '@/components/indonesia-address-picker';
+import {DeliveryAddressManager} from '@/components/delivery-address-manager';
 import {Icon} from '@/components/store-icon';
-import type {AddressSelection} from '@/lib/address-location';
+import {CHOSEN_COURIER_KEY,type SavedDeliveryAddress} from '@/lib/delivery-address-book';
 
 type ShippingConfig={provider:string;rateLookupEnabled:boolean;requiresArea:boolean;originLabel?:string};
-type ShippingRate={courierCode:string;courierName:string;serviceCode:string;serviceName:string;priceIdr:number;duration?:string;estimateOnly?:boolean;quoteId?:string};
-const validRegion=(raw:unknown):raw is AddressSelection=>{
- if(!raw||typeof raw!=='object')return false;
- const x=raw as Record<string,unknown>;
- return ['provinceId','cityId','districtId','areaId','postalCode','label'].every(k=>typeof x[k]==='string')
-  &&/^[0-9]{5}$/.test(String(x.postalCode));
+type ShippingRate={
+ courierCode:string;courierName:string;serviceCode:string;serviceName:string;
+ priceIdr:number;duration?:string;category?:string;codAvailable?:boolean;
+ requiresPin?:boolean;estimateOnly?:boolean;quoteId?:string;providerServiceId?:number
 };
-
-/** Uses only authenticated live provider rates. No synthetic vouchers or ETA. */
+type ShippingResponse={rates?:ShippingRate[];pinNotice?:string;message?:string;code?:string};
+const bucket=(r:ShippingRate)=>{
+ const key=(r.category||'')+' '+r.serviceName;
+ if(/INSTANT/i.test(key))return 'Instant';
+ if(/SAME[\s_-]?DAY/i.test(key))return 'Same Day';
+ if(/NEXT[\s_-]?DAY/i.test(key))return 'Next Day';
+ if(/EKONOMI|ECONOMY/i.test(key))return 'Ekonomi';
+ if(/CARGO|KARGO/i.test(key))return 'Kargo';
+ return 'Reguler';
+};
+const order=['Instant','Same Day','Next Day','Reguler','Ekonomi','Kargo'] as const;
+const rateKey=(r:ShippingRate)=>r.courierCode+':'+(r.providerServiceId||r.serviceCode);
 export function ShippingQuote({product,quantity}:{product:Product|null;quantity:number}){
- const auth=useCustomerAuth();
+ const [address,setAddress]=useState<SavedDeliveryAddress|null>(null);
  const [config,setConfig]=useState<ShippingConfig|null>(null);
- const [region,setRegion]=useState<AddressSelection|null>(null);
- const [editing,setEditing]=useState(false);
- const [loading,setLoading]=useState(false);
- const [rates,setRates]=useState<ShippingRate[]>([]);
- const [error,setError]=useState('');
+ const [loading,setLoading]=useState(false),[rates,setRates]=useState<ShippingRate[]>([]);
+ const [error,setError]=useState(''),[notice,setNotice]=useState('');
  const [selected,setSelected]=useState('');
+ const [retry,setRetry]=useState(0);
  const request=useRef(0);
-
  useEffect(()=>{
-  let alive=true;
+  let active=true;
   fetch('/api/shipping/config',{cache:'no-store'}).then(async response=>{
-   if(!response.ok)throw Error('Pengaturan pengiriman tidak tersedia.');
-   return await response.json() as ShippingConfig;
-  }).then(data=>{if(alive)setConfig(data);})
-   .catch(e=>{if(alive)setError(e instanceof Error?e.message:'Layanan pengiriman belum tersedia.');});
-  return()=>{alive=false;};
+   if(!response.ok)throw Error('Pengaturan pengiriman belum tersedia.');
+   return response.json() as Promise<ShippingConfig>;
+  }).then(data=>{if(active)setConfig(data);})
+   .catch(e=>{if(active)setError(e instanceof Error?e.message:'Pengaturan pengiriman belum tersedia.');});
+  return()=>{active=false;};
  },[]);
-
+ const region=address?.region;
  useEffect(()=>{
-  setRegion(null);setRates([]);setSelected('');
-  if(!auth.user)return;
-  try{
-   const raw=localStorage.getItem('vapmart.shipping.region.'+auth.user.id);
-   if(raw){const parsed:unknown=JSON.parse(raw);if(validRegion(parsed))setRegion(parsed);}
-  }catch{}
- },[auth.user?.id]);
-
- const onRegion=(next:AddressSelection|null)=>{
-  // Province/city changes produce incomplete drafts. Keep the last confirmed
-  // destination until a complete new region is selected or editor is closed.
-  if(!next){setError('');return;}
-  request.current++;setRegion(next);setRates([]);setSelected('');setError('');
-  if(auth.user)try{
-   const key='vapmart.shipping.region.'+auth.user.id;
-   if(next)localStorage.setItem(key,JSON.stringify(next));
-   else localStorage.removeItem(key);
-  }catch{}
-  if(next)setEditing(false);
- };
-
- useEffect(()=>{
-  if(!region||!product||!config?.rateLookupEnabled||!auth.accessToken)return;
-  if(product.stock_qty<quantity||!product.is_active||!product.weight_grams)return;
-  const ticket=++request.current;
-  const controller=new AbortController();
+  if(!region||!product||!config?.rateLookupEnabled){
+   request.current++;setLoading(false);setRates([]);setSelected('');return;
+  }
+  if(!product.is_active||!product.weight_grams||product.stock_qty<quantity){
+   setRates([]);setError('Berat atau stok produk belum mendukung pengecekan ongkir.');return;
+  }
+  const ticket=++request.current,controller=new AbortController();
+  setLoading(true);setError('');setNotice('');setRates([]);
   const timer=setTimeout(async()=>{
-   setLoading(true);setRates([]);setError('');
    try{
-    const response=await fetch('/api/shipping/rates',{
+    const response=await fetch('/api/shipping/estimate',{
      method:'POST',cache:'no-store',signal:controller.signal,
-     headers:{authorization:'Bearer '+auth.accessToken,'content-type':'application/json'},
-     body:JSON.stringify({items:[{productId:product.id,quantity}],destinationPostalCode:region.postalCode,
-      ...(config.requiresArea?{destinationAreaId:region.areaId,destinationProvinceId:region.provinceId}:{})})
+     headers:{'content-type':'application/json'},
+     body:JSON.stringify({
+      items:[{productId:product.id,quantity}],destinationPostalCode:region.postalCode,
+      ...(config.requiresArea?{destinationAreaId:region.areaId,destinationProvinceId:region.provinceId}:{}),
+      ...(address?.pin?{destinationPin:address.pin}:{})
+     })
     });
-    const data=await response.json();
-    if(!response.ok)throw Error(typeof data.message==='string'?data.message:data.code||'Tarif pengiriman tidak tersedia.');
+    const raw:ShippingResponse=await response.json();
+    if(!response.ok)throw Error(typeof raw.message==='string'?raw.message:raw.code||'Cek ongkir belum tersedia.');
     if(ticket!==request.current||controller.signal.aborted)return;
-    const available=((Array.isArray(data.rates)?data.rates:[]) as ShippingRate[])
-      .filter(x=>Number.isFinite(x.priceIdr)&&x.priceIdr>=0&&typeof x.courierCode==='string'&&typeof x.serviceCode==='string')
-      .sort((a,b)=>a.priceIdr-b.priceIdr);
-    setRates(available);
-    if(!available.length)setError('Belum ada layanan kurir yang tersedia untuk tujuan ini.');
-   }catch(e){if(!controller.signal.aborted&&ticket===request.current)setError(e instanceof Error?e.message:'Cek ongkir gagal.');}
-   finally{if(ticket===request.current&&!controller.signal.aborted)setLoading(false);}
-  },320);
+    const received=(Array.isArray(raw.rates)?raw.rates:[]).filter(x=>
+      Number.isSafeInteger(x.priceIdr)&&x.priceIdr>=0&&typeof x.courierCode==='string'&&typeof x.serviceCode==='string'
+    ).sort((a,b)=>a.priceIdr-b.priceIdr);
+    setRates(received);
+    setSelected(received[0]?rateKey(received[0]):'');
+    setNotice(raw.pinNotice||'');
+    if(!received.length)setError('Belum ada layanan pengiriman untuk alamat dan produk ini.');
+   }catch(e){
+    if(!controller.signal.aborted&&ticket===request.current)
+     setError(e instanceof Error?e.message:'Tarif pengiriman belum dapat dimuat.');
+   }finally{if(!controller.signal.aborted&&ticket===request.current)setLoading(false);}
+  },250);
   return()=>{clearTimeout(timer);controller.abort();request.current++;};
- },[region,product?.id,product?.weight_grams,product?.stock_qty,product?.is_active,quantity,config?.requiresArea,config?.rateLookupEnabled,auth.accessToken]);
+ },[address?.id,region?.areaId,region?.postalCode,address?.pin?.latitude,address?.pin?.longitude,
+  config?.rateLookupEnabled,config?.requiresArea,product?.id,product?.weight_grams,
+  product?.stock_qty,product?.is_active,quantity,retry]);
 
- const address=typeof auth.user?.user_metadata?.address_line==='string'?auth.user.user_metadata.address_line.trim():'';
- const destination=region?.label||address||'Wilayah tujuan belum dipilih';
- const chosenRate=rates.find(x=>selected===x.courierCode+':'+x.serviceCode);
-
+ const cheapest=rates.length?Math.min(...rates.map(x=>x.priceIdr)):null;
+ const selectedRate=rates.find(r=>rateKey(r)===selected);
+ const groups=order.map(name=>({name,items:rates.filter(r=>bucket(r)===name)})).filter(x=>x.items.length);
  return <div className="vpd-shipping-body">
-  <section className="vpd-ship-route" aria-label="Rute pengiriman">
+  <section className="vpd-ship-route" aria-label="Asal dan tujuan pengiriman">
    <div className="vpd-ship-route-point">
     <span className="vpd-ship-route-icon" aria-hidden="true"><Icon name="store"/></span>
-    <span className="vpd-ship-route-detail"><small>Dari</small><strong>{config?.originLabel?.trim()||'Vapmart'}</strong></span>
+    <span className="vpd-ship-route-detail"><small>Dari</small>
+     <strong>{config?.originLabel?.trim()||'Gudang Vapmart'}</strong></span>
    </div>
-   <div className="vpd-ship-route-point">
-    <span className="vpd-ship-route-icon" aria-hidden="true"><Icon name="package"/></span>
-    <span className="vpd-ship-route-detail"><small>Dikirim ke</small><strong>{destination}</strong>
-     {region&&address&&<small className="vpd-ship-street">{address}</small>}
-    </span>
-   </div>
-   {auth.user&&<button type="button" className="vpd-ship-change"
-      aria-expanded={editing} aria-controls={editing?'vpd-shipping-editor':undefined}
-      onClick={()=>setEditing(value=>!value)}>
-      {editing?'Tutup':'Ubah alamat'} <span aria-hidden="true">›</span>
-    </button>}
+   <DeliveryAddressManager onSelected={setAddress}/>
   </section>
-
   {product?.weight_grams&&product.weight_grams>0&&<p className="vpd-ship-weight">
    Berat ({quantity} pcs): <strong>{(product.weight_grams*quantity).toLocaleString('id-ID')} g</strong>
-   <span aria-hidden="true"> · </span>Ongkir final dihitung saat checkout
+   <span aria-hidden="true"> · </span>Tarif final dikonfirmasi saat checkout
   </p>}
-
-  {!auth.user?<div className="vpd-ship-state">
-   <p>Masuk untuk memilih tujuan dan melihat biaya pengiriman.</p>
-   <Link className="vpd-ship-action" href="/login?next=/akun">Masuk Akun</Link>
-  </div>:<>
-   {editing&&<section className="vpd-ship-address-editor" id="vpd-shipping-editor" aria-label="Ubah wilayah tujuan">
-    <h3>Atur alamat pengiriman</h3>
-    <p>Pilih provinsi hingga kelurahan yang sesuai dengan alamat penerima.</p>
-    <IndonesiaAddressPicker initialValue={region||undefined} onChange={onRegion}/>
-   </section>}
-   {!region&&!editing&&<div className="vpd-ship-state vpd-ship-select">
-    <p>Wilayah pengiriman belum dipilih. Pilih lokasi agar tarif dan estimasi kurir tersedia.</p>
-    <button type="button" className="vpd-ship-action" onClick={()=>setEditing(true)}>Pilih wilayah tujuan</button>
-   </div>}
-   {region&&!editing&&<section className="vpd-shipping-options" aria-label="Opsi kurir">
-    <header className="vpd-shipping-options-heading">
-     <h3>Pilihan pengiriman</h3>
-     {rates.length>0&&<span>{rates.length} layanan tersedia</span>}
-    </header>
-    {product&&!product.weight_grams&&<p role="status" className="vpd-ship-helper">Berat produk belum tersedia. Ongkir belum bisa dihitung.</p>}
-    {config&&!config.rateLookupEnabled&&<p className="vpd-ship-helper">Tarif kurir real-time belum aktif. Ongkir final diperiksa saat checkout jika layanan tersedia.</p>}
-    {!config&&!error&&<p className="vpd-ship-helper">Memeriksa layanan pengiriman…</p>}
-    {loading&&<p role="status" className="vpd-ship-helper">Menghitung ongkir untuk wilayah ini…</p>}
-    {error&&<p role="alert" className="vpd-ship-helper vpd-ship-error">{error}</p>}
-    {rates.length>0&&<div className="vpd-shipping-rate-list" role="radiogroup" aria-label="Estimasi pilihan kurir">
-     {rates.map((rate,index)=>{
-      const id=rate.courierCode+':'+rate.serviceCode;
+  <section className="vpd-shipping-options" aria-label="Jenis dan biaya pengiriman">
+   <div className="vpd-shipping-options-heading"><h3>Pilihan pengiriman</h3>
+    {rates.length>0&&<span>{rates.length} layanan tersedia</span>}</div>
+   {!address?.region&&<p className="vpd-ship-helper">Pilih atau lengkapi alamat tujuan untuk melihat jenis kurir dan harganya.</p>}
+   {!config&&!error&&<p className="vpd-ship-helper">Memuat layanan pengiriman…</p>}
+   {config&&!config.rateLookupEnabled&&<p className="vpd-ship-helper">Cek ongkir real-time belum aktif. Pilihan kurir akan tersedia setelah konfigurasi selesai.</p>}
+   {loading&&<p role="status" className="vpd-ship-helper">Mencari tipe pengiriman dan tarif untuk alamat terpilih…</p>}
+   {error&&<p role="alert" className="vpd-ship-helper vpd-ship-error">{error} {address?.region&&config?.rateLookupEnabled&&
+    <button type="button" className="vpd-shipping-retry" disabled={loading} onClick={()=>setRetry(x=>x+1)}>Coba lagi</button>}</p>}
+   {rates.length>0&&<div className="vpd-shipping-rate-list" role="radiogroup" aria-label="Pilih estimasi layanan kurir">
+    {groups.map(group=><div className="vpd-shipping-group" key={group.name}>
+     <h4>{group.name}</h4>
+     {group.items.map(rate=>{
+      const id=rateKey(rate);
       return <label key={id} className={selected===id?'is-selected':''}>
-       <input type="radio" name="vpd-shipping-rate" checked={selected===id} value={id} onChange={()=>setSelected(id)}/>
+       <input type="radio" name="vpd-shipping-rate" value={id} checked={selected===id}
+        onChange={()=>{setSelected(id);try{sessionStorage.setItem(CHOSEN_COURIER_KEY,id);}catch{}}}/>
        <span className="vpd-ship-rate-text">
         <strong>{rate.courierName} · {rate.serviceName}</strong>
-        <small>{rate.duration?'Estimasi tiba '+rate.duration:'Estimasi tiba dikonfirmasi saat checkout'}</small>
+        <small>{rate.duration?'Estimasi '+rate.duration:'Estimasi tiba dikonfirmasi oleh kurir'}</small>
+        <span className="vpd-shipping-badges">
+         {group.name==='Instant'&&<em className="is-fast">Tercepat</em>}
+         {rate.priceIdr===cheapest&&<em className="is-cheapest">Termurah</em>}
+         {rate.codAvailable===true&&<em className="is-cod">Kurir mendukung COD</em>}
+        </span>
        </span>
-       <span className="vpd-ship-rate-value"><b>{formatIDR(rate.priceIdr)}</b>
-        {index===0&&rates.length>1&&<small>Termurah</small>}
-       </span>
+       <span className="vpd-ship-rate-value"><b>{formatIDR(rate.priceIdr)}</b></span>
       </label>;
      })}
-    </div>}
-    {chosenRate&&<p role="status" className="vpd-ship-selected">Estimasi {chosenRate.courierName} {chosenRate.serviceName}: {formatIDR(chosenRate.priceIdr)}.</p>}
-    {rates.length>0&&<p className="vpd-ship-disclaimer">Pilihan dan biaya kurir final dikonfirmasi saat checkout.</p>}
-   </section>}
-   {!region&&error&&<p role="alert" className="vpd-ship-helper vpd-ship-error">{error}</p>}
-  </>}
+    </div>)}
+   </div>}
+   {selectedRate&&<p role="status" className="vpd-ship-selected">
+    Estimasi dipilih: {selectedRate.courierName} {selectedRate.serviceName} · {formatIDR(selectedRate.priceIdr)}.</p>}
+   {notice&&<p className="vpd-ship-helper">{notice}</p>}
+   {rates.some(x=>x.codAvailable===true)&&<p className="vpd-ship-disclaimer">
+    Informasi dukungan COD berasal dari kurir. Pembayaran COD baru dapat digunakan jika tersedia sebagai metode pembayaran saat checkout.</p>}
+   {rates.length>0&&<p className="vpd-ship-disclaimer">
+    Harga dan estimasi dari penyedia kurir; dapat berubah saat checkout. Tidak ada klaim gratis ongkir atau voucher tanpa promo yang valid.</p>}
+  </section>
  </div>;
 }
