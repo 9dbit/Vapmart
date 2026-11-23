@@ -26,6 +26,7 @@ assert.match(rules,/#chatvice-hidden-label/);
 assert.match(rules,/#chatvice-welcome-bubble/);
 assert.match(rules,/\.vm-care-fallback/,'fallback is positioned consistently');
 assert.match(rules,/\.vm21-cart-shell/,'cart-specific clearance is not overwritten');
+assert.match(rules,/margin-bottom:calc\\(176px \\+ env\\(safe-area-inset-bottom\\)\\)!important;/,'modal cart drawer retains special clearance');
 assert.match(product,/body:has\(\.vpd-page\).*?legacy-mobile-nav.*?display:none!important/);
 assert.match(product,/\.vpd-purchase-bar\{\s*position:fixed;/);
 assert.match(shell,/margin-bottom:calc\(75px \+ max\(10px,env\(safe-area-inset-bottom\)\)\)/);
