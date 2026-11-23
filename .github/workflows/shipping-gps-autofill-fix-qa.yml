@@ -6,6 +6,7 @@ on:
       - apps/web/src/lib/address-location.ts
       - apps/web/src/components/indonesia-address-picker.tsx
       - apps/api/test/delivery-address-book.test.ts
+      - apps/api/test/integration/gps-live-reference.ts
       - .github/workflows/shipping-gps-autofill-fix-qa.yml
   pull_request:
     branches: [release/vapmart-stable]
@@ -25,6 +26,9 @@ jobs:
       - name: Test Jakarta, Tangerang and existing address books
         working-directory: apps/api
         run: npx tsx --test test/delivery-address-book.test.ts test/shipping-address.test.ts
+      - name: Verify four reference GPS points against live courier hierarchy
+        working-directory: apps/api
+        run: npx tsx test/integration/gps-live-reference.ts
       - name: Typecheck API
         working-directory: apps/api
         run: npm run typecheck
