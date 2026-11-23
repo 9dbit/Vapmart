@@ -64,7 +64,7 @@ export function locationCompletion(path:AddressPath):string{
  */
 export async function pathFromLocation(raw:any,list:AddressList):Promise<AddressPath>{
  if(raw?.countryCode!=='ID')
-  throw Error('Lokasi tidak dikenali sebagai wilayah Indonesia. Pastikan GPS perangkat akurat dan coba lagi.');
+  throw Error('Lokasi GPS tampak berada di luar Indonesia atau belum dapat dipastikan. Periksa izin GPS dan coba lagi.');
  const admins=Array.isArray(raw.localityInfo?.administrative)?raw.localityInfo.administrative:[];
  const names=(level:number):string[]=>admins.filter((x:any)=>x.adminLevel===level&&typeof x.name==='string').map((x:any)=>x.name);
  const p:AddressPath={provinces:await list('provinces'),cities:[],districts:[],areas:[],
