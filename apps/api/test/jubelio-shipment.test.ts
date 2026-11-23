@@ -10,6 +10,9 @@ const rate={courier_id:24,courier_name:'Lion Parcel',courier_service_id:2453,cou
 test('Jubelio quote includes insurance without promising an unreserved promotion',()=>{
  const [r]=normalizeJubelioRates([rate,rate],Date.parse('2026-11-05T07:00:00Z'));
  assert.equal(r.priceIdr,9800);assert.equal(r.basePriceIdr,9500);assert.equal(r.insuranceIdr,300);assert.equal(r.duration,'2–5 hari');
+ assert.equal(r.category,'EKONOMI');assert.equal(r.codAvailable,undefined);
+ const cod=normalizeJubelioRates([{...rate,is_cod_supported:true}])[0];assert.equal(cod.codAvailable,true);
+ assert.equal(normalizeJubelioRates([{...rate,is_cod_supported:'true'}])[0].codAvailable,undefined);
  assert.equal(normalizeJubelioRates([rate,rate]).length,1);
  for(const bad of [null,'',true,-1,NaN,1.1,10000001])assert.equal(normalizeJubelioRates([{...rate,rates:bad}]).length,0);
  assert.equal(normalizeJubelioRates([{...rate,shipping_insurance:-1}]).length,0);
