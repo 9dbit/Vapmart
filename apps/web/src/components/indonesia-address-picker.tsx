@@ -2,9 +2,10 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {pathFromLocation,regionFromPath,resetAddressPath,type AddressPath,type AddressSelection,type AddressList} from '@/lib/address-location';
 const empty:AddressPath={provinces:[],cities:[],districts:[],areas:[],provinceId:'',cityId:'',districtId:'',areaId:''};
-export function IndonesiaAddressPicker({onChange,initialValue}:{onChange:(region:AddressSelection|null)=>void;initialValue?:AddressSelection}){
+export function IndonesiaAddressPicker({onChange,initialValue,onLocationCandidate}:{onChange:(region:AddressSelection|null)=>void;initialValue?:AddressSelection;onLocationCandidate?:(coords:{latitude:number;longitude:number;accuracy:number})=>void}){
  const [path,setPath]=useState<AddressPath>(()=>({...empty,provinceId:initialValue?.provinceId||'',cityId:initialValue?.cityId||'',districtId:initialValue?.districtId||'',areaId:initialValue?.areaId||''})),[loading,setLoading]=useState('provinces'),[error,setError]=useState(''),[reload,setReload]=useState(0),[locating,setLocating]=useState(false),[suggestion,setSuggestion]=useState<AddressPath|null>(null),[locationNote,setLocationNote]=useState('');
  const callback=useRef(onChange);callback.current=onChange;
+ const coordinateCallback=useRef(onLocationCandidate);coordinateCallback.current=onLocationCandidate;
  const version=useRef(0),locationRun=useRef(0),mounted=useRef(true);
  const list:AddressList=useCallback(async(level,parent='')=>{const r=await fetch('/api/shipping/areas?level='+level+'&parentId='+encodeURIComponent(parent),{cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(typeof d.message==='string'?d.message:'Daftar wilayah belum tersedia.');return d.items;},[]);
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;locationRun.current++;}},[]);
@@ -32,7 +33,19 @@ export function IndonesiaAddressPicker({onChange,initialValue}:{onChange:(region
    const r=await fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?'+q,{credentials:'omit',referrerPolicy:'no-referrer',cache:'no-store',signal:AbortSignal.timeout(10000)});
    if(!r.ok)throw Error('Wilayah lokasi belum dapat ditemukan. Pilih secara manual.');const raw=await r.json();
    const found=await pathFromLocation(raw,list);if(!mounted.current||run!==locationRun.current)return;
-   setSuggestion(found);setLocationNote((position.coords.accuracy>1000?'Akurasi lokasi rendah. ':'')+'Periksa saran wilayah sebelum digunakan. Nomor rumah dan RT/RW tetap perlu diisi.');
+   version.current++;
+   setPath(found);
+   const region=regionFromPath(found);
+   callback.current(region);
+   coordinateCallback.current?.({
+    latitude:Number(position.coords.latitude.toFixed(6)),
+    longitude:Number(position.coords.longitude.toFixed(6)),
+    accuracy:Math.round(position.coords.accuracy)
+   });
+   setSuggestion(null);
+   setLocationNote((position.coords.accuracy>1000?'Akurasi GPS rendah. ':'')+
+    (region?'Provinsi, kota, kecamatan, kelurahan dan kode pos berhasil diisi otomatis. Periksa detailnya sebelum menyimpan alamat.':
+    'Sebagian wilayah terdeteksi. Lengkapi kolom yang belum terpilih, lalu konfirmasi alamat.'));
   }catch(e){if(mounted.current&&run===locationRun.current)setLocationNote(typeof (e as GeolocationPositionError)?.code==='number'?(e as GeolocationPositionError).code===1?'Izin lokasi ditolak. Anda tetap bisa memilih wilayah secara manual.':'Lokasi belum tersedia atau waktu pencarian habis. Coba lagi atau pilih manual.':e instanceof Error?e.message:'Lokasi belum tersedia.');}
   finally{if(mounted.current&&run===locationRun.current)setLocating(false);}
  }
