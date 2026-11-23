@@ -3,7 +3,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {formatIDR,type Product} from '@/lib/types';
 import {DeliveryAddressManager} from '@/components/delivery-address-manager';
-import {Icon} from '@/components/store-icon';
+import {ShippingEmblem} from '@/components/shipping-emblem';
 import {CHOSEN_COURIER_KEY,type SavedDeliveryAddress} from '@/lib/delivery-address-book';
 
 type ShippingConfig={provider:string;rateLookupEnabled:boolean;requiresArea:boolean;originLabel?:string};
@@ -88,7 +88,7 @@ export function ShippingQuote({product,quantity}:{product:Product|null;quantity:
  return <div className="vpd-shipping-body">
   <section className="vpd-ship-route" aria-label="Asal dan tujuan pengiriman">
    <div className="vpd-ship-route-point">
-    <span className="vpd-ship-route-icon" aria-hidden="true"><Icon name="store"/></span>
+    <ShippingEmblem kind="store" className="vpd-ship-route-icon"/>
     <span className="vpd-ship-route-detail"><small>Dari</small>
      <strong>{config?.originLabel?.trim()||'Gudang Vapmart'}</strong></span>
    </div>

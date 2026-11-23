@@ -1,4 +1,5 @@
-/** Vapmart delivery sheet V4 UX and checkout action regression.
+/** Vapmart delivery sheet layout and checkout action regression.
+ * The V4 sheet now delegates address editing and selection to the V5 book.
  * Run at repository root: node scripts/shipping-detail-v4-smoke.mjs
  */
 import assert from 'node:assert/strict';
@@ -9,6 +10,9 @@ const shipping=readFileSync('apps/web/src/components/shipping-quote.tsx','utf8')
 const styles=readFileSync('apps/web/src/app/product-shipping-v4.css','utf8');
 const layout=readFileSync('apps/web/src/app/layout.tsx','utf8');
 const addressPicker=readFileSync('apps/web/src/components/indonesia-address-picker.tsx','utf8');
+const addressManager=readFileSync('apps/web/src/components/delivery-address-manager.tsx','utf8');
+const auth=readFileSync('apps/web/src/lib/customer-auth.tsx','utf8');
+const checkout=readFileSync('apps/web/src/app/checkout/page.tsx','utf8');
 const chatCSS=readFileSync('apps/web/src/app/chatvice-bottom-anchor.css','utf8');
 
 assert.match(detail,/import \{ShippingQuote\} from '@\/components\/shipping-quote'/,'separate shipping quote component');
@@ -21,19 +25,28 @@ assert.match(detail,/router\.push\('\/checkout\?buyNow='/,'Buy Now route is not 
 assert.match(detail,/cart\.add\(active,quantity\)/,'add-to-cart is preserved');
 assert.match(detail,/function openChat\(/,'WhatsApp action must remain wired');
 assert.match(shipping,/vpd-ship-route/);
-assert.match(shipping,/Dikirim ke/);
-assert.match(shipping,/Ubah alamat/);
-assert.match(shipping,/setEditing\(value=>!value\)/,'address editor toggles on request');
-assert.match(shipping,/IndonesiaAddressPicker initialValue=\{region\|\|undefined\}/);
-assert.match(shipping,/setEditing\(false\)/,'completed address auto-collapses form');
-assert.match(shipping,/if\(!next\)\{setError\(''\);return;\}/,'incomplete address changes must not erase confirmed region');
-assert.match(shipping,/region&&!editing&&/,'do not show stale rates while editing address');
-assert.match(shipping,/localStorage\.setItem\(key,JSON\.stringify\(next\)\)/,'region persisted per user');
-assert.match(shipping,/fetch\('\/api\/shipping\/rates'/,'live provider quotes');
+assert.match(shipping,/<DeliveryAddressManager onSelected=\{setAddress\}\/>/,'shared address book supplies the confirmed destination');
+assert.match(addressManager,/Dikirim ke/);
+assert.match(addressManager,/Pilih alamat/);
+assert.match(addressManager,/setExpanded\(x=>!x\)/,'saved-address picker toggles on request');
+assert.match(addressManager,/<IndonesiaAddressPicker key=\{editingId\} initialValue=\{draft\.region\|\|undefined\}/);
+assert.match(addressManager,/function selectAddress\(addr:SavedDeliveryAddress\)\{\s*setSelectedId\(addr\.id\);setExpanded\(false\);setEditingId\(null\)/,'choosing a confirmed address collapses the editor');
+assert.match(addressManager,/await auth\.saveAddressBook\(updated\);\s*selectAddress\(next\)/,'only a successful save publishes and collapses the new address');
+assert.match(addressManager,/onChange=\{region=>\{setDraft\(/,'incomplete picker changes update the draft instead of the confirmed shipping destination');
+assert.match(addressManager,/if\(!validAddressRegion\(draft\.region\)\)\{[^}]*return;/,'incomplete drafts cannot be saved');
+assert.match(addressManager,/sessionStorage\.setItem\(CHOSEN_ADDRESS_KEY\+auth\.user\.id,addr\.id\)/,'address choice is scoped to the signed-in user');
+assert.match(auth,/auth\.updateUser\(\{data:\{\[ADDRESS_BOOK_META_KEY\]:normalized\}\}\)/,'validated address book persists to account metadata');
+assert.match(shipping,/if\(!region\|\|!product\|\|!config\?\.rateLookupEnabled\)\{\s*request\.current\+\+;setLoading\(false\);setRates\(\[\]\);setSelected\(''\);return;/,'no destination means no stale rates or selection');
+assert.match(shipping,/setLoading\(true\);setError\(''\);setNotice\(''\);setRates\(\[\]\)/,'a destination change clears previous rates before lookup');
+assert.match(shipping,/ticket!==request\.current\|\|controller\.signal\.aborted/,'superseded responses cannot replace the selected destination rates');
+assert.match(shipping,/clearTimeout\(timer\);controller\.abort\(\);request\.current\+\+/,'changing address aborts the prior estimate request');
+assert.match(shipping,/fetch\('\/api\/shipping\/estimate'/,'product sheet uses real provider estimates without durable quote writes');
+assert.doesNotMatch(shipping,/fetch\('\/api\/shipping\/rates'/,'durable quotes belong to authenticated checkout');
+assert.match(checkout,/fetch\(auth\.accessToken\?'\/api\/shipping\/rates':'\/api\/shipping\/estimate'/,'checkout upgrades to authenticated provider quotes');
 assert.match(shipping,/\.sort\(\(a,b\)=>a\.priceIdr-b\.priceIdr\)/,'sort real rates by cost');
 assert.match(shipping,/rate\.duration\?/,'only show actual provider ETA');
 assert.match(shipping,/formatIDR\(rate\.priceIdr\)/,'show provider price');
-assert.match(shipping,/Ongkir final dihitung saat checkout/);
+assert.match(shipping,/Tarif final dikonfirmasi saat checkout/);
 assert.match(shipping,/name="vpd-shipping-rate"/);
 assert.match(shipping,/selected===id/);
 assert.doesNotMatch(shipping,/BEBAS ONGKIR|Gratis Ongkir|Rp11\.500|Rp28\.000|25 Nov|Tiba besok/,'avoid copied or synthetic benchmark offers');
