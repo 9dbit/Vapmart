@@ -17,19 +17,26 @@ export function ProductDetailGallery({images,title}:GalleryProps){
     thumbs.current?.scrollTo({left:0,behavior:'instant'});
   },[signature]);
 
+  /* Keep the active thumb visible after both thumbnail taps and image swipes. */
+  useEffect(()=>{
+    const strip=thumbs.current;
+    const thumb=strip?.querySelectorAll<HTMLButtonElement>('.vpd-media-thumb')[active];
+    if(!strip||!thumb)return;
+    const left=thumb.offsetLeft;
+    const right=left+thumb.clientWidth;
+    if(left>=strip.scrollLeft&&right<=strip.scrollLeft+strip.clientWidth)return;
+    strip.scrollTo({
+      left:left-(strip.clientWidth-thumb.clientWidth)/2,
+      behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'
+    });
+  },[active,signature]);
+
   const show=(index:number)=>{
     const rail=track.current;
     if(!rail||photos.length<1)return;
     const next=Math.max(0,Math.min(photos.length-1,index));
     setActive(next);
     rail.scrollTo({left:next*rail.clientWidth,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
-    const thumbnail=thumbs.current?.querySelectorAll<HTMLButtonElement>('.vpd-media-thumb')[next];
-    if(thumbnail&&thumbs.current){
-      thumbs.current.scrollTo({
-        left:thumbnail.offsetLeft-(thumbs.current.clientWidth-thumbnail.clientWidth)/2,
-        behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'
-      });
-    }
   };
   if(!photos.length)return <div className="vpd-photo-placeholder" role="img" aria-label={'Foto '+title+' belum tersedia'}>VAPMART</div>;
   return <section className="vpd-media" aria-label={'Galeri foto '+title} aria-roledescription="carousel">
