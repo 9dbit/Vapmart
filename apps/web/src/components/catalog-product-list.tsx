@@ -32,7 +32,11 @@ export function CatalogProductList(){
  }
  function toggleVisibleDrafts(){
   if(busy)return;
-  setReport(null);setError('');
+  setReport(null);
+  const missingDrafts=draftOnPage.filter((p:any)=>!selected[p.id]).length;
+  const available=MAX_BULK_PUBLISH-selectedRows.length;
+  setError(!everyDraftOnPage&&missingDrafts>available
+   ?'Batas 50 produk tercapai. Publikasikan pilihan ini sebelum memilih batch berikutnya.':'');
   setSelected(prev=>{
    const next={...prev};
    if(everyDraftOnPage){for(const p of draftOnPage)delete next[p.id];}
@@ -41,7 +45,7 @@ export function CatalogProductList(){
      if(Object.keys(next).length>=MAX_BULK_PUBLISH)break;
      next[p.id]={id:p.id,name:p.name,sku:p.sku||null,expectedVersion:p.edit_version};
     }
-    if(draftOnPage.some((p:any)=>!next[p.id]))setError('Batas 50 produk tercapai. Publikasikan pilihan ini sebelum memilih batch berikutnya.');
+
    }
    return next;
   });
