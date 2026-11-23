@@ -1,0 +1,48 @@
+name: Vapmart Product Detail V3 QA
+
+on:
+  push:
+    branches:
+      - feat/product-detail-gallery-tokopedia-v3-20261123
+      - release/vapmart-stable
+    paths:
+      - "apps/web/src/components/product-detail-experience.tsx"
+      - "apps/web/src/components/product-detail-gallery.tsx"
+      - "apps/web/src/components/product-review-summary.tsx"
+      - "apps/web/src/app/product-detail-v3.css"
+      - "apps/web/src/app/layout.tsx"
+      - "scripts/product-detail-v3-smoke.mjs"
+      - ".github/workflows/product-detail-v3-qa.yml"
+  pull_request:
+    branches: [release/vapmart-stable]
+    paths:
+      - "apps/web/src/components/product-detail-experience.tsx"
+      - "apps/web/src/components/product-detail-gallery.tsx"
+      - "apps/web/src/components/product-review-summary.tsx"
+      - "apps/web/src/app/product-detail-v3.css"
+      - "apps/web/src/app/layout.tsx"
+      - "scripts/product-detail-v3-smoke.mjs"
+      - ".github/workflows/product-detail-v3-qa.yml"
+
+jobs:
+  detail-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Assert gallery, pricing, variants, shipping and purchase guards
+        run: node scripts/product-detail-v3-smoke.mjs
+      - name: Install frontend dependencies
+        working-directory: apps/web
+        run: npm ci --include=dev --no-audit --no-fund
+      - name: Check frontend TypeScript
+        working-directory: apps/web
+        run: npm run typecheck
+      - name: Build Next.js storefront
+        working-directory: apps/web
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'

@@ -6,7 +6,8 @@ import {flushSync} from 'react-dom';
 import {useCart} from '@/lib/cart';
 import {useCustomerAuth} from '@/lib/customer-auth';
 import {formatIDR,type Product} from '@/lib/types';
-import {ArchiveGallery} from '@/components/archive-gallery';
+import {ProductDetailGallery} from '@/components/product-detail-gallery';
+import {ProductReviewSummary} from '@/components/product-review-summary';
 import {FavoriteButton} from '@/components/favorite-button';
 import {CatalogPublicReviews} from '@/components/catalog-public-reviews';
 import {IndonesiaAddressPicker} from '@/components/indonesia-address-picker';
@@ -172,6 +173,8 @@ function ProductDetailExperienceInner({product,recommended}:{product:Product;rec
  const canBuy=Boolean(active&&active.is_active&&active.available!==false&&active.stock_qty>=quantity&&active.price_idr>0);
  const isDiscounted=Boolean(chosen&&chosen.promo_active&&chosen.regular_price_idr&&chosen.regular_price_idr>chosen.price_idr);
  const imageList=uniquePhotos(product);
+ const galleryImages=[...new Set([chosen?.image_url,...imageList].filter((url):url is string=>typeof url==='string'&&url.trim().length>0))].slice(0,10);
+ const discountPercent=isDiscounted&&chosen?.regular_price_idr?Math.round((1-chosen.price_idr/chosen.regular_price_idr)*100):0;
  useEffect(()=>{setQuantity(1);setNotice('');},[selection]);
  useEffect(()=>{
   if(!sheet)return;
@@ -221,30 +224,53 @@ function ProductDetailExperienceInner({product,recommended}:{product:Product;rec
  }
  const priceText=chosen?chosen.price_idr>0?formatIDR(chosen.price_idr):'Harga belum ditetapkan':
   product.price_idr>0?formatIDR(product.price_idr)+(product.price_max_idr&&product.price_max_idr>product.price_idr?' – '+formatIDR(product.price_max_idr):''):'Pilih varian untuk melihat harga';
- return <main className="vm-detail-page vpd-page" data-product-detail-upgrade="v2">
+ return <main className="vm-detail-page vpd-page" data-product-detail-upgrade="v3">
   <div className="vpd-top">
    <div className="vpd-gallery">
-    {imageList.length?<ArchiveGallery images={imageList} title={product.name}/>:
-      <div className="vpd-photo-placeholder" role="img" aria-label={'Foto '+product.name+' belum tersedia'}>VAPMART</div>}
+    <ProductDetailGallery images={galleryImages} title={product.name}/>
    </div>
    <div className="vpd-hero-content">
     <nav aria-label="Breadcrumb" className="vpd-breadcrumb"><Link href="/">Home</Link><span>/</span><Link href="/catalog">Produk</Link></nav>
-    <div className="vpd-price-row" aria-live="polite"><strong className="vpd-selling-price">{priceText}</strong>
-     {isDiscounted&&<del>{formatIDR(chosen!.regular_price_idr!)}</del>}
+    <div className="vpd-price-row" aria-live="polite">
+     <strong className="vpd-selling-price">{priceText}</strong>
+     {isDiscounted&&<div className="vpd-price-promo">
+      {discountPercent>0&&<span className="vpd-discount-label">Hemat {discountPercent}%</span>}
+      <del>{formatIDR(chosen!.regular_price_idr!)}</del>
+     </div>}
      {chosen&&!chosen.price_idr&&<span className="vpd-muted">Hubungi admin untuk harga</span>}
     </div>
     <div className="vpd-title-row">
      <h1>{product.name}</h1>
      <FavoriteButton id={product.id} name={product.name} className="vm-cp17-detail-favorite vpd-heart"/>
     </div>
+    <ProductReviewSummary slug={product.slug}/>
     {product.brand_name&&<div className="vpd-brand">
       {product.brand_logo_url&&<img src={product.brand_logo_url} alt="" width={32} height={32}/>}
       <span>{product.brand_name}</span>
      </div>}
-    {variable&&<button type="button" className="vpd-info-row" onClick={()=>{setIntent('cart');setSheet('variants');}}
-      aria-haspopup="dialog"><span><strong>Pilih varian</strong><small>{chosen?defs.map(d=>selection[d.name]).join(' · '):defs.map(d=>d.name).join(' · ')}</small></span><Icon name="next"/></button>}
-    <button type="button" className="vpd-info-row" onClick={()=>setSheet('shipping')} aria-haspopup="dialog">
-      <span><strong>Pengiriman</strong><small>Cek ongkir dan layanan kurir sesuai alamat</small></span><Icon name="next"/>
+    {variable&&defs.length>0&&<section className="vpd-inline-variants" aria-label="Pilihan varian produk">
+     {defs.map(d=><fieldset key={d.name} className="vpd-inline-option-group">
+      <legend>{d.name}: <strong>{selection[d.name]||'Pilih '+d.name}</strong></legend>
+      <div className="vpd-inline-options">{d.values.map(value=>{
+       const available=optionsAvailable(d.name,value);
+       return <button type="button" key={value} disabled={!available}
+         aria-pressed={selection[d.name]===value}
+         className={selection[d.name]===value?'is-selected':''}
+         onClick={()=>setSelection(previous=>({...previous,[d.name]:value}))}>{value}</button>;
+      })}</div>
+     </fieldset>)}
+     {!chosen&&<p className="vpd-variant-hint">Pilih varian untuk melihat harga dan ketersediaan.</p>}
+    </section>}
+    {variable&&defs.length===0&&<button type="button" className="vpd-info-row" onClick={()=>{setIntent('cart');setSheet('variants');}}
+     aria-haspopup="dialog"><span><strong>Pilih varian</strong><small>Pilih produk yang tersedia</small></span><Icon name="next"/></button>}
+    <button type="button" className="vpd-info-row vpd-delivery-row" onClick={()=>setSheet('shipping')} aria-haspopup="dialog">
+     <span className="vpd-delivery-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+       <path d="M2 6h12v11H2zM14 10h4l4 4v3h-8zM5 20a2 2 0 1 0 4 0 2 2 0 0 0-4 0ZM16 20a2 2 0 1 0 4 0 2 2 0 0 0-4 0Z"/>
+      </svg>
+     </span>
+     <span className="vpd-info-text"><strong>Pengiriman</strong><small>Cek ongkir &amp; estimasi tiba ke alamatmu</small></span>
+     <Icon name="next"/>
     </button>
     <div className="vpd-inventory">
      {chosen?<span className={chosen.stock_qty>0?'':'vpd-sold-out'}>{chosen.stock_qty>0?'Stok tersedia: '+chosen.stock_qty:'Stok Habis'}</span>:<span>Pilih kombinasi varian untuk melihat stok.</span>}
