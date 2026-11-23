@@ -1,12 +1,14 @@
 'use client';
 import {createContext,useCallback,useContext,useEffect,useMemo,useState,type ReactNode} from 'react';
 import {createClient,type Session,type SupabaseClient,type User} from '@supabase/supabase-js';
+import {ADDRESS_BOOK_META_KEY,validatedBook,type AddressBook} from '@/lib/delivery-address-book';
 
 type CustomerContext={
   user:User|null;accessToken:string|null;loading:boolean;configured:boolean;
   signIn:(email:string,password:string)=>Promise<void>;
   signUp:(email:string,password:string,name:string,whatsapp:string,address:string)=>Promise<{needsConfirmation:boolean}>;
   updateProfile:(profile:{name:string;whatsapp:string;address:string})=>Promise<void>;
+  saveAddressBook:(book:AddressBook)=>Promise<void>;
   sendReset:(email:string)=>Promise<void>;
   changePassword:(newPassword:string)=>Promise<void>;
   signOut:()=>Promise<void>;
@@ -59,6 +61,11 @@ export function CustomerAuthProvider({children}:{children:ReactNode}){
    });
    if(error)throw new Error(error.message);
  },[requireClient]);
+ const saveAddressBook=useCallback(async(book:AddressBook)=>{
+   const normalized=validatedBook(book);
+   const {error}=await requireClient().auth.updateUser({data:{[ADDRESS_BOOK_META_KEY]:normalized}});
+   if(error)throw new Error(error.message);
+ },[requireClient]);
  const sendReset=useCallback(async(email:string)=>{
    const {error}=await requireClient().auth.resetPasswordForEmail(email,{
      redirectTo:typeof window==='undefined'?undefined:window.location.origin+'/login?mode=reset'
@@ -73,8 +80,8 @@ export function CustomerAuthProvider({children}:{children:ReactNode}){
  },[requireClient]);
  const value=useMemo(()=>({
    user:session?.user??null,accessToken:session?.access_token??null,loading,configured:!!client,
-   signIn,signUp,updateProfile,sendReset,changePassword,signOut
- }),[session,loading,client,signIn,signUp,updateProfile,sendReset,changePassword,signOut]);
+   signIn,signUp,updateProfile,saveAddressBook,sendReset,changePassword,signOut
+ }),[session,loading,client,signIn,signUp,updateProfile,saveAddressBook,sendReset,changePassword,signOut]);
  return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 export function useCustomerAuth(){
