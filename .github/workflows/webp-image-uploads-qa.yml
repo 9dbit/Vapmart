@@ -8,6 +8,7 @@ on:
       - "apps/api/src/media.ts"
       - "apps/api/src/catalog-reviews.ts"
       - "apps/api/test/webp-image-uploads.test.ts"
+      - "apps/api/test/hero-banners.test.ts"
       - ".github/workflows/webp-image-uploads-qa.yml"
   pull_request:
     branches: [release/vapmart-stable]
@@ -16,6 +17,7 @@ on:
       - "apps/api/src/media.ts"
       - "apps/api/src/catalog-reviews.ts"
       - "apps/api/test/webp-image-uploads.test.ts"
+      - "apps/api/test/hero-banners.test.ts"
       - ".github/workflows/webp-image-uploads-qa.yml"
 
 jobs:
