@@ -10,21 +10,12 @@ import {ProductDetailGallery} from '@/components/product-detail-gallery';
 import {ProductReviewSummary} from '@/components/product-review-summary';
 import {FavoriteButton} from '@/components/favorite-button';
 import {CatalogPublicReviews} from '@/components/catalog-public-reviews';
-import {IndonesiaAddressPicker} from '@/components/indonesia-address-picker';
+import {ShippingQuote} from '@/components/shipping-quote';
 import {Icon} from '@/components/store-icon';
-import type {AddressSelection} from '@/lib/address-location';
 
 type Sheet='variants'|'shipping'|null;
 type Intent='cart'|'buy';
-type ShippingConfig={provider:string;rateLookupEnabled:boolean;requiresArea:boolean;originLabel?:string};
-type ShippingRate={courierCode:string;courierName:string;serviceCode:string;serviceName:string;priceIdr:number;duration?:string;estimateOnly?:boolean;quoteId?:string};
 const chatUrl='https://chatvice.app/widget/m_d74410c444e2726c';
-const validRegion=(raw:unknown):raw is AddressSelection=>{
- if(!raw||typeof raw!=='object')return false;
- const x=raw as Record<string,unknown>;
- return ['provinceId','cityId','districtId','areaId','postalCode','label'].every(k=>typeof x[k]==='string')
-   &&/^[0-9]{5}$/.test(String(x.postalCode));
-};
 function uniquePhotos(product:Product){
  return [...new Set([product.image_url,...(product.gallery_urls||[])].filter((url):url is string=>typeof url==='string'&&url.length>0))];
 }
@@ -45,94 +36,6 @@ function SectionTabs(){
     onClick={()=>{setActive(id);document.getElementById(id)?.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});}}>
     {label}</button>)}
  </nav>;
-}
-function ShippingQuote({product,quantity}:{product:Product|null;quantity:number}){
- const auth=useCustomerAuth();
- const [config,setConfig]=useState<ShippingConfig|null>(null);
- const [region,setRegion]=useState<AddressSelection|null>(null);
- const [loading,setLoading]=useState(false);
- const [rates,setRates]=useState<ShippingRate[]>([]);
- const [error,setError]=useState('');
- const [selected,setSelected]=useState('');
- const [restore,setRestore]=useState<AddressSelection|null>(null);
- const request=useRef(0);
- useEffect(()=>{
-  let alive=true;
-  fetch('/api/shipping/config',{cache:'no-store'}).then(async r=>{
-   if(!r.ok)throw Error('Pengaturan pengiriman tidak tersedia');
-   return await r.json() as ShippingConfig;
-  }).then(x=>{if(alive)setConfig(x)}).catch(e=>{if(alive)setError(e.message)});
-  return()=>{alive=false};
- },[]);
- useEffect(()=>{
-  if(!auth.user)return;
-  try{
-   const raw=localStorage.getItem('vapmart.shipping.region.'+auth.user.id);
-   if(raw){const parsed:unknown=JSON.parse(raw);if(validRegion(parsed)){setRestore(parsed);setRegion(parsed);}}
-  }catch{}
- },[auth.user?.id]);
- const onRegion=(next:AddressSelection|null)=>{
-  request.current++;setRegion(next);setRates([]);setSelected('');setError('');
-  if(next&&auth.user)try{localStorage.setItem('vapmart.shipping.region.'+auth.user.id,JSON.stringify(next))}catch{}
- };
- useEffect(()=>{
-  if(!region||!product||!config?.rateLookupEnabled||!auth.accessToken)return;
-  if(product.stock_qty<quantity||!product.is_active||!product.weight_grams)return;
-  const ticket=++request.current;
-  const controller=new AbortController();
-  const timer=setTimeout(async()=>{
-   setLoading(true);setRates([]);setError('');
-   try{
-    const response=await fetch('/api/shipping/rates',{
-     method:'POST',cache:'no-store',signal:controller.signal,
-     headers:{authorization:'Bearer '+auth.accessToken,'content-type':'application/json'},
-     body:JSON.stringify({items:[{productId:product.id,quantity}],destinationPostalCode:region.postalCode,
-       ...(config.requiresArea?{destinationAreaId:region.areaId,destinationProvinceId:region.provinceId}:{})})
-    });
-    const data=await response.json();
-    if(!response.ok)throw Error(typeof data.message==='string'?data.message:data.code||'Tarif pengiriman tidak tersedia');
-    if(ticket!==request.current||controller.signal.aborted)return;
-    const choices=(Array.isArray(data.rates)?data.rates:[]) as ShippingRate[];
-    choices.sort((a,b)=>a.priceIdr-b.priceIdr);
-    setRates(choices);
-    if(!choices.length)setError('Belum ada layanan kurir yang tersedia untuk alamat ini.');
-   }catch(e){if(!controller.signal.aborted&&ticket===request.current)setError(e instanceof Error?e.message:'Cek ongkir gagal');}
-   finally{if(ticket===request.current&&!controller.signal.aborted)setLoading(false);}
-  },320);
-  return()=>{clearTimeout(timer);controller.abort();request.current++};
- },[region,product?.id,product?.weight_grams,product?.stock_qty,product?.is_active,quantity,config?.requiresArea,config?.rateLookupEnabled,auth.accessToken]);
- const address=typeof auth.user?.user_metadata?.address_line==='string'?auth.user.user_metadata.address_line.trim():'';
- const chosenRate=rates.find(x=>selected===x.courierCode+':'+x.serviceCode);
- return <div className="vpd-shipping-body">
-  {config?.originLabel&&<p className="vpd-soft">Asal pengiriman: {config.originLabel}</p>}
-  {!auth.user?<div className="vpd-shipping-empty">
-   <p>Masuk untuk menggunakan alamat akun dan melihat tarif kurir yang tersedia.</p>
-   <Link className="vpd-secondary-link" href="/login?next=/akun">Masuk Akun</Link>
-  </div>:<>
-   <p className="vpd-soft">Alamat akun: <strong>{address||'Belum tersimpan'}</strong></p>
-   {!address&&<Link href="/akun" className="vpd-secondary-link">Lengkapi alamat di Akun Saya</Link>}
-   <p className="vpd-soft">Pilih wilayah tujuan yang sesuai dengan alamat Anda. Data wilayah disimpan pada perangkat ini untuk pemeriksaan ongkir berikutnya.</p>
-   <IndonesiaAddressPicker key={restore?.areaId||'new'} onChange={onRegion} initialValue={restore||undefined}/>
-   {region&&<p className="vpd-region-selected">Tujuan: {region.label}</p>}
-   {product&&!product.weight_grams&&<p role="status" className="vpd-notice">Berat produk belum dilengkapi penjual. Ongkir belum dapat dihitung.</p>}
-   {config&&!config.rateLookupEnabled&&<p className="vpd-notice">Cek ongkir real-time belum aktif. Biaya final akan diperiksa di checkout bila layanan tersedia.</p>}
-   {!auth.user.email_confirmed_at&&<p className="vpd-notice">Verifikasi email diperlukan sebelum cek ongkir live.</p>}
-   {loading&&<p role="status" className="vpd-notice">Menghitung ongkir dari provider…</p>}
-   {error&&<p role="alert" className="vpd-notice">{error}</p>}
-   {rates.length>0&&<div role="radiogroup" aria-label="Opsi layanan pengiriman" className="vpd-rates">
-    {rates.map(rate=>{
-     const id=rate.courierCode+':'+rate.serviceCode;
-     return <label key={id} className={selected===id?'is-selected':''}>
-      <input type="radio" name="vpd-shipping-rate" value={id} checked={selected===id} onChange={()=>setSelected(id)}/>
-      <span><strong>{rate.courierName} · {rate.serviceName}</strong>
-       <small>{rate.duration||'Estimasi tiba diberikan kurir saat checkout'}</small></span>
-      <b>{formatIDR(rate.priceIdr)}</b>
-     </label>;
-    })}
-   </div>}
-   {chosenRate&&<p role="status" className="vpd-notice">Estimasi {chosenRate.courierName}: {formatIDR(chosenRate.priceIdr)}. Pilihan kurir dan tarif final dikonfirmasi ulang ketika checkout.</p>}
-  </>}
- </div>;
 }
 function ReviewRecommendations({items}:{items:Product[]}){
  return <section className="vpd-reco" id="rekomendasi" aria-labelledby="vpd-reco-title">
@@ -317,10 +220,11 @@ function ProductDetailExperienceInner({product,recommended}:{product:Product;rec
    <button type="button" className="vpd-add" disabled={Boolean(chosen&&!canBuy)} onClick={()=>purchase('cart')}>+ Keranjang</button>
   </div>
   {sheet&&<div className="vpd-sheet-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setSheet(null)}}>
-   <section role="dialog" aria-modal="true" aria-label={sheet==='variants'?'Pilih varian':'Detail pengiriman'} className="vpd-bottom-sheet">
-    <header className="vpd-sheet-header">
+   <section role="dialog" aria-modal="true" aria-label={sheet==='variants'?'Pilih varian':'Detail pengiriman'} className={sheet==='shipping'?'vpd-bottom-sheet vpd-shipping-sheet':'vpd-bottom-sheet'}>
+    <header className={sheet==='shipping'?'vpd-sheet-header vpd-shipping-header':'vpd-sheet-header'}>
+     {sheet==='shipping'&&<button type="button" className="vpd-shipping-close" onClick={()=>setSheet(null)} aria-label="Tutup panel">×</button>}
      <h2>{sheet==='variants'?'Pilih varian':'Detail pengiriman'}</h2>
-     <button type="button" onClick={()=>setSheet(null)} aria-label="Tutup panel">×</button>
+     {sheet==='variants'&&<button type="button" onClick={()=>setSheet(null)} aria-label="Tutup panel">×</button>}
     </header>
     {sheet==='variants'?<>
       <div className="vpd-sheet-body">
