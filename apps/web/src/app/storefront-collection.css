@@ -6,7 +6,7 @@
   font-display: swap;
 }
 .vm-collection, .vm-product-detail, .vm-reference-footer {
-  --vm-accent: #751bd5;
+  --vm-accent: var(--vm-brand-purple);
   --vm-tool: #ebe7ef;
   --vm-surface: #fff;
   --vm-secondary: #615a65;
@@ -64,7 +64,7 @@ html body .vm-collection {
 }
 .vm-collection-bar .vm-category-tabs button svg {width:15px;height:15px;flex:none;}
 .vm-collection-bar .vm-favorites-control[aria-pressed="true"] svg {fill:currentColor;}
-.vm-collection-bar .vm-tool-circle:focus-visible {outline:2px solid #a760f4;outline-offset:2px;}
+.vm-collection-bar .vm-tool-circle:focus-visible {outline:2px solid var(--vm-brand-purple);outline-offset:2px;}
 html body .vm-collection .vm-results-row .vm-reset-filters {
   min-height:var(--vm-control-size);
   padding:7px 12px;
@@ -97,7 +97,7 @@ html body .vm-collection .vm-results-row .vm-reset-filters {
 }
 .vm-sort-control {position:relative;overflow:hidden;}
 .vm-sort-control select {position:absolute;inset:0;width:100%;height:100%;font-size:16px;opacity:0;cursor:pointer;}
-.vm-sort-control:focus-within,.vm-category-tabs button:focus-visible {outline:2px solid #a760f4;outline-offset:-3px;}
+.vm-sort-control:focus-within,.vm-category-tabs button:focus-visible {outline:2px solid var(--vm-brand-purple);outline-offset:-3px;}
 .vm-search-drawer {margin-top:9px;animation:vm-reveal-search .16s ease-out;}
 .vm-search-drawer[hidden] {display:none;}
 @keyframes vm-reveal-search {from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
@@ -172,8 +172,8 @@ body:has(.vm21-cart-shell) :is(#chatvice-widget-button,#chatvice-eye-toggle,#cha
 }
 html body .vm-care-fallback {
   position:fixed;right:20px;bottom:20px;z-index:99995;display:grid;place-items:center;
-  width:56px;height:56px;border-radius:50%;background:#751bd5;color:#fff;border:0;
-  text-decoration:none;font-size:22px;letter-spacing:2px;box-shadow:0 4px 15px #751bd540;
+  width:56px;height:56px;border-radius:50%;background:var(--vm-brand-purple);color:#fff;border:0;
+  text-decoration:none;font-size:22px;letter-spacing:2px;box-shadow:0 4px 15px var(--vm-brand-purple-ring);
 }
 .vm-care-fallback:focus-visible {outline:3px solid currentColor;outline-offset:3px;}
 @media(max-width:600px){
@@ -348,7 +348,7 @@ html body .vm-collection .vm-product-card .vm-product-tile-price del {
 }
 html body .vm-collection .vm-product-card .vm-product-tile-price strong,
 html body .vm-catalog-page .vm-collection .vm-product-card .vm-product-tile-price strong {
-  color:#8019d7;
+  color:var(--vm-brand-purple);
   font-size:clamp(14px,1.65vw,20px);
   font-weight:800;
   letter-spacing:-.035em;
@@ -362,9 +362,9 @@ html body .vm-collection .vm-product-card .vm-product-cod-label {
   padding:4px 9px;
   min-height:23px;
   border-radius:999px;
-  background:#f1e6ff;
-  color:#7223af;
-  border:1px solid #d9bafa;
+  background:var(--vm-brand-purple-soft);
+  color:var(--vm-brand-purple);
+  border:1px solid var(--vm-brand-purple);
   font-weight:750;
   font-size:10px;
   letter-spacing:.045em;
@@ -392,13 +392,13 @@ html[data-vapmart-color-mode="dark"] body .vm-collection .vm-product-card .vm-pr
   color:#b8a9be;
 }
 html[data-vapmart-color-mode="dark"] body .vm-collection .vm-product-card .vm-product-tile-price strong{
-  color:#c48bff;
+  color:var(--vm-brand-purple);
 }
 html[data-vapmart-color-mode="dark"] body .vm-collection .vm-product-card .vm-cp17-card-favorite{
   color:#4d3466;background:rgba(255,255,255,.94);
 }
 html[data-vapmart-color-mode="dark"] body .vm-collection .vm-product-card .vm-product-cod-label{
-  background:#3e2a54;border-color:#6b4a8d;color:#e3c3ff;
+  background:var(--vm-brand-purple-soft);border-color:var(--vm-brand-purple);color:var(--vm-brand-purple);
 }
 @media(max-width:600px){
   html body .vm-collection .vm-product-card .product-art{border-radius:14px}

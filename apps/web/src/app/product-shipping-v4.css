@@ -19,7 +19,7 @@ html body .vpd-page .vpd-shipping-sheet .vpd-shipping-header h2{
 html body .vpd-page .vpd-shipping-sheet .vpd-shipping-close{
   box-sizing:border-box; display:grid; flex:0 0 35px; place-items:center;
   width:35px; height:35px; min-width:35px; min-height:35px; margin:0; padding:0 0 3px;
-  border:0; border-radius:50%; background:transparent; color:var(--vpd-text);
+  border:0; border-radius:50%; background:transparent; color:var(--vpd-violet);
   font-size:32px; font-weight:300; line-height:1; box-shadow:none;
 }
 html body .vpd-page .vpd-shipping-sheet .vpd-shipping-close:active{background:var(--vpd-violet-soft)}
@@ -200,7 +200,7 @@ html body .vpd-page .vpd-ship-rate-value{
 }
 html body .vpd-page .vpd-ship-rate-value b{
   font-size:13px;font-weight:760;white-space:nowrap;
-  font-variant-numeric:tabular-nums;color:var(--vpd-text);
+  font-variant-numeric:tabular-nums;color:var(--vpd-price);
 }
 html body .vpd-page .vpd-ship-rate-value small{
   display:block;color:var(--vpd-violet);
@@ -226,8 +226,8 @@ html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar{
 html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar :is(.vpd-chat,.vpd-buy,.vpd-add){
   box-sizing:border-box;display:flex;align-items:center;justify-content:center;
   min-height:42px!important;height:42px!important;padding:7px 8px!important;
-  border:1px solid #8310e8!important;border-radius:9px!important;
-  background:#8310e8!important;color:white!important;box-shadow:none!important;
+  border:1px solid var(--vm-brand-purple)!important;border-radius:9px!important;
+  background:var(--vm-brand-purple)!important;color:white!important;box-shadow:none!important;
   font-size:12px!important;line-height:1.15!important;font-weight:760!important;
 }
 html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar .vpd-chat{
@@ -236,14 +236,11 @@ html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar .vpd-cha
 html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar .vpd-chat svg{
   width:21px;height:21px;color:#fff!important;
 }
-html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar :is(.vpd-chat,.vpd-buy,.vpd-add):active{
-  filter:brightness(.88);
+html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar :is(.vpd-chat,.vpd-buy,.vpd-add):active:not(:disabled){
+  background:var(--vm-brand-purple-hover)!important;border-color:var(--vm-brand-purple-hover)!important;
 }
 html body .vpd-page[data-product-detail-upgrade="v3"] .vpd-purchase-bar button:disabled{
   opacity:.48;cursor:not-allowed;
-}
-html[data-vapmart-color-mode=dark] body .vpd-page .vpd-shipping-sheet .vpd-ship-state{
-  background:#30243b;
 }
 html[data-vapmart-color-mode=dark] body .vpd-page .vpd-shipping-sheet .vpd-ship-address-editor{
   background:#201b27;

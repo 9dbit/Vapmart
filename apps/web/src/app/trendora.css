@@ -24,7 +24,7 @@ html{color-scheme:light}
 html body {
   background:var(--vm16-page);
   color:var(--vm16-cocoa);
-  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-family:var(--vm-brand-font-ui);
 }
 html body button,html body input,html body select,html body textarea {
   font-family:inherit;
@@ -60,7 +60,7 @@ html body .vm-header-pill-search input::placeholder{color:#919194}
 html body .vm-header-pill-search button{
   background:var(--vm16-accent);color:#33241b;font-weight:700;
 }
-html body .vm-header-pill-search button:hover{background:#9a30ed}
+html body .vm-header-pill-search button:hover{background:var(--vm-brand-purple-hover)}
 html body .vm-modern-header .vm-reference-cart{
   border:1px solid var(--vm16-hair);background:#f6f5f1;color:#29292c;box-shadow:none;
 }
@@ -72,7 +72,7 @@ html body .vm-modern-header .vm-reference-login{
   color:#2d221b;background:var(--vm16-accent);border:1px solid #f3b36e;
   box-shadow:0 6px 16px #e7a86120;
 }
-html body .vm-modern-header .vm-reference-login:hover{filter:none;background:#9a30ed}
+html body .vm-modern-header .vm-reference-login:hover{filter:none;background:var(--vm-brand-purple-hover)}
 html body .vm-modern-header.vm-subpage .vm-subpage-back {
   background:white;border:1px solid var(--vm16-hair);color:#353537;
 }
@@ -394,7 +394,7 @@ html body .vm-search-suggestions button small{color:#77716b}
 html body .vm-search-suggestions button:hover,html body .vm-search-suggestions [aria-selected=true] button{background:#f0e6fb}
 html body .vm-results-row .results-meta{color:#817a72}
 html body .vm-reset-filters{background:#ffce97;border-color:#efbf8b;color:#392c22}
-html body .vm-reset-filters:hover{background:#9a30ed}
+html body .vm-reset-filters:hover{background:var(--vm-brand-purple-hover)}
 html body .legacy-product-wrapper .empty-collection{background:#fff;border-color:#ece8e1}
 html body .legacy-product-wrapper .empty-collection h3{color:#2d2b2a}
 html body .legacy-product-wrapper .empty-collection p{color:#85807b}
@@ -656,7 +656,7 @@ html body .vm-modern-header .vm-reference-login,
 html body .vm-header-pill-search button,
 html body .legacy-product-wrapper .add-circle,
 html body .vm-trendora-member-link,
-html body .vm-cart-primary{background:#8416ea;color:white;border-color:#8416ea}
+html body .vm-cart-primary{background:var(--vm-brand-purple);color:white;border-color:var(--vm-brand-purple)}
 html body .vm-trendora-member{background:#e9d6ff}
 html body .vm-trendora-member h2{color:#211c29}
 html body .vm-trendora-member p{color:#66547a}

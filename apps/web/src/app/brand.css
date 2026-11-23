@@ -1,4 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+/* Shared logo-purple tokens. The brand hue stays identical in both themes. */
+:root {
+ --vm-brand-purple:#8310e8;
+ --vm-brand-purple-hover:#6d08c2;
+ --vm-brand-purple-soft:#f1e3ff;
+ --vm-brand-purple-ring:#8310e866;
+ --vm-brand-font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+html[data-vapmart-color-mode="dark"] {
+ --vm-brand-purple-soft:#30213e;
+}
 /* Values reconstructed from authenticated Vapmart public_html.zip:
    wp-content/uploads/elementor/css/post-5148.css (Elementor Kit)
    post-28475.css (homepage), post-34787.css (header), post-35034.css (footer).

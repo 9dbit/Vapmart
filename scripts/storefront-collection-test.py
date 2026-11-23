@@ -181,7 +181,7 @@ def verify(page,base,touch=False):
             assert abs(price_style['size']-expected_price_size)<.1,(width,price_style)
             assert price_style['weight']>=700,(width,price_style)
             assert price_style['size']>title_style['size'],(width,title_style,price_style)
-            assert price_style['color']==('rgb(197, 139, 255)' if theme=='dark' else 'rgb(123, 25, 214)'),(width,theme,price_style)
+            assert price_style['color']=='rgb(131, 16, 232)',(width,theme,price_style)
             assert title_style['color']==('rgb(241, 236, 247)' if theme=='dark' else 'rgb(48, 43, 54)'),(width,theme,title_style)
             assert float(currency.evaluate("(e)=>parseFloat(getComputedStyle(e).fontSize)")) < price_style['size']
             assert float(previous.evaluate("(e)=>parseFloat(getComputedStyle(e).fontSize)")) < title_style['size']
@@ -201,7 +201,7 @@ def verify(page,base,touch=False):
     page.set_viewport_size({'width':390,'height':844})
     tabs.get_by_role('button',name='Dekorasi').click()
     expect(page.locator('.product-card')).to_have_count(1)
-    assert tabs.get_by_role('button',name='Dekorasi').evaluate("(b)=>getComputedStyle(b).backgroundColor")=='rgb(117, 27, 213)'
+    assert tabs.get_by_role('button',name='Dekorasi').evaluate("(b)=>getComputedStyle(b).backgroundColor")=='rgb(131, 16, 232)'
     # Favorite filter is a circular heart directly to the left of Sort/Filter.
     page.get_by_role('button',name='Simpan Lampu meja ke favorit').click()
     favorite.click()

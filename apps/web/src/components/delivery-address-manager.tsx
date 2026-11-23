@@ -140,7 +140,8 @@ export function DeliveryAddressManager({onSelected}:{onSelected:(address:SavedDe
      <span>Belum ada alamat tersimpan di akun ini.</span>}
    </div>
    {auth.user&&<button type="button" className="vpd-address-toggle" disabled={busy} onClick={()=>{setExpanded(x=>!x);setEditingId(null);setError('');setNotice('');}} aria-expanded={expanded}>
-    {expanded?'Tutup':'Pilih alamat'} <span aria-hidden="true">⌄</span>
+    <span className="vpd-address-toggle-label">{expanded?'Tutup':'Pilih alamat'}</span>
+    <svg className="vpd-address-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="m4 6 4 4 4-4"/></svg>
    </button>}
   </div>
   {!auth.user?<div className="vpd-ship-state"><p>Masuk untuk menyimpan dan memilih alamat pengiriman.</p><Link className="vpd-ship-action" href="/login?next=/akun">Masuk Akun</Link></div>:
