@@ -68,7 +68,7 @@ export function DeliveryAddressManager({onSelected}:{onSelected:(address:SavedDe
   if(chosen){
    callback.current(chosen);
    if(!selectedId)setSelectedId(chosen.id);
-  }else if(!legacyChoice)callback.current(null);
+  }else callback.current(legacyChoice);
  },[book,legacyChoice,selectedId,auth.user?.id]);
 
  function selectAddress(addr:SavedDeliveryAddress){
