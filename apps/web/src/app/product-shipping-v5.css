@@ -267,8 +267,11 @@ html body .vco26-root .vco-checkout-manual-region .vm-address-grid>label{
  display:flex;flex-direction:column;gap:5px;margin:0;font-size:12px
 }
 html body .vco26-root .vco-checkout-manual-region .vm-address-grid select{
- width:100%;min-height:43px;padding:9px;border:1px solid #e1dbe8;border-radius:8px;
- color:#2e2535;background:#fff
+ width:100%;min-height:43px;padding:9px 42px 9px 9px;border:1px solid #e1dbe8;border-radius:8px;
+ color:#2e2535;background-color:#fff
+}
+html[data-vapmart-color-mode="dark"] body .vco26-root .vco-checkout-manual-region .vm-address-grid select{
+ color:#faf5ff;background-color:#251f2b;border-color:#53465c
 }
 /* Shipping service category rows and provider-backed badges, no fake discounts. */
 html body .vpd-page .vpd-shipping-group{
