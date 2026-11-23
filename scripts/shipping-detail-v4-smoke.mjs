@@ -26,6 +26,8 @@ assert.match(shipping,/Ubah alamat/);
 assert.match(shipping,/setEditing\(value=>!value\)/,'address editor toggles on request');
 assert.match(shipping,/IndonesiaAddressPicker initialValue=\{region\|\|undefined\}/);
 assert.match(shipping,/setEditing\(false\)/,'completed address auto-collapses form');
+assert.match(shipping,/if\(!next\)\{setError\(''\);return;\}/,'incomplete address changes must not erase confirmed region');
+assert.match(shipping,/region&&!editing&&/,'do not show stale rates while editing address');
 assert.match(shipping,/localStorage\.setItem\(key,JSON\.stringify\(next\)\)/,'region persisted per user');
 assert.match(shipping,/fetch\('\/api\/shipping\/rates'/,'live provider quotes');
 assert.match(shipping,/\.sort\(\(a,b\)=>a\.priceIdr-b\.priceIdr\)/,'sort real rates by cost');
