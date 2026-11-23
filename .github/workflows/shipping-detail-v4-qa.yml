@@ -1,0 +1,46 @@
+name: Vapmart Shipping Detail V4 QA
+
+on:
+  push:
+    branches:
+      - feat/shipping-sheet-tokopedia-mobile-20261123
+      - release/vapmart-stable
+    paths:
+      - "apps/web/src/components/shipping-quote.tsx"
+      - "apps/web/src/components/product-detail-experience.tsx"
+      - "apps/web/src/app/product-shipping-v4.css"
+      - "apps/web/src/app/layout.tsx"
+      - "scripts/shipping-detail-v4-smoke.mjs"
+      - ".github/workflows/shipping-detail-v4-qa.yml"
+  pull_request:
+    branches: [release/vapmart-stable]
+    paths:
+      - "apps/web/src/components/shipping-quote.tsx"
+      - "apps/web/src/components/product-detail-experience.tsx"
+      - "apps/web/src/app/product-shipping-v4.css"
+      - "apps/web/src/app/layout.tsx"
+      - "scripts/shipping-detail-v4-smoke.mjs"
+      - ".github/workflows/shipping-detail-v4-qa.yml"
+
+jobs:
+  shipping-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate shipping layout and purchase regression
+        run: node scripts/shipping-detail-v4-smoke.mjs
+      - name: Install web dependencies
+        working-directory: apps/web
+        run: npm ci --include=dev --no-audit --no-fund
+      - name: Typecheck Next.js
+        working-directory: apps/web
+        run: npm run typecheck
+      - name: Production build
+        working-directory: apps/web
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: npm run build
