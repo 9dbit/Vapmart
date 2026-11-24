@@ -16,7 +16,7 @@ export function CatalogAdminShell({children,section='products'}:{children:ReactN
   if(!auth.accessToken){router.replace('/admin');return;}
   fetch('/api/admin/status',{headers:{authorization:'Bearer '+auth.accessToken},cache:'no-store',signal:ac.signal}).then(async r=>{if(r.status===401||r.status===403){router.replace('/admin');return;}if(!r.ok)throw Error('Tidak dapat memverifikasi sesi administrator');setVerified(auth.accessToken);}).catch(e=>{if(!ac.signal.aborted)setError(e.message);});return()=>ac.abort();
  },[auth.loading,auth.accessToken,router,retry]);
- async function request<T=any>(target:string,body?:unknown,method:'POST'|'PATCH'='POST'):Promise<T>{
+ async function request<T=any>(target:string,body?:unknown,method:'POST'|'PATCH'|'DELETE'='POST'):Promise<T>{
   if(!auth.accessToken)throw Error('Sesi berakhir');const r=await fetch('/api/admin/catalog/'+target,{method:body===undefined?'GET':method,headers:{authorization:'Bearer '+auth.accessToken,'content-type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)}),cache:'no-store'});
   const d=await r.json().catch(()=>({message:'Respons server tidak valid'}));if(!r.ok){if(r.status===401)throw Error('Sesi berakhir. Masuk ulang sebelum melanjutkan.');throw Error(Array.isArray(d.message)?d.message.join(', '):d.message||'Permintaan gagal ('+r.status+')');}return d;
  }
