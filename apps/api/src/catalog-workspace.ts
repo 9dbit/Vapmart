@@ -313,6 +313,29 @@ export class CatalogWorkspaceService{
    const used=await client.query('SELECT 1 FROM product.product_categories WHERE category_id=$1 UNION ALL SELECT 1 FROM product.categories WHERE parent_id=$1 LIMIT 1',[id]);if(used.rows.length)throw new ConflictException('Kategori masih dipakai produk atau mempunyai anak. Pindahkan terlebih dahulu.');
    await client.query('UPDATE product.categories SET is_active=false,edit_version=edit_version+1,updated_at=now() WHERE id=$1',[id]);await catalogAudit(client,who,'category',id,'archive',old,{...old,is_active:false});return {archived:true};});
  }
+ /** Delete only unused categories; never cascade into products or child categories. */
+ async categoryDelete(actor:Principal,id:string,raw:unknown){
+  const who=requireActor(actor);requireUuid(id,'kategori');
+  const x=V.record(raw,['expectedVersion','confirm']);
+  if(x.confirm!==true)throw new BadRequestException('Konfirmasi hapus kategori diperlukan.');
+  try{return await this.db.transaction(async client=>{
+   await inventoryLock(client);
+   const before=(await client.query('SELECT * FROM product.categories WHERE id=$1 FOR UPDATE',[id])).rows[0];
+   if(!before)throw new NotFoundException('Kategori tidak ditemukan.');
+   assertVersion(before.edit_version,V.version(x.expectedVersion));
+   const refs=await client.query(`SELECT 1 FROM product.product_categories WHERE category_id=$1
+    UNION ALL SELECT 1 FROM product.categories WHERE parent_id=$1
+    UNION ALL SELECT 1 FROM product.products WHERE category=$2 LIMIT 1`,[id,before.slug]);
+   if(refs.rows.length)throw new ConflictException('Kategori masih digunakan produk atau memiliki subkategori. Pindahkan produk/subkategori terlebih dahulu.');
+   await client.query('DELETE FROM product.categories WHERE id=$1',[id]);
+   await catalogAudit(client,who,'category',id,'delete',before,null);
+   return {deleted:true,id};
+  });}catch(e){
+   if((e as {code?:string}).code==='23503')
+    throw new ConflictException('Kategori masih direferensikan oleh data lain dan tidak dapat dihapus.');
+   throw e;
+  }
+ }
  async selection(rawIds:unknown){
   if(typeof rawIds!=='string')throw new BadRequestException('ID produk diperlukan');const ids=[...new Set(rawIds.split(',').filter(Boolean))];if(ids.length>50)throw new BadRequestException('Maksimal 50 SKU');ids.forEach(id=>requireUuid(id,'SKU'));
   const r=await this.db.query(`SELECT p.*,parent.slug parent_slug FROM product.products p LEFT JOIN product.products parent ON parent.id=p.parent_product_id
