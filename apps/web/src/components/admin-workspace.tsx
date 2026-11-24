@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {AdminBrandLogo} from '@/components/admin-brand-logo';
 import '../app/admin-v27.css';
+import '../app/admin-visual-system.css';
 
 export type AdminSection='overview'|'products'|'warehouses'|'brands'|'orders'|'vouchers'|'fulfillment'|'courier'|'shipping'|'media'|'settings';
 const sections:{key:AdminSection;name:string;symbol:string;hint?:string}[]=[
