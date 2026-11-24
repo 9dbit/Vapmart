@@ -27,13 +27,13 @@ jobs:
         env:
           POSTGRES_USER: vapmart_test
           POSTGRES_PASSWORD: disposable_admin_rev_only
-          POSTGRES_DB: vapmart_admin_revision
+          POSTGRES_DB: vapmart_cp39_admin_revision
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U vapmart_test -d vapmart_admin_revision"
+          --health-cmd "pg_isready -U vapmart_test -d vapmart_cp39_admin_revision"
           --health-interval 5s --health-timeout 5s --health-retries 12
     env:
-      DATABASE_URL: postgres://vapmart_test:disposable_admin_rev_only@127.0.0.1:5432/vapmart_admin_revision
+      DATABASE_URL: postgres://vapmart_test:disposable_admin_rev_only@127.0.0.1:5432/vapmart_cp39_admin_revision
       CP39_LOCAL_TEST: "1"
       CHECKOUT_ENABLED: "false"
       DIGITAL_COMMERCE_ENABLED: "false"
