@@ -76,8 +76,10 @@ export class CatalogImportService{
     if(paths.some(p=>p.length>5)||paths.length>15)throw new BadRequestException('Kategori maksimal lima tingkat dan 15 pilihan');paths.forEach(p=>V.safeCatalogTerms(p));
     const brandName=get(row.raw,'brand'),brand=brandName?brands.find(b=>b.name.toLowerCase()===brandName.toLowerCase()):null;
     if(brandName&&!brand)warnings.push({row:row.row,field:'brand',message:'Brand sumber belum cocok. Produk tidak otomatis dikaitkan ke mitra; brand lama dipertahankan atau kosong.'});
-    const price=get(row.raw,'regularPrice')?csvInteger(get(row.raw,'regularPrice'),'Harga normal'):before?Number(before.price_idr):row.type==='variable'?0:null;
-    if(price===null)throw new BadRequestException('Harga normal produk simple belum diisi');
+    const rawPrice=get(row.raw,'regularPrice');
+    // A missing new price is a valid private Draft, never a published sales price.
+    const price=rawPrice?csvInteger(rawPrice,'Harga normal'):before?Number(before.price_idr):0;
+    if(!rawPrice&&!before)warnings.push({row:row.row,field:'regularPrice',message:'Harga kosong: Draft disimpan Rp0. Isi harga jual lebih dari Rp0 sebelum publish.'});
     const product:any={name:V.text(row.name,'Nama',2,255),slug:before?.slug||get(row.raw,'slug')||generatedImportSlug(row.name,sourceKey,row.sourceId),
      sku:V.sku(row.sku||before?.sku),description:plainDescription(get(row.raw,'description')||get(row.raw,'shortDescription')||before?.description||''),
      categoryIds:before?.category_ids??[],brand_id:brand?.id||before?.brand_id||null,fulfillment_owner_brand_id:before?.fulfillment_owner_brand_id??null,product_type:row.type,attributes:row.type==='variable'?definitions:[],
@@ -112,10 +114,10 @@ export class CatalogImportService{
       const oldId=mappedChild||oldBySku?.id,old=oldId?oldVariants.find(v=>v.id===oldId):null;if(oldId&&!old)throw new ConflictException('Varian sudah terkait dengan produk lain');
       const pics=imagesFor(child);
       const vp:any={id:old?.id,expectedVersion:old?.edit_version,sku:V.sku(child.sku||old?.sku),option_values:normalized,enabled:old?.is_active??true,
-       price_idr:get(child.raw,'regularPrice')?csvInteger(get(child.raw,'regularPrice'),'Harga varian'):old?Number(old.price_idr):null,
+       price_idr:get(child.raw,'regularPrice')?csvInteger(get(child.raw,'regularPrice'),'Harga varian'):old?Number(old.price_idr):0,
        sale_price_idr:mapping.salePrice?csvInteger(get(child.raw,'salePrice'),'Harga promo varian',true):old?.sale_price_idr==null?null:Number(old.sale_price_idr),sale_starts_at:mapping.saleStart?dt(get(child.raw,'saleStart')):old?.sale_starts_at??null,sale_ends_at:mapping.saleEnd?dt(get(child.raw,'saleEnd')):old?.sale_ends_at??null,
        image_url:pics?.[0]||old?.image_url||product.image_url,gallery_urls:pics?pics.slice(1):old?.gallery_urls??product.gallery_urls,warehouseStocks:stocksFor(child,old?.id??null)};
-      if(vp.price_idr===null)throw new BadRequestException('Harga varian belum diisi');V.priceFields(vp);V.safeCatalogTerms(vp.sku,normalized);
+      if(!get(child.raw,'regularPrice')&&!old)warnings.push({row:child.row,field:'regularPrice',message:'Harga varian kosong: Draft Rp0. Lengkapi sebelum publish.'});V.priceFields(vp);V.safeCatalogTerms(vp.sku,normalized);
       for(const [field,key] of [['weight_grams','weight'],['length_cm','length'],['width_cm','width'],['height_cm','height']] as const)vp[field]=get(child.raw,key)?csvMeasurement(get(child.raw,key),field):old?.[field]??product[field];
       const index=old?variants.findIndex(v=>v.id===old.id):-1;if(index>=0)variants[index]=vp;else variants.push(vp);
       refs.push({sourceId:child.sourceId,variantOptions:normalized,expectedId:old?.id??null});display.push({row:child.row,type:'variation',name:child.name,sku:vp.sku,action:old?'update':'create',stockSpecified:vp.warehouseStocks.length>0});
