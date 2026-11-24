@@ -1,0 +1,194 @@
+/* Vapmart Control Panel, unified with the storefront's brand typography.
+   Scoped to AdminWorkspace so no checkout or storefront UI is affected. */
+html body .vma27-workspace{
+ --vma-brand:var(--vm-brand-purple,#8310e8);
+ --vma-brand-hover:var(--vm-brand-purple-hover,#6d08c2);
+ --vma-brand-tint:#f4eafe;
+ --vma-ink:#30293a;
+ --vma-subtle:#746d7e;
+ --vma-line:#e8e0ee;
+ --vma-card:#ffffff;
+ --vma-input:#ffffff;
+ --vma-field-text:#30293a;
+ font-family:var(--vm-brand-font-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif);
+ letter-spacing:-.012em;
+}
+html body .vma27-workspace :is(button,input,select,textarea,table,.vc-root,.vma26-root),
+html body .vma27-access-page :is(button,input,select,textarea){
+ font-family:var(--vm-brand-font-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif)!important;
+}
+html body .vma27-workspace .vma27-main{
+ font-size:14px;line-height:1.5;color:var(--vma-ink);
+}
+html body .vma27-workspace .vma27-sidebar{padding:18px 12px;background:var(--vma-card)}
+html body .vma27-workspace .vma27-side-links{gap:3px}
+html body .vma27-workspace .vma27-side-link{
+ min-height:43px;border-radius:12px;padding:9px 12px;
+ font-size:13px;font-weight:670;letter-spacing:-.01em;
+}
+html body .vma27-workspace .vma27-side-link.is-active{
+ color:var(--vma-brand);background:var(--vma-brand-tint);font-weight:760;
+}
+html body .vma27-workspace .vma27-side-marker{background:var(--vma-brand)}
+html body .vma27-workspace .vma27-topbar{
+ min-height:72px;padding-top:13px;padding-bottom:13px;
+}
+html body .vma27-workspace .vma27-topbar-title strong{font-size:17px;letter-spacing:-.025em}
+html body .vma27-workspace .vma27-topbar-title small{font-size:10px;letter-spacing:.08em}
+html body .vma27-workspace .vma27-page-heading h1,
+html body .vma27-workspace .vc-heading h1{
+ font-size:clamp(25px,2.3vw,32px);
+ line-height:1.16;letter-spacing:-.045em;font-weight:760;
+ margin:4px 0 8px;
+}
+html body .vma27-workspace .vma27-page-heading p:not(.vma26-eyebrow),
+html body .vma27-workspace .vc-heading p{font-size:13px;line-height:1.5}
+html body .vma27-workspace :is(.vc-heading small,.vma26-eyebrow,.vma27-sidebar-section){
+ font-size:10px;letter-spacing:.11em;font-weight:760;
+}
+html body .vma27-workspace .vc-root{
+ --vc-purple:var(--vma-brand);
+ --vc-ink:var(--vma-ink);
+ --vc-muted:var(--vma-subtle);
+ font-size:13px;line-height:1.5;color:var(--vc-ink);
+}
+html body .vma27-workspace :is(.vc-panel,.vma26-panel){
+ background:var(--vma-card);border:1px solid var(--vma-line);
+ border-radius:17px;box-shadow:none;
+ padding:clamp(16px,1.5vw,23px);
+}
+html body .vma27-workspace :is(.vc-panel,.vma26-panel) h2{
+ font-size:clamp(17px,1.5vw,20px);font-weight:760;
+ letter-spacing:-.025em;line-height:1.3;
+}
+html body .vma27-workspace :is(.vc-panel,.vma26-panel) h3{
+ font-size:15px;font-weight:750;letter-spacing:-.02em;
+}
+html body .vma27-workspace .vc-toolbar{gap:12px}
+html body .vma27-workspace .vc-toolbar p{margin:5px 0 0}
+html body .vma27-workspace .vc-root :is(label,th){font-size:12px;line-height:1.4;font-weight:700}
+html body .vma27-workspace .vc-root :is(p,td,summary){font-size:13px;line-height:1.52}
+html body .vma27-workspace .vc-root :is(input:not([type=checkbox]):not([type=file]),select,textarea),
+html body .vma27-workspace .vma26-root :is(input:not([type=checkbox]):not([type=file]),select,textarea){
+ width:100%;max-width:100%;min-width:0;min-height:42px;
+ border-radius:10px;padding:9px 12px;
+ font-size:14px;line-height:1.5;font-weight:500;
+ background:var(--vma-input);border:1px solid var(--vma-line);
+ color:var(--vma-field-text);box-shadow:none;
+}
+html body .vma27-workspace .vc-root textarea{min-height:92px;resize:vertical}
+html body .vma27-workspace :is(input,select,textarea):focus{
+ border-color:var(--vma-brand);outline:none;
+ box-shadow:0 0 0 3px #8310e81c;
+}
+html body .vma27-workspace .vc-root :is(button,.vc-button,.vc-nav a),
+html body .vma27-workspace .vma26-root :is(.vma26-btn-dark,.vma26-btn-light){
+ min-height:39px;padding:8px 13px;border-radius:10px;
+ font-size:12px;font-weight:720;line-height:1.35;letter-spacing:0;
+}
+html body .vma27-workspace .vc-root :is(.vc-primary,button.vc-primary,.vc-nav a[aria-current=page]),
+html body .vma27-workspace .vma26-root .vma26-btn-dark,
+html body .vma27-workspace .vma27-primary-button{
+ background:var(--vma-brand);border:1px solid var(--vma-brand);
+ color:#fff;font-weight:760;
+}
+html body .vma27-workspace .vc-root :is(.vc-primary,button.vc-primary):hover:not(:disabled),
+html body .vma27-workspace .vma26-root .vma26-btn-dark:hover{
+ background:var(--vma-brand-hover);border-color:var(--vma-brand-hover);
+}
+html body .vma27-workspace .vc-root .vc-danger{color:#a32e49;background:#fff0f4;border-color:#f4d5df}
+html body .vma27-workspace .vc-root .vc-danger:disabled{opacity:.48}
+html body .vma27-workspace .vc-root :is(.vc-nav a,.vc-button){
+ color:var(--vma-subtle);background:var(--vma-brand-tint);
+}
+html body .vma27-workspace .vc-root .vc-nav a[aria-current=page]{color:#fff}
+html body .vma27-workspace .vc-nav{gap:7px;margin:15px 0 18px}
+html body .vma27-workspace .vc-grid{gap:13px}
+html body .vma27-workspace .vc-table-wrap{
+ border:1px solid var(--vma-line);border-radius:12px;overflow-x:auto;
+}
+html body .vma27-workspace .vc-table{font-size:12px;font-variant-numeric:tabular-nums}
+html body .vma27-workspace .vc-table th{
+ padding:11px 12px;background:var(--vma-brand-tint);
+ color:var(--vma-subtle);font-size:11px;
+}
+html body .vma27-workspace .vc-table td{
+ padding:11px 12px;border-bottom:1px solid var(--vma-line);
+ vertical-align:middle;font-size:12px;line-height:1.45;
+}
+html body .vma27-workspace .vc-table tr:last-child td{border-bottom:0}
+html body .vma27-workspace .vc-table td small{font-size:11px;color:var(--vma-subtle)}
+html body .vma27-workspace .vc-stats div,
+html body .vma27-workspace .vc-variant,
+html body .vma27-workspace .vc-review-item{background:var(--vma-brand-tint);border-radius:12px}
+html body .vma27-workspace .vc-stats strong{
+ color:var(--vma-brand);font-size:clamp(20px,2vw,26px);font-weight:760;
+ font-variant-numeric:tabular-nums;
+}
+html body .vma27-workspace .vma26-kpis strong{font-weight:770;letter-spacing:-.04em}
+html body .vma27-workspace .vc-editor-bar{
+ background:#2c2238;color:#fff;border-radius:13px;padding:11px 13px;
+}
+html body .vma27-workspace .vc-variant-status.is-active{background:#e5d1ff;color:var(--vma-brand)}
+html body .vma27-workspace .vc-variant-card.is-active{box-shadow:inset 3px 0 0 var(--vma-brand)}
+html body .vma27-workspace :is(.vc-alert,.vc-import-help){
+ display:block;margin:12px 0;padding:11px 13px;
+ color:#9a2b47;background:#fff0f5;border:1px solid #f0ccda;
+ border-radius:10px;font-size:12px;line-height:1.55;
+}
+html body .vma27-workspace .vc-publish-checklist{
+ border-color:#d9b5f9;background:var(--vma-brand-tint);
+}
+html body .vma27-workspace .vc-publish-checklist h3{margin:0 0 6px}
+html body .vma27-workspace .vc-publish-checklist ul{margin:10px 0 0;padding-left:20px}
+html body .vma27-workspace .vc-publish-checklist li{margin:6px 0}
+html body .vma27-workspace .vc-publish-checklist a{
+ color:var(--vma-brand);text-decoration:underline;text-underline-offset:3px;
+}
+html body .vma27-workspace .vc-root section[id^="catalog-"]{scroll-margin-top:95px}
+html body .vma27-workspace .vc-category-count{
+ font-size:11px;font-weight:750;color:var(--vma-brand);
+ background:var(--vma-brand-tint);padding:6px 11px;border-radius:999px;
+ white-space:nowrap;
+}
+html body .vma27-workspace .vc-category-actions{gap:6px;flex-wrap:wrap}
+html body .vma27-workspace .vc-category-actions button{min-height:32px;padding:6px 9px}
+html body .vma27-workspace .vc-status-chip{
+ display:inline-flex;border-radius:999px;padding:4px 8px;
+ font-size:10px;font-weight:740;color:var(--vma-subtle);
+ border:1px solid var(--vma-line);
+}
+html body .vma27-workspace .vc-status-chip.is-active{
+ background:var(--vma-brand-tint);color:var(--vma-brand);border-color:#d9b5f9;
+}
+html body .vma27-workspace :is(button,a,input,select,textarea):focus-visible{
+ outline:2px solid var(--vma-brand);outline-offset:2px;
+}
+html[data-vapmart-color-mode=dark] body .vma27-workspace{
+ --vma-brand-tint:#30243e;
+ --vma-ink:#f0eaf6;--vma-subtle:#baaec6;
+ --vma-line:#46394f;
+ --vma-card:#1d1b23;--vma-input:#292532;--vma-field-text:#f3eef9;
+}
+html[data-vapmart-color-mode=dark] body .vma27-workspace .vc-root .vc-table th{background:#30243e;color:#c9b9d6}
+html[data-vapmart-color-mode=dark] body .vma27-workspace .vc-root .vc-danger{
+ background:#4b2734;border-color:#6d3a4a;color:#ffbecf;
+}
+html[data-vapmart-color-mode=dark] body .vma27-workspace .vc-status-chip.is-active,
+html[data-vapmart-color-mode=dark] body .vma27-workspace .vc-variant-status.is-active{
+ background:#4b2a66;color:#ead0ff;border-color:#6d3d91;
+}
+html[data-vapmart-color-mode=dark] body .vma27-workspace .vc-publish-checklist{
+ border-color:#715092;background:#30243e;
+}
+html[data-vapmart-color-mode=dark] body .vma27-workspace .vc-publish-checklist a{color:#d7aeff}
+html[data-vapmart-color-mode=dark] body .vma27-workspace :is(.vc-alert,.vc-import-help){
+ background:#482332;color:#ffc7d6;border-color:#714356;
+}
+@media(max-width:760px){
+ html body .vma27-workspace .vma27-main{padding:17px 14px 85px;font-size:13px}
+ html body .vma27-workspace .vc-root :is(input:not([type=checkbox]),select,textarea){font-size:16px;min-height:43px}
+ html body .vma27-workspace .vc-table{min-width:620px}
+ html body .vma27-workspace .vc-toolbar{flex-wrap:wrap;align-items:flex-start}
+ html body .vma27-workspace .vc-editor-bar{bottom:5px}
+}

@@ -1,5 +1,5 @@
 import {StoreProfileService} from './store-profile';
-import {Body,Controller,Get,Header,Param,Patch,Post,Query,Req,StreamableFile,UseGuards} from '@nestjs/common';
+import {Body,Controller,Delete,Get,Header,Param,Patch,Post,Query,Req,StreamableFile,UseGuards} from '@nestjs/common';
 import {AdminGuard,CustomerGuard,type Principal} from './auth';
 import {OrderManagementService} from './order-management';
 import {CatalogWorkspaceService} from './catalog-workspace';
@@ -30,6 +30,7 @@ export class CatalogAdminController{
  @Header('Cache-Control','private, no-store') @Post('categories') newCategory(@Req() r:AuthRequest,@Body() b:unknown){return this.catalog.categorySave(r.user,null,b);}
  @Header('Cache-Control','private, no-store') @Patch('categories/:id') category(@Req() r:AuthRequest,@Param('id') id:string,@Body() b:unknown){return this.catalog.categorySave(r.user,id,b);}
  @Header('Cache-Control','private, no-store') @Post('categories/:id/archive') archiveCategory(@Req() r:AuthRequest,@Param('id') id:string,@Body() b:unknown){return this.catalog.categoryArchive(r.user,id,b);}
+ @Header('Cache-Control','private, no-store') @Delete('categories/:id') deleteCategory(@Req() r:AuthRequest,@Param('id') id:string,@Body() b:unknown){return this.catalog.categoryDelete(r.user,id,b);}
  @Header('Cache-Control','private, no-store') @Get('reviews') reviewList(@Query() q:Record<string,unknown>){return this.reviews.list(q);}
  @Header('Cache-Control','private, no-store') @Header('X-Content-Type-Options','nosniff')
  @Get('review-photos/:id') async adminPhoto(@Param('id') id:string){
