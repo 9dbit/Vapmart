@@ -3,7 +3,7 @@ const rules:{match:RegExp;anchor:string;text:string}[]=[
  {match:/\bsku\b/i,anchor:'#catalog-info',text:'Isi SKU unik pada produk atau setiap varian aktif.'},
  {match:/\b(description|deskripsi)\b/i,anchor:'#catalog-info',text:'Lengkapi deskripsi produk.'},
  {match:/\b(name|nama)\b/i,anchor:'#catalog-info',text:'Periksa nama produk.'},
- {match:/\b(image_url|gallery|3 foto|foto produk)\b/i,anchor:'#catalog-images',text:'Unggah minimal tiga gambar produk yang berbeda.'},
+ {match:/\b(image_url|gallery_urls|gallery|3 foto|foto produk)\b/i,anchor:'#catalog-images',text:'Unggah minimal tiga gambar produk yang berbeda.'},
  {match:/\b(price_idr|harga|price)\b/i,anchor:'#catalog-pricing',text:'Masukkan harga jual lebih dari Rp0 untuk produk atau varian.'},
  {match:/\b(weight_grams|length_cm|width_cm|height_cm|dimensi|berat)\b/i,anchor:'#catalog-dimensions',text:'Isi berat, panjang, lebar, dan tinggi lebih dari 0.'},
  {match:/\b(active_category|kategori)\b/i,anchor:'#catalog-categories',text:'Pilih kategori aktif beserta induknya yang aktif.'},
