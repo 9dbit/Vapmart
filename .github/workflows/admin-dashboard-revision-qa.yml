@@ -1,17 +1,26 @@
 name: Vapmart Admin Dashboard Revision QA
 on:
   push:
-    branches: [feat/admin-dashboard-parity-import-20261124]
+    branches: [feat/admin-dashboard-parity-import-20261124, 'fix/admin-catalog-*']
     paths:
       - "apps/api/src/catalog-workspace.ts"
       - "apps/api/src/catalog-controller.ts"
       - "apps/api/src/catalog-import.ts"
+      - "apps/api/src/catalog-product-type.ts"
+      - "apps/api/src/migrate.ts"
+      - "apps/api/sql/037_default_category.sql"
       - "apps/api/test/admin-dashboard-revision.test.ts"
       - "apps/api/test/integration/admin-dashboard-revision.ts"
+      - "apps/api/test/catalog-product-type.test.ts"
+      - "apps/api/test/integration/catalog-product-type.ts"
       - "apps/web/src/components/catalog-*"
       - "apps/web/src/components/admin-workspace.tsx"
       - "apps/web/src/app/admin-visual-system.css"
       - "apps/web/src/lib/catalog-*.ts"
+      - "apps/web/src/app/api/admin/catalog/**"
+      - "scripts/catalog-proxy-http-smoke.mjs"
+      - "scripts/admin-catalog-route-browser.mjs"
+      - "scripts/admin-dashboard-revision-smoke.mjs"
       - ".github/workflows/admin-dashboard-revision-qa.yml"
   pull_request:
     branches: [release/vapmart-stable]
@@ -20,7 +29,7 @@ permissions:
 jobs:
   admin-api-integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 22
+    timeout-minutes: 25
     services:
       postgres:
         image: postgres:16
@@ -39,6 +48,10 @@ jobs:
       DIGITAL_COMMERCE_ENABLED: "false"
       PAYMENT_MODE: disabled
       SHIPPING_RATE_LOOKUP_ENABLED: "false"
+      BITESHIP_WEBHOOK_ENABLED: "false"
+      API_INTERNAL_URL: http://127.0.0.1:4100
+      NEXT_PUBLIC_SUPABASE_URL: https://auth-fixture.example.invalid
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_fixture_only_not_a_real_key
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
@@ -51,25 +64,15 @@ jobs:
       - name: Typecheck and build API
         working-directory: apps/api
         run: npm run typecheck && npm run build
-      - name: Test protected category deletion, CSV mapping, and publish guidance
+      - name: Test default category transfer, type conversion, CSV mapping and publication
         working-directory: apps/api
-        run: npx tsx --test test/admin-dashboard-revision.test.ts test/catalog-bulk-publish.test.ts test/catalog-engine.test.ts
-      - name: Migrate fixture database
+        run: node --import tsx --test test/admin-dashboard-revision.test.ts test/catalog-product-type.test.ts test/catalog-bulk-publish.test.ts test/catalog-engine.test.ts
+      - name: Migrate fixture database and verify replay
         working-directory: apps/api
-        run: npm run migrate
-      - name: Exercise category deletion and blank-price drafts through HTTP
+        run: npm run migrate && npm run migrate
+      - name: Exercise category reassignment, draft imports and type changes through HTTP
         working-directory: apps/api
-        run: npx tsx --test test/integration/admin-dashboard-revision.ts
-  admin-web-build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      NEXT_TELEMETRY_DISABLED: "1"
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
+        run: node --import tsx --test --test-concurrency=1 test/integration/admin-dashboard-revision.ts test/integration/catalog-product-type.ts
       - name: Install web
         working-directory: apps/web
         run: npm ci --include=dev --no-audit --no-fund
@@ -78,3 +81,26 @@ jobs:
         run: npm run typecheck && npm run build
       - name: Inspect theme, font and safety regression markers
         run: node scripts/admin-dashboard-revision-smoke.mjs
+      - name: Exercise real Next proxy methods, publication paths and auth boundaries
+        run: node scripts/catalog-proxy-http-smoke.mjs
+      - name: Browser test tooling
+        run: npm install --no-save --no-audit --no-fund playwright@1.56.0 && npx playwright install --with-deps chromium
+      - name: Browser regression through Next, Nest and PostgreSQL
+        timeout-minutes: 7
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/admin-catalog-route
+          node scripts/cp39-fixture-server.cjs > artifacts/admin-catalog-route/api.log 2>&1 &
+          API_PID=$!
+          (cd apps/web && npm run start) > artifacts/admin-catalog-route/web.log 2>&1 &
+          WEB_PID=$!
+          trap 'kill "$API_PID" "$WEB_PID" 2>/dev/null || true' EXIT
+          timeout --signal=TERM --kill-after=10s 300s node scripts/admin-catalog-route-browser.mjs 2>&1 | tee artifacts/admin-catalog-route/browser.log
+          git rev-parse HEAD > artifacts/admin-catalog-route/verified-source.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: admin-catalog-route-regression
+          path: artifacts/admin-catalog-route/
+          if-no-files-found: ignore
+          retention-days: 7

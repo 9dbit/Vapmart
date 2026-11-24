@@ -140,7 +140,7 @@ export class CatalogImportService{
  ON CONFLICT(actor_id,fingerprint) DO UPDATE SET plan=CASE WHEN product.catalog_imports.state='preview' THEN EXCLUDED.plan ELSE product.catalog_imports.plan END,expires_at=CASE WHEN product.catalog_imports.state='preview' THEN now()+interval '30 minutes' ELSE product.catalog_imports.expires_at END RETURNING *`,[who,finger,sourceKey,x.mode,JSON.stringify(plan)])).rows[0];return this.receipt(saved);
  }
  private async resolveCategories(client:PoolClient,actor:string,paths:string[][],previous:string[]){
-  if(!paths.length){if(previous.length)return previous;return [(await client.query("SELECT id FROM product.categories WHERE slug='other' AND is_active")).rows[0]?.id].filter(Boolean);}
+  if(!paths.length){if(previous.length)return previous;return [(await client.query("SELECT id FROM product.categories WHERE slug='accessories' AND is_active")).rows[0]?.id].filter(Boolean);}
   const ids:string[]=[];
   for(const path of paths){let parent:string|null=null;let joined='';
    for(const name of path){joined+=(joined?'-':'')+slugify(name);const code=joined.length>110?joined.slice(0,95)+'-'+createHash('sha256').update(joined).digest('hex').slice(0,10):joined;

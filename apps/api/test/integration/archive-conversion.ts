@@ -40,7 +40,7 @@ test('CP45 archive becomes an idempotent unlisted editable draft with validated 
   assert.equal(Number(media.rows[0].size_bytes),Number(media.rows[0].length));
   assert.ok(Number(media.rows[0].size_bytes)>100&&Number(media.rows[0].size_bytes)<=1572864);
   const cat=await db.query("SELECT c.slug FROM product.product_categories pc JOIN product.categories c ON c.id=pc.category_id WHERE pc.product_id=$1",[id]);
-  assert.deepEqual(cat.rows.map(x=>x.slug),['other']);
+  assert.deepEqual(cat.rows.map(x=>x.slug),['accessories']);
   const warehouse=await db.query('SELECT count(*)::int n FROM product.warehouse_stock WHERE product_id=$1',[id]);
   assert.equal(warehouse.rows[0].n,0);
   const provenance=await db.query("SELECT source_id,product_id FROM product.catalog_source_rows WHERE source_key='legacy_archive_v1' AND source_id=$1",[slug]);
