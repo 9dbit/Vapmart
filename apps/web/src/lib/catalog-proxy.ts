@@ -1,5 +1,7 @@
 import {NextRequest,NextResponse} from 'next/server';
-const privatePattern=/^(store-profile|lookups|products(?:\/[0-9a-f-]{36}(?:\/(?:quick|state))?)?|categories(?:\/[0-9a-f-]{36}(?:\/archive)?)?|reviews(?:\/[0-9a-f-]{36}\/moderate)?|imports\/(?:columns|preview|[0-9a-f-]{36}(?:\/apply)?)|orders(?:\/(?:products|[0-9a-f-]{36}(?:\/(?:rates|preview|status|invoice|confirm-payment))?))?|vouchers(?:\/[0-9a-f-]{36})?|promotions(?:\/[0-9a-f-]{36})?|analytics\/(?:summary|ledger(?:\.csv)?))$/i;
+// Single-product preflight and the bulk-publish toolbar share the bulk routes.
+// Keep these explicit: an unknown action must never become an arbitrary API proxy.
+const privatePattern=/^(store-profile|lookups|products(?:\/(?:bulk\/(?:preview|publish)|[0-9a-f-]{36}(?:\/(?:quick|state))?))?|categories(?:\/[0-9a-f-]{36}(?:\/archive)?)?|reviews(?:\/[0-9a-f-]{36}\/moderate)?|imports\/(?:columns|preview|[0-9a-f-]{36}(?:\/apply)?)|orders(?:\/(?:products|[0-9a-f-]{36}(?:\/(?:rates|preview|status|invoice|confirm-payment))?))?|vouchers(?:\/[0-9a-f-]{36})?|promotions(?:\/[0-9a-f-]{36})?|analytics\/(?:summary|ledger(?:\.csv)?))$/i;
 export async function catalogProxy(req:NextRequest,segments:string[],scope:'admin'|'public'|'customer'){
  const path=segments.join('/');
  const allowed=scope==='admin'?privatePattern.test(path):scope==='public'?/^(categories|selection|reviews\/[a-z0-9-]{1,120})$/.test(path):/^(review-eligible|reviews|review-photos|orders)$/.test(path);

@@ -109,8 +109,8 @@ export class AdminProductRecordsService implements OnModuleInit{
    await inventoryLock(client);
    const existing=await client.query('SELECT product_id FROM product.catalog_source_rows WHERE source_key=$1 AND source_id=$2',['legacy_archive_v1',slug]);
    if(existing.rows[0])return {created:false,productId:existing.rows[0].product_id,status:'draft_or_managed',replayed:true};
-   const category=await client.query("SELECT id FROM product.categories WHERE slug='other' AND is_active LIMIT 1");
-   if(!category.rows[0])throw new ConflictException('Aktifkan kategori Other sebagai kategori draft sementara');
+   const category=await client.query("SELECT id FROM product.categories WHERE slug='accessories' AND is_active LIMIT 1");
+   if(!category.rows[0])throw new ConflictException('Kategori default Accessories belum tersedia. Muat ulang setelah konfigurasi kategori selesai.');
    const code='archive-'+slug.slice(0,75)+'-'+createHash('sha256').update(slug).digest('hex').slice(0,10);
    if((await client.query('SELECT 1 FROM product.products WHERE slug=$1',[code])).rows.length)
     throw new ConflictException('Draft ber-slug sama sudah ada; perlu rekonsiliasi manual');

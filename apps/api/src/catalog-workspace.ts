@@ -7,8 +7,10 @@ import {requireActor,assertVersion,recordAudit,parsePage,pageResult,hasGallery,p
 import {inventoryLock,ensureBalance,writeEvent,refreshProductAvailability,requireUuid} from './warehouses';
 import * as V from './catalog-validation';
 import {publicPrice} from './catalog-pricing';
+import {assertProductTypeChange} from './catalog-product-type';
 type Reader={query:(sql:string,values?:any[])=>Promise<{rows:any[]}>};
 export const BULK_PUBLISH_LIMIT=50;
+export const DEFAULT_CATEGORY_SLUG='accessories';
 export type BulkPublishItem={id:string;expectedVersion:number};
 export type BulkPublishResult={id:string;status:'ready'|'blocked'|'published'|'failed'|'skipped';name?:string;message?:string};
 
@@ -158,7 +160,7 @@ export class CatalogWorkspaceService{
   if(id){requireUuid(id,'produk');before=(await client.query('SELECT * FROM product.products WHERE id=$1 AND archived_at IS NULL FOR UPDATE',[id])).rows[0];if(!before||before.parent_product_id)throw new NotFoundException('Produk utama tidak ditemukan');assertVersion(before.edit_version,V.version(x.expectedVersion));}
   const p=V.record(x.product,bodyFields),type=p.product_type??before?.product_type??'simple';
   if(!['simple','variable'].includes(type))throw new BadRequestException('Tipe produk tidak valid');
-  if(before&&type!==before.product_type)throw new ConflictException('Tipe produk tersimpan tidak dapat diubah; buat produk baru agar riwayat SKU tetap utuh');
+  await assertProductTypeChange(client,before,type);
   const attrs=V.attributes(p.attributes??[]);if(type==='simple'&&attrs.length||type==='variable'&&attrs.length===0)throw new BadRequestException('Produk variasi membutuhkan 1-3 atribut');
   const cats=await categoryIds(client,p);
   const root:Record<string,any>={name:V.text(p.name,'Nama produk',2,255),slug:V.slug(p.slug),sku:V.sku(p.sku),description:V.text(p.description??'','Deskripsi',0,20000),category:cats.slug,
@@ -285,7 +287,9 @@ export class CatalogWorkspaceService{
   });
  }
  async categories(publicOnly=false){
-  const r=await this.db.query(`SELECT c.*,(SELECT count(DISTINCT p.id)::int FROM product.product_categories pc JOIN product.products p ON p.id=pc.product_id WHERE pc.category_id=c.id AND p.parent_product_id IS NULL AND p.archived_at IS NULL AND p.slug NOT LIKE 'demo-%' AND ($1::boolean=false OR p.is_active)) product_count
+  const r=await this.db.query(`SELECT c.*,(c.slug='accessories') is_default,
+ (CASE WHEN $1::boolean THEN 0 ELSE (SELECT count(*)::int FROM promotion.event_categories ec WHERE ec.category_id=c.id) END) promotion_count,
+ (SELECT count(DISTINCT p.id)::int FROM product.products p WHERE (p.category=c.slug OR EXISTS(SELECT 1 FROM product.product_categories pc WHERE pc.product_id=p.id AND pc.category_id=c.id)) AND p.parent_product_id IS NULL AND p.archived_at IS NULL AND p.slug NOT LIKE 'demo-%' AND ($1::boolean=false OR p.is_active)) product_count
  FROM product.categories c WHERE ($1::boolean=false OR c.is_active) ORDER BY c.name,c.id`,[publicOnly]);return {items:r.rows};
  }
  async categorySave(actor:Principal,id:string|null,raw:unknown){
@@ -294,6 +298,8 @@ export class CatalogWorkspaceService{
   V.safeCatalogTerms(name,code,description);if(typeof x.active!=='boolean')throw new BadRequestException('Status kategori diperlukan');
   try{return await this.db.transaction(async client=>{await inventoryLock(client);let before:any=null;
    if(id){requireUuid(id,'kategori');before=(await client.query('SELECT * FROM product.categories WHERE id=$1 FOR UPDATE',[id])).rows[0];if(!before)throw new NotFoundException();assertVersion(before.edit_version,V.version(x.expectedVersion));}
+   if(before?.slug===DEFAULT_CATEGORY_SLUG&&(name!=='Accessories'||code!==DEFAULT_CATEGORY_SLUG||parent||!x.active))
+    throw new ConflictException('Accessories adalah kategori default. Nama, slug, status aktif, dan induknya tidak dapat diubah.');
    if(parent){
     const ancestors=(await client.query('WITH RECURSIVE a AS (SELECT id,parent_id,is_active FROM product.categories WHERE id=$1 UNION ALL SELECT c.id,c.parent_id,c.is_active FROM product.categories c JOIN a ON c.id=a.parent_id) SELECT id,is_active FROM a',[parent])).rows;
     if(!ancestors.length||ancestors.some(a=>a.id===id)||ancestors.length>=5||x.active&&ancestors.some(a=>!a.is_active))throw new BadRequestException('Kategori induk tidak valid, melingkar, atau melebihi lima tingkat');
@@ -310,10 +316,11 @@ export class CatalogWorkspaceService{
  async categoryArchive(actor:Principal,id:string,raw:unknown){
   const who=requireActor(actor);requireUuid(id,'kategori');const x=V.record(raw,['expectedVersion','confirm']);if(x.confirm!==true)throw new BadRequestException('Konfirmasi diperlukan');
   return this.db.transaction(async client=>{await inventoryLock(client);const old=(await client.query('SELECT * FROM product.categories WHERE id=$1 FOR UPDATE',[id])).rows[0];if(!old)throw new NotFoundException();assertVersion(old.edit_version,V.version(x.expectedVersion));
+   if(old.slug===DEFAULT_CATEGORY_SLUG)throw new ConflictException('Accessories adalah kategori default dan tidak dapat dinonaktifkan.');
    const used=await client.query('SELECT 1 FROM product.product_categories WHERE category_id=$1 UNION ALL SELECT 1 FROM product.categories WHERE parent_id=$1 LIMIT 1',[id]);if(used.rows.length)throw new ConflictException('Kategori masih dipakai produk atau mempunyai anak. Pindahkan terlebih dahulu.');
    await client.query('UPDATE product.categories SET is_active=false,edit_version=edit_version+1,updated_at=now() WHERE id=$1',[id]);await catalogAudit(client,who,'category',id,'archive',old,{...old,is_active:false});return {archived:true};});
  }
- /** Delete only unused categories; never cascade into products or child categories. */
+ /** Reassign products atomically; product records, prices, inventory and history survive. */
  async categoryDelete(actor:Principal,id:string,raw:unknown){
   const who=requireActor(actor);requireUuid(id,'kategori');
   const x=V.record(raw,['expectedVersion','confirm']);
@@ -323,13 +330,43 @@ export class CatalogWorkspaceService{
    const before=(await client.query('SELECT * FROM product.categories WHERE id=$1 FOR UPDATE',[id])).rows[0];
    if(!before)throw new NotFoundException('Kategori tidak ditemukan.');
    assertVersion(before.edit_version,V.version(x.expectedVersion));
-   const refs=await client.query(`SELECT 1 FROM product.product_categories WHERE category_id=$1
-    UNION ALL SELECT 1 FROM product.categories WHERE parent_id=$1
-    UNION ALL SELECT 1 FROM product.products WHERE category=$2 LIMIT 1`,[id,before.slug]);
-   if(refs.rows.length)throw new ConflictException('Kategori masih digunakan produk atau memiliki subkategori. Pindahkan produk/subkategori terlebih dahulu.');
+   if(before.slug===DEFAULT_CATEGORY_SLUG)throw new ConflictException('Accessories adalah kategori default dan tidak dapat dihapus.');
+   // Moving a promotion to Accessories would unexpectedly discount unrelated products.
+   const promotions=(await client.query('SELECT count(*)::int n FROM promotion.event_categories WHERE category_id=$1',[id])).rows[0].n;
+   if(promotions)throw new ConflictException(`Kategori digunakan oleh ${promotions} promosi. Hapus kategori ini dari cakupan promosi tersebut sebelum menghapusnya.`);
+   const target=(await client.query('SELECT * FROM product.categories WHERE slug=$1 FOR UPDATE',[DEFAULT_CATEGORY_SLUG])).rows[0];
+   if(!target?.is_active||target.parent_id)throw new ConflictException('Kategori default Accessories belum siap. Muat ulang setelah konfigurasi kategori selesai.');
+   // Include archived rows and legacy primary-slug links, plus children of affected families.
+   const products=(await client.query(`SELECT p.*,
+    (SELECT coalesce(jsonb_agg(pc.category_id ORDER BY pc.category_id),'[]'::jsonb) FROM product.product_categories pc WHERE pc.product_id=p.id) category_ids
+    FROM product.products p WHERE p.category=$2 OR EXISTS(SELECT 1 FROM product.product_categories pc WHERE pc.product_id=p.id AND pc.category_id=$1)
+    OR p.parent_product_id IN(SELECT root.id FROM product.products root WHERE root.parent_product_id IS NULL AND (root.category=$2 OR EXISTS(SELECT 1 FROM product.product_categories pc WHERE pc.product_id=root.id AND pc.category_id=$1)))
+    ORDER BY p.id FOR UPDATE OF p`,[id,before.slug])).rows;
+   const productIds=products.map(p=>p.id);
+   if(productIds.length){
+    await client.query('INSERT INTO product.product_categories(product_id,category_id) SELECT unnest($1::uuid[]),$2 ON CONFLICT DO NOTHING',[productIds,target.id]);
+    await client.query('DELETE FROM product.product_categories WHERE category_id=$1',[id]);
+    const after=(await client.query(`UPDATE product.products SET category=CASE WHEN category=$2 THEN $3 ELSE category END,
+     edit_version=edit_version+1,updated_at=now() WHERE id=ANY($1::uuid[]) RETURNING *`,[productIds,before.slug,target.slug])).rows;
+    const previous=new Map(products.map(p=>[p.id,p]));
+    for(const product of after){
+     const old=previous.get(product.id)!;
+     const category_ids=[...new Set([...old.category_ids.filter((category:string)=>category!==id),target.id])].sort();
+     await recordAudit(client,'product',who,old,{...product,category_ids});
+    }
+   }
+   const children=(await client.query('SELECT * FROM product.categories WHERE parent_id=$1 ORDER BY id FOR UPDATE',[id])).rows;
+   if(children.length){
+    const reparented=(await client.query('UPDATE product.categories SET parent_id=$2,edit_version=edit_version+1,updated_at=now() WHERE parent_id=$1 RETURNING *',[id,before.parent_id])).rows;
+    const previous=new Map(children.map(c=>[c.id,c]));
+    for(const child of reparented)await catalogAudit(client,who,'category',child.id,'reparent',previous.get(child.id),child);
+   }
    await client.query('DELETE FROM product.categories WHERE id=$1',[id]);
-   await catalogAudit(client,who,'category',id,'delete',before,null);
-   return {deleted:true,id};
+   const reassignment={defaultCategoryId:target.id,defaultCategoryName:target.name,
+    movedProducts:products.filter(p=>!p.parent_product_id).length,movedVariants:products.filter(p=>p.parent_product_id).length,
+    movedSubcategories:children.length,parentId:before.parent_id};
+   await catalogAudit(client,who,'category',id,'delete',{...before,reassignment},null);
+   return {deleted:true,id,...reassignment};
   });}catch(e){
    if((e as {code?:string}).code==='23503')
     throw new ConflictException('Kategori masih direferensikan oleh data lain dan tidak dapat dihapus.');

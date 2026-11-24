@@ -5,3 +5,4 @@ async function handle(req:NextRequest,{params}:{params:Promise<{segments:string[
 export const GET=handle;
 export const POST=handle;
 export const PATCH=handle;
+export const DELETE=handle;
