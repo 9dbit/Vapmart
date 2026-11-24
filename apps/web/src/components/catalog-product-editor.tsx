@@ -29,6 +29,11 @@ export function CatalogProductEditor({id,archivePublish=false}:{id?:string;archi
  async function changeState(){
   if(!id||!lookups)return;
   if(dirty.current){setError('Simpan perubahan form terlebih dahulu.');return;}
+  if(!active&&new Set(images).size<3){
+   setError('Tambahkan minimal 3 foto produk berbeda sebelum publikasi.');
+   setPublishProblems(publicationHints('gallery_urls'));
+   return;
+  }
   setBusy(true);setError('');setPublishProblems([]);setNotice('');
   try{
    if(!active){
