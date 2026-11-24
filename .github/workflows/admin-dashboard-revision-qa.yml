@@ -1,0 +1,80 @@
+name: Vapmart Admin Dashboard Revision QA
+on:
+  push:
+    branches: [feat/admin-dashboard-parity-import-20261124]
+    paths:
+      - "apps/api/src/catalog-workspace.ts"
+      - "apps/api/src/catalog-controller.ts"
+      - "apps/api/src/catalog-import.ts"
+      - "apps/api/test/admin-dashboard-revision.test.ts"
+      - "apps/api/test/integration/admin-dashboard-revision.ts"
+      - "apps/web/src/components/catalog-*"
+      - "apps/web/src/components/admin-workspace.tsx"
+      - "apps/web/src/app/admin-visual-system.css"
+      - "apps/web/src/lib/catalog-*.ts"
+      - ".github/workflows/admin-dashboard-revision-qa.yml"
+  pull_request:
+    branches: [release/vapmart-stable]
+permissions:
+  contents: read
+jobs:
+  admin-api-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: vapmart_test
+          POSTGRES_PASSWORD: disposable_admin_rev_only
+          POSTGRES_DB: vapmart_admin_revision
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U vapmart_test -d vapmart_admin_revision"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgres://vapmart_test:disposable_admin_rev_only@127.0.0.1:5432/vapmart_admin_revision
+      CP39_LOCAL_TEST: "1"
+      CHECKOUT_ENABLED: "false"
+      DIGITAL_COMMERCE_ENABLED: "false"
+      PAYMENT_MODE: disabled
+      SHIPPING_RATE_LOOKUP_ENABLED: "false"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install API
+        working-directory: apps/api
+        run: npm ci --include=dev --no-audit --no-fund
+      - name: Typecheck and build API
+        working-directory: apps/api
+        run: npm run typecheck && npm run build
+      - name: Test protected category deletion, CSV mapping, and publish guidance
+        working-directory: apps/api
+        run: npx tsx --test test/admin-dashboard-revision.test.ts test/catalog-bulk-publish.test.ts test/catalog-engine.test.ts
+      - name: Migrate fixture database
+        working-directory: apps/api
+        run: npm run migrate
+      - name: Exercise category deletion and blank-price drafts through HTTP
+        working-directory: apps/api
+        run: npx tsx --test test/integration/admin-dashboard-revision.ts
+  admin-web-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install web
+        working-directory: apps/web
+        run: npm ci --include=dev --no-audit --no-fund
+      - name: Typecheck and production build
+        working-directory: apps/web
+        run: npm run typecheck && npm run build
+      - name: Inspect theme, font and safety regression markers
+        run: node scripts/admin-dashboard-revision-smoke.mjs
